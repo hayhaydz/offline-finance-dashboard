@@ -41,6 +41,17 @@ self.addEventListener('fetch', (event) => {
 
 	async function respond() {
 		const url = new URL(event.request.url);
+
+		// Ignore non-http schemes (chrome-extension, ws, etc.)
+		if (!url.protocol.startsWith('http')) {
+			return fetch(event.request);
+		}
+
+		// Ignore Vite HMQ websocket
+		if (url.protocol === 'ws:' || url.protocol === 'wss:') {
+			return fetch(event.request);
+		}
+
 		const cache = await caches.open(CACHE);
 
 		// Try to get from cache first

@@ -71,3 +71,27 @@ export function decryptTOTPSecret(
 	decrypted += decipher.final('utf8');
 	return decrypted;
 }
+
+// Verify backup code against hashed codes from database
+// Backup codes are case-insensitive for user convenience
+export async function verifyBackupCode(
+	inputCode: string,
+	hashedCodes: string[]
+): Promise<boolean> {
+	// Normalize to uppercase (backup codes are stored uppercase)
+	const normalizedCode = inputCode.toUpperCase();
+
+	// Import verifyPassword function from password module
+	const { verifyPassword } = await import('$lib/auth/password');
+
+	// Check against each hashed code
+	// We use the same Argon2id verification as password hashing
+	for (const hash of hashedCodes) {
+		const isValid = await verifyPassword(hash, normalizedCode);
+		if (isValid) {
+			return true;
+		}
+	}
+
+	return false;
+}

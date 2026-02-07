@@ -1,6 +1,7 @@
 import { redirect, fail, error } from '@sveltejs/kit';
 import { db } from '$lib/db/client';
-import { users, backupCodes } from '$lib/db/schema';
+import { users, backupCodes, sessions } from '$lib/db/schema';
+import crypto from 'crypto';
 import {
 	verifyTOTP,
 	generateOTPAuthURL,
@@ -115,7 +116,26 @@ export const actions = {
 		// Clear the setup cookie
 		cookies.delete('mfa-setup-user-id', { path: '/' });
 
-		// Return success
-		return { success: true };
+		// Create session and log user in (auto-login after MFA setup)
+		const sessionToken = crypto.randomBytes(32).toString('hex');
+
+		await db.insert(sessions).values({
+			token: sessionToken,
+			userId: user.id,
+			createdAt: new Date(),
+			lastActivity: new Date()
+		});
+
+		// Set HTTP-only cookie with session token
+		cookies.set('session', sessionToken, {
+			path: '/',
+			httpOnly: true,
+			sameSite: 'lax',
+			secure: process.env.NODE_ENV === 'production',
+			maxAge: 60 * 60 * 24 // 24 hours
+		});
+
+		// Redirect to app
+		throw redirect(302, '/app');
 	}
 };

@@ -1,78 +1,106 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { page } from '$app/stores';
+	import FormField from '$lib/components/ui/form-field/form-field.svelte';
+	import { required, exactLength } from '$lib/validation/rules';
+
 	let { form, data } = $props();
 
 	// QR code data URL from load function (reactive)
 	const qrCodeUrl = $derived(data?.qrCodeUrl);
 	const backupCodes = $derived(data?.backupCodes);
 	const username = $derived(data?.username);
+
+	// Form field value
+	let totpCode = $state('');
+
+	// Validation rules for TOTP code
+	const totpCodeRules = [
+		required(),
+		exactLength(6, 'Enter a valid 6-digit code')
+	];
+
+	// Numeric-only filter for TOTP code
+	function filterNumeric(value: string): string {
+		return value.replace(/[^\d]/g, '').slice(0, 6);
+	}
+
+	// Form validation state
+	let totpCodeValid = $state(false);
+
+	// Form is valid when code is valid
+	const isFormValid = $derived(totpCodeValid);
+
+	// Component ref for validation access (must be $state for $effect tracking)
+	let totpCodeField = $state<{ isValid: boolean; validate: () => boolean } | undefined>();
+
+	// Update validation state when field changes
+	$effect(() => {
+		totpCodeValid = totpCodeField?.isValid ?? false;
+	});
 </script>
 
-<div class="max-w-[500px] mx-8 p-8 border border-gray-300">
-	<h1>Set Up Two-Factor Authentication</h1>
-	<p class="text-gray-600 mb-6">
+<div class="border-b border-black p-2">
+	<h1 class="text-lg font-bold mb-2 mt-0">SET UP TWO-FACTOR AUTHENTICATION</h1>
+	<p class="text-gray-600 my-1">
 		Scan the QR code below with your authenticator app (Google Authenticator, Authy, etc.)
 	</p>
+</div>
 
-	{#if qrCodeUrl}
-		<div class="text-center my-8 p-4 bg-gray-50 rounded-lg">
-			<img src={qrCodeUrl} alt="QR Code for TOTP Setup" class="max-w-[200px] mx-auto" />
-			<p class="mt-4 font-bold">{username}</p>
-		</div>
+{#if qrCodeUrl}
+	<div class="border-b border-black p-2 text-center">
+		<img src={qrCodeUrl} alt="QR Code for TOTP Setup" class="max-w-[200px] mx-auto" />
+		<p class="mt-2 font-bold">{username}</p>
+	</div>
+{/if}
+
+{#if backupCodes}
+	<div class="border-b border-black p-2">
+		<div class="font-bold mb-1">SAVE YOUR BACKUP CODES</div>
+		<p class="text-gray-600 text-xs my-1">
+			Store these codes securely. You can use them to access your account if you lose
+			access to your authenticator device.
+		</p>
+		<ul class="grid grid-cols-2 gap-1 list-none p-0 my-2 font-mono text-sm">
+			{#each backupCodes as code}
+				<li class="p-1 bg-white border border-black text-center">{code}</li>
+			{/each}
+		</ul>
+		<p class="text-amber-700 text-xs my-1">These codes will not be shown again.</p>
+	</div>
+{/if}
+
+<form method="POST" use:enhance class="border-b border-black p-2">
+	<FormField
+		bind:this={totpCodeField}
+		label="Enter Authentication Code"
+		name="totpCode"
+		type="text"
+		bind:value={totpCode}
+		rules={totpCodeRules}
+		placeholder="123456"
+		autocomplete="one-time-code"
+		inputmode="numeric"
+		filter={filterNumeric}
+	/>
+	<small class="block text-gray-600 text-xs mb-2">Enter the 6-digit code from your authenticator app</small>
+
+	{#if form?.error}
+		<p class="text-red-700 font-bold my-2">{form.error}</p>
 	{/if}
 
-	{#if backupCodes}
-		<div class="my-8 p-4 bg-yellow-50 border border-yellow-500 rounded">
-			<h2 class="mt-0 text-lg">Save Your Backup Codes</h2>
-			<p class="text-sm text-yellow-800 my-2">
-				Store these codes securely. You can use them to access your account if you lose
-				access to your authenticator device.
-			</p>
-			<ul class="grid grid-cols-2 gap-2 list-none p-0 my-4 font-mono text-lg">
-				{#each backupCodes as code}
-					<li class="p-1 px-2 bg-white border border-gray-300 text-center">{code}</li>
-				{/each}
-			</ul>
-			<p class="text-sm text-yellow-800 my-2">These codes will not be shown again.</p>
-		</div>
-	{/if}
-
-	<form method="POST" use:enhance>
-		<div class="mb-4">
-			<label for="totpCode" class="block mb-1 font-bold">Enter Authentication Code</label>
-			<input
-				type="text"
-				id="totpCode"
-				name="totpCode"
-				required
-				minlength="6"
-				maxlength="6"
-				pattern="[0-9]{6}"
-				placeholder="123456"
-				autocomplete="one-time-code"
-				inputmode="numeric"
-				class="w-full p-2 box-border border border-gray-300"
-			/>
-			<small class="block mt-1 text-gray-600 text-sm">Enter the 6-digit code from your authenticator app</small>
-		</div>
-
-		{#if form?.error}
-			<p class="text-red-600 my-4">{form.error}</p>
-		{/if}
-
-		{#if form?.success}
-			<p class="text-green-800 bg-green-100 p-4 rounded my-4">
-				Registration complete! You can now <a href="/login">log in</a>.
-			</p>
-		{/if}
-
-		<button type="submit" disabled={form?.success} class="w-full p-3 bg-black text-white border-none cursor-pointer">
+	<div class="mb-2">
+		<button
+			type="submit"
+			disabled={!isFormValid}
+			class="bracket-link"
+		>
 			Verify and Complete Registration
 		</button>
-	</form>
+	</div>
+</form>
 
-	<p class="mt-4 text-center text-sm text-gray-600">
+<div class="border-b border-black p-2">
+	<p class="text-gray-600 text-xs my-1">
 		Can't scan the QR code? Your manual entry key is shown in the authenticator app setup.
 	</p>
 </div>

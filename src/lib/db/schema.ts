@@ -1,5 +1,6 @@
 import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
+import { relations } from 'drizzle-orm';
 
 export const users = sqliteTable('users', {
 	id: integer('id').primaryKey({ autoIncrement: true }),
@@ -28,6 +29,26 @@ export const backupCodes = sqliteTable('backup_codes', {
 	used: integer('used', { mode: 'boolean' }).notNull().default(false),
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
 });
+
+// Define relations for Drizzle ORM
+export const usersRelations = relations(users, ({ many }) => ({
+	sessions: many(sessions),
+	backupCodes: many(backupCodes)
+}));
+
+export const sessionsRelations = relations(sessions, ({ one }) => ({
+	user: one(users, {
+		fields: [sessions.userId],
+		references: [users.id]
+	})
+}));
+
+export const backupCodesRelations = relations(backupCodes, ({ one }) => ({
+	user: one(users, {
+		fields: [backupCodes.userId],
+		references: [users.id]
+	})
+}));
 
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;

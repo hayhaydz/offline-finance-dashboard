@@ -1,11 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { 
-	generateTOTPSecret, 
-	generateOTPAuthURL, 
-	verifyTOTP, 
+import {
+	generateTOTPSecret,
+	generateOTPAuthURL,
+	verifyTOTP,
 	generateBackupCodes,
-	decryptTOTPSecret 
+	decryptTOTPSecret,
+	verifyBackupCode
 } from '$lib/auth/mfa';
+import { hashPassword } from '$lib/auth/password';
 import crypto from 'crypto';
 
 describe('MFA utility', () => {
@@ -63,20 +65,52 @@ describe('MFA utility', () => {
 		// Note: This might be slightly flaky if time passes between generation and verification,
 		// but with otplib and internal generation it usually works within the same second.
 		const secret = generateTOTPSecret();
-		
+
 		// We use otplib directly to generate a token for testing verifyTOTP
 		// This is just to test our wrapper function
 		const { generate } = await import('otplib');
 		const { NobleCryptoPlugin } = await import('@otplib/plugin-crypto-noble');
 		const { ScureBase32Plugin } = await import('@otplib/plugin-base32-scure');
 
-		const token = await generate({ 
+		const token = await generate({
 			secret,
 			crypto: new NobleCryptoPlugin(),
 			base32: new ScureBase32Plugin(),
 		});
-		
+
 		const isValid = await verifyTOTP(token, secret);
+		expect(isValid).toBe(true);
+	});
+
+	it('should verify a valid backup code', async () => {
+		// Generate and hash a backup code (same as in MFA setup)
+		const codes = generateBackupCodes();
+		const testCode = codes[0]; // e.g., "AB12CD34"
+		const hashedCodes = await Promise.all(codes.map(code => hashPassword(code)));
+
+		// Verify the code matches
+		const isValid = await verifyBackupCode(testCode, hashedCodes);
+		expect(isValid).toBe(true);
+	});
+
+	it('should reject an invalid backup code', async () => {
+		// Generate and hash backup codes
+		const codes = generateBackupCodes();
+		const hashedCodes = await Promise.all(codes.map(code => hashPassword(code)));
+
+		// Try to verify with wrong code
+		const isValid = await verifyBackupCode('WRONGCODE', hashedCodes);
+		expect(isValid).toBe(false);
+	});
+
+	it('should be case-insensitive for backup codes', async () => {
+		// Generate a backup code (uppercase)
+		const codes = generateBackupCodes();
+		const testCode = codes[0]; // e.g., "AB12CD34"
+		const hashedCodes = await Promise.all(codes.map(code => hashPassword(code)));
+
+		// Verify with lowercase version - should still work
+		const isValid = await verifyBackupCode(testCode.toLowerCase(), hashedCodes);
 		expect(isValid).toBe(true);
 	});
 });

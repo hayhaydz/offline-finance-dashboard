@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Navigation from '$lib/components/navigation.svelte';
+	import LoadingIndicator from '$lib/components/ui/loading-indicator/loading-indicator.svelte';
 	import { page } from '$app/stores';
 
 	$: user = $page.data.user;
@@ -12,6 +13,8 @@
 			<span>USER: {user.username.toUpperCase()}</span>
 		</div>
 	{/if}
+
+	<LoadingIndicator />
 
 	<slot />
 

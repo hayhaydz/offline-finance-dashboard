@@ -1,8 +1,8 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { db } from '$lib/db/client';
-import { users, sessions } from '$lib/db/schema';
+import { users, sessions, backupCodes } from '$lib/db/schema';
 import { verifyPassword } from '$lib/auth/password';
-import { verifyTOTP, decryptTOTPSecret } from '$lib/auth/mfa';
+import { verifyTOTP, decryptTOTPSecret, verifyBackupCode } from '$lib/auth/mfa';
 import { checkRateLimit, recordFailedAttempt, recordSuccessfulAttempt } from '$lib/security/rate-limiter';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
@@ -73,7 +73,40 @@ export const actions = {
 		const totpSecretPlaintext = decryptTOTPSecret(user.totpSecret, user.totpSecretIV, systemKey);
 
 		// Verify TOTP code using decrypted secret
-		const totpValid = await verifyTOTP(totpCode, totpSecretPlaintext);
+		let totpValid = await verifyTOTP(totpCode, totpSecretPlaintext);
+
+		// If TOTP fails, try backup code verification
+		let usedBackupCodeId: number | null = null;
+		if (!totpValid) {
+			// Query user's UNUSED backup codes
+			const userBackupCodes = await db.query.backupCodes.findMany({
+				where: eq(backupCodes.userId, user.id)
+			});
+
+			// Filter to only unused codes and extract hashes
+			const unusedHashedCodes = userBackupCodes
+				.filter(code => !code.used)
+				.map(code => code.code);
+
+			// Try to verify against backup codes
+			if (unusedHashedCodes.length > 0) {
+				const backupCodeValid = await verifyBackupCode(totpCode, unusedHashedCodes);
+				if (backupCodeValid) {
+					// Find the specific backup code that was used
+					const usedCode = userBackupCodes.find(code => !code.used);
+					if (usedCode) {
+						// Mark the backup code as used
+						await db.update(backupCodes)
+							.set({ used: true })
+							.where(eq(backupCodes.id, usedCode.id));
+						usedBackupCodeId = usedCode.id;
+					}
+					totpValid = true;
+				}
+			}
+		}
+
+		// If both TOTP and backup code verification failed
 		if (!totpValid) {
 			await recordFailedAttempt(username);
 			return fail(401, { error: 'Invalid credentials' });

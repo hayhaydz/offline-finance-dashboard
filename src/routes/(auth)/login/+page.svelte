@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import FormField from '$lib/components/ui/form-field/form-field.svelte';
+	import { required, totpOrBackupCode } from '$lib/validation/rules';
 
 	interface ActionData {
 		error?: string;
@@ -27,14 +29,50 @@
 			return () => clearInterval(interval);
 		}
 	});
+
+	// Form field values
+	let username = $state('');
+	let password = $state('');
+	let totpCode = $state('');
+
+	// Validation rules for each field
+	const usernameRules = [required()];
+	const passwordRules = [required()];
+	const totpCodeRules = [
+		required(),
+		totpOrBackupCode()
+	];
+
+	// Form validation state
+	let usernameValid = $state(false);
+	let passwordValid = $state(false);
+	let totpCodeValid = $state(false);
+
+	// Form is valid when all fields are valid
+	const isFormValid = $derived(
+		usernameValid && passwordValid && totpCodeValid
+	);
+
+	// Component refs for validation access (must be $state for $effect tracking)
+	let usernameField = $state<{ isValid: boolean; validate: () => boolean } | undefined>();
+	let passwordField = $state<{ isValid: boolean; validate: () => boolean } | undefined>();
+	let totpCodeField = $state<{ isValid: boolean; validate: () => boolean } | undefined>();
+
+	// Update validation state when fields change
+	$effect(() => {
+		usernameValid = usernameField?.isValid ?? false;
+		passwordValid = passwordField?.isValid ?? false;
+		totpCodeValid = totpCodeField?.isValid ?? false;
+	});
 </script>
 
-<div class="max-w-[400px] mx-8 p-8 border border-gray-300">
-	<h1>Log In</h1>
-	<p class="text-gray-600 mb-6">Enter your credentials and authentication code</p>
+<div class="border-b border-black p-2">
+	<h1 class="text-lg font-bold mb-2 mt-0">LOG IN</h1>
+	<p class="text-gray-600 my-1">Enter your credentials and authentication code</p>
+</div>
 
 	{#if form?.locked}
-		<div class="bg-red-50 border border-red-600 p-4 rounded mb-4">
+		<div class="bg-red-50 border border-red-600 p-4 mb-4">
 			<h2 class="mt-0 text-red-600 text-lg">Account Locked</h2>
 			<p class="mb-0">
 				Too many failed login attempts. Your account has been locked for 15 minutes.
@@ -42,69 +80,66 @@
 			</p>
 		</div>
 	{:else}
-		<form method="POST" use:enhance>
-			<div class="mb-4">
-				<label for="username" class="block mb-1 font-bold">Username</label>
-				<input
-					type="text"
-					id="username"
-					name="username"
-					required
-					autocomplete="username"
-					disabled={showDelayMessage}
-					class="w-full p-2 box-border border border-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed"
-				/>
-			</div>
+		<form method="POST" use:enhance class="border-b border-black p-2">
+			<FormField
+				bind:this={usernameField}
+				label="Username"
+				name="username"
+				type="text"
+				bind:value={username}
+				rules={usernameRules}
+				placeholder="Enter username"
+				autocomplete="username"
+				disabled={showDelayMessage}
+			/>
 
-			<div class="mb-4">
-				<label for="password" class="block mb-1 font-bold">Password</label>
-				<input
-					type="password"
-					id="password"
-					name="password"
-					required
-					autocomplete="current-password"
-					disabled={showDelayMessage}
-					class="w-full p-2 box-border border border-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed"
-				/>
-			</div>
+			<FormField
+				bind:this={passwordField}
+				label="Password"
+				name="password"
+				type="password"
+				bind:value={password}
+				rules={passwordRules}
+				placeholder="Enter password"
+				autocomplete="current-password"
+				disabled={showDelayMessage}
+			/>
 
-			<div class="mb-4">
-				<label for="totpCode" class="block mb-1 font-bold">Authentication Code</label>
-				<input
-					type="text"
-					id="totpCode"
-					name="totpCode"
-					required
-					minlength="6"
-					maxlength="6"
-					pattern="[0-9]{6}"
-					placeholder="123456"
-					autocomplete="one-time-code"
-					inputmode="numeric"
-					disabled={showDelayMessage}
-					class="w-full p-2 box-border border border-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed"
-				/>
-				<small class="block mt-1 text-gray-600 text-sm">Enter the 6-digit code from your authenticator app</small>
-			</div>
+			<FormField
+				bind:this={totpCodeField}
+				label="Authentication Code"
+				name="totpCode"
+				type="text"
+				bind:value={totpCode}
+				rules={totpCodeRules}
+				placeholder="123456 or ABC12345"
+				autocomplete="one-time-code"
+				disabled={showDelayMessage}
+			/>
+			<small class="block text-gray-600 text-xs mb-2">Enter your 6-digit authenticator code OR 8-character backup code</small>
 
 			{#if showDelayMessage}
-				<div class="bg-yellow-50 border border-yellow-500 p-3 rounded mb-4 text-center">
-					Too many failed attempts. Please wait {delayCountdown} seconds before trying again.
+				<div class="border border-amber-700 border-l-4 p-2 mb-2">
+					<span class="text-amber-700">Too many failed attempts. Please wait {delayCountdown} seconds before trying again.</span>
 				</div>
 			{/if}
 
 			{#if form?.error}
-				<p class="text-red-600 my-4">{form.error}</p>
+				<p class="text-red-700 font-bold my-2">{form.error}</p>
 			{/if}
 
-			<button type="submit" disabled={showDelayMessage || form?.locked} class="w-full p-3 bg-black text-white border-none cursor-pointer disabled:bg-gray-600 disabled:cursor-not-allowed">
-				Log In
-			</button>
+			<div class="mb-2">
+				<button
+					type="submit"
+					disabled={!isFormValid || showDelayMessage}
+					class="bracket-link"
+				>
+					Log In
+				</button>
+			</div>
 		</form>
 	{/if}
 
-	<p class="mt-4 text-center">
-		Don't have an account? <a href="/register">Register</a>
-	</p>
-</div>
+	<div class="border-b border-black p-2">
+		Don't have an account? <a href="/register" class="bracket-link">Register</a>
+	</div>

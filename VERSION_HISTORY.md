@@ -4,6 +4,123 @@ Log of work done on the Offline Finance Dashboard project.
 
 ---
 
+## [2026-02-07 21:18] — Feature: Auto-login After MFA Setup + Global Loading Indicator
+
+**Summary:** MFA setup now automatically logs user in and redirects to /app upon completion instead of showing a link to login. Added global loading indicator component with terminal aesthetic (PROCESSING label with animated squares) and loading store using Svelte 5 runes. Loading indicator integrated into root layout.
+
+**Files:**
+- `src/routes/(auth)/mfa-setup/+page.server.ts` (updated - creates session and redirects after TOTP verification)
+- `src/routes/(auth)/mfa-setup/+page.svelte` (cleaned - removed success message section)
+- `src/lib/stores/loading.ts` (created - global loading state with Svelte 5 runes)
+- `src/lib/components/ui/loading-indicator/loading-indicator.svelte` (created - terminal-styled loading component)
+- `src/routes/+layout.svelte` (updated - includes loading indicator)
+
+**Commit:**
+```
+feat(ux): auto-login after MFA setup and add global loading indicator
+
+- MFA setup creates session and redirects to /app (no manual login needed)
+- Added loading store with start/stop methods and message support
+- Created LoadingIndicator component with terminal aesthetic
+- Animated loading dots using CSS keyframes
+- Integrated into root layout for global access
+```
+
+---
+
+## [2026-02-07 21:12] — Fix: Rate Limiter Delay Bug
+
+**Summary:** Fixed rate limiter bug where delay was calculated even on 0 failed attempts. The formula `2^count` was returning 1 second delay on first attempt (0 failed attempts). Now only applies delay when `failedLoginAttempts > 0`.
+
+**Files:**
+- `src/lib/security/rate-limiter.ts` (fixed - delay only when attempts > 0)
+
+**Commit:**
+```
+fix(rate-limiter): don't apply delay on zero failed attempts
+
+- Changed delay calculation to only apply when failedLoginAttempts > 0
+- Previously: 0 attempts = 2^0 = 1 second delay (incorrect)
+- Now: 0 attempts = undefined delay (correct)
+```
+
+---
+
+## [2026-02-07 21:07] — Quick Task 005: Add Backup Code Login Support for MFA
+
+**Summary:** Added backup code login functionality allowing users to recover account access when authenticator app is unavailable. Login form now accepts both 6-digit TOTP codes and 8-character backup codes. Backup codes are verified using Argon2id hashing (same params as passwords) and are immediately marked as used upon successful login. Case-insensitive input for user convenience.
+
+**Files:**
+- `src/lib/auth/mfa.ts` (updated - added verifyBackupCode function)
+- `src/routes/(auth)/login/+page.server.ts` (updated - backup code verification flow)
+- `src/routes/(auth)/login/+page.svelte` (updated - accepts both TOTP and backup codes)
+- `src/lib/validation/rules.ts` (updated - added totpOrBackupCode rule)
+- `tests/unit/mfa.test.ts` (updated - added backup code tests)
+- `.planning/quick/005-add-backup-code-login-support-for-mfa/005-SUMMARY.md` (created - task summary)
+
+**Commit:**
+```
+feat(quick-005): add backup code login support for MFA
+
+- Added verifyBackupCode() function using Argon2id verification
+- Login handler tries backup codes when TOTP fails
+- Used codes are immediately marked as used and cannot be reused
+- Case-insensitive input for UX convenience
+- Generic error messages for both TOTP and backup code failures
+- totpOrBackupCode() validation rule accepts 6-digit TOTP OR 8-character codes
+- Unit tests for valid/invalid codes and case insensitivity
+```
+
+**Context:** Users who lose access to their authenticator app (lost phone, reset) can now use their backup codes to log in. The login flow attempts TOTP verification first, then falls back to backup codes. Backup codes are verified against hashed codes in database, and successful verification marks the code as used. Generic "Invalid credentials" error prevents probing which code type was attempted.
+
+---
+
+## [2026-02-07 21:00] — Fix: HTML Structure, Password Strength, Validation Timing
+
+**Summary:** Fixed extra closing div tag in login page, added industry-standard strong password validation (uppercase, lowercase, number, special char, min 12), and fixed validation timing to only show errors after user has both blurred and typed something (dirty state).
+
+**Files:**
+- `src/routes/(auth)/login/+page.svelte` (fixed - removed extra closing div)
+- `src/routes/(auth)/register/+page.svelte` (updated - uses strongPassword rules)
+- `src/lib/validation/rules.ts` (added - hasUppercase, hasLowercase, hasNumber, hasSpecial, strongPassword)
+- `src/lib/components/ui/form-field/form-field.svelte` (added - dirty state for timing control)
+
+**Commit:**
+```
+fix(validation): add strong password rules and fix validation timing
+
+- Industry-standard password: min 12 chars + uppercase + lowercase + number + special
+- Added hasUppercase(), hasLowercase(), hasNumber(), hasSpecial() validators
+- Added strongPassword() factory for combined password validation
+- Validation errors now only show after user has typed (dirty state) + blurred (touched)
+- Fixed extra closing </div> tag in login page
+```
+
+---
+
+## [2026-02-07 20:54] — Fix: Form Styling and Reactivity
+
+**Summary:** Fixed auth form styling to match terminal aesthetic (removed double borders, centered layout, bracket-link buttons) and fixed Svelte 5 reactivity warnings by making component refs reactive with $state().
+
+**Files:**
+- `src/routes/(auth)/login/+page.svelte` (updated - terminal styling, reactive component refs)
+- `src/routes/(auth)/register/+page.svelte` (updated - terminal styling, reactive component refs)
+- `src/routes/(auth)/mfa-setup/+page.svelte` (updated - terminal styling, reactive component refs)
+- `src/lib/components/ui/form-field/form-field.svelte` (updated - tighter spacing, smaller text)
+
+**Commit:**
+```
+fix(forms): match terminal aesthetic and fix svelte 5 reactivity warnings
+
+- Removed outer bordered box (double borders issue)
+- Forms now use border-b sections like rest of site
+- Submit buttons use bracket-link style instead of black blocks
+- Component refs declared with $state() for $effect tracking
+- Tightened spacing (mb-1, text-xs) in FormField component
+```
+
+---
+
 ## [2026-02-07 20:10] — Fix: Otplib ESM Import
 
 **Summary:** Fixed multiple import errors with otplib package. The package has changed to v12+ which no longer exports `authenticator`. Updated to use `TOTP` class with functional exports (`generateSecret`, `verify`). Also fixed subpath import issue - package only exports main entry point.

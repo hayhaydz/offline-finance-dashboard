@@ -55,7 +55,10 @@ export async function checkRateLimit(username: string): Promise<RateLimitResult>
 	}
 
 	// Calculate delay: 2^count seconds (1s, 2s, 4s, 8s, 16s)
-	const delay = Math.min(Math.pow(2, user.failedLoginAttempts) * 1000, MAX_DELAY);
+	// Only apply delay AFTER first failed attempt (0 attempts = no delay)
+	const delay = user.failedLoginAttempts > 0
+		? Math.min(Math.pow(2, user.failedLoginAttempts) * 1000, MAX_DELAY)
+		: undefined;
 	const attemptsRemaining = Math.max(0, MAX_ATTEMPTS - user.failedLoginAttempts);
 
 	return {
