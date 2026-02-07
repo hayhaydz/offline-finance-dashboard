@@ -33,49 +33,50 @@ Instead of automated git operations, record work at **save points** to `VERSION_
 
 **Summary:** [1-2 sentences about what was done]
 
-**Files changed:** [list key files modified/created]
+**Files:**
+- [list key files modified/created]
 
-**Suggested commit message:**
+**Commit:**
 ```
-[type](scope): description
+[type](scope): one-line description
+```
 
-[detailed notes if needed]
-```
+**Context:** [Additional details for context]
 
 ---
 ```
 
-**Log location:** `VERSION_HISTORY.md` (create if doesn't exist)
-
-**Example entry:**
-
-```markdown
-## [2025-02-07 14:30] — Project initialization
-
-**Summary:** Initialized GSD project with questioning, research, requirements, and roadmap. Created .gitignore and git-add-excluded.sh with proper exclusions for sensitive data.
-
-**Files changed:**
-- `.planning/PROJECT.md` (created)
-- `.planning/config.json` (created)
-- `.planning/REQUIREMENTS.md` (created)
-- `.planning/ROADMAP.md` (created)
-- `.planning/research/*` (created)
-- `.gitignore` (created)
-- `git-add-excluded.sh` (created, chmod +x)
-
-**Suggested commit message:**
-```
-feat: initialize offline finance dashboard project
-
-- GSD project setup with 6-phase roadmap
-- Research complete: stack, features, architecture, pitfalls
-- 48 v1 requirements defined across 10 categories
-- .gitignore configured for sensitive data exclusions
-- git-add-excluded.sh for safe manual staging
-```
+**Log location:** `VERSION_HISTORY.md` (most recent entry at top)
 
 ---
+
+## 📁 DOCUMENTATION ORGANIZATION
+
+**General project documentation** (non-GSD, non-oh-my-claude-code) goes in `docs/`:
+
+- Organize by topic/category with descriptive folder names
+- Use markdown files (`.md`) for documentation
+- Keep docs/ folder structure clean and logical
+
+**Examples:**
 ```
+docs/
+  architecture/
+    database-schema.md
+    security-model.md
+  design/
+    ui-principles.md
+    research-paper-aesthetic.md
+  setup/
+    installation.md
+    configuration.md
+```
+
+**GSD and Claude-specific files** remain in `.planning/`:
+- `.planning/PROJECT.md`
+- `.planning/REQUIREMENTS.md`
+- `.planning/ROADMAP.md`
+- `.planning/phases/*/` - context, research, plans
 
 ---
 
@@ -88,3 +89,4 @@ feat: initialize offline finance dashboard project
 5. When execution or validation is required, STOP and ask for instructions.
 6. NEVER run `git add`, `git commit`, or `git push` — these are manual operations.
 7. **AT SAVE POINTS, UPDATE `VERSION_HISTORY.md`** — record what was done and suggested commit message.
+8. **GENERAL DOCUMENTATION goes in `docs/` folder** — organize by topic/category.
