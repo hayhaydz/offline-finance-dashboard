@@ -4,6 +4,10 @@ import { defineConfig } from 'vite';
 export default defineConfig({
 	plugins: [sveltekit()],
 	server: {
+    host: '0.0.0.0',
+    hmr: {
+      clientPort: 5173
+    },
 		watch: {
 			ignored: [
 				'**/node_modules/@node-rs/**',

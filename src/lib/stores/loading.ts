@@ -1,48 +1,24 @@
 /**
- * Global loading state using Svelte 5 runes
+ * Global loading state using Svelte stores
  *
  * Provides reactive loading state that can be used throughout the app.
  * Use this singleton to show/hide loading indicators.
  */
 
-let isLoading = $state(false);
-let loadingMessage = $state('');
+import { writable } from 'svelte/store';
 
-export const loading = {
-	// Subscribe to loading state (for components)
-	get state() {
-		return isLoading;
-	},
-	get message() {
-		return loadingMessage;
-	},
+function createLoadingStore() {
+	const { subscribe, set, update } = writable({
+		isLoading: false,
+		message: ''
+	});
 
-	// Start loading with optional message
-	start(message = '') {
-		loadingMessage = message;
-		isLoading = true;
-	},
-
-	// Stop loading
-	stop() {
-		isLoading = false;
-		loadingMessage = '';
-	},
-
-	// Toggle loading state
-	toggle() {
-		isLoading = !isLoading;
-	}
-};
-
-// Export a reactive getter for components
-export function useLoading() {
 	return {
-		get isLoading() {
-			return isLoading;
-		},
-		get message() {
-			return loadingMessage;
-		}
+		subscribe,
+		start: (message = '') => update(() => ({ isLoading: true, message })),
+		stop: () => update(() => ({ isLoading: false, message: '' })),
+		toggle: () => update((s) => ({ ...s, isLoading: !s.isLoading }))
 	};
 }
+
+export const loading = createLoadingStore();

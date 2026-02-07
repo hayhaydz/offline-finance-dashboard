@@ -1,19 +1,13 @@
 <script lang="ts">
-	import { loading } from '$lib/stores/loading';
-
-	let { message = '', show = false } = $props();
-
-	// Use local show prop if provided, otherwise use global loading state
-	const shouldShow = $derived(show !== undefined ? show : loading.state);
-	const displayMessage = $derived(message || loading.message);
+	let { show = false, message = '' } = $props();
 </script>
 
-{#if shouldShow}
+{#if show}
 	<div class="border-b border-black p-2 bg-gray-50">
 		<div class="flex items-center gap-2">
 			<span class="font-bold text-xs">PROCESSING</span>
-			{#if displayMessage}
-				<span class="text-gray-600 text-xs">{displayMessage}</span>
+			{#if message}
+				<span class="text-gray-600 text-xs">{message}</span>
 			{/if}
 		</div>
 		<!-- Simple animated loading indicator -->

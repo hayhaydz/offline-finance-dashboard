@@ -1,9 +1,9 @@
 <script lang="ts">
 	import Navigation from '$lib/components/navigation.svelte';
-	import LoadingIndicator from '$lib/components/ui/loading-indicator/loading-indicator.svelte';
 	import { page } from '$app/stores';
 
-	$: user = $page.data.user;
+	// Svelte 5: use $derived with page store
+	const user = $derived($page.data.user ?? null);
 </script>
 
 <div class="border border-black max-w-4xl mx-auto w-full">
@@ -13,8 +13,6 @@
 			<span>USER: {user.username.toUpperCase()}</span>
 		</div>
 	{/if}
-
-	<LoadingIndicator />
 
 	<slot />
 

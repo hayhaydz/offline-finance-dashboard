@@ -135,7 +135,7 @@ export const actions = {
 			maxAge: 60 * 60 * 24 // 24 hours
 		});
 
-		// Redirect to app
-		throw redirect(302, '/app');
+		// Redirect to accounts
+		throw redirect(302, '/accounts');
 	}
 };

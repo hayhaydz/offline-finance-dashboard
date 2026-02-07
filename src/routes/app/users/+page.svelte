@@ -13,7 +13,7 @@
 <div class="max-w-[800px] mx-auto p-8">
 	<header class="border-b border-gray-300 pb-4 mb-8 flex justify-between items-center">
 		<h1 class="m-0">Multi-User Security Demo</h1>
-		<a href="/app">&larr; Back to Dashboard</a>
+		<a href="/accounts">&larr; Back to Dashboard</a>
 	</header>
 
 	<main>

@@ -4,6 +4,100 @@ Log of work done on the Offline Finance Dashboard project.
 
 ---
 
+## [2026-02-07 21:49] — Feat: Route Restructure - Accounts and Settings
+
+**Summary:** Restructured application routes for better semantic clarity. Renamed `/app` to `/accounts` for financial dashboard, created `/settings` general page and `/settings/profile` for user details. Updated navigation and all route references.
+
+**Files:**
+- `src/routes/accounts/+page.svelte` (new - financial dashboard with net worth, summary, accounts overview)
+- `src/routes/settings/+page.svelte` (new - general settings page with profile/appearance/security/data sections)
+- `src/routes/settings/profile/+page.svelte` (new - user profile with username, user ID, session info)
+- `src/routes/app/+page.svelte` (updated - now redirects to /accounts)
+- `src/lib/components/navigation.svelte` (updated - navItems href changed from /app to /accounts)
+- `src/hooks.server.ts` (updated - protected routes now include /accounts, /settings, /snapshots)
+- `src/routes/(auth)/login/+page.server.ts` (updated - redirect to /accounts after login)
+- `src/routes/(auth)/mfa-setup/+page.server.ts` (updated - redirect to /accounts after MFA setup)
+- `src/routes/+page.svelte` (updated - "View All" link now points to /accounts)
+- `src/routes/app/users/+page.svelte` (updated - back link points to /accounts)
+
+**Commit:**
+```
+feat(routes): restructure /app to /accounts, add /settings and /settings/profile
+
+- Created /accounts route with financial dashboard (net worth, summary, accounts overview)
+- Created /settings general settings page with navigation to profile sub-section
+- Created /settings/profile for user profile details (username, user ID, session info)
+- Updated /app to redirect to /accounts for backward compatibility
+- Updated navigation component to point to /accounts instead of /app
+- Updated hooks.server.ts to protect /accounts, /settings, /snapshots routes
+- Updated login and MFA setup to redirect to /accounts
+- All routes maintain terminal aesthetic with bracket-link, black borders
+```
+
+---
+
+## [2026-02-07 21:30] — Fix: Navigation Button and Layout Hydration
+
+**Summary:** Fixed hydration errors caused by invalid inline pseudo-element syntax in Navigation button (`before:content-['['] after:content-[']']`) and Svelte 4 reactive statement syntax in layout. Updated to Svelte 5 `$derived()` and simplified button to use `bracket-link` class.
+
+**Files:**
+- `src/lib/components/navigation.svelte` (fixed - removed invalid pseudo-element syntax)
+- `src/routes/+layout.svelte` (updated - converted `$:` to `$derived()`)
+
+**Commit:**
+```
+fix(hydration): fix navigation button and layout svelte 5 syntax
+
+- Removed invalid before:content-['['] after:content-[']'] from button class
+- Button now uses bracket-link class directly
+- Converted layout from $: (Svelte 4) to $derived() (Svelte 5)
+```
+
+---
+
+## [2026-02-07 21:27] — Fix: Hydration Error - Simplified Loading Indicator
+
+**Summary:** Fixed hydration error by simplifying loading indicator to be purely prop-based instead of using store subscriptions. Removed from root layout to avoid SSR/hydration mismatches. Now used explicitly in components when needed.
+
+**Files:**
+- `src/lib/stores/loading.ts` (kept - available for manual usage)
+- `src/lib/components/ui/loading-indicator/loading-indicator.svelte` (simplified - prop-based only)
+- `src/routes/+layout.svelte` (removed - no longer includes global indicator)
+
+**Commit:**
+```
+fix(hydration): simplify loading indicator to avoid hydration mismatch
+
+- LoadingIndicator now purely prop-based (show, message props)
+- Removed automatic store subscription causing hydration errors
+- Removed from root layout - use explicitly in components as needed
+- loading store still available for manual state management
+```
+
+---
+
+## [2026-02-07 21:24] — Fix: Svelte 5 Runes SSR Error and Drizzle Relations
+
+**Summary:** Fixed two critical errors: (1) Svelte 5 `$state` runes cannot be used in `.ts` files during SSR - converted to Svelte stores. (2) Drizzle ORM relations were not defined, causing `referencedTable` error when using `with:` syntax. Added relation definitions for users, sessions, and backupCodes.
+
+**Files:**
+- `src/lib/stores/loading.ts` (fixed - converted from runes to Svelte stores)
+- `src/lib/components/ui/loading-indicator/loading-indicator.svelte` (updated - subscribes to store)
+- `src/lib/db/schema.ts` (added - usersRelations, sessionsRelations, backupCodesRelations)
+
+**Commit:**
+```
+fix(ssr): convert loading store to svelte stores and add drizzle relations
+
+- $state runes only work in .svelte files, not .ts files during SSR
+- Converted loading store to use writable from 'svelte/store'
+- LoadingIndicator now subscribes to store with $effect
+- Added Drizzle ORM relation definitions for users, sessions, backupCodes
+- Relations enable 'with:' syntax for loading related data
+```
+
+---
+
 ## [2026-02-07 21:18] — Feature: Auto-login After MFA Setup + Global Loading Indicator
 
 **Summary:** MFA setup now automatically logs user in and redirects to /app upon completion instead of showing a link to login. Added global loading indicator component with terminal aesthetic (PROCESSING label with animated squares) and loading store using Svelte 5 runes. Loading indicator integrated into root layout.

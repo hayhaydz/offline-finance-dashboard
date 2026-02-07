@@ -139,6 +139,6 @@ export const actions = {
 		});
 
 		// Redirect to app
-		throw redirect(302, '/app');
+		throw redirect(302, '/accounts');
 	}
 };

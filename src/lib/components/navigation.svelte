@@ -9,7 +9,7 @@
 
 	const navItems = [
 		{ href: '/', label: 'Home' },
-		{ href: '/app', label: 'Accounts', authRequired: true },
+		{ href: '/accounts', label: 'Accounts', authRequired: true },
 		{ href: '/snapshots', label: 'Snapshots', authRequired: true },
 		{ href: '/settings', label: 'Settings', authRequired: true }
 	];
@@ -31,9 +31,7 @@
 
 	{#if user}
 		<form action="/logout" method="POST">
-			<button type="submit" class="bracket-link bg-transparent border-none font-inherit text-inherit cursor-pointer px-1 before:content-['['] after:content-[']']">
-				Exit
-			</button>
+			<button type="submit" class="bracket-link">Exit</button>
 		</form>
 	{:else}
 		<a href="/login" class="bracket-link">Login</a>

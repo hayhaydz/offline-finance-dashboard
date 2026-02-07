@@ -115,7 +115,7 @@
 			</tbody>
 		</table>
 		<div class="px-2 py-1">
-			<a href="/app" class="bracket-link">View All</a>
+			<a href="/accounts" class="bracket-link">View All</a>
 		</div>
 	</div>
 {/if}

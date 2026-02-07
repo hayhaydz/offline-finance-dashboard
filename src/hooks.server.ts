@@ -10,7 +10,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	if (!sessionToken) {
 		// No session, redirect to login for protected routes
-		if (event.url.pathname.startsWith('/app')) {
+		const protectedRoutes = ['/accounts', '/settings', '/snapshots', '/app'];
+		if (protectedRoutes.some(route => event.url.pathname.startsWith(route))) {
 			throw redirect(302, '/login');
 		}
 		return resolve(event);
@@ -27,7 +28,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	if (!session) {
 		// Invalid session
 		event.cookies.delete('session', { path: '/' });
-		if (event.url.pathname.startsWith('/app')) {
+		const protectedRoutes = ['/accounts', '/settings', '/snapshots', '/app'];
+		if (protectedRoutes.some(route => event.url.pathname.startsWith(route))) {
 			throw redirect(302, '/login');
 		}
 		return resolve(event);
@@ -39,7 +41,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 		// Session expired
 		await db.delete(sessions).where(eq(sessions.token, sessionToken));
 		event.cookies.delete('session', { path: '/' });
-		if (event.url.pathname.startsWith('/app')) {
+		const protectedRoutes = ['/accounts', '/settings', '/snapshots', '/app'];
+		if (protectedRoutes.some(route => event.url.pathname.startsWith(route))) {
 			throw redirect(302, '/login');
 		}
 		return resolve(event);
