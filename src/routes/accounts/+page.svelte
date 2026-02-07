@@ -1,6 +1,5 @@
 <script lang="ts">
 	let { data } = $props();
-	export const ssr = false;
 </script>
 
 <div class="border-b border-black p-2">

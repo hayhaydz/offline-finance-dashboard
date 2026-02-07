@@ -1,23 +1,6 @@
 <script lang="ts">
-	import { redirect } from '@sveltejs/kit';
-	import type { PageServerLoad } from './$types';
-
 	let { data } = $props();
-
-	export const ssr = false;
 </script>
-
-<svelte:server>
-	export const load: PageServerLoad = async ({ locals }) => {
-		if (!locals.user) {
-			redirect(302, '/login');
-		}
-
-		return {
-			user: locals.user
-		};
-	};
-</svelte:server>
 
 <div class="max-w-[900px] mx-auto p-8">
 	<header class="flex justify-between items-center border-b border-gray-300 pb-4 mb-8">

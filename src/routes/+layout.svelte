@@ -1,9 +1,12 @@
 <script lang="ts">
 	import Navigation from '$lib/components/navigation.svelte';
 	import { page } from '$app/stores';
+	import type { Snippet } from 'svelte';
 
 	// Svelte 5: use $derived with page store
 	const user = $derived($page.data.user ?? null);
+
+	let { children } = $props<{ children: Snippet }>();
 </script>
 
 <div class="border border-black max-w-4xl mx-auto w-full">
@@ -14,7 +17,7 @@
 		</div>
 	{/if}
 
-	<slot />
+	{@render children()}
 
 	<Navigation {user} />
 </div>

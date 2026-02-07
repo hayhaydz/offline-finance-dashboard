@@ -4,6 +4,115 @@ Log of work done on the Offline Finance Dashboard project.
 
 ---
 
+## [2026-02-07 22:15] — Fix: SSR Export Warnings and Missing Snapshots Route
+
+**Summary:** Moved `export const ssr = false` from .svelte files to +page.server.ts files per SvelteKit requirements. Created placeholder /snapshots route to fix 404 error.
+
+**Files:**
+- `src/routes/accounts/+page.server.ts` (updated - added ssr export)
+- `src/routes/accounts/+page.svelte` (updated - removed ssr export)
+- `src/routes/settings/+page.server.ts` (updated - added ssr export)
+- `src/routes/settings/+page.svelte` (updated - removed ssr export)
+- `src/routes/settings/profile/+page.server.ts` (updated - added ssr export)
+- `src/routes/settings/profile/+page.svelte` (updated - removed ssr export)
+- `src/routes/snapshots/+page.server.ts` (new - auth guard for snapshots)
+- `src/routes/snapshots/+page.svelte` (new - placeholder snapshots page)
+
+**Changes:**
+- Moved `export const ssr = false` from component files to server files (SvelteKit requirement)
+- Created /snapshots route with authentication and placeholder content
+- Ran `svelte-kit sync` to regenerate types
+
+**Commit:**
+```
+fix(warnings): move ssr exports to server files and create snapshots route
+
+- Moved export const ssr = false from .svelte to +page.server.ts files
+- Created /snapshots route with auth guard and placeholder content
+- SvelteKit requires page options in server files, not components
+- svelte-check: 0 errors, 0 warnings
+```
+
+---
+
+## [2026-02-07 22:10] — Fix: TypeScript Errors and Svelte 5 Deprecation
+
+**Summary:** Fixed TypeScript errors in newly created server files and resolved Svelte 5 deprecation warning for `<slot />` usage. Regenerated SvelteKit type files and updated layout to use snippet rendering.
+
+**Files:**
+- `src/routes/+layout.svelte` (updated - migrated from `<slot />` to `{@render children()}`)
+
+**Changes:**
+- Ran `svelte-kit sync` to regenerate type files after creating new server files
+- Added `children` prop with `Snippet` type to layout
+- Replaced deprecated `<slot />` with `{@render children()}`
+
+**Result:** 0 errors, 0 warnings in `svelte-check`
+
+**Commit:**
+```
+fix(typescript): regenerate types and fix svelte 5 slot deprecation
+
+- Ran svelte-kit sync to regenerate $types after creating +page.server.ts files
+- Updated layout to use Svelte 5 snippet rendering: {@render children()}
+- Added let { children } = $props<{ children: Snippet }>() pattern
+- svelte-check now passes with 0 errors, 0 warnings
+```
+
+---
+
+## [2026-02-07 22:05] — Refactor: Merge Users Demo into Profile Page
+
+**Summary:** Merged the multi-user security demo content from `/app/users` into the `/settings/profile` page. The profile page now displays comprehensive user information including failed login attempts, session ID/token, and educational content about row-level security.
+
+**Files:**
+- `src/routes/settings/profile/+page.svelte` (updated - merged users page content)
+- `src/routes/app/users/` (removed - content migrated to profile)
+
+**Changes:**
+- Added account creation date and failed login attempts to User Information section
+- Added session ID and partial token display to Session Information section
+- Added Row-Level Security section with educational content about how security works
+- Added Testing Multi-User Isolation section with step-by-step instructions
+
+**Commit:**
+```
+refactor(profile): merge users demo content into profile page
+
+- Migrated multi-user security demo from /app/users to /settings/profile
+- Added account created date and failed login attempts display
+- Added session ID and partial token display
+- Added educational sections about row-level security
+- Removed redundant /app/users route
+```
+
+---
+
+## [2026-02-07 22:00] — Fix: Svelte 5 Compatibility - Remove svelte:server Blocks
+
+**Summary:** Migrated all `<svelte:server>` blocks to separate `+page.server.ts` files for Svelte 5 compatibility. Svelte 5 removed the `<svelte:server>` feature, requiring server-side load functions to be in dedicated server files.
+
+**Files:**
+- `src/routes/app/+page.server.ts` (new - redirect logic for /app → /accounts)
+- `src/routes/settings/+page.server.ts` (new - authentication check)
+- `src/routes/settings/profile/+page.server.ts` (new - auth and user/session data)
+- `src/routes/app/+page.svelte` (updated - removed svelte:server block)
+- `src/routes/settings/+page.svelte` (updated - removed svelte:server block)
+- `src/routes/settings/profile/+page.svelte` (updated - removed svelte:server block)
+
+**Commit:**
+```
+fix(svelte5): migrate svelte:server blocks to +page.server.ts files
+
+- Extracted load functions from <svelte:server> blocks to +page.server.ts
+- Created server files for /app, /settings, and /settings/profile routes
+- Removed PageServerLoad and redirect imports from .svelte files
+- All authentication and data loading logic preserved
+- Svelte 5 no longer supports <svelte:server> blocks
+```
+
+---
+
 ## [2026-02-07 21:49] — Feat: Route Restructure - Accounts and Settings
 
 **Summary:** Restructured application routes for better semantic clarity. Renamed `/app` to `/accounts` for financial dashboard, created `/settings` general page and `/settings/profile` for user details. Updated navigation and all route references.
