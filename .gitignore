@@ -1,0 +1,35 @@
+# ============================================
+# CRITICAL ONLY - Files Claude Code should NEVER see
+# ============================================
+
+# Database files (sensitive user data)
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+*.db-journal
+*.bak
+*.backup
+*.sql.gz
+
+# Statement uploads (sensitive user documents)
+statements/
+uploads/
+storage/statements/
+storage/uploads/
+
+# Encryption keys and secrets
+*.key
+*.pem
+*.p12
+*.pfx
+secrets/
+.secrets/
+
+# Environment (credentials)
+.env
+.env.*
+
+# Node modules (large, not useful for Claude)
+node_modules/
