@@ -32,8 +32,8 @@
 
 	<div class="border-b border-black p-2">
 		<div class="mb-2">
-			<span class="bracket-link">Create Account</span>
-			<span class="bracket-link">Log In</span>
+			<a href="/register" class="bracket-link">Create Account</a>
+			<a href="/login" class="bracket-link">Log In</a>
 		</div>
 	</div>
 

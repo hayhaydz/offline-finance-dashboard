@@ -2,16 +2,18 @@
 	import { Button as ButtonPrimitive } from 'bits-ui';
 	import { cn } from '$lib/utils';
 	
-	interface Props {
-		variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
-		size?: 'default' | 'sm' | 'lg' | 'icon';
-		class?: string;
-		type?: 'button' | 'submit' | 'reset';
-	};
-	
+	import type { Snippet } from 'svelte';
+	import type { HTMLButtonAttributes } from 'svelte/elements';
+
 	type ButtonVariant = 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
 	type ButtonSize = 'default' | 'sm' | 'lg' | 'icon';
-	
+
+	interface Props extends HTMLButtonAttributes {
+		variant?: ButtonVariant;
+		size?: ButtonSize;
+		children?: Snippet;
+	};
+
 	let {
 		variant = 'default',
 		size = 'default',
@@ -19,7 +21,7 @@
 		type = 'button',
 		children,
 		...restProps
-	}: $$Props = $props();
+	}: Props = $props();
 	
 	const variants: Record<ButtonVariant, string> = {
 		default: 'bg-slate-900 text-white hover:bg-slate-800 dark:bg-slate-50 dark:text-slate-900 dark:hover:bg-slate-200',
@@ -48,5 +50,7 @@
 	)}
 	{...restProps}
 >
-	{@render children()}
+	{#if children}
+		{@render children()}
+	{/if}
 </button>

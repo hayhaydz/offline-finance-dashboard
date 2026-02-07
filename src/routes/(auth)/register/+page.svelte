@@ -3,13 +3,13 @@
 	let { form } = $props();
 </script>
 
-<div class="auth-container">
+<div class="max-w-[400px] mx-8 p-8 border border-gray-300">
 	<h1>Create Account</h1>
-	<p class="subtitle">Register with username and password</p>
+	<p class="text-gray-600 mb-6">Register with username and password</p>
 
 	<form method="POST" use:enhance>
-		<div class="form-group">
-			<label for="username">Username</label>
+		<div class="mb-4">
+			<label for="username" class="block mb-1 font-bold">Username</label>
 			<input
 				type="text"
 				id="username"
@@ -20,11 +20,12 @@
 				pattern="[a-zA-Z0-9_-]+"
 				title="Username must be 3-50 characters (letters, numbers, underscore, hyphen only)"
 				autocomplete="username"
+				class="w-full p-2 box-border border border-gray-300"
 			/>
 		</div>
 
-		<div class="form-group">
-			<label for="password">Password</label>
+		<div class="mb-4">
+			<label for="password" class="block mb-1 font-bold">Password</label>
 			<input
 				type="password"
 				id="password"
@@ -32,12 +33,13 @@
 				required
 				minlength="12"
 				autocomplete="new-password"
+				class="w-full p-2 box-border border border-gray-300"
 			/>
-			<small>Minimum 12 characters</small>
+			<small class="block mt-1 text-gray-600 text-sm">Minimum 12 characters</small>
 		</div>
 
-		<div class="form-group">
-			<label for="confirmPassword">Confirm Password</label>
+		<div class="mb-4">
+			<label for="confirmPassword" class="block mb-1 font-bold">Confirm Password</label>
 			<input
 				type="password"
 				id="confirmPassword"
@@ -45,60 +47,20 @@
 				required
 				minlength="12"
 				autocomplete="new-password"
+				class="w-full p-2 box-border border border-gray-300"
 			/>
 		</div>
 
 		{#if form?.error}
-			<p class="error">{form.error}</p>
+			<p class="text-red-600 my-4">{form.error}</p>
 		{/if}
 
-		<button type="submit">Continue to MFA Setup</button>
+		<button type="submit" class="w-full p-3 bg-black text-white border-none cursor-pointer">
+			Continue to MFA Setup
+		</button>
 	</form>
 
-	<p class="auth-link">
+	<p class="mt-4 text-center">
 		Already have an account? <a href="/login">Log in</a>
 	</p>
 </div>
-
-<style>
-	.auth-container {
-		max-width: 400px;
-		margin: 2rem auto;
-		padding: 2rem;
-		border: 1px solid #ccc;
-	}
-	.form-group {
-		margin-bottom: 1rem;
-	}
-	label {
-		display: block;
-		margin-bottom: 0.25rem;
-		font-weight: bold;
-	}
-	input {
-		width: 100%;
-		padding: 0.5rem;
-		box-sizing: border-box;
-		border: 1px solid #ccc;
-	}
-	.error {
-		color: #d32f2f;
-		margin: 1rem 0;
-	}
-	button {
-		width: 100%;
-		padding: 0.75rem;
-		background: #000;
-		color: #fff;
-		border: none;
-		cursor: pointer;
-	}
-	.auth-link {
-		margin-top: 1rem;
-		text-align: center;
-	}
-	.subtitle {
-		color: #666;
-		margin-bottom: 1.5rem;
-	}
-</style>

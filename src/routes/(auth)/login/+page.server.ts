@@ -73,7 +73,7 @@ export const actions = {
 		const totpSecretPlaintext = decryptTOTPSecret(user.totpSecret, user.totpSecretIV, systemKey);
 
 		// Verify TOTP code using decrypted secret
-		const totpValid = verifyTOTP(totpCode, totpSecretPlaintext);
+		const totpValid = await verifyTOTP(totpCode, totpSecretPlaintext);
 		if (!totpValid) {
 			await recordFailedAttempt(username);
 			return fail(401, { error: 'Invalid credentials' });

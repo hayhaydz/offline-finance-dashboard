@@ -22,10 +22,7 @@
 		{#if !item.authRequired || user}
 			<a
 				href={item.href}
-				class="bracket-link"
-				class:active={currentPath === item.href}
-				style:background-color={currentPath === item.href ? 'black' : ''}
-				style:color={currentPath === item.href ? 'white' : ''}
+				class="bracket-link {currentPath === item.href ? 'bg-black text-white' : ''}"
 			>
 				{item.label}
 			</a>
@@ -34,35 +31,11 @@
 
 	{#if user}
 		<form action="/logout" method="POST">
-			<button type="submit" class="bracket-link">Exit</button>
+			<button type="submit" class="bracket-link bg-transparent border-none font-inherit text-inherit cursor-pointer px-1 before:content-['['] after:content-[']']">
+				Exit
+			</button>
 		</form>
 	{:else}
 		<a href="/login" class="bracket-link">Login</a>
 	{/if}
 </div>
-
-<style>
-	/* Active state for current page */
-	.bracket-link.active {
-		background: black;
-		color: white;
-	}
-
-	/* Reset button styles for bracket link buttons */
-	button.bracket-link {
-		background: none;
-		border: none;
-		font-family: inherit;
-		font-size: inherit;
-		cursor: pointer;
-		padding: 0 2px;
-	}
-
-	button.bracket-link::before {
-		content: '[';
-	}
-
-	button.bracket-link::after {
-		content: ']';
-	}
-</style>

@@ -1,11 +1,10 @@
-import * as otplibPackage from 'otplib';
-const authenticator = otplibPackage.authenticator;
+import { generateSecret, verify, generateURI } from 'otplib';
 import QRCode from 'qrcode';
 import crypto from 'crypto';
 
 // Generate TOTP secret for user (base32 encoded)
 export function generateTOTPSecret(): string {
-	return authenticator.generateSecret();
+	return generateSecret();
 }
 
 // Generate otpauth:// URL for QR code
@@ -14,7 +13,11 @@ export function generateOTPAuthURL(
 	username: string,
 	appName: string = 'Offline Finance Dashboard'
 ): string {
-	return authenticator.keyuri(username, appName, secret);
+	return generateURI({
+		secret,
+		label: username,
+		issuer: appName
+	});
 }
 
 // Generate QR code as data URL (base64 image)
@@ -30,12 +33,13 @@ export async function generateQRCode(url: string): Promise<string> {
 }
 
 // Verify TOTP code (accept codes within 1 window = ~30 seconds for clock skew)
-export function verifyTOTP(token: string, secret: string): boolean {
-	return authenticator.verify({
+export async function verifyTOTP(token: string, secret: string): Promise<boolean> {
+	const result = await verify({
 		token,
 		secret,
-		window: 1
+		epochTolerance: 30
 	});
+	return result.valid;
 }
 
 // Generate 10 backup codes (8-character alphanumeric)

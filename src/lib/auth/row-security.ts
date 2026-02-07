@@ -1,5 +1,6 @@
 import { eq, and, SQL } from 'drizzle-orm';
 import type { User } from '$lib/db/schema';
+import type { AnySQLiteTable } from 'drizzle-orm/sqlite-core';
 
 /**
  * Adds user_id filter to a database query to enforce row-level security.
@@ -8,17 +9,10 @@ import type { User } from '$lib/db/schema';
  * @param userId - The user's ID from the session
  * @param table - The Drizzle table with a userId column
  * @returns A SQL condition that filters by user_id
- *
- * @example
- * ```ts
- * const userAccounts = await db.query.accounts.findMany({
- *   where: withUserFilter(locals.user.id, accounts)
- * });
- * ```
  */
-export function withUserFilter<T extends { userId: number }>(
+export function withUserFilter(
 	userId: number,
-	table: T
+	table: AnySQLiteTable & { userId: any }
 ): SQL {
 	return eq(table.userId, userId);
 }
@@ -130,18 +124,12 @@ export function validateAllUserAccess<T extends { userId: number }>(
  * @param table - The Drizzle table with a userId column
  * @param conditions - Additional SQL conditions to combine with user_id filter
  * @returns A combined SQL condition
- *
- * @example
- * ```ts
- * const activeAccounts = await db.query.accounts.findMany({
- *   where: andWithUserFilter(locals.user.id, accounts, eq(accounts.isActive, true))
- * });
- * ```
  */
-export function andWithUserFilter<T extends { userId: number }>(
+export function andWithUserFilter(
 	userId: number,
-	table: T,
+	table: AnySQLiteTable & { userId: any },
 	...conditions: SQL[]
 ): SQL {
-	return and(eq(table.userId, userId), ...conditions) ?? eq(table.userId, userId);
+	const userFilter = eq(table.userId, userId);
+	return and(userFilter, ...conditions) ?? userFilter;
 }

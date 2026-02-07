@@ -4,6 +4,88 @@ Log of work done on the Offline Finance Dashboard project.
 
 ---
 
+## [2026-02-07 20:10] — Fix: Otplib ESM Import
+
+**Summary:** Fixed multiple import errors with otplib package. The package has changed to v12+ which no longer exports `authenticator`. Updated to use `TOTP` class with functional exports (`generateSecret`, `verify`). Also fixed subpath import issue - package only exports main entry point.
+
+**Files:**
+- `src/lib/auth/mfa.ts` (updated - rewritten for new otplib API)
+
+**Commit:**
+```
+fix(mfa): update oplib to v12+ API with TOTP class
+
+- Changed from authenticator to TOTP class
+- Use generateSecret and verify functional exports
+- Remove non-existent ./authenticator subpath import
+```
+
+---
+
+## [2026-02-07 20:05] — Fix: SQLCipher Database Initialization and Vite Config
+
+**Summary:** Fixed "file is not a database" error caused by drizzle-kit push creating unencrypted databases while app expects SQLCipher encryption. Created custom init script that uses better-sqlite3-multiple-ciphers with proper encryption. Fixed schema mismatch - now creates all required tables (users, sessions, backup_codes) with correct columns matching schema.ts. Also configured Vite to ignore documentation files from triggering reloads.
+
+**Files:**
+- `scripts/init-db.ts` (created - SQLCipher encrypted database initialization with correct schema)
+- `vite.config.ts` (updated - ignore VERSION_HISTORY.md, docs/, .planning/)
+- `docs/setup/database.md` (updated - SQLCipher encryption documentation)
+
+**Commit:**
+```
+fix(database): add SQLCipher init script and update vite config
+
+- Add scripts/init-db.ts for encrypted database creation
+- Configure Vite to ignore documentation files from HMR
+- Update database.md with SQLCipher-specific instructions
+- Document why drizzle-kit push is incompatible with encryption
+```
+
+**Context:** The app uses SQLCipher for database encryption, but drizzle-kit push creates standard SQLite databases. When the app tried to open the unencrypted database with encryption pragmas, it failed with "file is not a database" error. The init script uses the same encryption settings as the app to ensure compatibility.
+
+---
+
+## [2026-02-07 19:56] — Documentation: Database Setup Guide
+
+**Summary:** Created comprehensive database setup guide in docs/setup/database.md documenting Drizzle ORM schema initialization, migration commands, and troubleshooting for "no such table" errors.
+
+**Files:**
+- `docs/setup/database.md` (created - database initialization guide)
+
+**Commit:**
+```
+docs(database): add database setup and initialization guide
+
+- Document db:push command for development setup
+- Document migration workflow for production
+- Add troubleshooting section for common errors
+```
+
+**Context:** Encountered "no such table: users" error during testing. Database schema exists but tables not created. Documentation provides clear setup instructions for future developers and deployment.
+
+---
+
+## [2026-02-07 19:49] — Quick Task 003: Fix Home Page Login/Register Links
+
+**Summary:** Converted non-functional span elements on the home page to functional anchor tags that navigate to /register and /login routes. Preserved the bracket-link styling class for terminal aesthetic consistency.
+
+**Files:**
+- `src/routes/+page.svelte` (updated - converted span elements to anchor tags with href attributes)
+- `.planning/quick/003-fix-home-page-login-register-links/003-SUMMARY.md` (created - task summary)
+
+**Commit:**
+```
+fix(quick-003): convert home page auth links from span to anchor tags
+
+- Changed "Create Account" from <span> to <a href="/register">
+- Changed "Log In" from <span> to <a href="/login">
+- Preserved bracket-link styling class for terminal aesthetic
+```
+
+**Context:** Home page had non-functional span elements styled as links (bracket-link class). Users could not click to navigate to register or login pages. Converting to anchor tags with href attributes enables navigation while preserving the terminal aesthetic.
+
+---
+
 ## [2026-02-07 19:27] — Quick Task 002: Convert to Tailwind v4 with @theme and @utility
 
 **Summary:** Refactored styling from vanilla CSS classes to proper Tailwind v4 patterns. Replaced CSS custom properties with @theme directive for custom colors (green-700, amber-700, red-700). Converted .bracket-link class to @utility directive. Replaced all vanilla CSS classes in components with Tailwind utility classes (border-black, p-2, flex, text-green-700, etc.). Updated documentation to reflect Tailwind v4 patterns.

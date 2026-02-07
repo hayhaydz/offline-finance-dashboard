@@ -94,7 +94,7 @@ export const actions = {
 		const totpSecretPlaintext = decryptTOTPSecret(user.totpSecret, user.totpSecretIV, systemKey);
 
 		// Verify TOTP code using decrypted secret
-		const isValid = verifyTOTP(totpCode, totpSecretPlaintext);
+		const isValid = await verifyTOTP(totpCode, totpSecretPlaintext);
 
 		if (!isValid) {
 			return fail(400, { error: 'Invalid authentication code. Please try again.' });
