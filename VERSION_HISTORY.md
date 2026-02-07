@@ -4,6 +4,116 @@ Log of work done on the Offline Finance Dashboard project.
 
 ---
 
+## [2026-02-07 19:27] — Quick Task 002: Convert to Tailwind v4 with @theme and @utility
+
+**Summary:** Refactored styling from vanilla CSS classes to proper Tailwind v4 patterns. Replaced CSS custom properties with @theme directive for custom colors (green-700, amber-700, red-700). Converted .bracket-link class to @utility directive. Replaced all vanilla CSS classes in components with Tailwind utility classes (border-black, p-2, flex, text-green-700, etc.). Updated documentation to reflect Tailwind v4 patterns.
+
+**Files:**
+- `src/app.css` (refactored - @theme directive, @utility bracket-link, removed vanilla CSS classes)
+- `src/routes/+layout.svelte` (updated - replaced .terminal-container and .title-bar with utility classes)
+- `src/routes/+page.svelte` (updated - all vanilla classes replaced with Tailwind utilities)
+- `src/lib/components/navigation.svelte` (updated - uses Tailwind utility classes, keeps bracket-link @utility)
+- `docs/design/terminal-aesthetic.md` (updated - Tailwind v4 @theme and @utility documentation)
+
+**Commit:**
+```
+feat(quick-002): convert to Tailwind v4 with @theme and @utility directives
+
+- Replaced CSS custom properties with @theme directive for custom colors
+- Converted .bracket-link to @utility directive for reusable pattern
+- Replaced all vanilla CSS classes with Tailwind utility classes
+- Updated documentation with Tailwind v4 patterns and examples
+- Preserved terminal aesthetic with modern implementation
+```
+
+**Context:** Tailwind v4's @theme directive defines custom design tokens (colors, fonts, spacing) that become available as utility classes (text-green-700, font-terminal). @utility directive creates reusable patterns like bracket-link with hover effects. All component styling now uses utility classes directly (border-black, p-2, flex) instead of custom CSS classes. Table base styles kept using @apply directive for global application. Terminal aesthetic unchanged - only implementation modernized.
+
+---
+
+## [2026-02-07 19:18] — Quick Task 001: Convert styling to match mockup terminal design
+
+**Summary:** Converted application styling from modern Tailwind UI to terminal/research-paper aesthetic matching the mockup-v2-favourite.html design. Implemented monospace fonts, bordered layouts, bracket-style navigation links, high-contrast colors, and removed dark mode in favor of light-only terminal theme.
+
+**Files:**
+- `src/app.css` (completely rewritten - terminal theme CSS variables and utility classes)
+- `src/routes/+layout.svelte` (updated - terminal container wrapper with title bar)
+- `src/lib/components/navigation.svelte` (completely rewritten - bracket-style nav links)
+- `src/routes/+page.svelte` (completely rewritten - terminal-styled net worth display)
+- `src/app.html` (updated - removed dark mode script)
+- `docs/design/terminal-aesthetic.md` (created - design system guide)
+- `CLAUDE.md` (updated - added design system adherence rules)
+
+**Commit:**
+```
+feat(quick-001): convert styling to terminal aesthetic matching mockup design
+
+- Replaced research-paper CSS with terminal theme (monospace, borders, brackets)
+- Added terminal utility classes: .terminal-container, .section, .header, .row, .bracket-link, .nav-footer, .title-bar
+- Implemented title bar with app name and username display
+- Navigation now uses bracket-style links: [Home] [Accounts] [Snapshots] [Settings] [Exit]
+- Home page displays net worth prominently with up/down indicator and status colors
+- Removed dark mode - terminal aesthetic is light-only
+- Created design system guide at docs/design/terminal-aesthetic.md
+- Added CLAUDE.md reminder for ongoing design adherence
+```
+
+**Context:** Terminal aesthetic uses monospace Courier New font, 1px black borders on white background, bracket-style navigation links with hover inversion, and semantic status colors (green/amber/red). Layout matches mockup-v2-favourite.html with title bar, net worth section, assets/liabilities summary, savings goals placeholder, and accounts overview table. All new UI work should follow docs/design/terminal-aesthetic.md guidelines.
+
+---
+
+## [2026-02-07 18:30] — UI Framework Upgrade: Tailwind 4, Svelte 5, Vite 6
+
+**Summary:** Upgraded to latest UI framework stack: Tailwind CSS 4.0 (CSS-based config), Svelte 5.47 (Runes syntax), Vite 6.1.0, SvelteKit 2.50.0. Added modern UI component library with bits-ui, layerchart, lucide-svelte. Implemented dark mode toggle and research-paper aesthetic base styles.
+
+**Dependencies Added:**
+- `bits-ui`: Headless UI primitives for Svelte
+- `layerchart`: Data visualization components  
+- `layercake`: Framework-agnostic charting
+- `lucide-svelte`: Icon library
+- `@tanstack/svelte-table`: Table components
+- `sveltekit-superforms`: Form handling with Valibot
+- `valibot`: Schema validation
+- `tailwind-merge`: Merge Tailwind classes
+- `clsx`: Conditional className utility
+
+**Files Created:**
+- `postcss.config.js` - PostCSS config for Tailwind 4
+- `src/app.css` - Main stylesheet with Tailwind 4 imports and research-paper styles
+- `src/lib/utils.ts` - `cn()` utility for merging Tailwind classes
+- `src/lib/components/navigation.svelte` - Site navigation with dark mode toggle
+- `src/lib/components/theme-toggle.svelte` - Dark/light mode switcher
+- `src/lib/components/ui/button/button.svelte` - Button component (bits-ui wrapper)
+- `src/lib/components/ui/input/input.svelte` - Input component
+- `src/lib/components/ui/card/card.svelte` - Card component
+- `src/lib/components/ui/index.ts` - UI component exports
+- `src/routes/+layout.svelte` - Root layout with navigation
+- `src/routes/+layout.server.ts` - Server layout loading user data
+
+**Files Updated:**
+- `svelte.config.js` - Changed adapter from `adapter-auto` to `adapter-node`
+- `src/routes/+layout.ts` - Added app.css import
+- `src/routes/+page.svelte` - Redesigned home page with research-paper aesthetic
+- `src/app.html` - Added dark mode script, SVG favicon
+- `CLAUDE.md` - Added rule #9: package.json locked
+
+**Commit:**
+```
+feat(ui): upgrade to Tailwind 4, Svelte 5, and modern component library
+
+- Tailwind CSS 4.0 with CSS-based configuration
+- Svelte 5.47 with Runes syntax
+- Vite 6.1.0 and SvelteKit 2.50.0
+- Added bits-ui, layerchart, lucide-svelte components
+- Created research-paper aesthetic base styles
+- Implemented dark mode toggle with localStorage persistence
+- Updated navigation with user-aware menu
+- Created cn() utility for merging Tailwind classes
+```
+
+**Context:** This upgrade prepares the application for Phase 2 (Accounts & Balances) with a modern, accessible UI framework. The research-paper aesthetic aligns with the project's goal of data density and seriousness. Dark mode support respects user preferences and system settings.
+
+---
+
 ## [2026-02-07 18:08] — Phase 1: Secure Foundation — COMPLETE
 
 **Summary:** Phase 1 execution complete with all 4 plans implemented and verified. Users can now register with TOTP MFA, log in with rate limiting, and have complete data isolation between users. Database is encrypted at rest with SQLCipher. Verification passed 5/5 must-haves.

@@ -1,4 +1,5 @@
-import { authenticator } from 'otplib';
+import * as otplibPackage from 'otplib';
+const authenticator = otplibPackage.authenticator;
 import QRCode from 'qrcode';
 import crypto from 'crypto';
 

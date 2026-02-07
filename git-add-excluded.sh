@@ -27,7 +27,7 @@ EXCLUDE_PATTERNS=(
     '.secrets'
     '.env'
     '.env.*'
-    'node_modules'
+    './node_modules/'
 
     # ============================================
     # Build artifacts (Claude can see, don't commit)

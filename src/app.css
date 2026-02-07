@@ -1,0 +1,68 @@
+/**
+ * Terminal Aesthetic - Tailwind v4 Implementation
+ *
+ * This stylesheet uses Tailwind v4's @theme and @utility directives
+ * to implement the terminal-style UI matching the mockup-v2-favourite.html design.
+ */
+
+@import "tailwindcss";
+
+/* Tailwind v4 @theme - Custom design tokens */
+@theme {
+	/* Status colors */
+	--color-green: #2e7d32;
+	--color-amber: #f57c00;
+	--color-red: #d32f2f;
+
+	/* Custom font for terminal aesthetic */
+	--font-terminal: 'Courier New', Courier, monospace;
+
+	/* Terminal spacing unit */
+	--spacing-terminal: 4px;
+}
+
+/* Tailwind v4 @utility - Bracket link pattern */
+@utility bracket-link {
+	cursor: pointer;
+	padding: 0 theme('spacing.1');
+
+	&::before {
+		content: '[';
+	}
+
+	&::after {
+		content: ']';
+	}
+
+	&:hover {
+		background-color: theme('colors.black');
+		color: theme('colors.white');
+	}
+}
+
+/* Base styles */
+html {
+	@apply antialiased;
+}
+
+body {
+	@apply font-terminal text-sm leading-tight bg-white text-black m-0 px-4 py-6 md:px-8 md:py-12;
+}
+
+/* Base table styles for terminal aesthetic */
+table {
+	@apply w-full border-collapse my-1 text-sm;
+}
+
+th {
+	@apply text-left border-b border-black text-gray-600 font-normal px-1 py-1;
+}
+
+td {
+	@apply px-1 py-1;
+}
+
+/* Bar chart character spacing */
+.bar-chart {
+	letter-spacing: -1px;
+}

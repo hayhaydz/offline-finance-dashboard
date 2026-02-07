@@ -55,5 +55,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.user = session.user;
 	event.locals.session = session;
 
+	// Also pass user to page data for client-side access
+	const response = await resolve(event);
+	
+	// Add user to page data
+	if (response && typeof response === 'object' && 'headers' in response) {
+		return response;
+	}
+	
 	return resolve(event);
 };

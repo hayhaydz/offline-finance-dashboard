@@ -80,6 +80,26 @@ docs/
 
 ---
 
+## 🎨 DESIGN SYSTEM ADHERENCE
+
+**CRITICAL:** This application uses a **Terminal/Research-Paper Aesthetic**.
+
+**When modifying or creating UI components:**
+1. **ALWAYS** use existing CSS classes from `src/app.css` (terminal theme)
+2. **DO NOT** introduce new color schemes or dark mode variants
+3. **USE** monospace fonts (Courier New) for terminal aesthetic
+4. **USE** bracket-style navigation links: `[Home]` `[Accounts]` etc.
+5. **USE** bordered sections with high contrast (black borders on white)
+6. **USE** status colors: `.green`, `.amber`, `.red` only for semantic meaning
+7. **KEEP** dense layout with minimal padding (4px/8px)
+8. **NO** rounded corners, shadows, gradients, or modern UI patterns
+
+**Reference:** `docs/design/terminal-aesthetic.md` for complete design system guide.
+
+**Mockup reference:** `docs/idea/v0-gemini/mockup-v2-favourite.html` for visual examples.
+
+---
+
 ## ABSOLUTE RULES (NON-NEGOTIABLE)
 
 1. ONLY produce code diffs or full file replacements when explicitly instructed.
@@ -90,3 +110,5 @@ docs/
 6. NEVER run `git add`, `git commit`, or `git push` — these are manual operations.
 7. **AT SAVE POINTS, UPDATE `VERSION_HISTORY.md`** — record what was done and suggested commit message.
 8. **GENERAL DOCUMENTATION goes in `docs/` folder** — organize by topic/category.
+9. **🔒 PACKAGE.JSON LOCKED** — User has manually configured dependencies. DO NOT modify `package.json` without explicit permission. Additions to other files are okay, but changing existing setup requires approval first.
+10. **ALWAYS FOLLOW TERMINAL AESTHETIC** — use existing CSS classes, maintain bordered layout, monospace font, bracket links.

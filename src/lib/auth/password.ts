@@ -1,4 +1,5 @@
-import { argon2id } from '@node-rs/argon2';
+import argon2Package from '@node-rs/argon2';
+const { argon2id } = argon2Package;
 
 // OWASP-recommended parameters for 2025-2026
 const HASH_OPTIONS = {
