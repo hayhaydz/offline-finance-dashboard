@@ -1,3 +1,26 @@
+## [2026-02-08 15:21] — UI: Move Navigation to Top and Add Breadcrumbs
+
+**Summary:** Moved navigation component from bottom to top of page and added breadcrumb trail for better UX. Implemented independent scrolling for main content area so navigation stays visible when viewing long content. All changes maintain the terminal aesthetic.
+
+**Files:**
+- `src/app.css` (added scrollable-content utility)
+- `src/lib/components/navigation.svelte` (added breadcrumbs, removed bottom positioning)
+- `src/routes/+layout.svelte` (moved nav to top, added scrollable wrapper)
+
+**Commit:**
+```
+feat(ui): move navigation to top with breadcrumbs and scrollable content
+
+- Add scrollable-content CSS utility with max-height constraint
+- Add breadcrumb trail generation showing current page location
+- Move Navigation component from bottom to top of layout
+- Wrap main content in scrollable div for independent scrolling
+- Remove bottom border and positioning from navigation
+- Maintain terminal aesthetic (bracket links, borders, monospace)
+```
+
+---
+
 ## [2026-02-08 15:10] — Docs: Expand Database Documentation
 
 **Summary:** Updated database setup and workflow guides to include `db:push` and `db:studio` commands. Clearly defined the "Tiered Environment Strategy" differences between development (Loose Mode) and production (Strict Encryption).
