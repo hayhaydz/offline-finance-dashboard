@@ -4,6 +4,30 @@ Log of work done on the Offline Finance Dashboard project.
 
 ---
 
+## [2026-02-08 13:04] — Quick Task 012: Add Development Auto-Login
+
+**Summary:** Added development-only auto-login route that bypasses authentication and MFA for convenient development workflow. The `/dev-login` route automatically logs the developer in as the admin user with a 30-day session. The route returns 404 in production (appears not to exist) and the home page shows a "Dev Auto-Login" link only in development mode.
+
+**Files:**
+- `src/routes/(auth)/dev-login/+page.server.ts` (created - auto-login route with environment guard)
+- `src/routes/(auth)/dev-login/+page.svelte` (created - minimal page component)
+- `src/routes/+page.svelte` (updated - shows dev login link in development mode)
+
+**Commit:**
+```
+feat(dev): add development auto-login route for convenience
+
+- Create /dev-login route that only works in APP_ENV=development
+- Automatically log in as admin user with 30-day session
+- Route returns 404 in production (security by obscurity)
+- Home page shows "Dev Auto-Login" link in development mode
+- Eliminates need to enter password and TOTP codes during development
+```
+
+**Context:** Development workflow was cumbersome due to MFA requirements - developers had to run the seed script, note the TOTP/backup codes, and enter them manually. The new `/dev-login` route provides instant access to the admin account in development while remaining completely inaccessible in production. This follows common patterns from frameworks like Rails (devise skip_devise_trackable) and Django (createsuperuser). Session is extended to 30 days in development (vs 24 hours in production) to reduce re-authentication frequency.
+
+---
+
 ## [2026-02-08 13:02] — Quick Task 011: Implement UpdatedAt Timestamp Usage
 
 **Summary:** Implemented `updatedAt` timestamp updates throughout the project. The mfa-setup route now properly updates the `updatedAt` timestamp when clearing the mfaSetupToken after MFA setup completion. This ensures the `updatedAt` field (added in quick task 010) is actually used to track when user records are modified.

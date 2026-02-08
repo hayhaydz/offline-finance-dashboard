@@ -2,6 +2,7 @@
 	import { page } from '$app/stores';
 
 	$: user = $page.data.user;
+	$: env = $page.data.environment;
 
 	// Placeholder net worth data (will be replaced with real data in Phase 2)
 	const netWorth = {
@@ -34,6 +35,9 @@
 		<div class="mb-2">
 			<a href="/register" class="bracket-link">Create Account</a>
 			<a href="/login" class="bracket-link">Log In</a>
+			{#if env?.mode === 'development'}
+				<a href="/dev-login" class="bracket-link text-amber-700 font-bold">[Dev Auto-Login]</a>
+			{/if}
 		</div>
 	</div>
 
