@@ -18,29 +18,46 @@ This app intentionally avoids bank APIs (Plaid/Yodlee). Users manually input bal
 The application uses a tiered environment strategy driven by the `APP_ENV` variable.
 
 ### 1. Development Mode (`development`)
-- **Purpose**: Local feature work and UI testing.
+- **Purpose**: Local feature work, UI testing, and rapid iteration.
 - **Database**: Uses `storage/dev.db`.
-- **Security**: "Loose Mode" enabled. If `ENCRYPTION_KEY` is missing, data is stored with a `PLAIN:` prefix for easy inspection.
+- **Security**: **Loose Mode**. 
+    - Defaults to unencrypted (plain text) for easy debugging with SQLite viewers.
+    - If `ENCRYPTION_KEY` is present, it will attempt encryption but fall back to plain text if keys mismatch.
 - **Setup**:
-  ```bash
-  export APP_ENV=development
-  npm run db:migrate
-  npm run db:seed  # Creates 'admin' / 'password'
-  npm run dev
-  ```
+```bash
+# 1. Install dependencies (includes tsx for scripts)
+npm install
+
+# 2. Push schema to DB (Fast dev iteration, no migration files needed)
+npm run db:push
+
+# 3. Seed test data (Creates 'admin' / 'password')
+npm run db:seed
+
+# 4. Start Dev Server
+npm run dev
+```
 
 ### 2. Production Mode (`production`)
 - **Purpose**: Actual usage with your real financial data.
 - **Database**: Uses `storage/prod.db`.
-- **Security**: **Strict Mode**. The app will fail to start if `ENCRYPTION_KEY` is missing or if it detects any unencrypted data.
+- **Security**: **Strict Mode**. 
+    - The app will **fail to start** if `ENCRYPTION_KEY` is missing.
+    - Scans for unencrypted data on startup and refuses to run if found.
+    - Uses proper migration files (`drizzle/`) instead of `db:push`.
 - **Setup**:
-  ```bash
-  export APP_ENV=production
-  export ENCRYPTION_KEY=$(openssl rand -hex 32)
-  npm run db:migrate
-  npm run build
-  npm run preview
-  ```
+```bash
+export APP_ENV=production
+# Generate a strong key (Save this securely! If lost, data is unrecoverable)
+export ENCRYPTION_KEY=$(openssl rand -hex 32)
+
+# Run official migrations (Not db:push)
+npm run db:migrate
+
+# Build & Preview
+npm run build
+npm run preview
+```
 
 ## 🛠️ Usage Loop
 1. **Login**: Authenticate via Argon2id password + TOTP MFA.

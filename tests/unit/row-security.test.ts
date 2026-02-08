@@ -16,7 +16,8 @@ const mockUser1: User = {
 	totpSecretIV: 'iv',
 	passwordSalt: 'salt',
 	mfaSetupToken: null,
-	createdAt: new Date()
+	createdAt: new Date(),
+	updatedAt: new Date()
 };
 
 const mockUser2: User = {
@@ -27,7 +28,8 @@ const mockUser2: User = {
 	totpSecretIV: 'iv',
 	passwordSalt: 'salt',
 	mfaSetupToken: null,
-	createdAt: new Date()
+	createdAt: new Date(),
+	updatedAt: new Date()
 };
 
 // Mock resource with userId

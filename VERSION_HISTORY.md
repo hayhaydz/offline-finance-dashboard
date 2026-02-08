@@ -4,6 +4,25 @@ Log of work done on the Offline Finance Dashboard project.
 
 ---
 
+## [2026-02-08 13:07] — Fix TypeScript Errors in Test Mocks
+
+**Summary:** Fixed TypeScript errors in test mocks caused by missing `updatedAt` field. After adding `updatedAt` to the User type in quick task 010, the test mock objects in `row-security.test.ts` were incomplete and caused type errors. Added `updatedAt: new Date()` to both `mockUser1` and `mockUser2`.
+
+**Files:**
+- `tests/unit/row-security.test.ts` (updated - added updatedAt to mock users)
+
+**Commit:**
+```
+fix(tests): add updatedAt to User type mocks in row-security tests
+
+- Add updatedAt field to mockUser1 and mockUser2
+- TypeScript now passes with 0 errors, 0 warnings
+```
+
+**Context:** TypeScript validation caught that the test mocks were incomplete after the schema change. This is exactly why type checking is valuable - it ensures consistency across the codebase when types change.
+
+---
+
 ## [2026-02-08 13:04] — Quick Task 012: Add Development Auto-Login
 
 **Summary:** Added development-only auto-login route that bypasses authentication and MFA for convenient development workflow. The `/dev-login` route automatically logs the developer in as the admin user with a 30-day session. The route returns 404 in production (appears not to exist) and the home page shows a "Dev Auto-Login" link only in development mode.

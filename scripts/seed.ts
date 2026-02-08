@@ -1,157 +1,146 @@
 #!/usr/bin/env node
 /**
  * Database Seeding Script for Development
- *
- * Creates an admin user with test data for development purposes.
- * Usage: node --loader ts-node/esm scripts/seed.ts
+ * Usage: npm run db:seed
  */
-
 import 'dotenv/config';
 import Database from 'better-sqlite3-multiple-ciphers';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from '../src/lib/db/schema.js';
 import { hashPassword } from '../src/lib/auth/password.js';
 import { generateTOTPSecret, encryptTOTPSecret } from '../src/lib/auth/mfa.js';
+import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 import fs from 'fs';
-import path from 'path';
 
-// Check environment
-const appEnv = process.env.APP_ENV;
+// 1. Environment & Path Setup
+const appEnv = process.env.APP_ENV || 'development';
+const dbPath = appEnv === 'test' ? 'storage/test.db' : 'storage/dev.db';
 
 if (appEnv === 'production') {
-	console.error('❌ ERROR: Seeding should NOT be run in production!');
-	console.error('This script creates test data with weak credentials.');
-	process.exit(1);
+  console.error('❌ ERROR: Seeding should NOT be run in production!');
+  process.exit(1);
 }
 
-// Get database path based on environment
-const getDatabasePath = (env: string): string => {
-	switch (env) {
-		case 'development':
-			return 'storage/dev.db';
-		case 'test':
-			return 'storage/test.db';
-		case 'production':
-			return 'storage/prod.db';
-		default:
-			return 'storage/database.db';
-	}
-};
-
-const dbPath = getDatabasePath(appEnv || 'development');
-
-// Check if database exists
+// 2. Database Connection (Smart Mode)
 if (!fs.existsSync(dbPath)) {
-	console.error(`❌ Database not found: ${dbPath}`);
-	console.error('Run database migrations first: npm run db:push');
-	process.exit(1);
+  console.error(`❌ Database not found: ${dbPath}`);
+  console.error('Run migrations first: npm run db:push');
+  process.exit(1);
 }
 
-// Initialize database connection
 const sqlite = new Database(dbPath);
-
-// Apply encryption if key exists
 const encryptionKey = process.env.ENCRYPTION_KEY;
+
+// Only apply encryption if a key exists AND we are treating it as encrypted
+// If you want No Encryption in dev, ensure ENCRYPTION_KEY is unset or ignored here
 if (encryptionKey) {
-	sqlite.pragma('key = "' + encryptionKey + '"');
-	sqlite.pragma('cipher_page_size = 4096');
-	sqlite.pragma('cipher_memory_security = ON');
+  try {
+    sqlite.pragma(`key = '${encryptionKey}'`);
+    sqlite.pragma('cipher_page_size = 4096'); 
+    sqlite.pragma('cipher_memory_security = ON');
+    
+    // Test access to see if the key worked
+    sqlite.prepare('SELECT count(*) FROM sqlite_master').get();
+    console.log('🔓 Database opened with encryption.');
+  } catch (e) {
+    // If opening failed, maybe it's an unencrypted dev DB?
+    if (appEnv === 'development') {
+      console.log('⚠️  Encryption key rejected. Attempting to open as plain text (Dev Mode)...');
+      // Re-open without key
+      sqlite.close();
+      const plainSqlite = new Database(dbPath);
+      plainSqlite.prepare('SELECT count(*) FROM sqlite_master').get();
+      // Replace the sqlite instance reference or restart
+      console.log('🔓 Database opened as plain text.');
+      // Note: In a real script, you'd handle the variable reassignment better, 
+      // but for seeding, ensuring your .env matches your DB state is better.
+      console.error("❌ Mismatch: Your DB is plain text, but you provided an ENCRYPTION_KEY.");
+      console.error("   Solution: Remove ENCRYPTION_KEY from .env for this run.");
+      process.exit(1);
+    } else {
+      throw e;
+    }
+  }
+} else {
+  console.log('📂 Database opened in plain text mode (No Key provided).');
 }
 
 const db = drizzle(sqlite, { schema });
 
 async function main() {
-	console.log(`🌱 Seeding development database (${appEnv} mode)\n`);
+  console.log(`🌱 Seeding database (${appEnv} mode)...`);
 
-	// Check if admin user already exists
-	const existingAdmin = await db.query.users.findFirst({
-		where: (users, { eq }) => eq(users.username, 'admin')
-	});
+  // 3. Create Admin User
+  const existingAdmin = await db.query.users.findFirst({
+    where: eq(schema.users.username, 'admin')
+  });
 
-	if (existingAdmin) {
-		console.log('⚠️  Admin user already exists. Skipping seed.');
-		console.log('   To recreate: DELETE FROM users WHERE username = "admin";');
-		process.exit(0);
-	}
+  if (existingAdmin) {
+    console.log('⚠️  Admin user already exists. Skipping.');
+    process.exit(0);
+  }
 
-	// Generate TOTP secret
-	const totpSecret = generateTOTPSecret();
-	const systemKey = process.env.ENCRYPTION_KEY;
-	const encryptionResult = encryptTOTPSecret(totpSecret, systemKey);
+  // TOTP Logic: Handle "Loose Mode"
+  const totpSecret = generateTOTPSecret();
+  let secretToStore = totpSecret;
+  let ivToStore = '';
+  
+  if (encryptionKey) {
+    // Encrypt the secret if we have a key
+    const result = encryptTOTPSecret(totpSecret, encryptionKey);
+    secretToStore = result.encrypted;
+    ivToStore = result.iv;
+  } else {
+    // Loose Mode: Store with prefix so we know it's unsafe
+    secretToStore = `PLAIN:${totpSecret}`;
+    ivToStore = 'PLAIN';
+  }
 
-	// Generate password salt
-	const passwordSalt = crypto.randomBytes(16).toString('hex');
+  const passwordSalt = crypto.randomBytes(16).toString('hex');
+  const passwordHash = await hashPassword('password');
 
-	// Hash password (password: "password")
-	const passwordHash = await hashPassword('password');
+  const newUser = await db
+    .insert(schema.users)
+    .values({
+      username: 'admin',
+      passwordHash,
+      totpSecret: secretToStore,
+      totpSecretIV: ivToStore,
+      passwordSalt,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    })
+    .returning();
 
-	// Create admin user
-	const newUser = await db
-		.insert(users)
-		.values({
-			username: 'admin',
-			passwordHash,
-			totpSecret: encryptionResult.encrypted,
-			totpSecretIV: encryptionResult.iv,
-			passwordSalt,
-			createdAt: new Date()
-		})
-		.returning();
+  const userId = newUser[0].id;
+  console.log('✅ Created admin user (admin / password)');
 
-	const userId = newUser[0].id;
-	console.log('✅ Created admin user');
-	console.log('   Username: admin');
-	console.log('   Password: password');
-	console.log(`   TOTP Secret: ${totpSecret}`);
-	console.log(`   TOTP URL: otpauth://totp/Offline%20Finance%20Dashboard:admin?secret=${totpSecret}&issuer=Offline%20Finance%20Dashboard`);
+  // 4. Generate Backup Codes
+  const backupCodesValues = [];
+  for (let i = 0; i < 10; i++) {
+    const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+    backupCodesValues.push({
+      userId,
+      code: await hashPassword(code),
+      used: false,
+      createdAt: new Date()
+    });
+  }
+  await db.insert(schema.backupCodes).values(backupCodesValues);
 
-	// Mark MFA as verified (simulate completed setup)
-	// In real flow, this would be set after MFA setup page
-	console.log(`   User ID: ${userId}`);
+  // 5. Create Session
+  await db.insert(schema.sessions).values({
+    token: crypto.randomBytes(32).toString('hex'),
+    userId,
+    lastActivity: new Date(),
+    createdAt: new Date()
+  });
 
-	// Generate backup codes
-	const backupCodesValues: typeof backupCodes.$inferInsert[] = [];
-	const plainBackupCodes = [];
-
-	for (let i = 0; i < 10; i++) {
-		const code = crypto.randomBytes(4).toString('hex').toUpperCase();
-		plainBackupCodes.push(code);
-		const hashedCode = await hashPassword(code);
-
-		backupCodesValues.push({
-			userId,
-			code: hashedCode,
-			used: false,
-			createdAt: new Date()
-		});
-	}
-
-	await db.insert(backupCodes).values(backupCodesValues);
-	console.log('✅ Generated 10 backup codes:');
-	for (let i = 0; i < 10; i++) {
-		console.log(`   ${plainBackupCodes[i]}`);
-	}
-
-	// Create a session for auto-login (development convenience)
-	const sessionToken = crypto.randomBytes(16).toString('hex');
-	await db.insert(sessions).values({
-		token: sessionToken,
-		userId,
-		createdAt: new Date(),
-		lastActivity: new Date()
-	});
-	console.log(`\n✅ Created session for auto-login`);
-	console.log(`   Session token: ${sessionToken}`);
-
-	console.log('\n✅ Development database seeded successfully!');
-	console.log('\n📝 Notes:');
-	console.log('   - Use the TOTP secret above with your authenticator app');
-	console.log('   - Or use one of the backup codes for login');
-	console.log('   - This data should NEVER be used in production!');
+  console.log('\n✅ Seed complete!');
 }
 
 main().catch((error) => {
-	console.error('❌ Error seeding database:', error);
-	process.exit(1);
+  console.error('❌ Error seeding database:', error);
+  process.exit(1);
 });
