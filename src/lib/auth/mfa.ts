@@ -97,8 +97,13 @@ export function decryptTOTPSecret(
 	iv: string,
 	systemKey?: string
 ): string {
+	const appEnv = process.env.APP_ENV;
+
 	// Handle PLAIN: prefix (loose mode)
 	if (encryptedSecret.startsWith('PLAIN:')) {
+		if (appEnv === 'production') {
+			throw new Error('SECURITY CRITICAL: Unencrypted secret detected in production environment');
+		}
 		return encryptedSecret.substring(6);
 	}
 

@@ -15,6 +15,7 @@ const mockUser1: User = {
 	totpSecret: 'secret',
 	totpSecretIV: 'iv',
 	passwordSalt: 'salt',
+	mfaSetupToken: null,
 	createdAt: new Date()
 };
 
@@ -25,6 +26,7 @@ const mockUser2: User = {
 	totpSecret: 'secret',
 	totpSecretIV: 'iv',
 	passwordSalt: 'salt',
+	mfaSetupToken: null,
 	createdAt: new Date()
 };
 

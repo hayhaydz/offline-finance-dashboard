@@ -9,6 +9,7 @@ export const users = sqliteTable('users', {
 	totpSecret: text('totp_secret').notNull(), // Encrypted with system key
 	totpSecretIV: text('totp_secret_iv').notNull(), // IV for TOTP secret encryption
 	passwordSalt: text('password_salt').notNull(), // Salt for user key derivation
+	mfaSetupToken: text('mfa_setup_token'), // Temporary token for MFA setup flow
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
 });
 

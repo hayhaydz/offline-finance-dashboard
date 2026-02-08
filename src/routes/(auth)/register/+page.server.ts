@@ -53,6 +53,9 @@ export const actions = {
 		// Generate password salt for user key derivation
 		const passwordSalt = crypto.randomBytes(16).toString('hex');
 
+		// Generate random token for MFA setup
+		const mfaSetupToken = crypto.randomBytes(32).toString('hex');
+
 		// Hash password with Argon2id
 		const passwordHash = await hashPassword(password);
 
@@ -63,7 +66,7 @@ export const actions = {
 		const totpSecretIV = encryptionResult.iv;
 
 		// Create user with hashed password and ENCRYPTED TOTP secret
-		const newUser = await db
+		await db
 			.insert(users)
 			.values({
 				username,
@@ -71,17 +74,16 @@ export const actions = {
 				totpSecret: totpSecretEncrypted,
 				totpSecretIV,
 				passwordSalt,
+				mfaSetupToken,
 				createdAt: new Date()
-			})
-			.returning();
+			});
 
-		const userId = newUser[0].id;
-
-		// Store user ID in cookie for MFA setup page
-		cookies.set('mfa-setup-user-id', String(userId), {
+		// Store setup token in cookie for MFA setup page
+		cookies.set('mfa-setup-token', mfaSetupToken, {
 			path: '/',
 			httpOnly: true,
-			sameSite: 'lax',
+			sameSite: 'strict',
+			secure: process.env.APP_ENV === 'production',
 			maxAge: 60 * 15 // 15 minutes to complete MFA setup
 		});
 

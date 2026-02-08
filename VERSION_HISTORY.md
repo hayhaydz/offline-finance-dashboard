@@ -4,6 +4,38 @@ Log of work done on the Offline Finance Dashboard project.
 
 ---
 
+## [2026-02-08 12:25] — Security: Fix MFA Setup Hijacking and Harden Cookie Security
+
+**Summary:** Resolved several security vulnerabilities identified in the Gemini security audit. Replaced guessable user IDs in MFA setup cookies with random 32-byte tokens stored in the database to prevent session hijacking. Standardized all authentication cookies to use APP_ENV for secure flags and upgraded to sameSite: 'strict' for maximum CSRF protection. Added runtime defense-in-depth checks to prevent "loose mode" data usage in production.
+
+**Files:**
+- `src/lib/db/schema.ts` (updated - added mfaSetupToken column to users table)
+- `src/routes/(auth)/register/+page.server.ts` (updated - uses random token for MFA setup, strict cookies)
+- `src/routes/(auth)/mfa-setup/+page.server.ts` (updated - validates mfa-setup-token, clears token after use)
+- `src/routes/(auth)/login/+page.server.ts` (updated - standardized secure flag to APP_ENV, sameSite strict)
+- `src/lib/auth/mfa.ts` (updated - added runtime check to prevent PLAIN: secrets in production)
+- `tests/unit/row-security.test.ts` (updated - fixed mock user type mismatch)
+- `tests/integration/auth.test.ts` (updated - fixed expectation for mfa-setup-token cookie)
+- `docs/security/remediation-report-2026-02-08.md` (created - detailed remediation documentation)
+- `GEMINI.md` (created - project operational rules for Gemini CLI)
+
+**Commit:**
+```
+fix(security): resolve MFA setup hijacking and harden cookies
+
+- Replace sequential userId in MFA setup cookie with random 32-byte token
+- Add mfaSetupToken column to users table for state validation
+- Standardize secure cookie flag to use APP_ENV === 'production'
+- Upgrade all auth cookies to sameSite: 'strict'
+- Add runtime check to reject PLAIN: prefixed secrets in production
+- Update integration tests and TypeScript mocks for schema changes
+- Add GEMINI.md and security remediation report
+```
+
+**Context:** The sequential user ID in the MFA setup cookie was a high-risk vulnerability allowing account hijacking during registration. Using a cryptographically secure token tied to the database record eliminates this vector. Standardizing environment-based security flags and hardening sameSite policies brings the application into alignment with modern security standards. The runtime check provides an additional safety layer against data contamination in production.
+
+---
+
 ## [2026-02-08 12:01] — Quick Task 009: Implement Tiered Environment Strategy
 
 **Summary:** Implemented tiered environment strategy for development and production modes with loose-mode encryption and fail-fast security checks. Application now requires APP_ENV environment variable with no implicit default. Development mode works without ENCRYPTION_KEY (stores data with PLAIN: prefix), while production mode requires encryption and scans for unencrypted data on startup. Database path switches based on APP_ENV (dev.db, test.db, prod.db). UI displays environment mode in title bar and footer badge. Development seeding script creates admin user with dummy data.

@@ -28,6 +28,7 @@ EXCLUDE_PATTERNS=(
     '.env'
     '.env.*'
     './node_modules/'
+    'src/lib/db/migrations'
 
     # ============================================
     # Build artifacts (Claude can see, don't commit)

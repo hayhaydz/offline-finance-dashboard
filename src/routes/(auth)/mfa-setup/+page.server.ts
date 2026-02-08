@@ -32,19 +32,19 @@ export async function load({ cookies, locals }) {
 		throw redirect(302, '/accounts');
 	}
 
-	// Get user ID from cookie set by registration page
-	const userId = cookies.get('mfa-setup-user-id');
+	// Get setup token from cookie set by registration page
+	const mfaSetupToken = cookies.get('mfa-setup-token');
 
-	if (!userId) {
+	if (!mfaSetupToken) {
 		throw redirect(302, '/register');
 	}
 
 	const user = await db.query.users.findFirst({
-		where: eq(users.id, parseInt(userId))
+		where: eq(users.mfaSetupToken, mfaSetupToken)
 	});
 
 	if (!user) {
-		cookies.delete('mfa-setup-user-id', { path: '/' });
+		cookies.delete('mfa-setup-token', { path: '/' });
 		throw redirect(302, '/register');
 	}
 
@@ -55,7 +55,7 @@ export async function load({ cookies, locals }) {
 
 	if (existingCodes.length > 0) {
 		// MFA already set up, redirect to login (since not logged in here)
-		cookies.delete('mfa-setup-user-id', { path: '/' });
+		cookies.delete('mfa-setup-token', { path: '/' });
 		throw redirect(302, '/login');
 	}
 
@@ -86,18 +86,18 @@ export const actions = {
 			return fail(400, { error: 'Authentication code is required' });
 		}
 
-		// Get user ID from cookie
-		const userId = cookies.get('mfa-setup-user-id');
-		if (!userId) {
+		// Get setup token from cookie
+		const mfaSetupToken = cookies.get('mfa-setup-token');
+		if (!mfaSetupToken) {
 			return fail(400, { error: 'Session expired. Please start registration again.' });
 		}
 
 		const user = await db.query.users.findFirst({
-			where: eq(users.id, parseInt(userId))
+			where: eq(users.mfaSetupToken, mfaSetupToken)
 		});
 
 		if (!user) {
-			cookies.delete('mfa-setup-user-id', { path: '/' });
+			cookies.delete('mfa-setup-token', { path: '/' });
 			return fail(400, { error: 'User not found. Please register again.' });
 		}
 
@@ -128,8 +128,13 @@ export const actions = {
 			});
 		}
 
+		// Mark the setup token as used in database
+		await db.update(users)
+			.set({ mfaSetupToken: null })
+			.where(eq(users.id, user.id));
+
 		// Clear the setup cookie
-		cookies.delete('mfa-setup-user-id', { path: '/' });
+		cookies.delete('mfa-setup-token', { path: '/' });
 
 		// Create session and log user in (auto-login after MFA setup)
 		const sessionToken = crypto.randomBytes(32).toString('hex');
@@ -145,8 +150,8 @@ export const actions = {
 		cookies.set('session', sessionToken, {
 			path: '/',
 			httpOnly: true,
-			sameSite: 'lax',
-			secure: process.env.NODE_ENV === 'production',
+			sameSite: 'strict',
+			secure: process.env.APP_ENV === 'production',
 			maxAge: 60 * 60 * 24 // 24 hours
 		});
 

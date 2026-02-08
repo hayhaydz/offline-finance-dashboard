@@ -61,8 +61,8 @@ describe('Registration Action Integration', () => {
 			if (e.status === 302) {
 				expect(e.location).toBe('/mfa-setup');
 				expect(cookies.set).toHaveBeenCalledWith(
-					'mfa-setup-user-id',
-					'1',
+					'mfa-setup-token',
+					expect.any(String),
 					expect.any(Object)
 				);
 			} else {
