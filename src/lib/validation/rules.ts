@@ -8,6 +8,18 @@
 import type { ValidationRule } from './types';
 
 /**
+ * Valid account types enum values
+ */
+const ACCOUNT_TYPES = ['current', 'savings', 'credit', 'investment', 'ISA', 'LISA'] as const;
+export type AccountType = typeof ACCOUNT_TYPES[number];
+
+/**
+ * Valid liquidity options enum values
+ */
+const LIQUIDITY_OPTIONS = ['instant', 'delayed', 'locked'] as const;
+export type Liquidity = typeof LIQUIDITY_OPTIONS[number];
+
+/**
  * Creates a rule that requires a non-empty value
  *
  * @param message - Custom error message (default: "This field is required")
@@ -216,4 +228,158 @@ export function strongPassword(min = 12): ValidationRule[] {
 		hasNumber(),
 		hasSpecial()
 	];
+}
+
+/**
+ * Creates a rule that validates against a fixed set of allowed values
+ *
+ * Internal factory function for enum validation. Reduces code duplication
+ * for accountType and liquidity validators.
+ *
+ * @param allowedValues - Array of valid values
+ * @param message - Custom error message (default: "Select a valid option")
+ * @returns Validation rule
+ */
+function oneOf<T extends string>(allowedValues: readonly T[], message?: string): ValidationRule {
+	const allowedSet = new Set(allowedValues);
+	return {
+		validate: (value: string) => allowedSet.has(value as T),
+		message: message || 'Select a valid option'
+	};
+}
+
+/**
+ * Account type validation rule
+ *
+ * Validates against the fixed account type enum:
+ * 'current', 'savings', 'credit', 'investment', 'ISA', 'LISA'
+ *
+ * Case-sensitive exact match - use for select dropdowns only.
+ *
+ * @param message - Custom error message (default: "Select a valid account type")
+ * @returns Validation rule for account type
+ *
+ * @example
+ * const rule = accountType();
+ * rule.validate('savings')  // => true
+ * rule.validate('invalid')  // => false
+ * rule.validate('Savings')  // => false (case-sensitive)
+ */
+export function accountType(message?: string): ValidationRule {
+	return oneOf(ACCOUNT_TYPES, message || 'Select a valid account type');
+}
+
+/**
+ * Liquidity validation rule (optional field)
+ *
+ * Validates against the fixed liquidity enum:
+ * 'instant', 'delayed', 'locked'
+ *
+ * Allows empty string for optional fields. Use for select dropdowns.
+ *
+ * @param message - Custom error message (default: "Select a valid liquidity option")
+ * @returns Validation rule for liquidity
+ *
+ * @example
+ * const rule = liquidity();
+ * rule.validate('')         // => true (optional)
+ * rule.validate('instant')  // => true
+ * rule.validate('invalid')  // => false
+ */
+export function liquidity(message?: string): ValidationRule {
+	return {
+		validate: (value: string) => {
+			// Empty string is valid for optional field
+			if (!value.trim()) {
+				return true;
+			}
+			// Check against allowed values
+			return LIQUIDITY_OPTIONS.includes(value as Liquidity);
+		},
+		message: message || 'Select a valid liquidity option'
+	};
+}
+
+/**
+ * Date validation rule - blocks future dates
+ *
+ * Accepts date string in YYYY-MM-DD format and validates that it is
+ * not in the future. Uses UTC timestamps to avoid timezone confusion.
+ *
+ * This is used for balance entry "as-of dates" - users can only enter
+ * balances for today or past dates, not future dates.
+ *
+ * @param message - Custom error message (default: "Date cannot be in the future")
+ * @returns Validation rule for date input
+ *
+ * @example
+ * const rule = notFutureDate();
+ * rule.validate('2026-02-07')  // => true (if today or past)
+ * rule.validate('2026-02-09')  // => false (if in future)
+ */
+export function notFutureDate(message?: string): ValidationRule {
+	return {
+		validate: (value: string) => {
+			// Empty string is not valid (use with required() for optional)
+			if (!value.trim()) {
+				return false;
+			}
+
+			// Parse YYYY-MM-DD format to UTC timestamp
+			const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+			if (!match) {
+				return false;
+			}
+
+			// Create Date at midnight UTC to avoid timezone issues
+			const inputDate = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00.000Z`);
+
+			// Get today at midnight UTC
+			const today = new Date();
+			today.setUTCHours(0, 0, 0, 0);
+
+			// Check if input date is in the future
+			return inputDate <= today;
+		},
+		message: message || 'Date cannot be in the future'
+	};
+}
+
+/**
+ * Monetary amount validation rule (optional field)
+ *
+ * Validates currency input format like "123.45", "123", "123.4".
+ * Allows empty string for optional fields.
+ *
+ * This validates the format - use parseCurrency() from $lib/utils/currency
+ * to convert the string to integer cents for storage.
+ *
+ * @param message - Custom error message (default: "Enter amount like 123.45 or 123")
+ * @returns Validation rule for monetary input
+ *
+ * @example
+ * const rule = monetary();
+ * rule.validate('')         // => true (optional)
+ * rule.validate('123.45')   // => true
+ * rule.validate('123')      // => true
+ * rule.validate('123.4')    // => true
+ * rule.validate('123.456')  // => false (too many decimals)
+ * rule.validate('abc')      // => false
+ */
+export function monetary(message?: string): ValidationRule {
+	return {
+		validate: (value: string) => {
+			// Empty string is valid for optional field
+			if (!value.trim()) {
+				return true;
+			}
+
+			// Match: digits with optional decimal and 0-2 cents digits
+			// Allows: "123", "123.4", "123.45"
+			// Rejects: "abc", "123.456", ".123", "123.", "-123"
+			const match = /^\d+(\.\d{0,2})?$/.test(value.trim());
+			return match;
+		},
+		message: message || 'Enter amount like 123.45 or 123'
+	};
 }

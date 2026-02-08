@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #2715 | 2:19 PM | 🔵 | Terminal aesthetic implemented with Tailwind v4 @theme and @utility directives | ~364 |
+| #2695 | 2:14 PM | 🔴 | Fixed column name in balance insertion for account detail page | ~199 |
+| #2694 | " | 🔴 | Fixed property name reference in account detail page current balance | ~208 |
 </claude-mem-context>

@@ -4,6 +4,123 @@ Log of work done on the Offline Finance Dashboard project.
 
 ---
 
+## [2026-02-08 14:20] — Plan 02-03: Account Detail Page with Balance History
+
+**Summary:** Implemented account detail page with balance history table, full balance CRUD operations, account editing, and soft-delete closure. Balance history shows 50 entries per page with "Load more" button. Future dates blocked on balance entry. Conflict detection for same-date entries. Fully editable balance history per BALN-02 requirement. All operations protected with ownership validation via validateUserAccess().
+
+**Files:**
+- `src/routes/accounts/[id]/+page.svelte` (created - account detail with balance history table)
+- `src/routes/accounts/[id]/+page.server.ts` (created - load with pagination, addBalance/deleteBalance actions)
+- `src/routes/accounts/[id]/balances/[balanceId]/edit/+page.svelte` (created - edit balance form)
+- `src/routes/accounts/[id]/balances/[balanceId]/edit/+page.server.ts` (created - updateBalanceEntry action)
+- `src/routes/accounts/[id]/edit/+page.svelte` (created - edit account form)
+- `src/routes/accounts/[id]/edit/+page.server.ts` (created - updateAccount action)
+- `src/routes/accounts/[id]/delete/+page.server.ts` (created - closeAccount soft-delete action)
+- `.planning/phases/02-accounts-balances/02-03-SUMMARY.md` (created - plan documentation)
+
+**Commit:**
+```
+feat(02-03): implement account detail page with balance history and full CRUD
+
+- Add account detail page with balance history table (50 entries, newest first)
+- Implement addBalance action with future date blocking and conflict detection
+- Implement deleteBalance action (fully editable per BALN-02)
+- Add edit balance entry page with date validation and conflict checking
+- Add edit account page for updating details
+- Add closeAccount action using soft-delete pattern (closedAt timestamp)
+- Calculate and display "change from previous" with color coding
+- Add "Load older entries" pagination button
+- Enforce ownership validation on all operations via validateUserAccess()
+```
+
+**Context:** Files were created during a prior session and documented now. Implementation follows table-only aesthetic (no charts per locked decision), provides fully editable balance history with warnings about affecting calculations, and uses soft-delete for account closure to preserve data integrity. Future dates are blocked to prevent confusion about projected vs actual data.
+
+---
+
+## [2026-02-08 14:31] — Plan 02-02: Account CRUD Operations (Create and List)
+
+**Summary:** Implemented account creation and list pages with table-based UI following terminal aesthetic. Created currency formatting utilities using Intl.NumberFormat for integer-to-display conversion. All monetary values stored as cents with display-time formatting. Row-level security enforced via withUserFilter() on all queries.
+
+**Files:**
+- `src/lib/utils/currency.ts` (created - formatCurrency, parseCurrency utilities)
+- `src/routes/accounts/create/+page.svelte` (created - account creation form)
+- `src/routes/accounts/create/+page.server.ts` (created - createAccount action with validation)
+- `src/routes/accounts/+page.svelte` (updated - table display with sort and quick-add balance)
+- `src/routes/accounts/+page.server.ts` (updated - load with user filter, addQuickBalance action)
+- `.planning/phases/02-accounts-balances/02-02-SUMMARY.md` (created - plan documentation)
+
+**Commit:**
+```
+feat(02-02): implement account creation and list pages
+
+- Add currency formatting utilities (formatCurrency, parseCurrency)
+- Create account creation form with validation (name, type required)
+- Add quick-add balance form with today's date
+- Implement table-based list view with client-side sort
+- Enforce row-level security via withUserFilter() on all queries
+- Use integer cents for all monetary values, format for display
+```
+
+**Context:** Files were created during a prior session and documented now. Implementation includes comprehensive validation (required name/type, optional institution/liquidity/initial balance), terminal aesthetic (black borders, monospace font, dense layout), and follows the locked decision for table-only UI (no cards). Quick-add balance always uses today's date for simplified UX.
+
+---
+
+## [2026-02-08 14:13] — Fix Plan 02-01: Schema Corrections for Field Names and Constraints
+
+**Summary:** Fixed schema deviations from plan 02-01 specification. Changed `liquidity` field to nullable (was incorrectly NOT NULL). Renamed `balance` column to `balanceInCents` for clarity and consistency with plan. Added CHECK constraints for enum validation in migration. Added missing `idx_accounts_user_id` index for row-level security. Updated all route files to use corrected field names.
+
+**Files:**
+- `src/lib/db/schema.ts` (fixed - liquidity nullable, balance -> balanceInCents)
+- `src/lib/db/migrations/0002_add_accounts.sql` (fixed - added CHECK constraints, renamed column)
+- `src/routes/accounts/+page.server.ts` (updated - balance -> balanceInCents)
+- `src/routes/accounts/[id]/+page.server.ts` (updated - balance -> balanceInCents)
+- `src/routes/accounts/create/+page.server.ts` (updated - balance -> balanceInCents)
+- `src/routes/accounts/[id]/balances/[balanceId]/edit/+page.server.ts` (updated - balance -> balanceInCents)
+
+**Commit:**
+```
+fix(02-01): correct schema field names and constraints
+
+- Change liquidity field to nullable (was incorrectly NOT NULL)
+- Rename balance column to balanceInCents for clarity
+- Add CHECK constraints for type and liquidity enum validation
+- Add missing idx_accounts_user_id index for RLS queries
+- Add composite index on (account_id, as_of_date DESC) for balance queries
+- Update all route files to use corrected field names
+```
+
+**Context:** The schema was previously created but had three deviations from the plan: 1) `liquidity` was marked NOT NULL instead of nullable, 2) `balance` column should have been named `balanceInCents` per the integer cents convention, 3) Missing CHECK constraints for enum validation at the database level. These fixes ensure the schema matches the plan specification exactly.
+
+---
+
+## [2026-02-08 13:12] — Plan 02-01: Database Schema for Accounts and Balances
+
+**Summary:** Created database schema for unified accounts table supporting both assets and liabilities, with integer-based monetary storage to prevent floating-point precision errors. Added account_balances table for historical balance tracking. Generated migration script with proper indexes for efficient queries.
+
+**Files:**
+- `src/lib/db/schema.ts` (updated - added accounts, accountBalances tables and relations)
+- `src/lib/db/migrations/0002_add_accounts.sql` (created - migration script)
+- `.planning/phases/02-accounts-balances/02-01-database-schema-for-accounts-and-balances/SUMMARY.md` (created)
+
+**Commit:**
+```
+feat(phase-02-01): create database schema for accounts and balances
+
+- Add accounts table with unified asset/liability support (type field)
+- Add accountBalances table for historical balance tracking
+- Integer storage for monetary values (cents/pence) to prevent precision errors
+- Foreign key relations: accounts.user_id -> users, account_balances.account_id -> accounts
+- Unique index on (user_id, name) to prevent duplicate account names per user
+- Indexes on account_balances for efficient date-based queries
+- Soft-delete support via nullable closedAt timestamp
+- excludedFromNetWorth field present (UI deferred to Phase 3)
+- Migration script ready for database update
+```
+
+**Context:** This plan establishes the core data model for accounts and balances. The unified accounts table supports both assets and liabilities through the `type` field (current, savings, credit, investment, ISA, LISA). All monetary values are stored as integers (cents/pence) following financial services best practices. Balance history enables future features like net worth over time charts.
+
+---
+
 ## [2026-02-08 13:07] — Fix TypeScript Errors in Test Mocks
 
 **Summary:** Fixed TypeScript errors in test mocks caused by missing `updatedAt` field. After adding `updatedAt` to the User type in quick task 010, the test mock objects in `row-security.test.ts` were incomplete and caused type errors. Added `updatedAt: new Date()` to both `mockUser1` and `mockUser2`.

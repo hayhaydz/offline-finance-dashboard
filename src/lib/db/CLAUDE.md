@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #2603 | 12:05 PM | 🔵 | Database client implements environment-aware encryption with fail-fast security | ~305 |
+| #2697 | 2:15 PM | 🔵 | Schema verification confirms balanceInCents and closedAt column definitions | ~235 |
+| #2686 | 2:13 PM | ✅ | Account liquidity field changed to nullable | ~192 |
 </claude-mem-context>

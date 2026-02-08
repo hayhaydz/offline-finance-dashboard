@@ -33,3 +33,7 @@ secrets/
 
 # Node modules (large, not useful for Claude)
 node_modules/
+
+.svelte-kit/
+src/lib/db/migrations
+build/

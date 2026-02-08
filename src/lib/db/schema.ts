@@ -37,10 +37,39 @@ export const loginAttempts = sqliteTable('login_attempts', {
 	lockedUntil: integer('locked_until', { mode: 'timestamp' })
 });
 
+export const accounts = sqliteTable('accounts', {
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	userId: integer('user_id').notNull().references(() => users.id),
+	name: text('name').notNull(),
+	institution: text('institution'),
+	type: text('type').notNull(), // 'current', 'savings', 'credit', 'investment', 'ISA', 'LISA'
+	liquidity: text('liquidity'), // 'instant', 'delayed', 'locked' (nullable)
+	excludedFromNetWorth: integer('excluded_from_net_worth', { mode: 'boolean' }).notNull().default(false),
+	closedAt: integer('closed_at', { mode: 'timestamp' }), // Soft-delete - NULL means open
+	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+});
+
+export const accountBalances = sqliteTable('account_balances', {
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	accountId: integer('account_id').notNull().references(() => accounts.id),
+	balanceInCents: integer('balance_in_cents').notNull(), // Stored as cents/pence (integer)
+	asOfDate: integer('as_of_date', { mode: 'timestamp' }).notNull(),
+	notes: text('notes'),
+	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+});
+
+export const systemMetadata = sqliteTable('system_metadata', {
+	key: text('key').primaryKey(),
+	value: text('value').notNull()
+});
+
 // Define relations for Drizzle ORM
 export const usersRelations = relations(users, ({ many }) => ({
 	sessions: many(sessions),
-	backupCodes: many(backupCodes)
+	backupCodes: many(backupCodes),
+	accounts: many(accounts)
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -57,12 +86,20 @@ export const backupCodesRelations = relations(backupCodes, ({ one }) => ({
 	})
 }));
 
-export const systemMetadata = sqliteTable('system_metadata', {
-	key: text('key').primaryKey(),
-	value: text('value').notNull()
-});
+export const accountsRelations = relations(accounts, ({ many }) => ({
+	balances: many(accountBalances)
+}));
+
+export const accountBalancesRelations = relations(accountBalances, ({ one }) => ({
+	account: one(accounts, {
+		fields: [accountBalances.accountId],
+		references: [accounts.id]
+	})
+}));
 
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type BackupCode = typeof backupCodes.$inferSelect;
+export type Account = typeof accounts.$inferSelect;
+export type AccountBalance = typeof accountBalances.$inferSelect;
 export type SystemMetadata = typeof systemMetadata.$inferSelect;
