@@ -19,9 +19,26 @@ export async function deriveKeyFromPassword(password: string, salt: string): Pro
 	return crypto.pbkdf2Sync(password, salt, 600000, 32, 'sha256');
 }
 
-// Encrypt user-specific data with user-derived key
+// Encrypt user-specific data with user-derived key (or PLAIN: prefix in loose mode)
 // Returns encrypted data with IV and auth tag
-export function encryptUserData(data: string, key: Buffer): { encrypted: string; iv: string } {
+export function encryptUserData(
+	data: string,
+	key?: Buffer
+): { encrypted: string; iv: string } {
+	// Loose mode: if no key and not production, store with PLAIN: prefix
+	const appEnv = process.env.APP_ENV;
+	if (!key && appEnv !== 'production') {
+		return {
+			encrypted: 'PLAIN:' + data,
+			iv: '00000000000000000000000000000000'
+		};
+	}
+
+	// Production or key available: use proper encryption
+	if (!key) {
+		throw new Error('Encryption key is required in production environment');
+	}
+
 	const iv = crypto.randomBytes(16);
 	const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
 
@@ -35,8 +52,18 @@ export function encryptUserData(data: string, key: Buffer): { encrypted: string;
 	};
 }
 
-// Decrypt user-specific data with user-derived key
-export function decryptUserData(encrypted: string, iv: string, key: Buffer): string {
+// Decrypt user-specific data with user-derived key (or handle PLAIN: prefix)
+export function decryptUserData(encrypted: string, iv: string, key?: Buffer): string {
+	// Handle PLAIN: prefix (loose mode)
+	if (encrypted.startsWith('PLAIN:')) {
+		return encrypted.substring(6);
+	}
+
+	// Proper decryption required
+	if (!key) {
+		throw new Error('Encryption key required to decrypt encrypted data');
+	}
+
 	const ivBuffer = Buffer.from(iv, 'hex');
 	const authTag = Buffer.from(encrypted.slice(-32), 'hex');
 	const ciphertext = encrypted.slice(0, -32);

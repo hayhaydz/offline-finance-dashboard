@@ -5,6 +5,16 @@
 
 	// Svelte 5: use $derived with page store
 	const user = $derived($page.data.user ?? null);
+	const environment = $derived($page.data.environment ?? { mode: 'unknown', isProduction: false, hasEncryption: false });
+
+	// Environment mode indicator
+	const modeIndicator = $derived(
+		environment.isProduction
+			? '[ MODE: SECURE ]'
+			: environment.hasEncryption
+				? '[ MODE: LOOSE / ENCRYPTED ]'
+				: '[ MODE: LOOSE / UNENCRYPTED ]'
+	);
 
 	let { children } = $props<{ children: Snippet }>();
 </script>
@@ -14,10 +24,11 @@
 		<div class="bg-black text-white p-1 font-bold text-xs flex justify-between">
 			<span>OFFLINE-FINANCE-v0.exe</span>
 			<span>USER: {user.username.toUpperCase()}</span>
+			<span>{modeIndicator}</span>
 		</div>
 	{/if}
 
 	{@render children()}
 
-	<Navigation {user} />
+	<Navigation {user} {environment} />
 </div>

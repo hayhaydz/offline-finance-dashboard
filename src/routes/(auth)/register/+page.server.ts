@@ -2,7 +2,7 @@ import { redirect, fail } from '@sveltejs/kit';
 import { db } from '$lib/db/client';
 import { users } from '$lib/db/schema';
 import { hashPassword } from '$lib/auth/password';
-import { generateTOTPSecret } from '$lib/auth/mfa';
+import { generateTOTPSecret, encryptTOTPSecret } from '$lib/auth/mfa';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 
@@ -56,26 +56,11 @@ export const actions = {
 		// Hash password with Argon2id
 		const passwordHash = await hashPassword(password);
 
-		// Encrypt TOTP secret with system key using AES-256-GCM
+		// Encrypt TOTP secret with system key (or use PLAIN: prefix in loose mode)
 		const systemKey = process.env.ENCRYPTION_KEY;
-		if (!systemKey) {
-			return fail(500, { error: 'Server configuration error' });
-		}
-
-		// Generate a random IV for GCM mode
-		const totpSecretIV = crypto.randomBytes(16);
-
-		// Derive encryption key from system key using SHA-256
-		const encryptionKey = crypto.createHash('sha256').update(systemKey).digest();
-
-		// Encrypt TOTP secret with AES-256-GCM
-		const cipher = crypto.createCipheriv('aes-256-gcm', encryptionKey, totpSecretIV);
-		let encryptedSecret = cipher.update(totpSecret, 'utf8', 'hex');
-		encryptedSecret += cipher.final('hex');
-		const authTag = cipher.getAuthTag();
-
-		// Combine encrypted secret with auth tag for storage
-		const totpSecretEncrypted = `${encryptedSecret}:${authTag.toString('hex')}`;
+		const encryptionResult = encryptTOTPSecret(totpSecret, systemKey);
+		const totpSecretEncrypted = encryptionResult.encrypted;
+		const totpSecretIV = encryptionResult.iv;
 
 		// Create user with hashed password and ENCRYPTED TOTP secret
 		const newUser = await db
@@ -84,7 +69,7 @@ export const actions = {
 				username,
 				passwordHash,
 				totpSecret: totpSecretEncrypted,
-				totpSecretIV: totpSecretIV.toString('hex'),
+				totpSecretIV,
 				passwordSalt,
 				createdAt: new Date()
 			})

@@ -12,7 +12,26 @@ import {
 import { hashPassword } from '$lib/auth/password';
 import { eq } from 'drizzle-orm';
 
-export async function load({ cookies }) {
+export async function load({ cookies, locals }) {
+	// Check if we just finished setup (to skip redirection)
+	const justFinished = cookies.get('mfa-just-finished') === 'true';
+
+	if (justFinished) {
+		// Consume the cookie
+		cookies.delete('mfa-just-finished', { path: '/mfa-setup' });
+
+		if (locals.user) {
+			return {
+				username: locals.user.username
+			};
+		}
+	}
+
+	// If already logged in and not just finished setup, go to dashboard
+	if (locals.user) {
+		throw redirect(302, '/accounts');
+	}
+
 	// Get user ID from cookie set by registration page
 	const userId = cookies.get('mfa-setup-user-id');
 
@@ -35,7 +54,7 @@ export async function load({ cookies }) {
 	});
 
 	if (existingCodes.length > 0) {
-		// MFA already set up, redirect to login
+		// MFA already set up, redirect to login (since not logged in here)
 		cookies.delete('mfa-setup-user-id', { path: '/' });
 		throw redirect(302, '/login');
 	}
@@ -129,6 +148,13 @@ export const actions = {
 			sameSite: 'lax',
 			secure: process.env.NODE_ENV === 'production',
 			maxAge: 60 * 60 * 24 // 24 hours
+		});
+
+		// Set a temporary cookie to signal the load function that we just finished setup
+		cookies.set('mfa-just-finished', 'true', {
+			path: '/mfa-setup',
+			httpOnly: true,
+			maxAge: 10 // 10 seconds is plenty for the re-run
 		});
 
 		// Return backup codes to client to show them one last time

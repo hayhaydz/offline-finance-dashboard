@@ -3,9 +3,14 @@
 
 	interface Props {
 		user: { username: string } | null;
+		environment: {
+			mode: string;
+			isProduction: boolean;
+			hasEncryption: boolean;
+		};
 	}
 
-	let { user }: Props = $props();
+	let { user, environment }: Props = $props();
 
 	const navItems = [
 		{ href: '/', label: 'Home' },
@@ -15,6 +20,9 @@
 	];
 
 	const currentPath = $derived($page.url.pathname);
+
+	// Environment badge for development
+	const showDevBadge = $derived(!environment.isProduction);
 </script>
 
 <div class="flex justify-between p-2 bg-gray-100 border-t border-black">
@@ -28,6 +36,10 @@
 			</a>
 		{/if}
 	{/each}
+
+	{#if showDevBadge}
+		<span class="text-red-700 font-bold text-xs px-1">[!] DEV DATA [!]</span>
+	{/if}
 
 	{#if user}
 		<form action="/logout" method="POST">

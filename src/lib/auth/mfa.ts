@@ -56,13 +56,57 @@ export function generateBackupCodes(): string[] {
 	return codes;
 }
 
-// Decrypt TOTP secret that was encrypted with AES-256-GCM
+// Encrypt TOTP secret with AES-256-GCM (or PLAIN: prefix in loose mode)
+// Used for storing TOTP secrets during registration
+export function encryptTOTPSecret(
+	secret: string,
+	systemKey?: string
+): { encrypted: string; iv: string } {
+	// Loose mode: if no system key and not production, store with PLAIN: prefix
+	const appEnv = process.env.APP_ENV;
+	if (!systemKey && appEnv !== 'production') {
+		return {
+			encrypted: 'PLAIN:' + secret,
+			iv: '00000000000000000000000000000000'
+		};
+	}
+
+	// Production or key available: use proper encryption
+	if (!systemKey) {
+		throw new Error('ENCRYPTION_KEY is required in production environment');
+	}
+
+	const iv = crypto.randomBytes(16);
+	const encryptionKey = crypto.createHash('sha256').update(systemKey).digest();
+	const cipher = crypto.createCipheriv('aes-256-gcm', encryptionKey, iv);
+
+	let encrypted = cipher.update(secret, 'utf8', 'hex');
+	encrypted += cipher.final('hex');
+	const authTag = cipher.getAuthTag();
+
+	return {
+		encrypted: encrypted + ':' + authTag.toString('hex'),
+		iv: iv.toString('hex')
+	};
+}
+
+// Decrypt TOTP secret that was encrypted with AES-256-GCM (or PLAIN: prefix)
 // Used for MFA setup QR code generation and login verification
 export function decryptTOTPSecret(
 	encryptedSecret: string,
 	iv: string,
-	systemKey: string
+	systemKey?: string
 ): string {
+	// Handle PLAIN: prefix (loose mode)
+	if (encryptedSecret.startsWith('PLAIN:')) {
+		return encryptedSecret.substring(6);
+	}
+
+	// Proper decryption required
+	if (!systemKey) {
+		throw new Error('ENCRYPTION_KEY required to decrypt encrypted secret');
+	}
+
 	const encryptionKey = crypto.createHash('sha256').update(systemKey).digest();
 	const ivBuffer = Buffer.from(iv, 'hex');
 	const parts = encryptedSecret.split(':');

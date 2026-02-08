@@ -55,6 +55,12 @@ export const backupCodesRelations = relations(backupCodes, ({ one }) => ({
 	})
 }));
 
+export const systemMetadata = sqliteTable('system_metadata', {
+	key: text('key').primaryKey(),
+	value: text('value').notNull()
+});
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type BackupCode = typeof backupCodes.$inferSelect;
+export type SystemMetadata = typeof systemMetadata.$inferSelect;

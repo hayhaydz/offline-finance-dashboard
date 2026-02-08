@@ -115,6 +115,6 @@
 	{/if}
 
 	<div class="p-4 text-center border-b border-black">
-		<a href="/accounts" class="bracket-link text-lg">Continue to Dashboard</a>
+		<a href="/" class="bracket-link text-lg">Continue to Dashboard</a>
 	</div>
 {/if}
