@@ -4,6 +4,26 @@ Log of work done on the Offline Finance Dashboard project.
 
 ---
 
+## [2026-02-08 12:58] — Quick Task 010: Add updatedAt Timestamp Fields to Schema
+
+**Summary:** Added `updatedAt` timestamp column to the users table in the database schema. The seed script was already using `updatedAt` when creating users, but the schema was missing this column, causing a mismatch. Now the users table properly tracks both creation and modification timestamps.
+
+**Files:**
+- `src/lib/db/schema.ts` (updated - added updatedAt column to users table)
+
+**Commit:**
+```
+feat(schema): add updatedAt timestamp to users table
+
+- Add updatedAt column with timestamp mode and CURRENT_TIMESTAMP default
+- Aligns schema with seed script expectations
+- Enables proper tracking of user record modifications
+```
+
+**Context:** The seed script in `scripts/seed.ts` was setting `updatedAt: new Date()` when creating users, but the schema only had `createdAt`. This change adds the missing `updatedAt` field so the schema matches what the seed script expects. Developer needs to run `npm run db:generate` and `npm run db:push` to apply the migration.
+
+---
+
 ## [2026-02-08 12:25] — Security: Fix MFA Setup Hijacking and Harden Cookie Security
 
 **Summary:** Resolved several security vulnerabilities identified in the Gemini security audit. Replaced guessable user IDs in MFA setup cookies with random 32-byte tokens stored in the database to prevent session hijacking. Standardized all authentication cookies to use APP_ENV for secure flags and upgraded to sameSite: 'strict' for maximum CSRF protection. Added runtime defense-in-depth checks to prevent "loose mode" data usage in production.
