@@ -88,6 +88,101 @@ Instead of automated git operations, record work at **save points** to `VERSION_
 
 **Reference:** `docs/security/DEVELOPMENT_GUIDELINES.md` for full security implementation guide.
 
+---
+
+## 🔗 URL SLUGS
+
+**CRITICAL:** Dynamic routes MUST NOT use database IDs (auto-increment integers, UUIDs, or sequential identifiers) in URLs.
+
+**Why Database IDs in URLs Are Problematic:**
+- Expose internal database structure
+- Are guessable (sequential integers leak creation order/volume)
+- Create poor user experience (meaningless identifiers)
+- Enable enumeration attacks
+- Cannot be changed without breaking links/bookmarks
+
+**MANDATORY URL SLUG RULES:**
+
+1. **Use Nanoids for Entity Identifiers**
+   - Add `slug` column (TEXT, unique, indexed) to relevant tables
+   - Generate on entity creation using nanoid library (URL-safe alphabet)
+   - Use nanoid length of 16-21 characters (collision-resistant like UUID)
+   - Example slug: `aB3xK9mN2pQ4rS6t`
+
+2. **URL Pattern**
+   - ❌ WRONG: `/accounts/123`, `/accounts/123/balances/456/edit`
+   - ✅ RIGHT: `/accounts/aB3xK9mN`, `/accounts/aB3xK9mN/balances/K9nM3pQ4/edit`
+
+3. **Slug Generation Rules**
+   - Generate on creation (never changes)
+   - Must be unique within entity type
+   - Must be indexed for performant lookups
+   - Store in dedicated `slug` column (not derived from name)
+
+4. **When to Use Slugs**
+   - ALL user-facing dynamic routes
+   - Account detail pages, balance entries, settings resources
+   - Any route where users might share/bookmark URLs
+
+5. **When Database IDs Are Acceptable**
+   - Temporary/internal routes only
+   - Server-side processing where URL is never user-visible
+   - Redirect targets (final destination uses slug)
+
+**Implementation Pattern (Drizzle ORM):**
+
+```typescript
+// Schema
+export const accounts = sqliteTable('accounts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  slug: text('slug').notNull().unique(), // NEW: URL-safe identifier
+  // ... other fields
+});
+
+// Add index for slug lookup
+// CREATE INDEX idx_accounts_slug ON accounts(slug);
+
+// Generate on creation
+import { nanoid } from 'nanoid';
+const slug = nanoid(16); // e.g., "aB3xK9mN2pQ4rS6t"
+
+// Route lookup
+const account = await db.query.accounts.findFirst({
+  where: eq(accounts.slug, params.slug)
+});
+```
+
+**Reference:** See `docs/architecture/url-slugs.md` for detailed implementation guide.
+
+---
+
+## 📋 LOGGING SYSTEM
+
+**CRITICAL:** This project uses a custom Winston-based logging system. ALL server-side logging MUST use the custom logger.
+
+**Logger location:** `src/lib/utils/logger.ts`
+
+**Mandatory Development Rules:**
+1. **NEVER use `console.log()`** for server-side logging. Use `devLog()` instead.
+2. **ALWAYS import from custom logger:** `import { devLog, logError, logFormData } from '$lib/utils/logger';`
+3. **Server-side (`*.server.ts`) logs go to:**
+   - Terminal console (brief output)
+   - `./logs/application-YYYY-MM-DD.log` (detailed JSON)
+   - `./logs/error-YYYY-MM-DD.log` (errors only)
+4. **Client-side (`.svelte` components)** may use `console.log()` for browser DevTools.
+5. **Production mode** suppresses dev logs and sanitizes error logs automatically.
+6. **Sensitive data masking** is automatic for passwords, tokens, secrets, API keys.
+
+**Logger API:**
+- `devLog(category, message, data?)` - Development-only logging
+- `logError(category, message, error?)` - Error logging (all environments)
+- `logFormData(category, formData)` - Form data with automatic sensitive masking
+- `logRequest(category, request)` - Request logging for debugging
+
+**Reference:** `docs/setup/logging.md` for complete logging guide.
+
+---
+
 ## 🔍 QA & VALIDATION
 
 After completing a significant unit of work or phase:
@@ -106,3 +201,4 @@ After completing a significant unit of work or phase:
 5. **GENERAL DOCUMENTATION goes in `docs/` folder** — organize by topic/category.
 6. **🔒 PACKAGE.JSON LOCKED** — User has manually configured dependencies. DO NOT modify `package.json` without explicit permission.
 7. **ALWAYS FOLLOW TERMINAL AESTHETIC** — use existing CSS classes, maintain bordered layout, monospace font, bracket links.
+8. **📋 ALWAYS USE CUSTOM LOGGER SYSTEM** — Import from `$lib/utils/logger.ts`. NEVER use `console.log()` in server-side code (`*.server.ts` files).

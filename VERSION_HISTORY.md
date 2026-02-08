@@ -1,3 +1,24 @@
+## [2026-02-08 15:42] — Documentation: Add URL Slug Rules
+
+**Summary:** Added documentation rules to forbid database IDs in URLs, requiring nanoid-based slugs for all user-facing routes. Updated CLAUDE.md and GEMINI.md with security-focused URL slug rules and created architecture documentation for implementation guidance.
+
+**Files:**
+- `CLAUDE.md` (added "## 🔗 URL SLUGS" section)
+- `GEMINI.md` (added "## 🔗 URL SLUGS" section)
+- `docs/architecture/url-slugs.md` (created)
+
+**Commit:**
+```
+docs(url-slugs): add nanoid-based URL slug rules
+
+- Add URL SLUGS section to CLAUDE.md and GEMINI.md
+- Forbid database IDs in user-facing routes (security/UX)
+- Specify nanoids (16-21 chars) as required alternative
+- Create implementation guide in docs/architecture/url-slugs.md
+```
+
+---
+
 ## [2026-02-08 15:33] — Feature: Add Development Logging System
 
 **Summary:** Created environment-aware logging utility for development debugging. Added logging to account creation action to help debug form submission issues. Logger automatically masks sensitive fields (passwords, tokens, secrets) and suppresses output in production mode.
