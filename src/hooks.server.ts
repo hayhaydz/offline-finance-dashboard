@@ -1,7 +1,8 @@
-import type { Handle } from '@sveltejs/kit';
-import { redirect } from '@sveltejs/kit';
+import type { Handle, HandleServerError } from '@sveltejs/kit';
+import { redirect, error } from '@sveltejs/kit';
 import { db } from '$lib/db/client';
 import { sessions, users } from '$lib/db/schema';
+import { logError } from '$lib/utils/logger';
 import { eq } from 'drizzle-orm';
 
 export const handle: Handle = async ({ event, resolve }) => {
@@ -20,8 +21,12 @@ export const handle: Handle = async ({ event, resolve }) => {
   }
 
   if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      // Log the attempt
-      console.error(`Blocked external access: ${hostname}`);
+      // Log the attempt - security concern
+		logError('security', `Blocked external access attempt from hostname: ${hostname}`, {
+			clientIp,
+			hostname,
+			pathname
+		});
       return new Response('Forbidden', { status: 403 });
   }
 
@@ -88,4 +93,33 @@ export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.session = session;
 
 	return resolve(event);
+};
+
+/**
+ * Global error handler for server-side errors
+ * Logs all unexpected errors for debugging and monitoring
+ */
+export const handleError: HandleServerError = async ({ error, event }) => {
+	// Log the error with context
+	logError('server', 'Unhandled server error', error);
+
+	// Include request context for debugging
+	const errorContext = {
+		url: event.url.href,
+		method: event.request.method,
+		hasSession: !!event.locals.session,
+		hasUser: !!event.locals.user
+	};
+
+	logError('server', 'Request context for error', errorContext);
+
+	// Return user-friendly error message
+	return {
+		message: 'An unexpected error occurred. Please try again later.',
+		// In development, include the error details for debugging
+		...(process.env.APP_ENV === 'development' && {
+			developerMessage: error instanceof Error ? error.message : String(error),
+			stack: error instanceof Error ? error.stack : undefined
+		})
+	};
 };

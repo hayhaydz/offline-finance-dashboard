@@ -4,6 +4,7 @@ import { db } from '$lib/db/client';
 import { accounts, accountBalances } from '$lib/db/schema';
 import { validateUserAccess } from '$lib/auth/row-security';
 import { parseCurrency } from '$lib/utils/currency';
+import { devLog, logError } from '$lib/utils/logger';
 import { eq, and } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -91,6 +92,12 @@ export const actions: Actions = {
 		try {
 			balanceInCents = parseCurrency(balanceStr);
 		} catch (err) {
+			devLog('editBalance', 'parseCurrency validation failed', {
+				input: balanceStr,
+				accountSlug: params.slug,
+				balanceSlug: params.balanceSlug,
+				error: err instanceof Error ? err.message : String(err)
+			});
 			return fail(400, { error: 'Invalid balance format. Enter amount like 123.45 or 123' });
 		}
 

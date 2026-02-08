@@ -1,6 +1,7 @@
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { db as defaultDb } from './client';
 import { sql } from 'drizzle-orm';
+import { logError } from '$lib/utils/logger';
 import path from 'path';
 
 /**
@@ -8,20 +9,20 @@ import path from 'path';
  */
 export async function runMigrations(db = defaultDb) {
 	// console.log('🔄 Running migrations...');
-	
+
 	try {
 		const migrationsPath = path.resolve('src/lib/db/migrations');
-		
+
 		await migrate(db, {
 			migrationsFolder: migrationsPath
 		});
-		
+
 		// console.log('✅ Migrations completed successfully');
-		
+
 		// Ensure system_metadata is initialized if it's empty
 		await ensureSystemMetadata(db);
 	} catch (error) {
-		console.error('❌ Migration failed:', error);
+		logError('database', 'Migration failed', error);
 		throw error;
 	}
 }

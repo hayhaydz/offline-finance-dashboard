@@ -4,6 +4,7 @@ import { db } from '$lib/db/client';
 import { accounts, accountBalances } from '$lib/db/schema';
 import { withUserFilter, validateUserAccess } from '$lib/auth/row-security';
 import { parseCurrency } from '$lib/utils/currency';
+import { devLog, logError, logFormData } from '$lib/utils/logger';
 import { eq, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -57,6 +58,7 @@ export const actions: Actions = {
 		}
 
 		const formData = await request.formData();
+		logFormData('quickAddBalance', Object.fromEntries(formData));
 		const accountIdStr = formData.get('accountId') as string;
 		const balanceStr = formData.get('balance') as string;
 		const notes = formData.get('notes') as string;
@@ -83,6 +85,11 @@ export const actions: Actions = {
 		try {
 			balanceInCents = parseCurrency(balanceStr);
 		} catch (e) {
+			devLog('quickAddBalance', 'parseCurrency validation failed', {
+				input: balanceStr,
+				accountId,
+				error: e instanceof Error ? e.message : String(e)
+			});
 			return fail(400, { error: 'Invalid balance format. Enter amount like 123.45 or 123' });
 		}
 
@@ -99,6 +106,14 @@ export const actions: Actions = {
 		});
 
 		if (existing) {
+			devLog('quickAddBalance', 'Conflict detected - existing entry for date', {
+				accountId,
+				existingBalanceId: existing.id,
+				existingBalanceSlug: existing.slug,
+				existingBalance: existing.balanceInCents,
+				proposedBalance: balanceInCents,
+				asOfDate: today.toISOString()
+			});
 			return fail(409, {
 				error: `A balance entry already exists for today (${today.toISOString().split('T')[0]}). [Edit the existing entry](/accounts/${account.slug}/balances/${existing.slug}/edit) or choose a different date.`,
 				existingBalanceId: existing.id,
@@ -115,6 +130,13 @@ export const actions: Actions = {
 			balanceInCents,
 			asOfDate: today,
 			notes: notes || null
+		});
+
+		devLog('quickAddBalance', 'Balance entry created successfully', {
+			accountId,
+			balanceSlug,
+			balanceInCents,
+			asOfDate: today.toISOString()
 		});
 
 		// Redirect back to accounts list

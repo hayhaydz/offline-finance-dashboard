@@ -1,6 +1,7 @@
 import { generateSecret, verify, generateURI } from 'otplib';
 import QRCode from 'qrcode';
 import crypto from 'crypto';
+import { logError } from '$lib/utils/logger';
 
 // Generate TOTP secret for user (base32 encoded)
 export function generateTOTPSecret(): string {
@@ -43,6 +44,8 @@ export async function verifyTOTP(token: string, secret: string): Promise<boolean
 		return result.valid;
 	} catch (error) {
 		// If otplib throws (e.g., TokenLengthError), treat as invalid token
+		// Log for debugging to identify token format issues
+		logError('mfa', 'TOTP verification error (invalid token format)', error);
 		return false;
 	}
 }

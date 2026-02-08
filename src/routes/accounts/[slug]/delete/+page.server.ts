@@ -3,6 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/db/client';
 import { accounts } from '$lib/db/schema';
 import { validateUserAccess } from '$lib/auth/row-security';
+import { devLog, logError } from '$lib/utils/logger';
 import { eq } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -11,6 +12,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	}
 
 	const accountSlug = params.slug;
+	devLog('closeAccount', 'Loading account for close', { accountSlug });
 
 	// Get account and validate ownership using slug
 	const account = await db.query.accounts.findFirst({
@@ -37,6 +39,7 @@ export const actions: Actions = {
 	 */
 	closeAccount: async ({ locals, params }) => {
 		if (!locals.user) {
+			logError('closeAccount', 'Authentication required');
 			return fail(401, { error: 'Authentication required' });
 		}
 
@@ -48,19 +51,32 @@ export const actions: Actions = {
 		});
 
 		if (!account) {
+			logError('closeAccount', 'Account not found', { accountSlug });
 			return fail(404, { error: 'Account not found' });
 		}
 
 		validateUserAccess(account, locals.user, 'Account');
 
+		devLog('closeAccount', 'Closing account', {
+			accountSlug,
+			accountId: account.id
+		});
+
 		// Soft-delete by setting closedAt timestamp
+		const closedAt = new Date();
 		await db
 			.update(accounts)
 			.set({
-				closedAt: new Date(),
+				closedAt,
 				updatedAt: new Date()
 			})
 			.where(eq(accounts.id, account.id));
+
+		devLog('closeAccount', 'Account closed successfully (soft-delete)', {
+			accountId: account.id,
+			accountSlug,
+			closedAt: closedAt.toISOString()
+		});
 
 		// Redirect to accounts list
 		redirect(303, '/accounts');

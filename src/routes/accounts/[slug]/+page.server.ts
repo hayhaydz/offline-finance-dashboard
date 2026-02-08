@@ -4,6 +4,7 @@ import { db } from '$lib/db/client';
 import { accounts, accountBalances } from '$lib/db/schema';
 import { validateUserAccess } from '$lib/auth/row-security';
 import { parseCurrency } from '$lib/utils/currency';
+import { devLog, logError } from '$lib/utils/logger';
 import { eq, desc, and } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
@@ -91,6 +92,11 @@ export const actions: Actions = {
 		try {
 			balanceInCents = parseCurrency(balanceStr);
 		} catch (err) {
+			devLog('addBalance', 'parseCurrency validation failed', {
+				input: balanceStr,
+				accountSlug: params.slug,
+				error: err instanceof Error ? err.message : String(err)
+			});
 			return fail(400, { error: 'Invalid balance format. Enter amount like 123.45 or 123' });
 		}
 
@@ -189,6 +195,7 @@ export const actions: Actions = {
 			.set({ updatedAt: new Date() })
 			.where(eq(accounts.id, account.id));
 
+		// Redirect back to account page to refresh the balance list
 		redirect(303, `/accounts/${account.slug}`);
 	}
 };

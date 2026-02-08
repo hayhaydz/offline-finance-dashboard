@@ -69,6 +69,10 @@ export const actions: Actions = {
 				try {
 					balanceInCents = parseCurrency(initialBalance);
 				} catch (e) {
+					devLog('createAccount', 'parseCurrency validation failed', {
+						input: initialBalance,
+						error: e instanceof Error ? e.message : String(e)
+					});
 					errors.initialBalance = 'Invalid balance format. Enter amount like 123.45 or 123';
 				}
 			}
@@ -115,17 +119,20 @@ export const actions: Actions = {
 			// If initial balance provided, insert into account_balances with slug
 			if (balanceInCents !== null) {
 				const balanceSlug = nanoid(16);
+				// Use midnight UTC for consistent date comparison
+				const todayMidnight = new Date();
+				todayMidnight.setUTCHours(0, 0, 0, 0);
 				await db.insert(accountBalances).values({
 					accountId: newAccount.id,
 					slug: balanceSlug,
 					balanceInCents,
-					asOfDate: new Date(),
+					asOfDate: todayMidnight,
 					notes: null
 				});
 				devLog('createAccount', 'Balance added', {
 					accountId: newAccount.id,
 					balanceInCents,
-					asOfDate: new Date().toISOString()
+					asOfDate: todayMidnight.toISOString()
 				});
 			}
 

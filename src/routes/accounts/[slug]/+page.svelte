@@ -1,9 +1,19 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { formatCurrency } from '$lib/utils/currency';
+	import { onMount } from 'svelte';
+	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
+
+	// Delete confirmation modal state
+	let showDeleteModal = $state(false);
+	let balanceToDelete = $state<{ slug: string; date: string; balance: string } | null>(null);
+
+	// Form submission feedback state
+	let isSubmitting = $state(false);
+	let submitMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 
 	// Get today's date in YYYY-MM-DD format for max attribute
 	const today = new Date().toISOString().split('T')[0];
@@ -42,15 +52,53 @@
 		return `?offset=${newOffset}`;
 	}
 
-	// Handle delete confirmation
-	document.addEventListener('click', (e) => {
-		const target = e.target as HTMLElement;
-		if (target.classList.contains('delete-balance-link')) {
-			e.preventDefault();
-			const balanceSlug = target.getAttribute('data-balance-slug');
-			const form = document.getElementById(`delete-balance-${balanceSlug}`) as HTMLFormElement;
-			if (form && confirm('Are you sure you want to delete this balance entry?')) {
-				form.submit();
+	// Open delete confirmation modal
+	function openDeleteModal(balance: typeof data.balances[number]) {
+		balanceToDelete = {
+			slug: balance.slug,
+			date: formatDate(balance.asOfDate),
+			balance: formatCurrency(balance.balanceInCents)
+		};
+		showDeleteModal = true;
+	}
+
+	// Cancel delete
+	function cancelDelete() {
+		showDeleteModal = false;
+		balanceToDelete = null;
+	}
+
+	// Confirm delete - update form and submit
+	function confirmDelete() {
+		if (!balanceToDelete) return;
+
+		showDeleteModal = false;
+		isSubmitting = true;
+
+		// The input value is bound to balanceToDelete.slug, so it will be updated
+		// Submit the form
+		const deleteForm = document.getElementById('delete-balance-form') as HTMLFormElement;
+		if (deleteForm) {
+			deleteForm.requestSubmit();
+		}
+	}
+
+	// Clear feedback message after 3 seconds
+	$effect(() => {
+		if (submitMessage) {
+			const timeout = setTimeout(() => {
+				submitMessage = null;
+			}, 3000);
+			return () => clearTimeout(timeout);
+		}
+	});
+
+	// Show form submission result
+	$effect(() => {
+		if (form) {
+			isSubmitting = false;
+			if (form.error) {
+				submitMessage = { type: 'error', text: form.error as string };
 			}
 		}
 	});
@@ -85,13 +133,30 @@
 <div class="border-b border-black p-2">
 	<h3 class="font-bold mb-2 mt-0">ADD BALANCE ENTRY</h3>
 
+	{#if submitMessage}
+		<div class="mb-2 p-2 border border-black text-sm {submitMessage.type === 'error' ? 'bg-red-100' : 'bg-green-100'}">
+			{submitMessage.text}
+		</div>
+	{/if}
+
 	{#if form?.error}
 		<div class="bg-amber-100 border border-black p-2 mb-2 text-sm">
 			{@html form.error.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="bracket-link text-xs">[$1]</a>')}
 		</div>
 	{/if}
 
-	<form method="POST" action="?/addBalance" use:enhance class="flex flex-col gap-2">
+	<form
+		method="POST"
+		action="?/addBalance"
+		use:enhance={() => {
+			return async ({ result }) => {
+				isSubmitting = true;
+				// Result is handled by SvelteKit (redirect on success)
+				isSubmitting = false;
+			};
+		}}
+		class="flex flex-col gap-2"
+	>
 		<div class="grid grid-cols-2 gap-4">
 			<div>
 				<label for="balance" class="block text-sm font-bold mb-1">Balance</label>
@@ -128,9 +193,11 @@
 		</div>
 		<button
 			type="submit"
+			disabled={isSubmitting}
 			class="bg-black text-white px-4 py-1 text-sm font-bold hover:bg-gray-800 w-fit"
+			class:opacity-50={isSubmitting}
 		>
-			Add Balance
+			{isSubmitting ? 'Adding...' : 'Add Balance'}
 		</button>
 	</form>
 </div>
@@ -175,15 +242,16 @@
 						<td class="text-right">
 							<a
 								href="/accounts/{data.account.slug}/balances/{balance.slug}/edit"
-								class="bracket-link text-xs">Edit</a
+								class="bracket-link text-xs"
+								>Edit</a
 							>
 							<span class="text-xs mx-1"> </span>
 							<button
 								type="button"
-								class="delete-balance-link text-xs text-red-700 hover:underline"
-								data-balance-slug={balance.slug}
+								onclick={() => openDeleteModal(balance)}
+								class="text-xs text-red-700 hover:underline"
 							>
-								Delete
+								[Delete]
 							</button>
 						</td>
 					</tr>
@@ -199,9 +267,24 @@
 	{/if}
 </div>
 
-<!-- DELETE BALANCE FORMS (hidden, triggered by buttons) -->
-{#each data.balances as balance}
-	<form method="POST" action="?/deleteBalance" class="hidden" id="delete-balance-{balance.slug}">
-		<input type="hidden" name="balanceSlug" value={balance.slug} />
-	</form>
-{/each}
+<!-- DELETE BALANCE FORM (single form, triggered by modal) -->
+<form
+	method="POST"
+	action="?/deleteBalance"
+	class="hidden"
+	id="delete-balance-form"
+>
+	<input type="hidden" name="balanceSlug" value={balanceToDelete?.slug ?? ''} />
+</form>
+
+<!-- DELETE CONFIRMATION MODAL -->
+{#if showDeleteModal && balanceToDelete}
+	<ConfirmationModal
+		title="Delete Balance Entry"
+		message={`Are you sure you want to delete the balance entry for ${balanceToDelete.date} with amount ${balanceToDelete.balance}? This action cannot be undone.`}
+		confirmText="Delete"
+		cancelText="Cancel"
+		onConfirm={confirmDelete}
+		onCancel={cancelDelete}
+	/>
+{/if}

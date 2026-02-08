@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from './schema';
 import fs from 'fs';
 import path from 'path';
+import { logError } from '$lib/utils/logger';
 
 // Load environment variables from .env file
 import 'dotenv/config';
@@ -96,7 +97,9 @@ export function createDb(customPath?: string) {
 				}
 			} catch (error: any) {
 				if (error.message.includes('CRITICAL:')) throw error;
-				if (!isTest) console.warn('[PROD] Warning during startup security check:', error.message);
+				if (!isTest) {
+					logError('database', 'Warning during startup security check', error.message);
+				}
 			}
 		}
 	} else {

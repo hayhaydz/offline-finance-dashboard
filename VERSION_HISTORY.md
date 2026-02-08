@@ -1,3 +1,53 @@
+## [2026-02-08 14:30] — Logging: Add Comprehensive Account Operations Logging
+
+**Summary:** Added comprehensive Winston-based logging to all account-related server operations (quick-add balance, edit account, close account). All form actions now log form data at entry point, successful operations log with relevant context, and errors are logged with appropriate details. This follows the logging patterns established in quick-014 and quick-015.
+
+**Files:**
+- `src/routes/accounts/+page.server.ts` (added logFormData, success logging, conflict logging)
+- `src/routes/accounts/[slug]/edit/+page.server.ts` (added logger imports, load logging, form data logging, validation logging, success logging)
+- `src/routes/accounts/[slug]/delete/+page.server.ts` (added logger imports, load logging, close action logging, error logging)
+- `.planning/quick/18-add-comprehensive-logging-to-accounts-ar/018-SUMMARY.md` (created)
+
+**Commit:**
+```
+feat(logging): add comprehensive logging to account operations
+
+- Add logFormData to quick-add balance action (accounts list page)
+- Add devLog for successful balance insertion with full context
+- Add devLog for conflict detection (409) with existing balance details
+- Add comprehensive logging to account edit operations
+- Add comprehensive logging to account close operations
+- Follow logging patterns from create/+page.server.ts
+```
+
+**Context:** This completes the logging coverage for all account operations (create, edit, close, quick-add balance). The logger system automatically masks sensitive fields and development logs only output in development mode. File logging with daily rotation is handled by Winston.
+
+---
+
+## [2026-02-08 17:35] — UX: Fix Delete Balance with Realtime Updates and Custom Modal
+
+**Summary:** Replaced browser confirm() alert with custom ConfirmationModal component for balance deletion. Fixed Svelte 5 use:enhance callback syntax for proper form handling. Added realtime page invalidation after deletion and success/error feedback messages.
+
+**Files:**
+- `src/routes/accounts/[slug]/+page.svelte` (fixed enhance callbacks, added modal)
+- `src/routes/accounts/[slug]/+page.server.ts` (return success message instead of redirect)
+- `src/lib/components/ConfirmationModal.svelte` (created)
+- `src/routes/+error.svelte` (created custom error page)
+
+**Commit:**
+```
+fix(delete-balance): replace alert with modal and add realtime updates
+
+- Replace browser confirm() with custom ConfirmationModal component
+- Fix Svelte 5 use:enhance callback signature ({ result } not { action, formData })
+- Add invalidate('accounts:[slug]') for realtime balance list refresh
+- Change delete action to return success message instead of redirect
+- Add submitMessage state for user feedback (success/error)
+- Create +error.svelte for client-side error display
+```
+
+---
+
 ## [2026-02-08 15:42] — Documentation: Add URL Slug Rules
 
 **Summary:** Added documentation rules to forbid database IDs in URLs, requiring nanoid-based slugs for all user-facing routes. Updated CLAUDE.md and GEMINI.md with security-focused URL slug rules and created architecture documentation for implementation guidance.
