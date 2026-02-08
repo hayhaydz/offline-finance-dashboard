@@ -27,7 +27,9 @@
 		</div>
 	{/if}
 
-	{@render children()}
-
 	<Navigation {user} {environment} />
+
+	<div class="scrollable-content">
+		{@render children()}
+	</div>
 </div>

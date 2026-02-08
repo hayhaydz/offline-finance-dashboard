@@ -182,7 +182,7 @@
 				{#each sortedAccounts as account}
 					<tr class:line-through={account.closedAt}>
 						<td>
-							{account.name}
+							<a href="/accounts/{account.slug}" class="bracket-link">{account.name}</a>
 							{#if account.closedAt}
 								<span class="text-gray-600 text-xs"> (closed)</span>
 							{/if}
@@ -261,7 +261,9 @@
 			</div>
 
 			{#if form?.error}
-				<p class="text-red-700 font-bold my-2 text-xs">{form.error}</p>
+				<div class="bg-amber-100 border border-black p-2 mb-2 text-sm">
+					{@html form.error.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="bracket-link text-xs">[$1]</a>')}
+				</div>
 			{/if}
 
 			<button

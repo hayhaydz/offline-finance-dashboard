@@ -8,8 +8,18 @@
 		liquidity,
 		monetary
 	} from '$lib/validation/rules';
+	import {
+		devLogClient,
+		logComponentLifecycle,
+		logValidationState,
+		logFormSubmit,
+		logFormDataClient
+	} from '$lib/utils/client-logger';
 
 	let { form } = $props<{ form: any }>();
+
+	// Log component lifecycle
+	logComponentLifecycle('account-create', 'AccountCreateForm', 'mount');
 
 	// Form field values initialized to empty
 	let name = $state('');
@@ -27,6 +37,17 @@
 			liquidityValue = form.data.liquidity ?? '';
 			initialBalance = form.data.initialBalance ?? '';
 		}
+	});
+
+	// Log form value changes for debugging
+	$effect(() => {
+		devLogClient('account-create', 'Form values changed', {
+			name,
+			type,
+			institution,
+			liquidityValue,
+			initialBalance
+		});
 	});
 
 	// Account type options
@@ -95,6 +116,15 @@
 		institutionValid = institutionField?.isValid ?? true;
 		liquidityValid = liquidityField?.isValid ?? true;
 		initialBalanceValid = initialBalanceField?.isValid ?? true;
+
+		logValidationState('account-create', {
+			nameValid,
+			typeValid,
+			institutionValid,
+			liquidityValid,
+			initialBalanceValid,
+			isFormValid: nameValid && typeValid && institutionValid && liquidityValid && initialBalanceValid
+		});
 	});
 </script>
 
@@ -103,7 +133,16 @@
 	<p class="text-gray-600 my-1">Add a new financial account to track</p>
 </div>
 
-<form method="POST" use:enhance class="border-b border-black p-2">
+<form
+	method="POST"
+	use:enhance={() => {
+		return async ({ result, update }) => {
+			logFormSubmit('account-create', 'CreateAccount', { result });
+			await update();
+		};
+	}}
+	class="border-b border-black p-2"
+>
 	<FormField
 		bind:this={nameField}
 		label="Account Name"
@@ -122,7 +161,6 @@
 			name="type"
 			bind:value={type}
 			class="border border-black p-1 w-full font-terminal text-sm focus:outline-none"
-			required
 		>
 			<option value="">Select account type...</option>
 			{#each accountTypes as option}
@@ -182,8 +220,8 @@
 	<div class="mb-2">
 		<button
 			type="submit"
-			disabled={!isFormValid}
 			class="bracket-link"
+			onclick={() => devLogClient('account-create', 'Submit button clicked', { isFormValid })}
 		>
 			Create Account
 		</button>

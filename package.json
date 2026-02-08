@@ -15,6 +15,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx scripts/seed.ts",
+    "migrate:slugs": "tsx scripts/migrate-slugs.ts",
     "postinstall": "svelte-kit sync"
   },
   "dependencies": {
@@ -28,11 +29,14 @@
     "clsx": "^2.1.1",
     "dotenv": "^17.2.4",
     "drizzle-orm": "^0.45.1",
+    "nanoid": "^3.3.11",
     "otplib": "^13.2.1",
     "qrcode": "^1.5.4",
     "svelte": "^5.50.0",
     "tailwind-merge": "^3.4.0",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.1.18",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
     "@sveltejs/adapter-node": "^5.5.2",

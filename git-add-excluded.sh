@@ -48,6 +48,8 @@ EXCLUDE_PATTERNS=(
     'coverage'
     '.nyc_output'
     '*.test.ts.snap'
+    'logs/'
+    '*.log'
 
     # ============================================
     # IDE settings (Claude can see, don't commit)

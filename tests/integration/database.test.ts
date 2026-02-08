@@ -89,6 +89,7 @@ describe('Database Integration & Migrations', () => {
 		// 2. Test Accounts
 		const [newAccount] = await testDb.insert(accounts).values({
 			userId: newUser.id,
+			slug: 'test-account-slug-' + Date.now(),
 			name: 'Test Account',
 			type: 'current',
 		}).returning();
@@ -98,6 +99,7 @@ describe('Database Integration & Migrations', () => {
 		// 3. Test Balances
 		const [newBalance] = await testDb.insert(accountBalances).values({
 			accountId: newAccount.id,
+			slug: 'test-balance-slug-' + Date.now(),
 			balanceInCents: 10000,
 			asOfDate: new Date(),
 		}).returning();

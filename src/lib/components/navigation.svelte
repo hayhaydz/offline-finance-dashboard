@@ -21,16 +21,55 @@
 
 	const currentPath = $derived(page.url.pathname);
 
+	// Generate breadcrumb trail from current path
+	const breadcrumbs = $derived(() => {
+		const path = currentPath;
+		if (path === '/') return [{ label: 'Home', href: '/' }];
+
+		const segments = path.split('/').filter(Boolean);
+		const crumbs = [{ label: 'Home', href: '/' }];
+
+		let buildPath = '';
+		for (const segment of segments) {
+			buildPath += '/' + segment;
+			const labelMap: Record<string, string> = {
+				accounts: 'Accounts',
+				snapshots: 'Snapshots',
+				settings: 'Settings',
+				profile: 'Profile',
+				create: 'Create',
+				edit: 'Edit',
+				delete: 'Close'
+			};
+			crumbs.push({
+				label: labelMap[segment] || segment,
+				href: buildPath
+			});
+		}
+		return crumbs;
+	});
+
 	// Environment badge for development
 	const showDevBadge = $derived(!environment.isProduction);
 </script>
 
-<div class="flex justify-between p-2 bg-gray-100 border-t border-black">
+<!-- Breadcrumb Trail -->
+<div class="bg-black text-white p-1 text-xs">
+	{#each breadcrumbs() as crumb, index}
+		{#if index > 0}<span class="mx-1">></span>{/if}
+		<a href={crumb.href} class="hover:text-gray-300">
+			{crumb.label}
+		</a>
+	{/each}
+</div>
+
+<!-- Navigation Links -->
+<div class="flex justify-between p-2">
 	{#each navItems as item}
 		{#if !item.authRequired || user}
 			<a
 				href={item.href}
-				class="bracket-link {currentPath === item.href ? 'bg-black text-white' : ''}"
+				class="bracket-link text-xs {currentPath === item.href ? 'bg-white' : ''}"
 			>
 				{item.label}
 			</a>
@@ -43,9 +82,9 @@
 
 	{#if user}
 		<form action="/logout" method="POST">
-			<button type="submit" class="bracket-link">Exit</button>
+			<button type="submit" class="bracket-link text-xs">Exit</button>
 		</form>
 	{:else}
-		<a href="/login" class="bracket-link">Login</a>
+		<a href="/login" class="bracket-link text-xs">Login</a>
 	{/if}
 </div>

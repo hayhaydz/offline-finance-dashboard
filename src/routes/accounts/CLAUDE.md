@@ -7,5 +7,8 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
+| #2707 | 2:18 PM | 🔵 | Accounts list page server implements row-level security and quick-add balance with conflict detection | ~417 |
 | #2690 | 2:14 PM | 🔴 | Fixed property name mismatch in balance conflict error response | ~208 |
+| #2689 | " | 🔵 | Accounts page server implements balance quick-add with conflict detection | ~337 |
+| #2676 | 2:09 PM | 🔴 | Fixed Svelte template syntax error in accounts listing page | ~132 |
 </claude-mem-context>

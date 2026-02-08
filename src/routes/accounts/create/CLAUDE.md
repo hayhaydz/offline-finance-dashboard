@@ -7,7 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #2712 | 2:19 PM | 🔵 | Account creation form implements Svelte 5 validation with terminal aesthetic | ~417 |
-| #2708 | 2:18 PM | 🔵 | Account creation server implements comprehensive validation with optional initial balance | ~424 |
-| #2692 | 2:14 PM | 🔵 | Account creation form implements comprehensive validation with optional initial balance | ~361 |
+| #2911 | 4:06 PM | 🔴 | Account creation action renamed from createAccount to default | ~190 |
+| #2764 | 3:33 PM | 🔵 | Account creation server action examined to diagnose form submission failure | ~300 |
 </claude-mem-context>

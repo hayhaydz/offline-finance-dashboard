@@ -4,19 +4,19 @@ import { db } from '$lib/db/client';
 import { accounts, accountBalances } from '$lib/db/schema';
 import { validateUserAccess } from '$lib/auth/row-security';
 import { parseCurrency } from '$lib/utils/currency';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
 		redirect(302, '/login');
 	}
 
-	const accountId = parseInt(params.id);
-	const balanceId = parseInt(params.balanceId);
+	const accountSlug = params.slug;
+	const balanceSlug = params.balanceSlug;
 
-	// Validate account ownership
+	// Validate account ownership using slug
 	const account = await db.query.accounts.findFirst({
-		where: eq(accounts.id, accountId)
+		where: eq(accounts.slug, accountSlug)
 	});
 
 	if (!account) {
@@ -25,12 +25,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	validateUserAccess(account, locals.user, 'Account');
 
-	// Get balance entry and verify it belongs to this account
+	// Get balance entry and verify it belongs to this account using slug
 	const balance = await db.query.accountBalances.findFirst({
-		where: and(eq(accountBalances.id, balanceId), eq(accountBalances.accountId, accountId))
+		where: eq(accountBalances.slug, balanceSlug)
 	});
 
-	if (!balance) {
+	if (!balance || balance.accountId !== account.id) {
 		error(404, 'Balance entry not found');
 	}
 
@@ -58,12 +58,12 @@ export const actions: Actions = {
 			return fail(401, { error: 'Authentication required' });
 		}
 
-		const accountId = parseInt(params.id);
-		const balanceId = parseInt(params.balanceId);
+		const accountSlug = params.slug;
+		const balanceSlug = params.balanceSlug;
 
-		// Validate ownership
+		// Validate ownership using slug
 		const account = await db.query.accounts.findFirst({
-			where: eq(accounts.id, accountId)
+			where: eq(accounts.slug, accountSlug)
 		});
 
 		if (!account) {
@@ -72,12 +72,12 @@ export const actions: Actions = {
 
 		validateUserAccess(account, locals.user, 'Account');
 
-		// Verify balance belongs to this account
+		// Verify balance belongs to this account using slug
 		const existingBalance = await db.query.accountBalances.findFirst({
-			where: and(eq(accountBalances.id, balanceId), eq(accountBalances.accountId, accountId))
+			where: eq(accountBalances.slug, balanceSlug)
 		});
 
-		if (!existingBalance) {
+		if (!existingBalance || existingBalance.accountId !== account.id) {
 			return fail(404, { error: 'Balance entry not found' });
 		}
 
@@ -104,15 +104,15 @@ export const actions: Actions = {
 			return fail(400, { error: 'Cannot enter balances for future dates' });
 		}
 
-		// Check for conflicts with other entries on same date (excluding current balanceId)
+		// Check for conflicts with other entries on same date (excluding current balanceSlug)
 		const conflict = await db.query.accountBalances.findFirst({
 			where: and(
-				eq(accountBalances.accountId, accountId),
+				eq(accountBalances.accountId, account.id),
 				eq(accountBalances.asOfDate, asOfDate)
 			)
 		});
 
-		if (conflict && conflict.id !== balanceId) {
+		if (conflict && conflict.slug !== balanceSlug) {
 			return fail(409, {
 				error: `A balance entry already exists for ${asOfDateStr}. Choose a different date or edit that entry instead.`
 			});
@@ -127,14 +127,14 @@ export const actions: Actions = {
 				notes: notes?.trim() || null,
 				updatedAt: new Date()
 			})
-			.where(eq(accountBalances.id, balanceId));
+			.where(eq(accountBalances.id, existingBalance.id));
 
 		// Update account's updatedAt timestamp
 		await db
 			.update(accounts)
 			.set({ updatedAt: new Date() })
-			.where(eq(accounts.id, accountId));
+			.where(eq(accounts.id, account.id));
 
-		redirect(303, `/accounts/${accountId}`);
+		redirect(303, `/accounts/${account.slug}`);
 	}
 };

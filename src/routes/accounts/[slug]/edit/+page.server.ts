@@ -16,11 +16,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		redirect(302, '/login');
 	}
 
-	const accountId = parseInt(params.id);
+	const accountSlug = params.slug;
 
-	// Get account and validate ownership
+	// Get account and validate ownership using slug
 	const account = await db.query.accounts.findFirst({
-		where: eq(accounts.id, accountId)
+		where: eq(accounts.slug, accountSlug)
 	});
 
 	if (!account) {
@@ -46,11 +46,11 @@ export const actions: Actions = {
 			return fail(401, { error: 'Authentication required' });
 		}
 
-		const accountId = parseInt(params.id);
+		const accountSlug = params.slug;
 
-		// Validate ownership
+		// Validate ownership using slug
 		const account = await db.query.accounts.findFirst({
-			where: eq(accounts.id, accountId)
+			where: eq(accounts.slug, accountSlug)
 		});
 
 		if (!account) {
@@ -88,8 +88,8 @@ export const actions: Actions = {
 				liquidity,
 				updatedAt: new Date()
 			})
-			.where(eq(accounts.id, accountId));
+			.where(eq(accounts.id, account.id));
 
-		redirect(303, `/accounts/${accountId}`);
+		redirect(303, `/accounts/${account.slug}`);
 	}
 };

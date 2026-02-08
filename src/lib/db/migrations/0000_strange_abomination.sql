@@ -1,5 +1,6 @@
 CREATE TABLE `account_balances` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`slug` text NOT NULL,
 	`account_id` integer NOT NULL,
 	`balance_in_cents` integer NOT NULL,
 	`as_of_date` integer NOT NULL,
@@ -9,8 +10,10 @@ CREATE TABLE `account_balances` (
 	FOREIGN KEY (`account_id`) REFERENCES `accounts`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `account_balances_slug_unique` ON `account_balances` (`slug`);--> statement-breakpoint
 CREATE TABLE `accounts` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`slug` text NOT NULL,
 	`user_id` integer NOT NULL,
 	`name` text NOT NULL,
 	`institution` text,
@@ -23,6 +26,7 @@ CREATE TABLE `accounts` (
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
+CREATE UNIQUE INDEX `accounts_slug_unique` ON `accounts` (`slug`);--> statement-breakpoint
 CREATE TABLE `backup_codes` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`user_id` integer NOT NULL,

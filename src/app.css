@@ -66,3 +66,9 @@ td {
 .bar-chart {
 	letter-spacing: -1px;
 }
+
+/* Scrollable content area for main content */
+.scrollable-content {
+	max-height: calc(100vh - 200px);
+	overflow-y: auto;
+}

@@ -5,19 +5,20 @@ import { accounts, accountBalances } from '$lib/db/schema';
 import { validateUserAccess } from '$lib/auth/row-security';
 import { parseCurrency } from '$lib/utils/currency';
 import { eq, desc, and } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
 	if (!locals.user) {
 		redirect(302, '/login');
 	}
 
-	const accountId = parseInt(params.id);
+	const accountSlug = params.slug;
 	const offsetParam = url.searchParams.get('offset');
 	const offset = offsetParam ? parseInt(offsetParam) : 0;
 
-	// Get account with ownership validation
+	// Get account with ownership validation using slug
 	const account = await db.query.accounts.findFirst({
-		where: eq(accounts.id, accountId)
+		where: eq(accounts.slug, accountSlug)
 	});
 
 	if (!account) {
@@ -26,9 +27,9 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
 	validateUserAccess(account, locals.user, 'Account');
 
-	// Get balance history (50 entries, newest first)
+	// Get balance history (50 entries, newest first) using account.id
 	const balances = await db.query.accountBalances.findMany({
-		where: eq(accountBalances.accountId, accountId),
+		where: eq(accountBalances.accountId, account.id),
 		orderBy: desc(accountBalances.asOfDate),
 		limit: 50,
 		offset
@@ -67,11 +68,11 @@ export const actions: Actions = {
 			return fail(401, { error: 'Authentication required' });
 		}
 
-		const accountId = parseInt(params.id);
+		const accountSlug = params.slug;
 
-		// Validate ownership first
+		// Validate ownership first using slug
 		const account = await db.query.accounts.findFirst({
-			where: eq(accounts.id, accountId)
+			where: eq(accounts.slug, accountSlug)
 		});
 
 		if (!account) {
@@ -106,24 +107,25 @@ export const actions: Actions = {
 		// Check if entry exists for this date
 		const existing = await db.query.accountBalances.findFirst({
 			where: and(
-				eq(accountBalances.accountId, accountId),
+				eq(accountBalances.accountId, account.id),
 				eq(accountBalances.asOfDate, asOfDate)
 			)
 		});
 
 		if (existing) {
-			// Return warning to user - they'll confirm via a separate "replace" action
 			return fail(409, {
-				error: `A balance entry already exists for ${asOfDateStr}. Click "Replace" to overwrite it.`,
+				error: `A balance entry already exists for ${asOfDateStr}. [Edit the existing entry](/accounts/${account.slug}/balances/${existing.slug}/edit) or choose a different date.`,
 				existingBalanceId: existing.id,
 				existingBalance: existing.balanceInCents,
 				proposedBalance: balanceInCents
 			});
 		}
 
-		// Insert new balance entry
+		// Insert new balance entry with slug
+		const balanceSlug = nanoid(16);
 		await db.insert(accountBalances).values({
-			accountId,
+			accountId: account.id,
+			slug: balanceSlug,
 			balanceInCents,
 			asOfDate,
 			notes: notes?.trim() || null
@@ -133,9 +135,9 @@ export const actions: Actions = {
 		await db
 			.update(accounts)
 			.set({ updatedAt: new Date() })
-			.where(eq(accounts.id, accountId));
+			.where(eq(accounts.id, account.id));
 
-		redirect(303, `/accounts/${accountId}`);
+		redirect(303, `/accounts/${account.slug}`);
 	},
 
 	/**
@@ -149,11 +151,11 @@ export const actions: Actions = {
 			return fail(401, { error: 'Authentication required' });
 		}
 
-		const accountId = parseInt(params.id);
+		const accountSlug = params.slug;
 
-		// Validate ownership
+		// Validate ownership using slug
 		const account = await db.query.accounts.findFirst({
-			where: eq(accounts.id, accountId)
+			where: eq(accounts.slug, accountSlug)
 		});
 
 		if (!account) {
@@ -163,30 +165,30 @@ export const actions: Actions = {
 		validateUserAccess(account, locals.user, 'Account');
 
 		const formData = await request.formData();
-		const balanceId = formData.get('balanceId') as string;
+		const balanceSlug = formData.get('balanceSlug') as string;
 
-		if (!balanceId) {
-			return fail(400, { error: 'Balance ID is required' });
+		if (!balanceSlug) {
+			return fail(400, { error: 'Balance slug is required' });
 		}
 
-		// Verify balance belongs to this account
+		// Verify balance belongs to this account using slug
 		const balance = await db.query.accountBalances.findFirst({
-			where: eq(accountBalances.id, parseInt(balanceId))
+			where: eq(accountBalances.slug, balanceSlug)
 		});
 
-		if (!balance || balance.accountId !== accountId) {
+		if (!balance || balance.accountId !== account.id) {
 			return fail(404, { error: 'Balance entry not found' });
 		}
 
 		// Delete the balance entry
-		await db.delete(accountBalances).where(eq(accountBalances.id, parseInt(balanceId)));
+		await db.delete(accountBalances).where(eq(accountBalances.id, balance.id));
 
 		// Update account's updatedAt timestamp
 		await db
 			.update(accounts)
 			.set({ updatedAt: new Date() })
-			.where(eq(accounts.id, accountId));
+			.where(eq(accounts.id, account.id));
 
-		redirect(303, `/accounts/${accountId}`);
+		redirect(303, `/accounts/${account.slug}`);
 	}
 };

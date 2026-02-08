@@ -5,8 +5,7 @@ import { accounts, accountBalances } from '$lib/db/schema';
 import { withUserFilter, validateUserAccess } from '$lib/auth/row-security';
 import { parseCurrency } from '$lib/utils/currency';
 import { eq, and } from 'drizzle-orm';
-
-export const ssr = false;
+import { nanoid } from 'nanoid';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
@@ -28,6 +27,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// Transform data for display
 	const accountsWithBalances = userAccounts.map((account) => ({
 		id: account.id,
+		slug: account.slug,
 		name: account.name,
 		type: account.type,
 		institution: account.institution,
@@ -51,7 +51,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	addQuickBalance: async ({ request, locals }) => {
+	default: async ({ request, locals }) => {
 		if (!locals.user) {
 			return fail(401, { error: 'Authentication required' });
 		}
@@ -100,16 +100,18 @@ export const actions: Actions = {
 
 		if (existing) {
 			return fail(409, {
-				error: `A balance entry already exists for today (${today.toISOString().split('T')[0]}). Please edit the existing entry or use a different date.`,
+				error: `A balance entry already exists for today (${today.toISOString().split('T')[0]}). [Edit the existing entry](/accounts/${account.slug}/balances/${existing.slug}/edit) or choose a different date.`,
 				existingBalanceId: existing.id,
 				existingBalance: existing.balanceInCents,
 				proposedBalance: balanceInCents
 			});
 		}
 
-		// Insert new balance entry
+		// Insert new balance entry with slug
+		const balanceSlug = nanoid(16);
 		await db.insert(accountBalances).values({
 			accountId,
+			slug: balanceSlug,
 			balanceInCents,
 			asOfDate: today,
 			notes: notes || null

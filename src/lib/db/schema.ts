@@ -39,6 +39,7 @@ export const loginAttempts = sqliteTable('login_attempts', {
 
 export const accounts = sqliteTable('accounts', {
 	id: integer('id').primaryKey({ autoIncrement: true }),
+	slug: text('slug').notNull().unique(), // URL-safe identifier for user-facing routes
 	userId: integer('user_id').notNull().references(() => users.id),
 	name: text('name').notNull(),
 	institution: text('institution'),
@@ -52,6 +53,7 @@ export const accounts = sqliteTable('accounts', {
 
 export const accountBalances = sqliteTable('account_balances', {
 	id: integer('id').primaryKey({ autoIncrement: true }),
+	slug: text('slug').notNull().unique(), // URL-safe identifier for user-facing routes
 	accountId: integer('account_id').notNull().references(() => accounts.id),
 	balanceInCents: integer('balance_in_cents').notNull(), // Stored as cents/pence (integer)
 	asOfDate: integer('as_of_date', { mode: 'timestamp' }).notNull(),

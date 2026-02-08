@@ -47,8 +47,8 @@
 		const target = e.target as HTMLElement;
 		if (target.classList.contains('delete-balance-link')) {
 			e.preventDefault();
-			const balanceId = target.getAttribute('data-balance-id');
-			const form = document.getElementById(`delete-balance-${balanceId}`) as HTMLFormElement;
+			const balanceSlug = target.getAttribute('data-balance-slug');
+			const form = document.getElementById(`delete-balance-${balanceSlug}`) as HTMLFormElement;
 			if (form && confirm('Are you sure you want to delete this balance entry?')) {
 				form.submit();
 			}
@@ -65,8 +65,8 @@
 	<div class="flex justify-between items-center mb-2">
 		<h2 class="text-base font-bold m-0">{data.account.name}</h2>
 		<div class="flex gap-2">
-			<a href="/accounts/{data.account.id}/edit" class="bracket-link text-xs">Edit</a>
-			<a href="/accounts/{data.account.id}/delete" class="bracket-link text-xs text-red-700">Close</a>
+			<a href="/accounts/{data.account.slug}/edit" class="bracket-link text-xs">Edit</a>
+			<a href="/accounts/{data.account.slug}/delete" class="bracket-link text-xs text-red-700">Close</a>
 		</div>
 	</div>
 	<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
@@ -85,14 +85,9 @@
 <div class="border-b border-black p-2">
 	<h3 class="font-bold mb-2 mt-0">ADD BALANCE ENTRY</h3>
 
-	{#if form?.error && form?.error.includes('already exists')}
+	{#if form?.error}
 		<div class="bg-amber-100 border border-black p-2 mb-2 text-sm">
-			<span class="font-bold text-amber-900">WARNING:</span> {form.error}
-			<div class="mt-1 text-xs">The existing entry will be replaced if you submit again.</div>
-		</div>
-	{:else if form?.error}
-		<div class="bg-red-100 border border-black p-2 mb-2 text-sm text-red-900">
-			<span class="font-bold">ERROR:</span> {form.error}
+			{@html form.error.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="bracket-link text-xs">[$1]</a>')}
 		</div>
 	{/if}
 
@@ -179,14 +174,14 @@
 						<td class="text-xs text-gray-600">{balance.notes || '-'}</td>
 						<td class="text-right">
 							<a
-								href="/accounts/{data.account.id}/balances/{balance.id}/edit"
+								href="/accounts/{data.account.slug}/balances/{balance.slug}/edit"
 								class="bracket-link text-xs">Edit</a
 							>
 							<span class="text-xs mx-1"> </span>
 							<button
 								type="button"
 								class="delete-balance-link text-xs text-red-700 hover:underline"
-								data-balance-id={balance.id}
+								data-balance-slug={balance.slug}
 							>
 								Delete
 							</button>
@@ -206,7 +201,7 @@
 
 <!-- DELETE BALANCE FORMS (hidden, triggered by buttons) -->
 {#each data.balances as balance}
-	<form method="POST" action="?/deleteBalance" class="hidden" id="delete-balance-{balance.id}">
-		<input type="hidden" name="balanceId" value={balance.id} />
+	<form method="POST" action="?/deleteBalance" class="hidden" id="delete-balance-{balance.slug}">
+		<input type="hidden" name="balanceSlug" value={balance.slug} />
 	</form>
 {/each}
