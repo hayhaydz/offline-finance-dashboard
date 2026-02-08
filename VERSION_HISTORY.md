@@ -1,3 +1,24 @@
+## [2026-02-08 15:33] — Feature: Add Development Logging System
+
+**Summary:** Created environment-aware logging utility for development debugging. Added logging to account creation action to help debug form submission issues. Logger automatically masks sensitive fields (passwords, tokens, secrets) and suppresses output in production mode.
+
+**Files:**
+- `src/lib/utils/logger.ts` (created)
+- `src/routes/accounts/create/+page.server.ts` (updated)
+
+**Commit:**
+```
+feat(logging): add environment-aware development logging system
+
+- Create logger.ts with devLog(), logError(), logFormData() functions
+- Add sensitive field masking for passwords, tokens, secrets, API keys
+- Add development logging to account creation action
+- Production mode suppresses dev logs and sanitizes error logs
+- Use built-in console methods (no external dependencies)
+```
+
+---
+
 ## [2026-02-08 15:21] — UI: Move Navigation to Top and Add Breadcrumbs
 
 **Summary:** Moved navigation component from bottom to top of page and added breadcrumb trail for better UX. Implemented independent scrolling for main content area so navigation stays visible when viewing long content. All changes maintain the terminal aesthetic.
