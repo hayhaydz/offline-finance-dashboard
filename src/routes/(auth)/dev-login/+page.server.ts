@@ -1,6 +1,7 @@
 import { redirect, error } from '@sveltejs/kit';
 import { db } from '$lib/db/client';
 import { users, sessions } from '$lib/db/schema';
+import { devLog, logError } from '$lib/utils/logger';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 
@@ -9,8 +10,11 @@ export async function load({ cookies }) {
 
 	// SECURITY: This route ONLY works in development
 	if (appEnv !== 'development') {
+		logError('devLogin', 'Dev login attempted in production', { appEnv });
 		throw error(404, 'Not Found');
 	}
+
+	devLog('devLogin', 'Development auto-login initiated');
 
 	// Find the admin user (created by seed script)
 	const adminUser = await db.query.users.findFirst({
@@ -18,6 +22,7 @@ export async function load({ cookies }) {
 	});
 
 	if (!adminUser) {
+		logError('devLogin', 'Admin user not found');
 		throw error(500, 'Admin user not found. Run npm run db:seed first.');
 	}
 
@@ -38,6 +43,12 @@ export async function load({ cookies }) {
 		sameSite: 'strict',
 		secure: false, // Development - no HTTPS
 		maxAge: 60 * 60 * 24 * 30 // 30 days in development
+	});
+
+	devLog('devLogin', 'Development auto-login successful', {
+		username: adminUser.username,
+		userId: adminUser.id,
+		sessionMaxAge: '30 days'
 	});
 
 	// Redirect to the accounts page

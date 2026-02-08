@@ -26,13 +26,18 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	});
 
 	if (!account) {
+		logError('editAccount', 'Account not found', { accountSlug });
 		error(404, 'Account not found');
 	}
 
 	validateUserAccess(account, locals.user, 'Account');
 
 	return {
-		account
+		account,
+		breadcrumbOverrides: [
+			{ segmentIndex: 1, label: account.name, skipLink: false }, // Replace account slug with account name
+			{ segmentIndex: 2, label: `Edit Account`, skipLink: false }
+		]
 	};
 };
 
@@ -72,14 +77,17 @@ export const actions: Actions = {
 
 		// Validation
 		if (!name?.trim()) {
+			devLog('editAccount', 'Validation failed - name required', { accountSlug });
 			return fail(400, { error: 'Account name is required' });
 		}
 
 		if (!VALID_ACCOUNT_TYPES.includes(type)) {
+			devLog('editAccount', 'Validation failed - invalid type', { accountSlug, type });
 			return fail(400, { error: 'Invalid account type' });
 		}
 
 		if (!VALID_LIQUIDITY_VALUES.includes(liquidity)) {
+			devLog('editAccount', 'Validation failed - invalid liquidity', { accountSlug, liquidity });
 			return fail(400, { error: 'Invalid liquidity value' });
 		}
 
@@ -108,6 +116,7 @@ export const actions: Actions = {
 			accountSlug
 		});
 
+		devLog('editAccount', 'Redirecting to account detail', { accountSlug });
 		redirect(303, `/accounts/${account.slug}`);
 	}
 };

@@ -1,7 +1,7 @@
 /**
  * Currency formatting utilities for financial data
  *
- * All monetary values are stored as integers (cents/pence) in the database
+ * All monetary values are stored as integers (pence) in the database
  * to avoid floating-point precision issues. These utilities convert between
  * integer storage and display format.
  *
@@ -13,39 +13,39 @@
 /**
  * Module-level currency formatter (cached for performance)
  *
- * Uses en-US locale with USD currency. In the future, this could be made
- * configurable per user for multi-currency support.
+ * Uses en-GB locale with GBP currency (default going forward).
+ * In the future, this could be made configurable per user for multi-currency support.
  */
-const currencyFormatter = new Intl.NumberFormat('en-US', {
+const currencyFormatter = new Intl.NumberFormat('en-GB', {
 	style: 'currency',
-	currency: 'USD',
+	currency: 'GBP',
 	minimumFractionDigits: 2,
 	maximumFractionDigits: 2
 });
 
 /**
- * Format an amount in cents to a currency string for display
+ * Format an amount in pence to a currency string for display
  *
- * @param amountInCents - The amount in cents/pence (integer)
- * @returns Formatted currency string (e.g., "$123.45")
+ * @param amountInPence - The amount in pence (integer)
+ * @returns Formatted currency string (e.g., "£123.45")
  *
  * @example
- * formatCurrency(12345)  // => "$123.45"
- * formatCurrency(0)      // => "$0.00"
- * formatCurrency(-5000)  // => "-$50.00" (for liabilities)
+ * formatCurrency(12345)  // => "£123.45"
+ * formatCurrency(0)      // => "£0.00"
+ * formatCurrency(-5000)  // => "-£50.00" (for liabilities)
  */
-export function formatCurrency(amountInCents: number): string {
-	return currencyFormatter.format(amountInCents / 100);
+export function formatCurrency(amountInPence: number): string {
+	return currencyFormatter.format(amountInPence / 100);
 }
 
 /**
- * Parse a currency input string to cents for storage
+ * Parse a currency input string to pence for storage
  *
- * Accepts formats like "123.45", "123", "123.4" and converts to integer cents.
+ * Accepts formats like "123.45", "123", "123.4" and converts to integer pence.
  * Throws an error for invalid formats.
  *
  * @param input - The currency string to parse (e.g., "123.45")
- * @returns The amount in cents (integer)
+ * @returns The amount in pence (integer)
  * @throws Error if the input format is invalid
  *
  * @example
@@ -64,7 +64,7 @@ export function parseCurrency(input: string): number {
 		throw new Error('Currency amount cannot be empty');
 	}
 
-	// Match: digits with optional decimal and 0-2 cents digits
+	// Match: digits with optional decimal and 0-2 pence digits
 	// Allows: "123", "123.4", "123.45"
 	// Rejects: "abc", "123.456", ".123", "123.", "-123"
 	const match = trimmed.match(/^(\d+)\.?(\d{0,2})?$/);
@@ -73,8 +73,8 @@ export function parseCurrency(input: string): number {
 		throw new Error('Invalid currency format. Enter amount like 123.45 or 123');
 	}
 
-	const dollars = parseInt(match[1], 10);
-	const cents = match[2] ? parseInt(match[2].padEnd(2, '0'), 10) : 0;
+	const pounds = parseInt(match[1], 10);
+	const pence = match[2] ? parseInt(match[2].padEnd(2, '0'), 10) : 0;
 
-	return (dollars * 100) + cents;
+	return (pounds * 100) + pence;
 }

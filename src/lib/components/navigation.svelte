@@ -1,6 +1,18 @@
 <script lang="ts">
 	import { page } from '$app/state';
 
+	interface BreadcrumbOverride {
+		segmentIndex: number; // Which path segment to override (0 = first segment after /)
+		label: string; // The label to use
+		skipLink: boolean; // Don't make this a link (for pages that don't exist)
+	}
+
+	interface BreadcrumbCrumbs {
+		label: string;
+		href: string;
+		skipLink?: boolean;
+	}
+
 	interface Props {
 		user: { username: string } | null;
 		environment: {
@@ -8,9 +20,10 @@
 			isProduction: boolean;
 			hasEncryption: boolean;
 		};
+		breadcrumbOverrides?: BreadcrumbOverride[];
 	}
 
-	let { user, environment }: Props = $props();
+	let { user, environment, breadcrumbOverrides }: Props = $props();
 
 	const navItems = [
 		{ href: '/', label: 'Home' },
@@ -27,10 +40,19 @@
 		if (path === '/') return [{ label: 'Home', href: '/' }];
 
 		const segments = path.split('/').filter(Boolean);
-		const crumbs = [{ label: 'Home', href: '/' }];
+		const crumbs: BreadcrumbCrumbs[] = [{ label: 'Home', href: '/' }];
+
+		// Build a map of overrides for quick lookup
+		const overrideMap = new Map<number, BreadcrumbOverride>();
+		if (breadcrumbOverrides) {
+			for (const override of breadcrumbOverrides) {
+				overrideMap.set(override.segmentIndex, override);
+			}
+		}
 
 		let buildPath = '';
-		for (const segment of segments) {
+		for (let i = 0; i < segments.length; i++) {
+			const segment = segments[i];
 			buildPath += '/' + segment;
 			const labelMap: Record<string, string> = {
 				accounts: 'Accounts',
@@ -38,12 +60,26 @@
 				settings: 'Settings',
 				profile: 'Profile',
 				create: 'Create',
+				balances: 'Balances',
 				edit: 'Edit',
 				delete: 'Close'
 			};
+
+			// Use override if provided, otherwise use labelMap or segment
+			let label: string;
+			let skipLink = false;
+			if (overrideMap.has(i)) {
+				const override = overrideMap.get(i)!;
+				label = override.label;
+				skipLink = override.skipLink;
+			} else {
+				label = labelMap[segment] || segment;
+			}
+
 			crumbs.push({
-				label: labelMap[segment] || segment,
-				href: buildPath
+				label,
+				href: buildPath,
+				skipLink
 			});
 		}
 		return crumbs;
@@ -57,9 +93,13 @@
 <div class="bg-black text-white p-1 text-xs">
 	{#each breadcrumbs() as crumb, index}
 		{#if index > 0}<span class="mx-1">></span>{/if}
-		<a href={crumb.href} class="hover:text-gray-300">
-			{crumb.label}
-		</a>
+		{#if crumb.skipLink || index === breadcrumbs().length - 1}
+			<span>{crumb.label}</span>
+		{:else}
+			<a href={crumb.href} class="hover:text-gray-300">
+				{crumb.label}
+			</a>
+		{/if}
 	{/each}
 </div>
 

@@ -1,12 +1,11 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/db/client';
-import { accounts, accountBalances } from '$lib/db/schema';
+import { accounts } from '$lib/db/schema';
 import { withUserFilter, validateUserAccess } from '$lib/auth/row-security';
-import { parseCurrency } from '$lib/utils/currency';
+import { addBalanceEntry } from '$lib/utils/balances';
 import { devLog, logError, logFormData } from '$lib/utils/logger';
-import { eq, and } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
+import { eq } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
@@ -52,8 +51,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	default: async ({ request, locals }) => {
+	quickAdd: async ({ request, locals }) => {
 		if (!locals.user) {
+			logError('quickAddBalance', 'Authentication required');
 			return fail(401, { error: 'Authentication required' });
 		}
 
@@ -66,6 +66,7 @@ export const actions: Actions = {
 		// Validate account ID
 		const accountId = parseInt(accountIdStr);
 		if (isNaN(accountId)) {
+			devLog('quickAddBalance', 'Validation failed - invalid account ID', { accountIdStr });
 			return fail(400, { error: 'Invalid account selected' });
 		}
 
@@ -75,71 +76,32 @@ export const actions: Actions = {
 		});
 
 		if (!account) {
+			logError('quickAddBalance', 'Account not found', { accountId, userId: locals.user.id });
 			return fail(404, { error: 'Account not found' });
 		}
 
 		validateUserAccess(account, locals.user, 'Account');
 
-		// Parse balance to cents
-		let balanceInCents: number;
-		try {
-			balanceInCents = parseCurrency(balanceStr);
-		} catch (e) {
-			devLog('quickAddBalance', 'parseCurrency validation failed', {
-				input: balanceStr,
-				accountId,
-				error: e instanceof Error ? e.message : String(e)
-			});
-			return fail(400, { error: 'Invalid balance format. Enter amount like 123.45 or 123' });
-		}
-
 		// Set asOfDate to today (UTC timestamp) - quick-add always uses today
 		const today = new Date();
 		today.setUTCHours(0, 0, 0, 0);
+		today.setUTCMilliseconds(0);
 
-		// Check for existing entry for same account and today's date
-		const existing = await db.query.accountBalances.findFirst({
-			where: and(
-				eq(accountBalances.accountId, accountId),
-				eq(accountBalances.asOfDate, today)
-			)
-		});
+		// Use shared balance entry function
+		const result = await addBalanceEntry(
+			{ accountId, balanceStr, asOfDate: today, notes },
+			account
+		);
 
-		if (existing) {
-			devLog('quickAddBalance', 'Conflict detected - existing entry for date', {
-				accountId,
-				existingBalanceId: existing.id,
-				existingBalanceSlug: existing.slug,
-				existingBalance: existing.balanceInCents,
-				proposedBalance: balanceInCents,
-				asOfDate: today.toISOString()
-			});
+		if (result.type === 'conflict') {
 			return fail(409, {
-				error: `A balance entry already exists for today (${today.toISOString().split('T')[0]}). [Edit the existing entry](/accounts/${account.slug}/balances/${existing.slug}/edit) or choose a different date.`,
-				existingBalanceId: existing.id,
-				existingBalance: existing.balanceInCents,
-				proposedBalance: balanceInCents
+				error: result.error,
+				existingBalanceId: result.existingBalanceId,
+				existingBalance: result.existingBalance,
+				proposedBalance: result.proposedBalance
 			});
 		}
 
-		// Insert new balance entry with slug
-		const balanceSlug = nanoid(16);
-		await db.insert(accountBalances).values({
-			accountId,
-			slug: balanceSlug,
-			balanceInCents,
-			asOfDate: today,
-			notes: notes || null
-		});
-
-		devLog('quickAddBalance', 'Balance entry created successfully', {
-			accountId,
-			balanceSlug,
-			balanceInCents,
-			asOfDate: today.toISOString()
-		});
-
-		// Redirect back to accounts list
-		redirect(303, '/accounts');
+		return { success: result.success };
 	}
 };

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { formatCurrency } from '$lib/utils/currency';
+	import { invalidateAll } from '$app/navigation';
 
 	let { data, form } = $props();
 
@@ -11,6 +12,19 @@
 	let quickAddAccountId = $state('');
 	let quickAddBalance = $state('');
 	let quickAddNotes = $state('');
+	let quickAddMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+
+	// Clear success messages after 10 seconds, errors persist until manually dismissed
+	$effect(() => {
+		if (quickAddMessage) {
+			const timeout = setTimeout(() => {
+				if (quickAddMessage?.type === 'success') {
+					quickAddMessage = null;
+				}
+			}, 10000);
+			return () => clearTimeout(timeout);
+		}
+	});
 
 	// Helper function to format date
 	function formatDate(date: Date | null): string {
@@ -180,16 +194,16 @@
 			</thead>
 			<tbody>
 				{#each sortedAccounts as account}
-					<tr class:line-through={account.closedAt}>
+					<tr>
 						<td>
-							<a href="/accounts/{account.slug}" class="bracket-link">{account.name}</a>
+							<a href="/accounts/{account.slug}" class="bracket-link" class:line-through={account.closedAt}>{account.name}</a>
 							{#if account.closedAt}
 								<span class="text-gray-600 text-xs"> (closed)</span>
 							{/if}
 						</td>
-						<td>{formatAccountType(account.type)}</td>
-						<td>{account.institution || '-'}</td>
-						<td class="text-right">
+						<td class:line-through={account.closedAt}>{formatAccountType(account.type)}</td>
+						<td class:line-through={account.closedAt}>{account.institution || '-'}</td>
+						<td class="text-right" class:line-through={account.closedAt}>
 							{#if account.currentBalance !== null}
 								<span class={account.type === 'credit' ? 'text-red-700' : 'text-green-700'}>
 									{formatCurrency(account.currentBalance)}
@@ -198,7 +212,7 @@
 								<span class="text-gray-600">-</span>
 							{/if}
 						</td>
-						<td>{formatDate(account.lastUpdated)}</td>
+						<td class:line-through={account.closedAt}>{formatDate(account.lastUpdated)}</td>
 					</tr>
 				{/each}
 			</tbody>
@@ -208,14 +222,52 @@
 
 <!-- QUICK ADD BALANCE SECTION -->
 <div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-	<span>QUICK ADD BALANCE</span>
+	<span>QUICK BALANCE ENTRY</span>
 </div>
 
 <div class="border-b border-black p-2">
 	{#if sortedAccounts.length === 0}
 		<p class="text-gray-600 text-xs">Create an account first to add a balance.</p>
 	{:else}
-		<form method="POST" use:enhance>
+		{#if form?.success}
+			<div class="mb-2 p-2 border border-black text-sm bg-green-100">
+				{form.success}
+			</div>
+		{/if}
+		{#if quickAddMessage}
+			<div class="mb-2 p-2 border border-black text-sm flex justify-between items-start {quickAddMessage.type === 'error' ? 'bg-red-100' : 'bg-green-100'}">
+				<div class="flex-1">
+					{@html quickAddMessage.text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="bracket-link text-xs">[$1]</a>')}
+				</div>
+				<button
+					type="button"
+					onclick={() => quickAddMessage = null}
+					class="ml-2 text-xs bracket-link"
+				>
+					[Dismiss]
+				</button>
+			</div>
+		{/if}
+		<form method="POST" action="?/quickAdd" use:enhance={() => {
+			return async ({ formElement, result }) => {
+				if (result.type === 'success') {
+					// Show success message
+					quickAddMessage = { type: 'success', text: (result.data as { success?: string }).success || 'Balance entry added' };
+					// Clear form fields
+					quickAddBalance = '';
+					quickAddNotes = '';
+					formElement.reset();
+				} else if (result.type === 'failure' && result.data) {
+					// Show error message
+					const errorData = result.data as { error?: string };
+					if (errorData.error) {
+						quickAddMessage = { type: 'error', text: errorData.error };
+					}
+				}
+				// Invalidate all page data to refresh accounts and balances
+				await invalidateAll();
+			};
+		}}>
 			<input type="hidden" name="accountId" bind:value={quickAddAccountId} />
 
 			<div class="mb-1">

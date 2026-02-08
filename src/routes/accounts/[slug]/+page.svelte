@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { onMount } from 'svelte';
+	import { invalidateAll, goto } from '$app/navigation';
 	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
 	import type { PageData, ActionData } from './$types';
 
@@ -10,6 +11,7 @@
 	// Delete confirmation modal state
 	let showDeleteModal = $state(false);
 	let balanceToDelete = $state<{ slug: string; date: string; balance: string } | null>(null);
+	let deleteBalanceSlug = $state(''); // Reactive state for form input
 
 	// Form submission feedback state
 	let isSubmitting = $state(false);
@@ -54,12 +56,15 @@
 
 	// Open delete confirmation modal
 	function openDeleteModal(balance: typeof data.balances[number]) {
+		console.log('[openDeleteModal] Setting balanceToDelete to:', balance.slug, 'Date:', formatDate(balance.asOfDate));
 		balanceToDelete = {
 			slug: balance.slug,
 			date: formatDate(balance.asOfDate),
 			balance: formatCurrency(balance.balanceInCents)
 		};
+		deleteBalanceSlug = balance.slug; // Update form value immediately
 		showDeleteModal = true;
+		console.log('[openDeleteModal] balanceToDelete set to:', balanceToDelete.slug, 'deleteBalanceSlug:', deleteBalanceSlug);
 	}
 
 	// Cancel delete
@@ -75,20 +80,21 @@
 		showDeleteModal = false;
 		isSubmitting = true;
 
-		// The input value is bound to balanceToDelete.slug, so it will be updated
-		// Submit the form
+		// Submit the form programmatically
 		const deleteForm = document.getElementById('delete-balance-form') as HTMLFormElement;
 		if (deleteForm) {
 			deleteForm.requestSubmit();
 		}
 	}
 
-	// Clear feedback message after 3 seconds
+	// Clear success messages after 10 seconds, errors persist until manually dismissed
 	$effect(() => {
 		if (submitMessage) {
 			const timeout = setTimeout(() => {
-				submitMessage = null;
-			}, 3000);
+				if (submitMessage?.type === 'success') {
+					submitMessage = null;
+				}
+			}, 10000);
 			return () => clearTimeout(timeout);
 		}
 	});
@@ -134,8 +140,17 @@
 	<h3 class="font-bold mb-2 mt-0">ADD BALANCE ENTRY</h3>
 
 	{#if submitMessage}
-		<div class="mb-2 p-2 border border-black text-sm {submitMessage.type === 'error' ? 'bg-red-100' : 'bg-green-100'}">
-			{submitMessage.text}
+		<div class="mb-2 p-2 border border-black text-sm flex justify-between items-start {submitMessage.type === 'error' ? 'bg-red-100' : 'bg-green-100'}">
+			<div class="flex-1">
+				{@html submitMessage.text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="bracket-link text-xs">[$1]</a>')}
+			</div>
+			<button
+				type="button"
+				onclick={() => submitMessage = null}
+				class="ml-2 text-xs bracket-link"
+			>
+				[Dismiss]
+			</button>
 		</div>
 	{/if}
 
@@ -149,10 +164,21 @@
 		method="POST"
 		action="?/addBalance"
 		use:enhance={() => {
-			return async ({ result }) => {
-				isSubmitting = true;
-				// Result is handled by SvelteKit (redirect on success)
-				isSubmitting = false;
+			return async ({ formElement, result }) => {
+				if (result.type === 'success') {
+					// Show success message
+					submitMessage = { type: 'success', text: (result.data as { success?: string }).success || 'Balance entry added' };
+					// Clear the form after successful submission
+					formElement.reset();
+				} else if (result.type === 'failure' && result.data) {
+					// Show error message
+					const errorData = result.data as { error?: string };
+					if (errorData.error) {
+						submitMessage = { type: 'error', text: errorData.error };
+					}
+				}
+				// Invalidate all page data to refresh the balance list
+				await invalidateAll();
 			};
 		}}
 		class="flex flex-col gap-2"
@@ -273,8 +299,25 @@
 	action="?/deleteBalance"
 	class="hidden"
 	id="delete-balance-form"
+	use:enhance={() => {
+		return async ({ result }) => {
+			if (result.type === 'success') {
+				// Show success message
+				submitMessage = { type: 'success', text: (result.data as { success?: string }).success || 'Balance entry deleted' };
+				// Navigate to current page to force fresh data fetch (bypasses browser cache)
+				await goto('.', { invalidateAll: true });
+			} else if (result.type === 'failure' && result.data) {
+				// Show error message
+				const errorData = result.data as { error?: string };
+				if (errorData.error) {
+					submitMessage = { type: 'error', text: errorData.error };
+				}
+			}
+			isSubmitting = false;
+		};
+	}}
 >
-	<input type="hidden" name="balanceSlug" value={balanceToDelete?.slug ?? ''} />
+	<input type="hidden" name="balanceSlug" bind:value={deleteBalanceSlug} />
 </form>
 
 <!-- DELETE CONFIRMATION MODAL -->

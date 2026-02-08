@@ -108,7 +108,7 @@
 				Update Account
 			</button>
 			<a
-				href="/accounts/{data.account.id}"
+				href="/accounts/{data.account.slug}"
 				class="border border-black px-4 py-2 text-sm hover:bg-gray-100 no-underline text-black"
 			>
 				Cancel
@@ -118,7 +118,7 @@
 
 	<div class="mt-8 pt-4 border-t border-black">
 		<p class="text-sm text-gray-600 mb-2">Need to remove this account?</p>
-		<a href="/accounts/{data.account.id}/delete" class="bracket-link text-sm text-red-700">
+		<a href="/accounts/{data.account.slug}/delete" class="bracket-link text-sm text-red-700">
 			Close Account
 		</a>
 		<div class="text-xs text-gray-500 mt-1">

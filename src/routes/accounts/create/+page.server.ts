@@ -24,6 +24,7 @@ export const actions: Actions = {
 	default: async ({ request, locals }) => {
 		try {
 			if (!locals.user) {
+				logError('createAccount', 'Authentication required');
 				return fail(401, { error: 'Authentication required' });
 			}
 
@@ -80,6 +81,7 @@ export const actions: Actions = {
 			// Return validation errors if any
 			if (Object.keys(errors).length > 0) {
 				devLog('createAccount', 'Validation failed', { errors });
+				logFormData('createAccount', { name, type, institution, liquidity, initialBalance });
 				return fail(400, {
 					error: 'Please fix the errors below',
 					errors,
@@ -137,6 +139,7 @@ export const actions: Actions = {
 			}
 
 			// Redirect to accounts list on success
+			devLog('createAccount', 'Redirecting to accounts list', { accountSlug });
 			redirect(303, '/accounts');
 		} catch (error) {
 			// SvelteKit's redirect() throws an error with status code - let it through

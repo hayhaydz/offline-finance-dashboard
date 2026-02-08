@@ -4,7 +4,7 @@ import { db } from '$lib/db/client';
 import { accounts, accountBalances } from '$lib/db/schema';
 import { validateUserAccess } from '$lib/auth/row-security';
 import { parseCurrency } from '$lib/utils/currency';
-import { devLog, logError } from '$lib/utils/logger';
+import { devLog, logError, logFormData } from '$lib/utils/logger';
 import { eq, and } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -15,12 +15,15 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const accountSlug = params.slug;
 	const balanceSlug = params.balanceSlug;
 
+	devLog('editBalance', 'Loading edit balance page', { accountSlug, balanceSlug });
+
 	// Validate account ownership using slug
 	const account = await db.query.accounts.findFirst({
 		where: eq(accounts.slug, accountSlug)
 	});
 
 	if (!account) {
+		logError('editBalance', 'Account not found', { accountSlug, userId: locals.user.id });
 		error(404, 'Account not found');
 	}
 
@@ -32,8 +35,20 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	});
 
 	if (!balance || balance.accountId !== account.id) {
+		logError('editBalance', 'Balance entry not found', {
+			balanceSlug,
+			accountId: account.id,
+			userId: locals.user.id
+		});
 		error(404, 'Balance entry not found');
 	}
+
+	devLog('editBalance', 'Balance loaded for editing', {
+		balanceSlug,
+		accountId: account.id,
+		balanceInCents: balance.balanceInCents,
+		asOfDate: balance.asOfDate
+	});
 
 	// Format date for input value (YYYY-MM-DD)
 	const asOfDateStr = balance.asOfDate.toISOString().split('T')[0];
@@ -41,7 +56,13 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	return {
 		account,
 		balance,
-		asOfDateStr
+		asOfDateStr,
+		breadcrumbOverrides: [
+			{ segmentIndex: 1, label: account.name, skipLink: false }, // Replace account slug with account name
+			{ segmentIndex: 2, label: `Balances`, skipLink: true }, // Not a link - no balances list page
+			{ segmentIndex: 3, label: asOfDateStr, skipLink: true }, // Balance slug with date, not a link
+			{ segmentIndex: 4, label: `Edit Balance`, skipLink: false }
+		]
 	};
 };
 
@@ -56,6 +77,7 @@ export const actions: Actions = {
 	 */
 	updateBalanceEntry: async ({ request, locals, params }) => {
 		if (!locals.user) {
+			logError('editBalance', 'Authentication required');
 			return fail(401, { error: 'Authentication required' });
 		}
 
@@ -68,6 +90,7 @@ export const actions: Actions = {
 		});
 
 		if (!account) {
+			logError('editBalance', 'Account not found', { accountSlug, userId: locals.user.id });
 			return fail(404, { error: 'Account not found' });
 		}
 
@@ -79,10 +102,16 @@ export const actions: Actions = {
 		});
 
 		if (!existingBalance || existingBalance.accountId !== account.id) {
+			logError('editBalance', 'Balance entry not found', {
+				balanceSlug,
+				accountId: account.id,
+				userId: locals.user.id
+			});
 			return fail(404, { error: 'Balance entry not found' });
 		}
 
 		const formData = await request.formData();
+		logFormData('editBalance', Object.fromEntries(formData));
 		const balanceStr = formData.get('balance') as string;
 		const asOfDateStr = formData.get('asOfDate') as string;
 		const notes = formData.get('notes') as string | null;
@@ -101,6 +130,12 @@ export const actions: Actions = {
 			return fail(400, { error: 'Invalid balance format. Enter amount like 123.45 or 123' });
 		}
 
+		devLog('editBalance', 'Validation passed', {
+			balanceInCents,
+			asOfDate: asOfDateStr,
+			notes: notes?.trim() || null
+		});
+
 		// Parse date (midnight UTC to avoid timezone issues)
 		const asOfDate = new Date(asOfDateStr + 'T00:00:00.000Z');
 
@@ -108,6 +143,7 @@ export const actions: Actions = {
 		const today = new Date();
 		today.setUTCHours(0, 0, 0, 0);
 		if (asOfDate > today) {
+			devLog('editBalance', 'Future date blocked', { asOfDate: asOfDateStr });
 			return fail(400, { error: 'Cannot enter balances for future dates' });
 		}
 
@@ -120,6 +156,11 @@ export const actions: Actions = {
 		});
 
 		if (conflict && conflict.slug !== balanceSlug) {
+			devLog('editBalance', 'Conflict detected', {
+				asOfDate: asOfDateStr,
+				conflictingSlug: conflict.slug,
+				currentSlug: balanceSlug
+			});
 			return fail(409, {
 				error: `A balance entry already exists for ${asOfDateStr}. Choose a different date or edit that entry instead.`
 			});
@@ -141,6 +182,13 @@ export const actions: Actions = {
 			.update(accounts)
 			.set({ updatedAt: new Date() })
 			.where(eq(accounts.id, account.id));
+
+		devLog('editBalance', 'Balance updated successfully', {
+			balanceSlug,
+			accountId: account.id,
+			balanceInCents,
+			asOfDate: asOfDateStr
+		});
 
 		redirect(303, `/accounts/${account.slug}`);
 	}

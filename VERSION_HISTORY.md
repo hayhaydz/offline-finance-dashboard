@@ -1,3 +1,158 @@
+## [2026-02-08 19:37] — Multi-Fix: GBP Currency, Breadcrumbs, Links, and UX Improvements
+
+**Summary:** (1) Changed default currency from USD to GBP, (2) Fixed breadcrumb system to show account names instead of slugs with proper segmentIndex, (3) Fixed all remaining account.id links to use account.slug, (4) Improved message timing (10s success, errors persist with dismiss button), (5) Fixed navigation component for non-existent routes.
+
+**Files:**
+- `src/lib/utils/currency.ts` (en-GB locale, GBP currency, pounds/pence comments)
+- `src/lib/components/navigation.svelte` (breadcrumbOverrides with segmentIndex, skipLink for non-routes)
+- `src/routes/+layout.svelte` (pass breadcrumbOverrides to navigation)
+- `src/routes/accounts/[slug]/+page.server.ts` (breadcrumbOverrides with account name)
+- `src/routes/accounts/[slug]/edit/+page.svelte` (fixed cancel/close links to use slug)
+- `src/routes/accounts/[slug]/delete/+page.server.ts` (breadcrumbOverrides with account name)
+- `src/routes/accounts/[slug]/delete/+page.svelte` (fixed cancel link to use slug)
+- `src/routes/accounts/[slug]/balances/[balanceSlug]/edit/+page.server.ts` (breadcrumbOverrides with account name, date, and skipLink)
+- `src/routes/accounts/[slug]/balances/[balanceSlug]/edit/+page.svelte` (fixed cancel link to use slug)
+- `src/routes/accounts/[slug]/+page.svelte` (10s success timeout, errors persist, dismiss button)
+- `src/routes/accounts/+page.svelte` (10s success timeout, errors persist, dismiss button)
+
+**Commit:**
+```
+fix: gbp currency breadcrumbs links messages timing
+
+- Change default currency from USD to GBP (en-GB locale)
+- Fix breadcrumb system: segmentIndex not breadcrumb array index
+- Add skipLink for non-routes (balances, balance slugs)
+- Fix remaining account.id links: edit, delete, edit balance pages
+- Improve message timing: 10s success, errors persist until dismiss
+- Add dismiss button to all feedback messages
+- Account names now display in breadcrumbs instead of slugs
+```
+
+**Context:** User feedback identified remaining ID-based links after nanoid migration. Breadcrumb segmentIndex was off by 1 due to "Home" at index 0. Balance slug segments aren't clickable routes. GBP is now the default currency for this UK-focused finance tracker.
+
+---
+
+## [2026-02-08 19:13] — Bug Fixes: Conflict Detection, Caching, and Code Deduplication
+
+**Summary:** Fixed three critical issues: (1) balance conflict detection now uses range query instead of Date equality, (2) delete balance uses goto() to force fresh data fetch bypassing browser cache, (3) extracted shared balance entry logic to eliminate 80+ lines of duplicate code, (4) fixed markdown link rendering in quick-add error messages.
+
+**Files:**
+- `src/lib/utils/balances.ts` (created shared addBalanceEntry function with range-based conflict detection)
+- `src/routes/accounts/+page.server.ts` (refactored to use shared function, renamed action from 'default' to 'quickAdd')
+- `src/routes/accounts/[slug]/+page.server.ts` (refactored to use shared function)
+- `src/routes/accounts/[slug]/+page.svelte` (delete balance now uses goto() with invalidateAll)
+- `src/routes/accounts/+page.svelte` (quick-add error messages now parse markdown links)
+
+**Commit:**
+```
+fix(balances): conflict detection, caching, and deduplication
+
+- Use range query (gte/lt) instead of Date equality for conflict detection
+- Date equality doesn't work correctly with SQLite integer timestamps
+- Delete balance now uses goto() to force fresh data fetch
+- Quick-add error messages now render markdown links as HTML
+- Extract shared addBalanceEntry utility function
+- Eliminated 80+ lines of duplicate code between quick-add and add balance
+- Both actions now use same validation, conflict detection, and insertion logic
+```
+
+**Context:** Date equality comparison with eq() was failing for SQLite integer timestamp columns, allowing duplicate entries for the same day. Browser caching was causing deleted entries to persist on normal refresh. Code duplication between quick-add and regular add made maintenance difficult.
+
+---
+
+## [2026-02-08 18:53] — UX: Eliminate Full Page Reloads for Quick-Add Balance Form
+
+**Summary:** Converted accounts list page quick-add balance form from redirect-based flow to SPA-style response handling. The form now updates UI instantly without full page reload, matches the behavior implemented for the account detail page's add/delete balance forms.
+
+**Files:**
+- `src/routes/accounts/+page.server.ts` (quickAdd action returns { success } instead of redirect)
+- `src/routes/accounts/+page.svelte` (added quickAddMessage state, updated use:enhance callback with proper error handling)
+
+**Commit:**
+```
+feat(ux): spa-style quick-add balance on accounts list
+
+- Change quickAdd action to return { success } instead of redirect
+- Add quickAddMessage reactive state for success/error feedback
+- Update use:enhance callback with proper message state handling
+- Add error handling for result.type === 'failure' cases
+- Form now clears and refreshes data via invalidateAll()
+- Consistent UX with account detail page add/delete forms
+```
+
+**Context:** Completes the SPA-style modernization by applying the same request/response logic to the accounts list page quick-add form. Users can now add balance entries from the accounts list without any page reloads, providing instant feedback and smoother UX.
+
+---
+
+## [2026-02-08 18:27] — Logging: Add Logging to All Fail, Error, and Redirect Calls
+
+**Summary:** Completed comprehensive logging coverage by adding logging before every control flow exit point (fail, error, redirect) across the entire application. This creates a complete traceable history of all code paths and user actions. Security events (401, 429, 500) use logError, validation failures (400, 409) use devLog, and all redirects use devLog before executing.
+
+**Files:**
+- `src/routes/settings/profile/+page.server.ts` (added devLog before auth redirect, fixed throw redirect)
+- `src/routes/snapshots/+page.server.ts` (added devLog before auth redirect, fixed throw redirect)
+- `src/routes/accounts/[slug]/edit/+page.server.ts` (added logError before error 404, devLog before validation fails and redirect)
+- `src/routes/accounts/[slug]/+page.server.ts` (added logError before error 404 and auth fails, devLog before validation fails and redirects)
+- `src/routes/accounts/+page.server.ts` (added logError before auth fail, devLog before validation fails and redirect)
+- `src/routes/accounts/create/+page.server.ts` (added logError before auth fail, logFormData before validation fail, devLog before redirect)
+- `src/routes/accounts/[slug]/delete/+page.server.ts` (added logError before error 404, devLog before redirect)
+- `.planning/quick/20-add-logging-to-all-fail-error-and-redire/020-SUMMARY.md` (created)
+
+**Commit:**
+```
+feat(logging): add logging to all fail, error, and redirect calls
+
+- Add devLog before authentication redirects in profile and snapshots
+- Fix redirect calls to use throw redirect() syntax
+- Add logError before error(404) in account edit, detail, and close pages
+- Add logError before authentication failures across all account routes
+- Add devLog before all validation failures (400, 409)
+- Add devLog before all success redirects with context
+- Add logFormData before validation fail returns in create account
+- Complete audit trail coverage across entire application
+```
+
+**Context:** This completes the logging initiative by ensuring every control flow exit point is logged. The application now has complete traceable history: every fail(), error(), and redirect() call has appropriate logging before it. Security events use logError for auditing, validation failures use devLog for debugging, and success paths use devLog with context.
+
+---
+
+## [2026-02-08 18:12] — Logging: Add Comprehensive Server Operations Logging
+
+**Summary:** Added comprehensive Winston-based logging to ALL remaining server operations (authentication, account operations, settings). All form actions now log form data at entry point with automatic sensitive field masking, successful operations log with relevant context, and errors use logError for security auditing. This completes full logging coverage across the entire application.
+
+**Files:**
+- `src/routes/accounts/[slug]/+page.server.ts` (added logFormData import, deleteBalance logging)
+- `src/routes/accounts/[slug]/balances/[balanceSlug]/edit/+page.server.ts` (added logFormData import, comprehensive edit balance logging)
+- `src/routes/logout/+page.server.ts` (added logger imports, logout logging)
+- `src/routes/(auth)/register/+page.server.ts` (added logger imports, comprehensive registration logging)
+- `src/routes/(auth)/login/+page.server.ts` (added logger imports, comprehensive login logging)
+- `src/routes/(auth)/mfa-setup/+page.server.ts` (added logger imports, comprehensive MFA setup logging)
+- `src/routes/(auth)/dev-login/+page.server.ts` (added logger imports, dev-login logging)
+- `src/routes/settings/+page.server.ts` (added logger imports, settings page load logging)
+- `src/routes/snapshots/+page.server.ts` (added logger imports, snapshots page load logging)
+- `src/routes/settings/profile/+page.server.ts` (added logger imports, profile load logging)
+- `.planning/quick/19-add-comprehensive-logging-to-all-remaini/019-SUMMARY.md` (created)
+
+**Commit:**
+```
+feat(logging): add comprehensive logging to all remaining server operations
+
+- Add logFormData to delete balance action
+- Add comprehensive logging to edit balance page (load, validation, success)
+- Add logging to logout operation
+- Add comprehensive logging to registration flow
+- Add comprehensive logging to login flow (with rate limit tracking)
+- Add comprehensive logging to MFA setup flow
+- Add logging to development auto-login
+- Add logging to settings and snapshots page loads
+- Add logging to profile settings page load
+- Fix TypeScript errors with optional chaining on undefined locals.user
+```
+
+**Context:** This completes the logging coverage for all server-side operations in the application. Every operation now logs form data at entry point, successful operations log with context, and errors use logError for security auditing. The logger system automatically masks sensitive fields and development logs only output in development mode.
+
+---
+
 ## [2026-02-08 14:30] — Logging: Add Comprehensive Account Operations Logging
 
 **Summary:** Added comprehensive Winston-based logging to all account-related server operations (quick-add balance, edit account, close account). All form actions now log form data at entry point, successful operations log with relevant context, and errors are logged with appropriate details. This follows the logging patterns established in quick-014 and quick-015.

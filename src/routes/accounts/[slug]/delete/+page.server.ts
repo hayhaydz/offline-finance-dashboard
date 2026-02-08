@@ -20,13 +20,18 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	});
 
 	if (!account) {
+		logError('closeAccount', 'Account not found', { accountSlug, userId: locals.user.id });
 		error(404, 'Account not found');
 	}
 
 	validateUserAccess(account, locals.user, 'Account');
 
 	return {
-		account
+		account,
+		breadcrumbOverrides: [
+			{ segmentIndex: 1, label: account.name, skipLink: false }, // Replace account slug with account name
+			{ segmentIndex: 2, label: `Close Account`, skipLink: false } // Replace 'delete' with 'Close Account'
+		]
 	};
 };
 
@@ -79,6 +84,7 @@ export const actions: Actions = {
 		});
 
 		// Redirect to accounts list
+		devLog('closeAccount', 'Redirecting to accounts list', { accountSlug });
 		redirect(303, '/accounts');
 	}
 };

@@ -3,10 +3,9 @@ import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db/client';
 import { accounts, accountBalances } from '$lib/db/schema';
 import { validateUserAccess } from '$lib/auth/row-security';
-import { parseCurrency } from '$lib/utils/currency';
-import { devLog, logError } from '$lib/utils/logger';
+import { addBalanceEntry } from '$lib/utils/balances';
+import { devLog, logError, logFormData } from '$lib/utils/logger';
 import { eq, desc, and } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
 	if (!locals.user) {
@@ -23,6 +22,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	});
 
 	if (!account) {
+		logError('accountDetail', 'Account not found', { accountSlug, userId: locals.user.id });
 		error(404, 'Account not found');
 	}
 
@@ -52,7 +52,10 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		account,
 		balances: balancesWithChange,
 		currentBalance,
-		hasMore: balances.length === 50 // If we got 50, there might be more
+		hasMore: balances.length === 50, // If we got 50, there might be more
+		breadcrumbOverrides: [
+			{ segmentIndex: 1, label: account.name, skipLink: false } // Replace account slug (segment 1) with account name
+		]
 	};
 };
 
@@ -66,6 +69,7 @@ export const actions: Actions = {
 	 */
 	addBalance: async ({ request, locals, params }) => {
 		if (!locals.user) {
+			logError('addBalance', 'Authentication required');
 			return fail(401, { error: 'Authentication required' });
 		}
 
@@ -77,6 +81,7 @@ export const actions: Actions = {
 		});
 
 		if (!account) {
+			logError('addBalance', 'Account not found', { accountSlug, userId: locals.user.id });
 			return fail(404, { error: 'Account not found' });
 		}
 
@@ -87,63 +92,39 @@ export const actions: Actions = {
 		const asOfDateStr = formData.get('asOfDate') as string; // YYYY-MM-DD format
 		const notes = formData.get('notes') as string | null;
 
-		// Validate balance
-		let balanceInCents: number;
-		try {
-			balanceInCents = parseCurrency(balanceStr);
-		} catch (err) {
-			devLog('addBalance', 'parseCurrency validation failed', {
-				input: balanceStr,
-				accountSlug: params.slug,
-				error: err instanceof Error ? err.message : String(err)
-			});
-			return fail(400, { error: 'Invalid balance format. Enter amount like 123.45 or 123' });
-		}
-
 		// Parse date (midnight UTC to avoid timezone issues)
 		const asOfDate = new Date(asOfDateStr + 'T00:00:00.000Z');
 
 		// Check for future date (block it)
 		const today = new Date();
 		today.setUTCHours(0, 0, 0, 0);
+		today.setUTCMilliseconds(0);
 		if (asOfDate > today) {
+			devLog('addBalance', 'Future date blocked', { asOfDate: asOfDateStr, accountSlug });
 			return fail(400, { error: 'Cannot enter balances for future dates' });
 		}
 
-		// Check if entry exists for this date
-		const existing = await db.query.accountBalances.findFirst({
-			where: and(
-				eq(accountBalances.accountId, account.id),
-				eq(accountBalances.asOfDate, asOfDate)
-			)
-		});
+		// Use shared balance entry function
+		const result = await addBalanceEntry(
+			{ accountId: account.id, balanceStr, asOfDate, notes },
+			account
+		);
 
-		if (existing) {
+		if (result.type === 'conflict') {
 			return fail(409, {
-				error: `A balance entry already exists for ${asOfDateStr}. [Edit the existing entry](/accounts/${account.slug}/balances/${existing.slug}/edit) or choose a different date.`,
-				existingBalanceId: existing.id,
-				existingBalance: existing.balanceInCents,
-				proposedBalance: balanceInCents
+				error: result.error,
+				existingBalanceId: result.existingBalanceId,
+				existingBalance: result.existingBalance,
+				proposedBalance: result.proposedBalance
 			});
 		}
 
-		// Insert new balance entry with slug
-		const balanceSlug = nanoid(16);
-		await db.insert(accountBalances).values({
-			accountId: account.id,
-			slug: balanceSlug,
-			balanceInCents,
-			asOfDate,
-			notes: notes?.trim() || null
+		devLog('addBalance', 'Balance entry created successfully', {
+			accountSlug,
+			balanceSlug: result.balanceSlug,
+			balanceInCents: result.balanceInCents
 		});
-
-		// Update account's updatedAt timestamp
-		await db
-			.update(accounts)
-			.set({ updatedAt: new Date() })
-			.where(eq(accounts.id, account.id));
-
-		redirect(303, `/accounts/${account.slug}`);
+		return { success: result.success };
 	},
 
 	/**
@@ -154,6 +135,7 @@ export const actions: Actions = {
 	 */
 	deleteBalance: async ({ request, locals, params }) => {
 		if (!locals.user) {
+			logError('deleteBalance', 'Authentication required');
 			return fail(401, { error: 'Authentication required' });
 		}
 
@@ -165,15 +147,23 @@ export const actions: Actions = {
 		});
 
 		if (!account) {
+			logError('deleteBalance', 'Account not found', { accountSlug, userId: locals.user.id });
 			return fail(404, { error: 'Account not found' });
 		}
 
-		validateUserAccess(account, locals.user, 'Account');
+		try {
+			validateUserAccess(account, locals.user, 'Account');
+		} catch (error) {
+			logError('deleteBalance', 'Access denied', { accountSlug, userId: locals.user.id, error });
+			throw error;
+		}
 
 		const formData = await request.formData();
+		logFormData('deleteBalance', { balanceSlug: formData.get('balanceSlug') });
 		const balanceSlug = formData.get('balanceSlug') as string;
 
 		if (!balanceSlug) {
+			devLog('deleteBalance', 'Validation failed', { error: 'Balance slug is required' });
 			return fail(400, { error: 'Balance slug is required' });
 		}
 
@@ -183,11 +173,30 @@ export const actions: Actions = {
 		});
 
 		if (!balance || balance.accountId !== account.id) {
+			logError('deleteBalance', 'Balance entry not found', {
+				balanceSlug,
+				accountId: account.id,
+				userId: locals.user.id
+			});
 			return fail(404, { error: 'Balance entry not found' });
 		}
 
+		devLog('deleteBalance', 'Balance found', {
+			balanceSlug,
+			accountId: account.id,
+			balanceInCents: balance.balanceInCents,
+			asOfDate: balance.asOfDate
+		});
+
 		// Delete the balance entry
+		devLog('deleteBalance', 'About to delete balance', { balanceId: balance.id, balanceSlug });
 		await db.delete(accountBalances).where(eq(accountBalances.id, balance.id));
+
+		// Verify deletion
+		const stillExists = await db.query.accountBalances.findFirst({
+			where: eq(accountBalances.id, balance.id)
+		});
+		devLog('deleteBalance', 'After delete - balance still exists?', { stillExists: !!stillExists, balanceId: balance.id });
 
 		// Update account's updatedAt timestamp
 		await db
@@ -195,7 +204,12 @@ export const actions: Actions = {
 			.set({ updatedAt: new Date() })
 			.where(eq(accounts.id, account.id));
 
-		// Redirect back to account page to refresh the balance list
-		redirect(303, `/accounts/${account.slug}`);
+		devLog('deleteBalance', 'Balance deleted successfully', {
+			balanceSlug,
+			accountId: account.id,
+			balanceInCents: balance.balanceInCents
+		});
+
+		return { success: 'Balance entry deleted' };
 	}
 };

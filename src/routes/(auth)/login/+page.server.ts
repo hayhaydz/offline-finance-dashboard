@@ -4,6 +4,7 @@ import { users, sessions, backupCodes } from '$lib/db/schema';
 import { verifyPassword } from '$lib/auth/password';
 import { verifyTOTP, decryptTOTPSecret, verifyBackupCode } from '$lib/auth/mfa';
 import { checkRateLimit, recordFailedAttempt, recordSuccessfulAttempt } from '$lib/security/rate-limiter';
+import { devLog, logError, logFormData } from '$lib/utils/logger';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 
@@ -16,6 +17,8 @@ export async function load() {
 export const actions = {
 	default: async ({ request, cookies }) => {
 		const formData = await request.formData();
+		logFormData('login', Object.fromEntries(formData));
+
 		const username = formData.get('username') as string;
 		const password = formData.get('password') as string;
 		const totpCode = formData.get('totpCode') as string;
@@ -23,6 +26,7 @@ export const actions = {
 		// Basic validation
 		if (!username || !password || !totpCode) {
 			// Generic error message (prevents username enumeration)
+			logError('login', 'Missing required fields', { username });
 			await recordFailedAttempt(username);
 			return fail(400, { error: 'Invalid credentials' });
 		}
@@ -31,6 +35,7 @@ export const actions = {
 		const rateLimitResult = await checkRateLimit(username);
 
 		if (rateLimitResult.locked) {
+			logError('login', 'Account locked due to rate limit', { username });
 			return fail(429, {
 				locked: true,
 				error: 'Account locked due to too many failed attempts'
@@ -38,6 +43,10 @@ export const actions = {
 		}
 
 		if (rateLimitResult.delay) {
+			devLog('login', 'Rate limit delay applied', {
+				username,
+				delaySeconds: rateLimitResult.delay
+			});
 			// Return delay to client for countdown
 			return fail(429, {
 				delay: rateLimitResult.delay,
@@ -52,6 +61,7 @@ export const actions = {
 
 		// Generic error whether user exists or not (prevents username enumeration)
 		if (!user) {
+			logError('login', 'User not found', { username });
 			await recordFailedAttempt(username);
 			return fail(401, { error: 'Invalid credentials' });
 		}
@@ -59,6 +69,7 @@ export const actions = {
 		// Verify password
 		const passwordValid = await verifyPassword(user.passwordHash, password);
 		if (!passwordValid) {
+			logError('login', 'Invalid password', { username, userId: user.id });
 			await recordFailedAttempt(username);
 			return fail(401, { error: 'Invalid credentials' });
 		}
@@ -67,6 +78,7 @@ export const actions = {
 		// The secret is stored AES-256-GCM encrypted in the database
 		const systemKey = process.env.ENCRYPTION_KEY;
 		if (!systemKey) {
+			logError('login', 'Server configuration error - missing ENCRYPTION_KEY');
 			return fail(500, { error: 'Server configuration error' });
 		}
 
@@ -100,6 +112,7 @@ export const actions = {
 							.set({ used: true })
 							.where(eq(backupCodes.id, usedCode.id));
 						usedBackupCodeId = usedCode.id;
+						devLog('login', 'Backup code used', { username, backupCodeId: usedCode.id });
 					}
 					totpValid = true;
 				}
@@ -108,6 +121,7 @@ export const actions = {
 
 		// If both TOTP and backup code verification failed
 		if (!totpValid) {
+			logError('login', 'Invalid TOTP code', { username, userId: user.id });
 			await recordFailedAttempt(username);
 			return fail(401, { error: 'Invalid credentials' });
 		}
@@ -136,6 +150,12 @@ export const actions = {
 			sameSite: 'strict',
 			secure: process.env.APP_ENV === 'production',
 			maxAge: 60 * 60 * 24 // 24 hours
+		});
+
+		devLog('login', 'Login successful', {
+			username,
+			userId: user.id,
+			usedBackupCode: !!usedBackupCodeId
 		});
 
 		// Redirect to app

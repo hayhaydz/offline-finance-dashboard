@@ -5,6 +5,7 @@
 
 	const user = $derived(page.data.user ?? null);
 	const environment = $derived(page.data.environment ?? { mode: 'unknown', isProduction: false, hasEncryption: false });
+	const breadcrumbOverrides = $derived(page.data.breadcrumbOverrides);
 
 	// Environment mode indicator
 	const modeIndicator = $derived(
@@ -27,7 +28,7 @@
 		</div>
 	{/if}
 
-	<Navigation {user} {environment} />
+	<Navigation {user} {environment} breadcrumbOverrides={breadcrumbOverrides} />
 
 	<div class="scrollable-content">
 		{@render children()}
