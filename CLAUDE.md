@@ -111,12 +111,19 @@ docs/
 
 **Reference:** `docs/security/DEVELOPMENT_GUIDELINES.md` for full security implementation guide.
 
+## 🔍 QA & VALIDATION
+
+After completing a significant unit of work or phase:
+1. **RUN TYPESCRIPT CHECKS:** Execute `npm run check` to ensure type safety and Svelte component integrity.
+2. **RUN TEST SUITE:** Execute `npm test` (or `npm run test:run`) to verify no regressions in logic or security.
+3. **VALIDATE UI:** Confirm adherence to the Terminal Aesthetic (monospace, borders, bracket-links).
+
 ---
 
 ## ABSOLUTE RULES (NON-NEGOTIABLE)
 
 1. ONLY produce code diffs or full file replacements when explicitly instructed.
-2. NEVER run or suggest running tests, CLI commands, scripts, or builds.
+2. NEVER run or suggest running tests, CLI commands, scripts, or builds **EXCEPT** for final QA/validation as described above.
 3. NEVER assume execution, verification, or correctness.
 4. NEVER describe outcomes of commands you did not personally run.
 5. When execution or validation is required, STOP and ask for instructions.

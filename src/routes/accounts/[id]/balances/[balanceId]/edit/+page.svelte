@@ -66,12 +66,12 @@
 				type="text"
 				id="balance"
 				name="balance"
-				value={formatBalanceForInput(data.balance.balance)}
+				value={formatBalanceForInput(data.balance.balanceInCents)}
 				placeholder="123.45"
 				required
 				class="w-full max-w-xs border border-black px-2 py-1 text-sm font-mono"
 			/>
-			<div class="text-xs text-gray-600 mt-1">Current value: {formatCurrency(data.balance.balance)}</div>
+			<div class="text-xs text-gray-600 mt-1">Current value: {formatCurrency(data.balance.balanceInCents)}</div>
 		</div>
 
 		<div>

@@ -161,7 +161,7 @@
 				{#each data.balances as balance}
 					<tr>
 						<td>{formatDate(balance.asOfDate)}</td>
-						<td class="text-right font-mono">{formatCurrency(balance.balance)}</td>
+						<td class="text-right font-mono">{formatCurrency(balance.balanceInCents)}</td>
 						<td class="text-right font-mono">
 							{#if balance.changeFromPrevious !== null}
 								<span

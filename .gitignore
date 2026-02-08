@@ -35,5 +35,4 @@ secrets/
 node_modules/
 
 .svelte-kit/
-src/lib/db/migrations
 build/

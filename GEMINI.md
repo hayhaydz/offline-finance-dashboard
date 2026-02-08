@@ -88,12 +88,19 @@ Instead of automated git operations, record work at **save points** to `VERSION_
 
 **Reference:** `docs/security/DEVELOPMENT_GUIDELINES.md` for full security implementation guide.
 
+## 🔍 QA & VALIDATION
+
+After completing a significant unit of work or phase:
+1. **RUN TYPESCRIPT CHECKS:** Execute `npm run check` to ensure type safety and Svelte component integrity.
+2. **RUN TEST SUITE:** Execute `npm test` (or `npm run test:run`) to verify no regressions in logic or security.
+3. **VALIDATE UI:** Confirm adherence to the Terminal Aesthetic (monospace, borders, bracket-links).
+
 ---
 
 ## ABSOLUTE RULES (NON-NEGOTIABLE)
 
 1. ONLY produce code diffs or full file replacements when explicitly instructed.
-2. NEVER run or suggest running tests, CLI commands, scripts, or builds unless necessary for verification as per primary mandate.
+2. NEVER run or suggest running tests, CLI commands, scripts, or builds **EXCEPT** for final QA/validation as described above or as per primary mandate.
 3. NEVER run `git add`, `git commit`, or `git push` — these are manual operations.
 4. **AT SAVE POINTS, UPDATE `VERSION_HISTORY.md`** — record what was done and suggested commit message.
 5. **GENERAL DOCUMENTATION goes in `docs/` folder** — organize by topic/category.

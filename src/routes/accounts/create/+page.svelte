@@ -9,14 +9,25 @@
 		monetary
 	} from '$lib/validation/rules';
 
-	let { form } = $props();
+	let { form } = $props<{ form: any }>();
 
-	// Form field values
-	let name = $state(form?.data?.name || '');
-	let type = $state(form?.data?.type || '');
-	let institution = $state(form?.data?.institution || '');
-	let liquidityValue = $state(form?.data?.liquidity || '');
-	let initialBalance = $state(form?.data?.initialBalance || '');
+	// Form field values initialized to empty
+	let name = $state('');
+	let type = $state('');
+	let institution = $state('');
+	let liquidityValue = $state('');
+	let initialBalance = $state('');
+
+	// Sync with form data if returning from a failed submission
+	$effect(() => {
+		if (form?.data) {
+			name = form.data.name ?? '';
+			type = form.data.type ?? '';
+			institution = form.data.institution ?? '';
+			liquidityValue = form.data.liquidity ?? '';
+			initialBalance = form.data.initialBalance ?? '';
+		}
+	});
 
 	// Account type options
 	const accountTypes = [
