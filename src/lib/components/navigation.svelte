@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 
 	interface Props {
 		user: { username: string } | null;
@@ -19,7 +19,7 @@
 		{ href: '/settings', label: 'Settings', authRequired: true }
 	];
 
-	const currentPath = $derived($page.url.pathname);
+	const currentPath = $derived(page.url.pathname);
 
 	// Environment badge for development
 	const showDevBadge = $derived(!environment.isProduction);

@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 
-	$: user = $page.data.user;
-	$: env = $page.data.environment;
+	$: user = page.data.user;
+	$: env = page.data.environment;
 
 	// Placeholder net worth data (will be replaced with real data in Phase 2)
 	const netWorth = {

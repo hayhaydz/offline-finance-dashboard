@@ -1,11 +1,10 @@
 <script lang="ts">
 	import Navigation from '$lib/components/navigation.svelte';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import type { Snippet } from 'svelte';
 
-	// Svelte 5: use $derived with page store
-	const user = $derived($page.data.user ?? null);
-	const environment = $derived($page.data.environment ?? { mode: 'unknown', isProduction: false, hasEncryption: false });
+	const user = $derived(page.data.user ?? null);
+	const environment = $derived(page.data.environment ?? { mode: 'unknown', isProduction: false, hasEncryption: false });
 
 	// Environment mode indicator
 	const modeIndicator = $derived(
