@@ -86,8 +86,7 @@ export const actions = {
 				totpSecret: totpSecretEncrypted,
 				totpSecretIV: totpSecretIV.toString('hex'),
 				passwordSalt,
-				createdAt: new Date(),
-				failedLoginAttempts: 0
+				createdAt: new Date()
 			})
 			.returning();
 

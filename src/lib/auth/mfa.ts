@@ -34,12 +34,17 @@ export async function generateQRCode(url: string): Promise<string> {
 
 // Verify TOTP code (accept codes within 1 window = ~30 seconds for clock skew)
 export async function verifyTOTP(token: string, secret: string): Promise<boolean> {
-	const result = await verify({
-		token,
-		secret,
-		epochTolerance: 30
-	});
-	return result.valid;
+	try {
+		const result = await verify({
+			token,
+			secret,
+			epochTolerance: 30
+		});
+		return result.valid;
+	} catch (error) {
+		// If otplib throws (e.g., TokenLengthError), treat as invalid token
+		return false;
+	}
 }
 
 // Generate 10 backup codes (8-character alphanumeric)
@@ -74,10 +79,11 @@ export function decryptTOTPSecret(
 
 // Verify backup code against hashed codes from database
 // Backup codes are case-insensitive for user convenience
+// Returns the matching hash if valid, null otherwise
 export async function verifyBackupCode(
 	inputCode: string,
 	hashedCodes: string[]
-): Promise<boolean> {
+): Promise<string | null> {
 	// Normalize to uppercase (backup codes are stored uppercase)
 	const normalizedCode = inputCode.toUpperCase();
 
@@ -89,9 +95,9 @@ export async function verifyBackupCode(
 	for (const hash of hashedCodes) {
 		const isValid = await verifyPassword(hash, normalizedCode);
 		if (isValid) {
-			return true;
+			return hash;
 		}
 	}
 
-	return false;
+	return null;
 }

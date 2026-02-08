@@ -90,10 +90,10 @@ export const actions = {
 
 			// Try to verify against backup codes
 			if (unusedHashedCodes.length > 0) {
-				const backupCodeValid = await verifyBackupCode(totpCode, unusedHashedCodes);
-				if (backupCodeValid) {
+				const matchedHash = await verifyBackupCode(totpCode, unusedHashedCodes);
+				if (matchedHash) {
 					// Find the specific backup code that was used
-					const usedCode = userBackupCodes.find(code => !code.used);
+					const usedCode = userBackupCodes.find(code => code.code === matchedHash);
 					if (usedCode) {
 						// Mark the backup code as used
 						await db.update(backupCodes)

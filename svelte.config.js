@@ -8,6 +8,17 @@ const config = {
 		adapter: adapter(),
 		alias: {
 			$lib: 'src/lib'
+		},
+		csp: {
+			mode: 'auto',
+			directives: {
+				'default-src': ["'self'"],
+				'script-src': ["'self'"],
+				'style-src': ["'self'", "'unsafe-inline'"],
+				'img-src': ["'self'", 'data:'],
+				'object-src': ["'none'"],
+				'base-uri': ["'self'"]
+			}
 		}
 	}
 };

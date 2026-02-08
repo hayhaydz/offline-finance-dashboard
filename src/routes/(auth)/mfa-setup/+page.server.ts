@@ -52,12 +52,8 @@ export async function load({ cookies }) {
 	const otpauthURL = generateOTPAuthURL(totpSecretPlaintext, user.username);
 	const qrCodeUrl = await generateQRCode(otpauthURL);
 
-	// Generate backup codes (only for display, don't store yet)
-	const newBackupCodes = generateBackupCodes();
-
 	return {
 		qrCodeUrl,
-		backupCodes: newBackupCodes,
 		username: user.username
 	};
 }
@@ -135,7 +131,10 @@ export const actions = {
 			maxAge: 60 * 60 * 24 // 24 hours
 		});
 
-		// Redirect to accounts
-		throw redirect(302, '/accounts');
+		// Return backup codes to client to show them one last time
+		return {
+			success: true,
+			backupCodes: newBackupCodes
+		};
 	}
 };

@@ -5,13 +5,41 @@ import { sessions, users } from '$lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 export const handle: Handle = async ({ event, resolve }) => {
+	const { pathname, hostname } = event.url;
+
+	// SECURITY: Host Header Validation
+	// Prevent LAN exposure by ensuring the request is targeted at localhost.
+	// This allows Windows <-> WSL2 communication via localhost forwarding
+	// while blocking external network access.
+
+  const allowedClientIps = new Set(['127.0.0.1', '::1']);
+
+  const clientIp = event.getClientAddress();
+  if (!allowedClientIps.has(clientIp)) {
+    return new Response('Forbidden: local access only.', { status: 403 });
+  }
+
+  if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
+      // Log the attempt
+      console.error(`Blocked external access: ${hostname}`);
+      return new Response('Forbidden', { status: 403 });
+  }
+
+	// Define route types
+	const isAuthRoute = pathname.startsWith('/login') || 
+	                    pathname.startsWith('/register') || 
+	                    pathname.startsWith('/mfa-setup');
+	
+	const isProtectedRoute = pathname.startsWith('/accounts') || 
+	                         pathname.startsWith('/settings') || 
+	                         pathname.startsWith('/snapshots') || 
+	                         pathname.startsWith('/app');
+
 	// Get session token from HTTP-only cookie
 	const sessionToken = event.cookies.get('session');
 
 	if (!sessionToken) {
-		// No session, redirect to login for protected routes
-		const protectedRoutes = ['/accounts', '/settings', '/snapshots', '/app'];
-		if (protectedRoutes.some(route => event.url.pathname.startsWith(route))) {
+		if (isProtectedRoute) {
 			throw redirect(302, '/login');
 		}
 		return resolve(event);
@@ -26,10 +54,8 @@ export const handle: Handle = async ({ event, resolve }) => {
 	});
 
 	if (!session) {
-		// Invalid session
 		event.cookies.delete('session', { path: '/' });
-		const protectedRoutes = ['/accounts', '/settings', '/snapshots', '/app'];
-		if (protectedRoutes.some(route => event.url.pathname.startsWith(route))) {
+		if (isProtectedRoute) {
 			throw redirect(302, '/login');
 		}
 		return resolve(event);
@@ -38,14 +64,17 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Check session expiration (24-hour inactivity)
 	const twentyFourHours = 24 * 60 * 60 * 1000;
 	if (Date.now() - session.lastActivity.getTime() > twentyFourHours) {
-		// Session expired
 		await db.delete(sessions).where(eq(sessions.token, sessionToken));
 		event.cookies.delete('session', { path: '/' });
-		const protectedRoutes = ['/accounts', '/settings', '/snapshots', '/app'];
-		if (protectedRoutes.some(route => event.url.pathname.startsWith(route))) {
+		if (isProtectedRoute) {
 			throw redirect(302, '/login');
 		}
 		return resolve(event);
+	}
+
+	// If logged in and trying to access auth routes (except mfa-setup which might be needed)
+	if (isAuthRoute && !pathname.startsWith('/mfa-setup')) {
+		throw redirect(302, '/accounts');
 	}
 
 	// Session valid - update last activity
@@ -54,17 +83,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 		.set({ lastActivity: new Date() })
 		.where(eq(sessions.token, sessionToken));
 
-	// Populate locals with user data (type-safe)
+	// Populate locals with user data
 	event.locals.user = session.user;
 	event.locals.session = session;
 
-	// Also pass user to page data for client-side access
-	const response = await resolve(event);
-	
-	// Add user to page data
-	if (response && typeof response === 'object' && 'headers' in response) {
-		return response;
-	}
-	
 	return resolve(event);
 };

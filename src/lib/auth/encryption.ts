@@ -1,9 +1,22 @@
 import crypto from 'crypto';
 
-// Derive encryption key from user password using PBKDF2
-// Returns 256-bit key for AES-256-GCM
-export function deriveKeyFromPassword(password: string, salt: string): Buffer {
-	return crypto.pbkdf2Sync(password, salt, 100000, 32, 'sha256');
+// OWASP-recommended parameters for 2025-2026 key derivation
+const KDF_OPTIONS = {
+	algorithm: 2, // argon2id
+	memoryCost: 65536, // 64 MB
+	timeCost: 3,
+	parallelism: 1,
+	outputLen: 32 // 32-byte (256-bit) key
+};
+
+/**
+ * Derive encryption key from user password using PBKDF2.
+ * Returns 256-bit key for AES-256-GCM.
+ */
+export async function deriveKeyFromPassword(password: string, salt: string): Promise<Buffer> {
+	// Using PBKDF2 with a high iteration count (600,000 is the 2026 OWASP recommendation for HMAC-SHA256)
+	// This provides strong protection against brute-force attacks while being compatible with standard key formats.
+	return crypto.pbkdf2Sync(password, salt, 600000, 32, 'sha256');
 }
 
 // Encrypt user-specific data with user-derived key

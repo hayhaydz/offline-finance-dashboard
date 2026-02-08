@@ -70,9 +70,7 @@ function main() {
 				totp_secret TEXT NOT NULL,
 				totp_secret_iv TEXT NOT NULL,
 				password_salt TEXT NOT NULL,
-				created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
-				failed_login_attempts INTEGER NOT NULL DEFAULT 0,
-				locked_until INTEGER
+				created_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
 			)
 		`);
 		console.log('   ✓ users table');
@@ -101,11 +99,23 @@ function main() {
 		`);
 		console.log('   ✓ backup_codes table');
 
+		// Create login_attempts table
+		sqlite.exec(`
+			CREATE TABLE login_attempts (
+				username TEXT PRIMARY KEY,
+				count INTEGER NOT NULL DEFAULT 0,
+				last_attempt INTEGER NOT NULL DEFAULT (strftime('%s', 'now')),
+				locked_until INTEGER
+			)
+		`);
+		console.log('   ✓ login_attempts table');
+
 		// Create indexes
 		sqlite.exec('CREATE INDEX idx_sessions_user_id ON sessions(user_id)');
 		sqlite.exec('CREATE INDEX idx_sessions_last_activity ON sessions(last_activity)');
 		sqlite.exec('CREATE INDEX idx_sessions_token ON sessions(token)');
 		sqlite.exec('CREATE INDEX idx_backup_codes_user_id ON backup_codes(user_id)');
+		sqlite.exec('CREATE INDEX idx_login_attempts_locked_until ON login_attempts(locked_until)');
 		console.log('   ✓ indexes');
 
 		// Verify

@@ -1,6 +1,6 @@
 import { db } from '$lib/db/client';
-import { users } from '$lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { loginAttempts } from '$lib/db/schema';
+import { eq, sql } from 'drizzle-orm';
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
@@ -14,27 +14,22 @@ export interface RateLimitResult {
 }
 
 /**
- * Check rate limit for a username using database-backed storage.
- * Returns exponential backoff delay and lockout status.
+ * Check rate limit for a username using login_attempts table.
+ * This works identically for existent and non-existent users.
  */
 export async function checkRateLimit(username: string): Promise<RateLimitResult> {
-	// Look up user to get current attempt count and lockout status
-	const user = await db.query.users.findFirst({
-		where: eq(users.username, username),
-		columns: {
-			id: true,
-			failedLoginAttempts: true,
-			lockedUntil: true
-		}
+	// Look up attempt record for this username
+	const attempt = await db.query.loginAttempts.findFirst({
+		where: eq(loginAttempts.username, username)
 	});
 
-	// If user doesn't exist, allow (we'll record failed attempt later)
-	if (!user) {
+	// If no attempt record, allow
+	if (!attempt) {
 		return { allowed: true, attemptsRemaining: MAX_ATTEMPTS };
 	}
 
 	// Check if account is locked
-	if (user.lockedUntil && user.lockedUntil > new Date()) {
+	if (attempt.lockedUntil && attempt.lockedUntil > new Date()) {
 		return {
 			allowed: false,
 			locked: true,
@@ -42,24 +37,18 @@ export async function checkRateLimit(username: string): Promise<RateLimitResult>
 		};
 	}
 
-	// Clear lockout if expired
-	if (user.lockedUntil && user.lockedUntil <= new Date()) {
-		await db
-			.update(users)
-			.set({
-				failedLoginAttempts: 0,
-				lockedUntil: null
-			})
-			.where(eq(users.username, username));
+	// Clear lockout/attempts if expired (last attempt > 24h ago)
+	const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+	if (attempt.lastAttempt < twentyFourHoursAgo) {
+		await db.delete(loginAttempts).where(eq(loginAttempts.username, username));
 		return { allowed: true, attemptsRemaining: MAX_ATTEMPTS };
 	}
 
 	// Calculate delay: 2^count seconds (1s, 2s, 4s, 8s, 16s)
-	// Only apply delay AFTER first failed attempt (0 attempts = no delay)
-	const delay = user.failedLoginAttempts > 0
-		? Math.min(Math.pow(2, user.failedLoginAttempts) * 1000, MAX_DELAY)
+	const delay = attempt.count > 0
+		? Math.min(Math.pow(2, attempt.count) * 1000, MAX_DELAY)
 		: undefined;
-	const attemptsRemaining = Math.max(0, MAX_ATTEMPTS - user.failedLoginAttempts);
+	const attemptsRemaining = Math.max(0, MAX_ATTEMPTS - attempt.count);
 
 	return {
 		allowed: true,
@@ -69,54 +58,48 @@ export async function checkRateLimit(username: string): Promise<RateLimitResult>
 }
 
 /**
- * Record a failed login attempt in the database.
- * Locks account after MAX_ATTEMPTS failed attempts.
+ * Record a failed login attempt.
  */
 export async function recordFailedAttempt(username: string): Promise<void> {
-	// Get current attempt count
-	const user = await db.query.users.findFirst({
-		where: eq(users.username, username),
-		columns: {
-			failedLoginAttempts: true
-		}
+	const attempt = await db.query.loginAttempts.findFirst({
+		where: eq(loginAttempts.username, username)
 	});
 
-	if (!user) {
-		// User doesn't exist - we can't record attempts for non-existent users
-		// This is fine - the checkRateLimit will return allowed:true for non-existent users
+	if (!attempt) {
+		// Create new attempt record
+		await db.insert(loginAttempts).values({
+			username,
+			count: 1,
+			lastAttempt: new Date()
+		});
 		return;
 	}
 
-	const newCount = user.failedLoginAttempts + 1;
+	const newCount = attempt.count + 1;
 
-	// Lock account after MAX_ATTEMPTS failed attempts
 	if (newCount >= MAX_ATTEMPTS) {
 		await db
-			.update(users)
+			.update(loginAttempts)
 			.set({
-				failedLoginAttempts: newCount,
+				count: newCount,
+				lastAttempt: new Date(),
 				lockedUntil: new Date(Date.now() + LOCKOUT_DURATION)
 			})
-			.where(eq(users.username, username));
+			.where(eq(loginAttempts.username, username));
 	} else {
 		await db
-			.update(users)
+			.update(loginAttempts)
 			.set({
-				failedLoginAttempts: newCount
+				count: newCount,
+				lastAttempt: new Date()
 			})
-			.where(eq(users.username, username));
+			.where(eq(loginAttempts.username, username));
 	}
 }
 
 /**
- * Clear failed login attempts after successful authentication.
+ * Clear login attempts after successful authentication.
  */
 export async function recordSuccessfulAttempt(username: string): Promise<void> {
-	await db
-		.update(users)
-		.set({
-			failedLoginAttempts: 0,
-			lockedUntil: null
-		})
-		.where(eq(users.username, username));
+	await db.delete(loginAttempts).where(eq(loginAttempts.username, username));
 }

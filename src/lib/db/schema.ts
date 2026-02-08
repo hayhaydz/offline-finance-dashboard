@@ -9,9 +9,7 @@ export const users = sqliteTable('users', {
 	totpSecret: text('totp_secret').notNull(), // Encrypted with system key
 	totpSecretIV: text('totp_secret_iv').notNull(), // IV for TOTP secret encryption
 	passwordSalt: text('password_salt').notNull(), // Salt for user key derivation
-	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
-	failedLoginAttempts: integer('failed_login_attempts').notNull().default(0),
-	lockedUntil: integer('locked_until', { mode: 'timestamp' })
+	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
 });
 
 export const sessions = sqliteTable('sessions', {
@@ -28,6 +26,13 @@ export const backupCodes = sqliteTable('backup_codes', {
 	code: text('code').notNull(), // Hashed with Argon2id
 	used: integer('used', { mode: 'boolean' }).notNull().default(false),
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+});
+
+export const loginAttempts = sqliteTable('login_attempts', {
+	username: text('username').primaryKey(),
+	count: integer('count').notNull().default(0),
+	lastAttempt: integer('last_attempt', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+	lockedUntil: integer('locked_until', { mode: 'timestamp' })
 });
 
 // Define relations for Drizzle ORM

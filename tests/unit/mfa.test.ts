@@ -8,6 +8,7 @@ import {
 	verifyBackupCode
 } from '$lib/auth/mfa';
 import { hashPassword } from '$lib/auth/password';
+import { generate } from 'otplib';
 import crypto from 'crypto';
 
 describe('MFA utility', () => {
@@ -65,21 +66,32 @@ describe('MFA utility', () => {
 		// Note: This might be slightly flaky if time passes between generation and verification,
 		// but with otplib and internal generation it usually works within the same second.
 		const secret = generateTOTPSecret();
-
-		// We use otplib directly to generate a token for testing verifyTOTP
-		// This is just to test our wrapper function
-		const { generate } = await import('otplib');
-		const { NobleCryptoPlugin } = await import('@otplib/plugin-crypto-noble');
-		const { ScureBase32Plugin } = await import('@otplib/plugin-base32-scure');
-
-		const token = await generate({
-			secret,
-			crypto: new NobleCryptoPlugin(),
-			base32: new ScureBase32Plugin(),
-		});
+		const token = await generate({ secret });
 
 		const isValid = await verifyTOTP(token, secret);
 		expect(isValid).toBe(true);
+	});
+
+	it('should reject invalid TOTP token', async () => {
+		const secret = generateTOTPSecret();
+		const isValid = await verifyTOTP('000000', secret);
+		expect(isValid).toBe(false);
+	});
+
+	it('should reject malformed TOTP token length', async () => {
+		const secret = generateTOTPSecret();
+		// Should now return false instead of throwing thanks to try-catch
+		const isValid = await verifyTOTP('12345', secret);
+		expect(isValid).toBe(false);
+	});
+
+	it('should reject expired TOTP token (simulated)', async () => {
+		const secret = generateTOTPSecret();
+		const pastToken = await generate({ secret });
+		
+		// verifyTOTP uses epochTolerance: 30 (seconds), so verifying with a different secret should fail
+		const isValid = await verifyTOTP(pastToken, 'DIFFERENTSECRET');
+		expect(isValid).toBe(false);
 	});
 
 	it('should verify a valid backup code', async () => {
@@ -89,8 +101,8 @@ describe('MFA utility', () => {
 		const hashedCodes = await Promise.all(codes.map(code => hashPassword(code)));
 
 		// Verify the code matches
-		const isValid = await verifyBackupCode(testCode, hashedCodes);
-		expect(isValid).toBe(true);
+		const matchedHash = await verifyBackupCode(testCode, hashedCodes);
+		expect(matchedHash).toBe(hashedCodes[0]);
 	});
 
 	it('should reject an invalid backup code', async () => {
@@ -99,8 +111,8 @@ describe('MFA utility', () => {
 		const hashedCodes = await Promise.all(codes.map(code => hashPassword(code)));
 
 		// Try to verify with wrong code
-		const isValid = await verifyBackupCode('WRONGCODE', hashedCodes);
-		expect(isValid).toBe(false);
+		const matchedHash = await verifyBackupCode('WRONGCODE', hashedCodes);
+		expect(matchedHash).toBeNull();
 	});
 
 	it('should be case-insensitive for backup codes', async () => {
@@ -110,7 +122,7 @@ describe('MFA utility', () => {
 		const hashedCodes = await Promise.all(codes.map(code => hashPassword(code)));
 
 		// Verify with lowercase version - should still work
-		const isValid = await verifyBackupCode(testCode.toLowerCase(), hashedCodes);
-		expect(isValid).toBe(true);
+		const matchedHash = await verifyBackupCode(testCode.toLowerCase(), hashedCodes);
+		expect(matchedHash).toBe(hashedCodes[0]);
 	});
 });

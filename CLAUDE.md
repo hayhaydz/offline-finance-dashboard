@@ -64,6 +64,7 @@ docs/
   architecture/
     database-schema.md
     security-model.md
+    wsl2-architecture.md
   design/
     ui-principles.md
     research-paper-aesthetic.md
@@ -96,7 +97,19 @@ docs/
 
 **Reference:** `docs/design/terminal-aesthetic.md` for complete design system guide.
 
-**Mockup reference:** `docs/idea/v0-gemini/mockup-v2-favourite.html` for visual examples.
+---
+
+## 🔒 SECURITY STANDARDS
+
+**CRITICAL:** This is a financial application. Security is the highest priority.
+
+**Mandatory Development Rules:**
+1. **ROW-LEVEL SECURITY:** Every database query MUST include `withUserFilter(locals.user.id, table)`.
+2. **DATA SANITIZATION:** Never return raw database rows from the `users` table to the client. Use sanitized DTOs.
+3. **OFFLINE-FIRST CONTEXT:** The Node.js server (WSL2) is the "Trusted" zone; the Browser (Windows) is the "Untrusted" zone. All security logic (hashing, encryption, auth checks) occurs on the server.
+4. **CSP:** Do not modify `kit.csp` in `svelte.config.js` without a security review.
+
+**Reference:** `docs/security/DEVELOPMENT_GUIDELINES.md` for full security implementation guide.
 
 ---
 

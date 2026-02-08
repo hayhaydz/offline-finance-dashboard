@@ -9,6 +9,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 
 	return {
-		user: locals.user
+		user: {
+			id: locals.user.id,
+			username: locals.user.username,
+			createdAt: locals.user.createdAt
+		}
 	};
 };

@@ -30,10 +30,6 @@
 					<span><strong>Account created:</strong></span>
 					<span>{data.user?.createdAt ? new Date(data.user.createdAt).toLocaleString() : 'N/A'}</span>
 				</div>
-				<div class="flex justify-between my-1">
-					<span><strong>Failed login attempts:</strong></span>
-					<span>{data.user?.failedLoginAttempts || 0}</span>
-				</div>
 			</div>
 		</section>
 
