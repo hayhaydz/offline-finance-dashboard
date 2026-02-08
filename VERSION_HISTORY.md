@@ -4,6 +4,26 @@ Log of work done on the Offline Finance Dashboard project.
 
 ---
 
+## [2026-02-08 13:02] — Quick Task 011: Implement UpdatedAt Timestamp Usage
+
+**Summary:** Implemented `updatedAt` timestamp updates throughout the project. The mfa-setup route now properly updates the `updatedAt` timestamp when clearing the mfaSetupToken after MFA setup completion. This ensures the `updatedAt` field (added in quick task 010) is actually used to track when user records are modified.
+
+**Files:**
+- `src/routes/(auth)/mfa-setup/+page.server.ts` (updated - sets updatedAt when clearing mfaSetupToken)
+
+**Commit:**
+```
+feat(users): update updatedAt timestamp when clearing MFA setup token
+
+- Add updatedAt: new Date() to user update operation in mfa-setup route
+- Ensures updatedAt reflects when user records are modified
+- Analyzed all database operations - mfa-setup is the only user update path currently
+```
+
+**Context:** After adding the `updatedAt` column to the schema, the codebase wasn't actually updating this timestamp. The mfa-setup route clears the `mfaSetupToken` after successful MFA setup, making it the logical place to update `updatedAt`. All other database operations either insert new records (where `updatedAt` defaults to `CURRENT_TIMESTAMP`) or update other tables (sessions, backupCodes, loginAttempts). Future features that modify user profiles should follow this pattern.
+
+---
+
 ## [2026-02-08 12:58] — Quick Task 010: Add updatedAt Timestamp Fields to Schema
 
 **Summary:** Added `updatedAt` timestamp column to the users table in the database schema. The seed script was already using `updatedAt` when creating users, but the schema was missing this column, causing a mismatch. Now the users table properly tracks both creation and modification timestamps.

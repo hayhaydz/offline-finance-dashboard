@@ -130,7 +130,7 @@ export const actions = {
 
 		// Mark the setup token as used in database
 		await db.update(users)
-			.set({ mfaSetupToken: null })
+			.set({ mfaSetupToken: null, updatedAt: new Date() })
 			.where(eq(users.id, user.id));
 
 		// Clear the setup cookie
