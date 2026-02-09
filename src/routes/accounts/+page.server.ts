@@ -42,8 +42,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 		lastUpdated: account.balances[0]?.asOfDate || null
 	}));
 
+	// Get unique institutions for filtering
+	const institutions = Array.from(new Set(userAccounts.map(a => a.institution).filter(Boolean))) as string[];
+
 	return {
 		accounts: accountsWithBalances,
+		institutions,
 		user: {
 			id: locals.user.id,
 			username: locals.user.username,

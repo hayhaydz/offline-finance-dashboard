@@ -1,23 +1,57 @@
 <script lang="ts">
-	import { page } from '$app/state';
+	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
+	import { formatCurrency, formatAccountType, formatDate } from '$lib/utils/currency';
 
-	$: user = page.data.user;
-	$: env = page.data.environment;
+	let { data } = $props();
+	let { user, environment: env } = $derived(data);
 
-	// Placeholder net worth data (will be replaced with real data in Phase 2)
-	const netWorth = {
-		total: 123456.00,
-		change: 2340.50,
-		sinceDate: 'Jan 2026',
-		assets: 156000.00,
-		liabilities: -32544.00
-	};
+	// Group accounts by type for the overview
+	const accountsByType = $derived.by(() => {
+		const typeMap = new Map<string, { 
+			count: number; 
+			balance: number; 
+			lastUpdated: Date | null; 
+			excluded: boolean;
+			category: 'asset' | 'liability';
+		}>();
 
-	// Placeholder accounts data
-	const accounts = [
-		{ name: 'Barclays Current', type: 'Current', balance: 5400 },
-		{ name: 'Trading 212 ISA', type: 'Invest', balance: 45200 }
-	];
+		for (const account of data.accounts) {
+			if (account.closedAt) continue;
+
+			const existing = typeMap.get(account.type);
+			const latestBalance = account.balances[0];
+			const balance = latestBalance?.balanceInCents || 0;
+			const updatedAt = latestBalance?.asOfDate || null;
+
+			if (existing) {
+				existing.count++;
+				existing.balance += balance;
+				if (updatedAt && (!existing.lastUpdated || updatedAt > existing.lastUpdated)) {
+					existing.lastUpdated = updatedAt;
+				}
+				// Type is excluded if ALL accounts of this type are excluded
+				if (!account.excludedFromNetWorth) {
+					existing.excluded = false;
+				}
+			} else {
+				typeMap.set(account.type, {
+					count: 1,
+					balance,
+					lastUpdated: updatedAt,
+					excluded: account.excludedFromNetWorth,
+					category: account.category
+				});
+			}
+		}
+
+		return Array.from(typeMap.entries()).map(([type, stats]) => ({
+			type,
+			...stats
+		}));
+	});
+
+	const assetGroups = $derived(accountsByType.filter(g => g.category === 'asset'));
+	const liabilityGroups = $derived(accountsByType.filter(g => g.category === 'liability'));
 </script>
 
 {#if !user}
@@ -50,38 +84,18 @@
 		<div class="flex justify-between my-1"><span>Offline-first</span><span class="text-green-700 font-bold">Active</span></div>
 	</div>
 {:else}
-	<!-- NET WORTH SECTION -->
-	<div class="border-b border-black p-2">
-		<div class="flex justify-between my-1">
-			<span class="text-lg font-bold">NET WORTH</span>
-			<span class="text-lg font-bold">
-				£{netWorth.total.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-				{#if netWorth.change >= 0}
-					↑
-				{:else}
-					↓
-				{/if}
-			</span>
-		</div>
-		<div class="flex justify-between my-1 text-gray-600 text-xs">
-			<span>(incl. liabilities)</span>
-			<span>since {netWorth.sinceDate}</span>
-		</div>
-	</div>
-
-	<!-- SUMMARY SECTION -->
-	<div class="border-b border-black p-2">
-		<div class="flex justify-between my-1">
-			<span>Assets</span>
-			<span>£{netWorth.assets.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-		</div>
-		<div class="flex justify-between my-1">
-			<span>Liabilities</span>
-			<span class="text-red-700 font-bold">
-				£{netWorth.liabilities.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-			</span>
-		</div>
-	</div>
+	<!-- Net worth display with server-side data -->
+	<NetWorthDisplay
+		netWorth={data.netWorth}
+		totalAssets={data.totalAssets}
+		totalLiabilities={data.totalLiabilities}
+		excludedAssets={data.excludedAssets}
+		excludedLiabilities={data.excludedLiabilities}
+		dateRange={data.dateRange}
+		hasStaleData={data.hasStaleData}
+		exclusionCount={data.exclusionCount}
+		accounts={data.accounts}
+	/>
 
 	<!-- GOALS SECTION (placeholder for future implementation) -->
 	<div class="border-b border-black p-2">
@@ -95,31 +109,69 @@
 		</div>
 	</div>
 
-	<!-- ACCOUNTS OVERVIEW -->
-	<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">ACCOUNTS OVERVIEW</div>
+	<!-- ACCOUNTS BY TYPE -->
+	<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">ACCOUNTS BY TYPE</div>
 	<div class="p-0">
 		<table>
 			<thead>
 				<tr>
-					<th class="pl-1">Account</th>
-					<th class="pl-1">Type</th>
-					<th class="text-right pr-1">Balance</th>
+					<th class="w-8 text-center border-r border-gray-200">[#]</th>
+					<th class="pl-2 text-left">Type</th>
+					<th class="text-left pl-2">Balance</th>
+					<th class="text-right pr-1">Updated</th>
 				</tr>
 			</thead>
 			<tbody>
-				{#each accounts as account}
-					<tr>
-						<td class="pl-1">{account.name}</td>
-						<td class="pl-1">{account.type}</td>
-						<td class="text-right pr-1">
-							£{account.balance.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-						</td>
+				{#if assetGroups.length > 0}
+					<tr class="bg-gray-50">
+						<td colspan="4" class="pl-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider border-y border-gray-200">Assets</td>
 					</tr>
-				{/each}
+					{#each assetGroups as group}
+						<tr class:line-through={group.excluded} class:text-gray-500={group.excluded}>
+							<td class="text-center tabular-nums border-r border-gray-200 text-gray-400 text-xs">
+								{group.count}
+							</td>
+							<td class="pl-2">
+								<a href="/accounts?type={group.type}" class="hover:underline">
+									{formatAccountType(group.type)}
+								</a>
+							</td>
+							<td class="text-left pl-2 tabular-nums">
+								{formatCurrency(group.balance)}
+							</td>
+							<td class="text-right pr-1 tabular-nums">
+								{formatDate(group.lastUpdated)}
+							</td>
+						</tr>
+					{/each}
+				{/if}
+				{#if liabilityGroups.length > 0}
+					<tr class="bg-gray-50">
+						<td colspan="4" class="pl-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider border-y border-gray-200">Liabilities</td>
+					</tr>
+					{#each liabilityGroups as group}
+						<tr class:line-through={group.excluded} class:text-gray-500={group.excluded}>
+							<td class="text-center tabular-nums border-r border-gray-200 text-gray-400 text-xs">
+								{group.count}
+							</td>
+							<td class="pl-2">
+								<a href="/accounts?type={group.type}" class="hover:underline">
+									{formatAccountType(group.type)}
+								</a>
+							</td>
+							<td class="text-left pl-2 tabular-nums">
+								{formatCurrency(Math.abs(group.balance))}
+							</td>
+							<td class="text-right pr-1 tabular-nums">
+								{formatDate(group.lastUpdated)}
+							</td>
+						</tr>
+					{/each}
+				{/if}
 			</tbody>
 		</table>
 		<div class="px-2 py-1">
-			<a href="/accounts" class="bracket-link">View All</a>
+			<a href="/accounts" class="bracket-link">View All Accounts</a>
 		</div>
 	</div>
 {/if}

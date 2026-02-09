@@ -78,3 +78,102 @@ export function parseCurrency(input: string): number {
 
 	return (pounds * 100) + pence;
 }
+
+/**
+ * Format a single date for use in date ranges
+ *
+ * Uses en-GB locale formatting: "1 Jan 2026", "15 Feb 2026"
+ *
+ * @param date - The date to format
+ * @returns Formatted date string (e.g., "1 Jan 2026")
+ *
+ * @example
+ * formatDateForRange(new Date(2026, 0, 1))  // => "1 Jan 2026"
+ * formatDateForRange(new Date(2026, 1, 15)) // => "15 Feb 2026"
+ */
+export function formatDateForRange(date: Date): string {
+	return date.toLocaleDateString('en-GB', {
+		day: 'numeric',
+		month: 'short',
+		year: 'numeric'
+	});
+}
+
+/**
+ * Format an account type for display
+ * 
+ * @param type - The account type string from database (e.g., "credit-card")
+ * @returns Human-readable label (e.g., "Credit Card")
+ */
+export function formatAccountType(type: string): string {
+	const labels: Record<string, string> = {
+		current: 'Current',
+		savings: 'Savings',
+		investment: 'Investments',
+		'credit-card': 'Credit Card',
+		loan: 'Personal Loan',
+		mortgage: 'Mortgage'
+	};
+	return labels[type] || type;
+}
+
+/**
+ * Format a date for general UI display (e.g., "9 Feb 2026")
+ * 
+ * @param date - The date to format
+ * @returns Formatted date string or "-" if null
+ */
+export function formatDate(date: Date | null | undefined): string {
+	if (!date) return '-';
+	return date.toLocaleDateString('en-GB', {
+		day: 'numeric',
+		month: 'short',
+		year: 'numeric'
+	});
+}
+
+/**
+ * Format a date range for net worth display
+ *
+ * Produces "as of {date}" format with intelligent year handling:
+ * - Same year: "as of 1 Jan - 15 Feb 2026"
+ * - Different years: "as of 1 Jan 2025 - 15 Feb 2026"
+ * - Single date: "as of 1 Jan 2026"
+ *
+ * @param oldest - The oldest date in the range
+ * @param newest - The newest date in the range
+ * @returns Formatted date range string
+ *
+ * @example
+ * formatDateRange(new Date(2026, 0, 1), new Date(2026, 1, 15))
+ * // => "as of 1 Jan - 15 Feb 2026"
+ *
+ * formatDateRange(new Date(2025, 11, 1), new Date(2026, 1, 15))
+ * // => "as of 1 Dec 2025 - 15 Feb 2026"
+ *
+ * formatDateRange(new Date(2026, 0, 1), new Date(2026, 0, 1))
+ * // => "as of 1 Jan 2026"
+ */
+export function formatDateRange(oldest: Date, newest: Date): string {
+	const oldestFormatted = formatDateForRange(oldest);
+	const newestFormatted = formatDateForRange(newest);
+
+	// Single date case (both dates are the same)
+	if (oldest.getTime() === newest.getTime()) {
+		return `as of ${oldestFormatted}`;
+	}
+
+	// Same year: "as of 1 Jan - 15 Feb 2026"
+	if (oldest.getFullYear() === newest.getFullYear()) {
+		const oldestParts = oldestFormatted.split(' ');
+		const newestParts = newestFormatted.split(' ');
+
+		// oldestParts: ["1", "Jan", "2026"]
+		// newestParts: ["15", "Feb", "2026"]
+		// Result: "as of 1 Jan - 15 Feb 2026"
+		return `as of ${oldestParts[0]} ${oldestParts[1]} - ${newestParts[0]} ${newestParts[1]} ${newestParts[2]}`;
+	}
+
+	// Different years: "as of 1 Jan 2025 - 15 Feb 2026"
+	return `as of ${oldestFormatted} - ${newestFormatted}`;
+}

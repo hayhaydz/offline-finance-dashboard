@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import FormField from '$lib/components/ui/form-field/form-field.svelte';
+	import TerminalRadio from '$lib/components/ui/terminal-toggle/TerminalRadio.svelte';
 	import {
 		required,
 		maxLength,
@@ -178,17 +179,11 @@
 
 	<div class="mb-1">
 		<span class="font-bold text-xs block mb-1">Account Type</span>
-		<div class="flex flex-col gap-1">
+		<div class="flex flex-col">
 			{#each accountTypes as option}
-				<label class="flex items-center gap-1">
-					<input
-						type="radio"
-						bind:group={type}
-						value={option.value}
-						name="type"
-					/>
+				<TerminalRadio value={option.value} selectedValue={type} onChange={(v) => type = v}>
 					<span class="text-sm">{option.label}</span>
-				</label>
+				</TerminalRadio>
 			{/each}
 		</div>
 		{#if form?.errors?.type}
@@ -198,24 +193,21 @@
 
 	<div class="mb-1">
 		<span class="font-bold text-xs block mb-1">Tax Wrapper</span>
-		<div class="flex flex-col gap-1">
+		<div class="flex flex-col">
 			{#each taxWrappers as option}
-				<label class="flex items-center gap-1">
-					<input
-						type="radio"
-						bind:group={taxWrapper}
-						value={option.value}
-						name="taxWrapper"
-						disabled={!taxWrapperEnabled}
-						class:opacity-50={!taxWrapperEnabled}
-					/>
+				<TerminalRadio
+					value={option.value}
+					selectedValue={taxWrapper}
+					onChange={(v) => taxWrapper = v}
+					disabled={!taxWrapperEnabled && option.value !== 'none'}
+				>
 					<span class="text-sm {taxWrapperEnabled || option.value === 'none' ? '' : 'text-gray-500'}">
 						{option.label}
 						{#if !taxWrapperEnabled && option.value !== 'none'}
 							(unavailable)
 						{/if}
 					</span>
-				</label>
+				</TerminalRadio>
 			{/each}
 		</div>
 		{#if form?.errors?.taxWrapper}
