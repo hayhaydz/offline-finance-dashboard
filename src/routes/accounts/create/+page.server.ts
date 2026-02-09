@@ -33,6 +33,7 @@ export const actions: Actions = {
 
 			const name = formData.get('name') as string;
 			const type = formData.get('type') as string;
+			const taxWrapper = formData.get('taxWrapper') as string;
 			const institution = formData.get('institution') as string;
 			const liquidity = formData.get('liquidity') as string;
 			const initialBalance = formData.get('initialBalance') as string;
@@ -48,10 +49,20 @@ export const actions: Actions = {
 			}
 
 			// Type: required, must match one of 6 account types
-			const validTypes = ['current', 'savings', 'credit', 'investment', 'ISA', 'LISA'];
+			const validTypes = ['current', 'savings', 'investment', 'credit-card', 'loan', 'mortgage'];
 			if (!type || !validTypes.includes(type)) {
 				errors.type = 'Please select a valid account type';
 			}
+
+			// Tax wrapper: required, must match one of 3 values
+			const validTaxWrappers = ['none', 'isa', 'lisa'];
+			if (!taxWrapper || !validTaxWrappers.includes(taxWrapper)) {
+				errors.taxWrapper = 'Please select a valid tax wrapper';
+			}
+
+			// Category: auto-calculated from type (assets vs liabilities)
+			const assetTypes = new Set(['current', 'savings', 'investment']);
+			const category = assetTypes.has(type) ? 'asset' : 'liability';
 
 			// Institution: optional, max 100 chars if provided
 			if (institution && institution.trim().length > 100) {
@@ -81,13 +92,14 @@ export const actions: Actions = {
 			// Return validation errors if any
 			if (Object.keys(errors).length > 0) {
 				devLog('createAccount', 'Validation failed', { errors });
-				logFormData('createAccount', { name, type, institution, liquidity, initialBalance });
+				logFormData('createAccount', { name, type, taxWrapper, institution, liquidity, initialBalance });
 				return fail(400, {
 					error: 'Please fix the errors below',
 					errors,
 					data: {
 						name: name || '',
 						type: type || '',
+						taxWrapper: taxWrapper || 'none',
 						institution: institution || '',
 						liquidity: liquidity || '',
 						initialBalance: initialBalance || ''
@@ -98,6 +110,8 @@ export const actions: Actions = {
 			devLog('createAccount', 'Validation passed', {
 				name: name.trim(),
 				type,
+				taxWrapper,
+				category,
 				institution: institution?.trim() || null,
 				liquidity: liquidity || null,
 				balanceInCents
@@ -109,9 +123,11 @@ export const actions: Actions = {
 				userId: locals.user.id,
 				slug: accountSlug,
 				name: name.trim(),
-				type,
+				type: type as 'current' | 'savings' | 'investment' | 'credit-card' | 'loan' | 'mortgage',
+				taxWrapper: taxWrapper as 'none' | 'isa' | 'lisa',
+				category: category as 'asset' | 'liability',
 				institution: institution?.trim() || null,
-				liquidity: liquidity || null,
+				liquidity: (liquidity as 'instant' | 'delayed' | 'locked' | null) || null,
 				closedAt: null,
 				excludedFromNetWorth: false
 			}).returning();

@@ -101,17 +101,17 @@
 		<table>
 			<thead>
 				<tr>
-					<th>Account</th>
-					<th>Type</th>
-					<th class="text-right">Balance</th>
+					<th class="pl-1">Account</th>
+					<th class="pl-1">Type</th>
+					<th class="text-right pr-1">Balance</th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each accounts as account}
 					<tr>
-						<td>{account.name}</td>
-						<td>{account.type}</td>
-						<td class="text-right">
+						<td class="pl-1">{account.name}</td>
+						<td class="pl-1">{account.type}</td>
+						<td class="text-right pr-1">
 							£{account.balance.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
 						</td>
 					</tr>

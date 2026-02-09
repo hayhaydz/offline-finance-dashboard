@@ -10,8 +10,14 @@ import type { ValidationRule } from './types';
 /**
  * Valid account types enum values
  */
-const ACCOUNT_TYPES = ['current', 'savings', 'credit', 'investment', 'ISA', 'LISA'] as const;
+const ACCOUNT_TYPES = ['current', 'savings', 'investment', 'credit-card', 'loan', 'mortgage'] as const;
 export type AccountType = typeof ACCOUNT_TYPES[number];
+
+/**
+ * Valid tax wrapper enum values
+ */
+const TAX_WRAPPERS = ['none', 'isa', 'lisa'] as const;
+export type TaxWrapper = typeof TAX_WRAPPERS[number];
 
 /**
  * Valid liquidity options enum values
@@ -252,7 +258,7 @@ function oneOf<T extends string>(allowedValues: readonly T[], message?: string):
  * Account type validation rule
  *
  * Validates against the fixed account type enum:
- * 'current', 'savings', 'credit', 'investment', 'ISA', 'LISA'
+ * 'current', 'savings', 'investment', 'credit-card', 'loan', 'mortgage'
  *
  * Case-sensitive exact match - use for select dropdowns only.
  *
@@ -267,6 +273,28 @@ function oneOf<T extends string>(allowedValues: readonly T[], message?: string):
  */
 export function accountType(message?: string): ValidationRule {
 	return oneOf(ACCOUNT_TYPES, message || 'Select a valid account type');
+}
+
+/**
+ * Tax wrapper validation rule
+ *
+ * Validates against the fixed tax wrapper enum:
+ * 'none', 'isa', 'lisa'
+ *
+ * Case-sensitive exact match - use for select dropdowns only.
+ *
+ * @param message - Custom error message (default: "Select a valid tax wrapper")
+ * @returns Validation rule for tax wrapper
+ *
+ * @example
+ * const rule = taxWrapper();
+ * rule.validate('none')  // => true
+ * rule.validate('isa')  // => true
+ * rule.validate('invalid')  // => false
+ * rule.validate('ISA')  // => false (case-sensitive)
+ */
+export function taxWrapper(message?: string): ValidationRule {
+	return oneOf(TAX_WRAPPERS, message || 'Select a valid tax wrapper');
 }
 
 /**

@@ -24,6 +24,7 @@
 	// Form field values initialized to empty
 	let name = $state('');
 	let type = $state('');
+	let taxWrapper = $state('none');
 	let institution = $state('');
 	let liquidityValue = $state('');
 	let initialBalance = $state('');
@@ -33,6 +34,7 @@
 		if (form?.data) {
 			name = form.data.name ?? '';
 			type = form.data.type ?? '';
+			taxWrapper = form.data.taxWrapper ?? 'none';
 			institution = form.data.institution ?? '';
 			liquidityValue = form.data.liquidity ?? '';
 			initialBalance = form.data.initialBalance ?? '';
@@ -44,21 +46,41 @@
 		devLogClient('account-create', 'Form values changed', {
 			name,
 			type,
+			taxWrapper,
 			institution,
 			liquidityValue,
 			initialBalance
 		});
 	});
 
-	// Account type options
+	// Account type options (6 core types)
 	const accountTypes = [
-		{ value: 'current', label: 'Current Account' },
-		{ value: 'savings', label: 'Savings Account' },
-		{ value: 'credit', label: 'Credit Card' },
-		{ value: 'investment', label: 'Investment Account' },
-		{ value: 'ISA', label: 'ISA (UK)' },
-		{ value: 'LISA', label: 'LISA (UK)' }
+		{ value: 'current', label: 'Current' },
+		{ value: 'savings', label: 'Savings' },
+		{ value: 'investment', label: 'Investment' },
+		{ value: 'credit-card', label: 'Credit Card' },
+		{ value: 'loan', label: 'Loan' },
+		{ value: 'mortgage', label: 'Mortgage' }
 	];
+
+	// Tax wrapper options (3 values)
+	const taxWrappers = [
+		{ value: 'none', label: 'None' },
+		{ value: 'isa', label: 'ISA' },
+		{ value: 'lisa', label: 'LISA' }
+	];
+
+	// Tax wrapper only enabled for savings/investment
+	const taxWrapperEnabled = $derived(
+		type === 'savings' || type === 'investment'
+	);
+
+	// Auto-reset tax wrapper when type changes to invalid combination
+	$effect(() => {
+		if (!taxWrapperEnabled && taxWrapper !== 'none') {
+			taxWrapper = 'none';
+		}
+	});
 
 	// Liquidity options
 	const liquidityOptions = [
@@ -155,20 +177,49 @@
 	/>
 
 	<div class="mb-1">
-		<label for="type" class="font-bold text-xs block mb-1">Account Type</label>
-		<select
-			id="type"
-			name="type"
-			bind:value={type}
-			class="border border-black p-1 w-full font-terminal text-sm focus:outline-none"
-		>
-			<option value="">Select account type...</option>
+		<span class="font-bold text-xs block mb-1">Account Type</span>
+		<div class="flex flex-col gap-1">
 			{#each accountTypes as option}
-				<option value={option.value}>{option.label}</option>
+				<label class="flex items-center gap-1">
+					<input
+						type="radio"
+						bind:group={type}
+						value={option.value}
+						name="type"
+					/>
+					<span class="text-sm">{option.label}</span>
+				</label>
 			{/each}
-		</select>
+		</div>
 		{#if form?.errors?.type}
 			<small class="text-red-700 font-bold text-xs block">{form.errors.type}</small>
+		{/if}
+	</div>
+
+	<div class="mb-1">
+		<span class="font-bold text-xs block mb-1">Tax Wrapper</span>
+		<div class="flex flex-col gap-1">
+			{#each taxWrappers as option}
+				<label class="flex items-center gap-1">
+					<input
+						type="radio"
+						bind:group={taxWrapper}
+						value={option.value}
+						name="taxWrapper"
+						disabled={!taxWrapperEnabled}
+						class:opacity-50={!taxWrapperEnabled}
+					/>
+					<span class="text-sm {taxWrapperEnabled || option.value === 'none' ? '' : 'text-gray-500'}">
+						{option.label}
+						{#if !taxWrapperEnabled && option.value !== 'none'}
+							(unavailable)
+						{/if}
+					</span>
+				</label>
+			{/each}
+		</div>
+		{#if form?.errors?.taxWrapper}
+			<small class="text-red-700 font-bold text-xs block">{form.errors.taxWrapper}</small>
 		{/if}
 	</div>
 

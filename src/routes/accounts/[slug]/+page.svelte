@@ -39,10 +39,10 @@
 		const types: Record<string, string> = {
 			current: 'Current',
 			savings: 'Savings',
-			credit: 'Credit',
 			investment: 'Investment',
-			ISA: 'ISA',
-			LISA: 'LISA'
+			'credit-card': 'Credit Card',
+			loan: 'Loan',
+			mortgage: 'Mortgage'
 		};
 		return types[type] || type;
 	}
@@ -126,6 +126,8 @@
 	<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
 		<div>Type:</div>
 		<div>{getAccountType(data.account.type)}</div>
+		<div>Tax Wrapper:</div>
+		<div>{data.account.taxWrapper === 'none' ? '-' : data.account.taxWrapper.toUpperCase()}</div>
 		<div>Institution:</div>
 		<div>{data.account.institution || '-'}</div>
 		<div>Liquidity:</div>
@@ -238,19 +240,19 @@
 		<table>
 			<thead>
 				<tr>
-					<th>Date</th>
-					<th class="text-right">Balance</th>
-					<th class="text-right">Change</th>
-					<th>Notes</th>
-					<th class="text-right">Actions</th>
+					<th class="pl-1">Date</th>
+					<th class="text-right pl-1 pr-4">Balance</th>
+					<th class="text-right pl-1 pr-4">Change</th>
+					<th class="pl-1">Notes</th>
+					<th class="text-right pr-1">Actions</th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each data.balances as balance}
 					<tr>
-						<td>{formatDate(balance.asOfDate)}</td>
-						<td class="text-right font-mono">{formatCurrency(balance.balanceInCents)}</td>
-						<td class="text-right font-mono">
+						<td class="pl-1">{formatDate(balance.asOfDate)}</td>
+						<td class="text-right font-mono pl-1 pr-4">{formatCurrency(balance.balanceInCents)}</td>
+						<td class="text-right font-mono pl-1 pr-4">
 							{#if balance.changeFromPrevious !== null}
 								<span
 									class={balance.changeFromPrevious >= 0
@@ -264,8 +266,8 @@
 								<span class="text-gray-500">-</span>
 							{/if}
 						</td>
-						<td class="text-xs text-gray-600">{balance.notes || '-'}</td>
-						<td class="text-right">
+						<td class="pl-1 text-xs text-gray-600">{balance.notes || '-'}</td>
+						<td class="text-right pr-1">
 							<a
 								href="/accounts/{data.account.slug}/balances/{balance.slug}/edit"
 								class="bracket-link text-xs"

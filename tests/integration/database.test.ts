@@ -92,6 +92,8 @@ describe('Database Integration & Migrations', () => {
 			slug: 'test-account-slug-' + Date.now(),
 			name: 'Test Account',
 			type: 'current',
+			taxWrapper: 'none',
+			category: 'asset',
 		}).returning();
 		
 		expect(newAccount.id).toBeDefined();

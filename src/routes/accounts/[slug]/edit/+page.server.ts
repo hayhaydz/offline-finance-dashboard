@@ -7,7 +7,10 @@ import { devLog, logError, logFormData } from '$lib/utils/logger';
 import { eq } from 'drizzle-orm';
 
 // Valid account types
-const VALID_ACCOUNT_TYPES = ['current', 'savings', 'credit', 'investment', 'ISA', 'LISA'];
+const VALID_ACCOUNT_TYPES = ['current', 'savings', 'investment', 'credit-card', 'loan', 'mortgage'];
+
+// Valid tax wrapper values
+const VALID_TAX_WRAPPERS = ['none', 'isa', 'lisa'];
 
 // Valid liquidity values
 const VALID_LIQUIDITY_VALUES = ['instant', 'delayed', 'locked'];
@@ -72,6 +75,7 @@ export const actions: Actions = {
 		logFormData('editAccount', Object.fromEntries(formData));
 		const name = formData.get('name') as string;
 		const type = formData.get('type') as string;
+		const taxWrapper = formData.get('taxWrapper') as string;
 		const institution = formData.get('institution') as string | null;
 		const liquidity = formData.get('liquidity') as string;
 
@@ -86,15 +90,26 @@ export const actions: Actions = {
 			return fail(400, { error: 'Invalid account type' });
 		}
 
+		if (!VALID_TAX_WRAPPERS.includes(taxWrapper)) {
+			devLog('editAccount', 'Validation failed - invalid tax wrapper', { accountSlug, taxWrapper });
+			return fail(400, { error: 'Invalid tax wrapper' });
+		}
+
 		if (!VALID_LIQUIDITY_VALUES.includes(liquidity)) {
 			devLog('editAccount', 'Validation failed - invalid liquidity', { accountSlug, liquidity });
 			return fail(400, { error: 'Invalid liquidity value' });
 		}
 
+		// Category: auto-calculated from type (assets vs liabilities)
+		const assetTypes = new Set(['current', 'savings', 'investment']);
+		const category = assetTypes.has(type) ? 'asset' : 'liability';
+
 		devLog('editAccount', 'Form validation passed', {
 			accountSlug,
 			name: name.trim(),
 			type,
+			taxWrapper,
+			category,
 			institution: institution?.trim() || null,
 			liquidity
 		});
@@ -104,9 +119,11 @@ export const actions: Actions = {
 			.update(accounts)
 			.set({
 				name: name.trim(),
-				type,
+				type: type as 'current' | 'savings' | 'investment' | 'credit-card' | 'loan' | 'mortgage',
+				taxWrapper: taxWrapper as 'none' | 'isa' | 'lisa',
+				category: category as 'asset' | 'liability',
 				institution: institution?.trim() || null,
-				liquidity,
+				liquidity: liquidity as 'instant' | 'delayed' | 'locked' | null,
 				updatedAt: new Date()
 			})
 			.where(eq(accounts.id, account.id));

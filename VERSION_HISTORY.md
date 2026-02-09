@@ -1,3 +1,38 @@
+## [2026-02-09 18:29] — Account Types and Data Model Cleanup
+
+**Summary:** Separated account types from tax wrappers, added category field for asset/liability distinction, and improved account creation UX with dual radio button forms.
+
+**Files:**
+- `src/lib/db/schema.ts` (added taxWrapper, category fields; updated type enum to 6 values)
+- `src/lib/validation/rules.ts` (updated ACCOUNT_TYPES, added TAX_WRAPPERS constant)
+- `src/routes/accounts/create/+page.svelte` (dual radio buttons with reactive disabled state)
+- `src/routes/accounts/create/+page.server.ts` (category auto-calculation, new field validation)
+- `src/routes/accounts/[slug]/edit/+page.svelte` (dual radio buttons for edit form)
+- `src/routes/accounts/[slug]/edit/+page.server.ts` (update action with new fields)
+- `src/routes/accounts/+page.svelte` (use category field for net worth calculations)
+- `src/routes/accounts/+page.server.ts` (include category and taxWrapper in response)
+- `src/routes/accounts/[slug]/+page.svelte` (added tax wrapper display)
+- `src/routes/accounts/[slug]/delete/+page.svelte` (updated type labels)
+- `src/routes/accounts/[slug]/balances/[balanceSlug]/edit/+page.svelte` (updated type labels)
+- `tests/integration/database.test.ts` (added new required fields)
+
+**Commit:**
+```
+feat(02.1-01): separate account types from tax wrappers and add category field
+
+- Update type enum: 6 core types (current, savings, investment, credit-card, loan, mortgage)
+- Add taxWrapper field: none, isa, lisa (default 'none')
+- Add category field: asset, liability (auto-calculated from type)
+- Replace dropdown with dual radio buttons for type and tax wrapper
+- Tax wrapper disabled for non-savings/investment accounts
+- Auto-reset tax wrapper to 'none' when switching to incompatible type
+- Use nuke and recreate strategy (no production data)
+```
+
+**Context:** Phase 02.1 cleans up the account data model to enable proper asset vs liability distinction needed for Phase 3 (Net Worth Dashboard). The old schema mixed account types with tax wrappers (ISA, LISA), preventing accurate net worth calculations.
+
+---
+
 ## [2026-02-08 19:37] — Multi-Fix: GBP Currency, Breadcrumbs, Links, and UX Improvements
 
 **Summary:** (1) Changed default currency from USD to GBP, (2) Fixed breadcrumb system to show account names instead of slugs with proper segmentIndex, (3) Fixed all remaining account.id links to use account.slug, (4) Improved message timing (10s success, errors persist with dismiss button), (5) Fixed navigation component for non-existent routes.

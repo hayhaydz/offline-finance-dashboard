@@ -55,11 +55,11 @@ table {
 }
 
 th {
-	@apply text-left border-b border-black text-gray-600 font-normal px-1 py-1;
+	@apply border-b border-black text-gray-600 font-normal py-1;
 }
 
 td {
-	@apply px-1 py-1;
+	@apply py-1;
 }
 
 /* Bar chart character spacing */

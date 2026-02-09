@@ -43,8 +43,10 @@ export const accounts = sqliteTable('accounts', {
 	userId: integer('user_id').notNull().references(() => users.id),
 	name: text('name').notNull(),
 	institution: text('institution'),
-	type: text('type').notNull(), // 'current', 'savings', 'credit', 'investment', 'ISA', 'LISA'
-	liquidity: text('liquidity'), // 'instant', 'delayed', 'locked' (nullable)
+	type: text('type', { enum: ['current', 'savings', 'investment', 'credit-card', 'loan', 'mortgage'] }).notNull(),
+	taxWrapper: text('tax_wrapper', { enum: ['none', 'isa', 'lisa'] }).notNull().default('none'),
+	category: text('category', { enum: ['asset', 'liability'] }).notNull(),
+	liquidity: text('liquidity', { enum: ['instant', 'delayed', 'locked'] }),
 	excludedFromNetWorth: integer('excluded_from_net_worth', { mode: 'boolean' }).notNull().default(false),
 	closedAt: integer('closed_at', { mode: 'timestamp' }), // Soft-delete - NULL means open
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),

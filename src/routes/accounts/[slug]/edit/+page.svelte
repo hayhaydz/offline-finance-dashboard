@@ -4,7 +4,8 @@
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
-	const VALID_ACCOUNT_TYPES = ['current', 'savings', 'credit', 'investment', 'ISA', 'LISA'];
+	const VALID_ACCOUNT_TYPES = ['current', 'savings', 'investment', 'credit-card', 'loan', 'mortgage'];
+	const VALID_TAX_WRAPPERS = ['none', 'isa', 'lisa'];
 	const VALID_LIQUIDITY_VALUES = ['instant', 'delayed', 'locked'];
 
 	// Get display name for account type
@@ -12,12 +13,22 @@
 		const labels: Record<string, string> = {
 			current: 'Current',
 			savings: 'Savings',
-			credit: 'Credit',
 			investment: 'Investment',
-			ISA: 'ISA',
-			LISA: 'LISA'
+			'credit-card': 'Credit Card',
+			loan: 'Loan',
+			mortgage: 'Mortgage'
 		};
 		return labels[type] || type;
+	}
+
+	// Get display name for tax wrapper
+	function getTaxWrapperLabel(taxWrapper: string): string {
+		const labels: Record<string, string> = {
+			none: 'None',
+			isa: 'ISA',
+			lisa: 'LISA'
+		};
+		return labels[taxWrapper] || taxWrapper;
 	}
 
 	// Get display name for liquidity
@@ -56,19 +67,39 @@
 		</div>
 
 		<div>
-			<label for="type" class="block text-sm font-bold mb-1">Account Type *</label>
-			<select
-				id="type"
-				name="type"
-				required
-				class="w-full max-w-md border border-black px-2 py-1 text-sm"
-			>
-				{#each VALID_ACCOUNT_TYPES as type}
-					<option value={type} selected={data.account.type === type}>
-						{getAccountTypeLabel(type)}
-					</option>
+			<span class="block text-sm font-bold mb-1">Account Type *</span>
+			<div class="flex flex-col gap-1">
+				{#each VALID_ACCOUNT_TYPES as typeOption}
+					<label class="flex items-center gap-1">
+						<input
+							type="radio"
+							name="type"
+							value={typeOption}
+							checked={data.account.type === typeOption}
+							required
+						/>
+						<span class="text-sm">{getAccountTypeLabel(typeOption)}</span>
+					</label>
 				{/each}
-			</select>
+			</div>
+		</div>
+
+		<div>
+			<span class="block text-sm font-bold mb-1">Tax Wrapper *</span>
+			<div class="flex flex-col gap-1">
+				{#each VALID_TAX_WRAPPERS as wrapperOption}
+					<label class="flex items-center gap-1">
+						<input
+							type="radio"
+							name="taxWrapper"
+							value={wrapperOption}
+							checked={data.account.taxWrapper === wrapperOption}
+							required
+						/>
+						<span class="text-sm">{getTaxWrapperLabel(wrapperOption)}</span>
+					</label>
+				{/each}
+			</div>
 		</div>
 
 		<div>

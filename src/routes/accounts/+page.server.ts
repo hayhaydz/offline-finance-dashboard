@@ -30,6 +30,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		slug: account.slug,
 		name: account.name,
 		type: account.type,
+		category: account.category,
+		taxWrapper: account.taxWrapper,
 		institution: account.institution,
 		liquidity: account.liquidity,
 		closedAt: account.closedAt,

@@ -41,10 +41,10 @@
 		const typeLabels: Record<string, string> = {
 			current: 'Current',
 			savings: 'Savings',
-			credit: 'Credit Card',
 			investment: 'Investment',
-			ISA: 'ISA',
-			LISA: 'LISA'
+			'credit-card': 'Credit Card',
+			loan: 'Loan',
+			mortgage: 'Mortgage'
 		};
 		return typeLabels[type] || type;
 	}
@@ -80,22 +80,22 @@
 	// Calculate summary stats
 	const totalAccounts = $derived(data.accounts.length);
 	const assetAccounts = $derived(
-		data.accounts.filter((a) => a.type !== 'credit').length
+		data.accounts.filter((a) => a.category === 'asset').length
 	);
 	const liabilityAccounts = $derived(
-		data.accounts.filter((a) => a.type === 'credit').length
+		data.accounts.filter((a) => a.category === 'liability').length
 	);
 
 	// Calculate net worth
 	const totalAssets = $derived(
 		data.accounts
-			.filter((a) => a.type !== 'credit' && !a.excludedFromNetWorth && !a.closedAt)
+			.filter((a) => a.category === 'asset' && !a.excludedFromNetWorth && !a.closedAt)
 			.reduce((sum, a) => sum + (a.currentBalance ?? 0), 0)
 	);
 
 	const totalLiabilities = $derived(
 		data.accounts
-			.filter((a) => a.type === 'credit' && !a.excludedFromNetWorth && !a.closedAt)
+			.filter((a) => a.category === 'liability' && !a.excludedFromNetWorth && !a.closedAt)
 			.reduce((sum, a) => sum + (a.currentBalance ?? 0), 0)
 	);
 
@@ -153,9 +153,9 @@
 		<table>
 			<thead>
 				<tr>
-					<th>Name</th>
-					<th>Type</th>
-					<th class="text-right">Balance</th>
+					<th class="pl-1">Name</th>
+					<th class="pl-1">Type</th>
+					<th class="text-right pr-1">Balance</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -185,34 +185,34 @@
 		<table>
 			<thead>
 				<tr>
-					<th>Name</th>
-					<th>Type</th>
-					<th>Institution</th>
-					<th class="text-right">Balance</th>
-					<th>Last Updated</th>
+					<th class="pl-1">Name</th>
+					<th class="pl-1">Type</th>
+					<th class="pl-1">Institution</th>
+					<th class="text-right pl-1 pr-4">Balance</th>
+					<th class="text-right pr-1">Last Updated</th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each sortedAccounts as account}
 					<tr>
-						<td>
+						<td class="pl-1">
 							<a href="/accounts/{account.slug}" class="bracket-link" class:line-through={account.closedAt}>{account.name}</a>
 							{#if account.closedAt}
 								<span class="text-gray-600 text-xs"> (closed)</span>
 							{/if}
 						</td>
-						<td class:line-through={account.closedAt}>{formatAccountType(account.type)}</td>
-						<td class:line-through={account.closedAt}>{account.institution || '-'}</td>
-						<td class="text-right" class:line-through={account.closedAt}>
+						<td class="pl-1" class:line-through={account.closedAt}>{formatAccountType(account.type)}</td>
+						<td class="pl-1" class:line-through={account.closedAt}>{account.institution || '-'}</td>
+						<td class="text-right pl-1 pr-4" class:line-through={account.closedAt}>
 							{#if account.currentBalance !== null}
-								<span class={account.type === 'credit' ? 'text-red-700' : 'text-green-700'}>
+								<span class={account.category === 'liability' ? 'text-red-700' : 'text-green-700'}>
 									{formatCurrency(account.currentBalance)}
 								</span>
 							{:else}
 								<span class="text-gray-600">-</span>
 							{/if}
 						</td>
-						<td class:line-through={account.closedAt}>{formatDate(account.lastUpdated)}</td>
+						<td class="text-right pr-1" class:line-through={account.closedAt}>{formatDate(account.lastUpdated)}</td>
 					</tr>
 				{/each}
 			</tbody>

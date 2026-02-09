@@ -10,10 +10,10 @@
 		const labels: Record<string, string> = {
 			current: 'Current',
 			savings: 'Savings',
-			credit: 'Credit',
 			investment: 'Investment',
-			ISA: 'ISA',
-			LISA: 'LISA'
+			'credit-card': 'Credit Card',
+			loan: 'Loan',
+			mortgage: 'Mortgage'
 		};
 		return labels[type] || type;
 	}
