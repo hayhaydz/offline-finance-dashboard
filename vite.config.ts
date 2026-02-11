@@ -8,19 +8,19 @@ const KEY = '/mnt/c/Users/Haydon/certs/localhost+2-key.pem';
 export default defineConfig({
 	plugins: [sveltekit()],
 	server: {
-    host: '127.0.0.1',
-    port: 5173,
-    strictPort: true,
+    // host: '127.0.0.1',
+    // port: 5173,
+    // strictPort: true,
 
-    https: {
-      cert: fs.readFileSync(CERT),
-      key: fs.readFileSync(KEY)
-    },
+    // https: {
+    //   cert: fs.readFileSync(CERT),
+    //   key: fs.readFileSync(KEY)
+    // },
 
-    hmr: {
-      clientPort: 5173,
-      // if HMR misbehaves, add: host: 'localhost'
-    },
+    // hmr: {
+    //   clientPort: 5173,
+    //   // if HMR misbehaves, add: host: 'localhost'
+    // },
     
 		watch: {
       // usePolling: true,
