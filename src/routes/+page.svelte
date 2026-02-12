@@ -1,5 +1,6 @@
 <script lang="ts">
 	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
+	import GoalsSummary from '$lib/components/GoalsSummary.svelte';
 	import { formatCurrency, formatAccountType, formatDate } from '$lib/utils/currency';
 
 	let { data } = $props();
@@ -97,17 +98,11 @@
 		accounts={data.accounts}
 	/>
 
-	<!-- GOALS SECTION (placeholder for future implementation) -->
-	<div class="border-b border-black p-2">
-		<div class="mb-1 font-bold">SAVINGS GOALS</div>
-		<div class="flex justify-between my-1">
-			<span class="text-gray-600">[Goals not yet implemented]</span>
-		</div>
-		<div class="mt-2">
-			<span class="bracket-link">Update Balances</span>
-			<span class="bracket-link">Create Snapshot</span>
-		</div>
-	</div>
+	<!-- GOALS SECTION -->
+	<GoalsSummary
+		goals={data.goalsWithProgress ?? []}
+		unallocatedAssets={data.unallocatedAssets ?? 0}
+	/>
 
 	<!-- ACCOUNTS BY TYPE -->
 	<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">ACCOUNTS BY TYPE</div>

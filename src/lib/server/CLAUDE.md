@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #2120 | 5:38 PM | 🔵 | Row-Level Security Utilities Reference | ~423 |
+| #2396 | 7:25 PM | 🔵 | Server Goals Utilities Use goalType References | ~194 |
+| #2320 | 7:18 PM | 🔵 | Server-Side Goal Progress Calculation Logic Examined | ~338 |
 </claude-mem-context>

@@ -7,5 +7,6 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #2120 | 5:38 PM | 🔵 | Row-Level Security Utilities Reference | ~423 |
+| #2237 | 6:30 PM | 🔴 | UI consistency issues identified in goals and accounts forms | ~307 |
+| #2157 | 5:43 PM | 🔴 | Goals Server TypeScript Error Fixed | ~248 |
 </claude-mem-context>

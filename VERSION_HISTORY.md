@@ -1,3 +1,125 @@
+## [2026-02-12 19:17] — Fix: Goals Create Action Changed to Use isEmergencyFund Boolean
+
+**Summary:** Fixed goals create route action from `create` to `default` and replaced `goalType` enum field with `isEmergencyFund` boolean toggle. The server action now handles a simple checkbox for Emergency Fund instead of a type dropdown.
+
+**Files:**
+- `src/routes/goals/create/+page.server.ts`: Changed action name from `create` to `default`, replaced `goalType` handling with `isEmergencyFund` boolean
+
+**Commit:**
+```
+fix(goals): replace goal type enum with emergency fund toggle
+```
+
+**Context:** The form was posting to `default` action but the server only exported a named `create` action, causing 404 errors. Changed to use `default` action to match accounts route pattern. Also simplified data model to use boolean `isEmergencyFund` instead of enum, with Emergency Fund goals identified by the toggle setting.
+
+---
+
+## [2026-02-12 17:58] — Feature: Goal Progress Calculation
+
+**Summary:** Created server-side goal progress calculation with asset pool filtering and client-side display utilities for terminal aesthetic progress bars. Emergency Fund milestones computed from monthly expenses (1mo, 3mo, 6mo, 12mo).
+
+**Files:**
+- `src/lib/server/goals.ts`: calculateGoalProgress, calculateAllGoalsProgress, calculateMilestones
+- `src/lib/utils/goals.ts`: formatGoalProgress, getMilestonePositions, formatEmergencyFundRuler, formatGoalType, getDaysRemaining
+
+**Commit:**
+```
+feat(04-03): implement goal progress calculation and display utilities
+
+- Server-side progress calculation filtering assets by account type and liquidity
+- calculateGoalProgress: Filters accounts, sums latest balances, computes percentage
+- calculateAllGoalsProgress: Batch calculation with unallocated assets tracking
+- calculateMilestones: Emergency Fund milestones (1mo, 3mo, 6mo, 12mo)
+- Client-side formatting: ASCII progress bars with terminal aesthetic
+- Color coding: red (<30%), amber (30-70%), green (>70%)
+- formatEmergencyFundRuler: Ruler-style display with milestone tick marks
+- Helper functions: formatGoalType, getDaysRemaining
+```
+
+**Context:** Phase 04-03 implements the calculation layer for goal progress. Goals are NOT tied to specific accounts - users can spread money across accounts for best returns. Asset pool filtering uses JSON-stored arrays from schema. Emergency Fund goals show tiered milestones based on monthly expenses (requires settings phase).
+
+---
+
+## [2026-02-12 18:05] — Feature: Goals Form Styling Fix
+
+**Summary:** Updated GoalForm component to use direct terminal-styled inputs matching the account create/edit form design. Removed FormField component dependency and implemented inline validation with individual error state variables. All form inputs now use consistent `class="w-full max-w-md border border-black px-2 py-1 text-sm focus:outline-none font-terminal"` styling like account forms.
+
+**Files:**
+- `src/lib/components/GoalForm.svelte`: Updated form fields to use direct terminal-styled inputs
+
+**Changes:**
+- Removed FormField component import and usage
+- Replaced with direct terminal-styled inputs
+- Added individual error state variables (nameError, targetAmountError, goalTypeError, targetDateError, accountTypeFiltersError, liquidityFiltersError)
+- Implemented simple validation functions (validateName, validateTargetAmount, validateGoalType)
+- Input styling now matches account create/edit forms: `border border-black px-2 py-1 text-sm focus:outline-none font-terminal`
+- Checkbox styling: `cursor-pointer` class on input element
+- Label styling: `font-bold text-xs block mb-1`
+- Cancel button styling: `border border-black px-4 py-2 text-sm no-underline text-black`
+
+**Commit:**
+```
+fix(goals): standardize goal form styling to match account forms
+```
+
+**Context:** Phase 04-02 Goals CRUD Interface - GoalForm component needed to match terminal aesthetic design used in account create/edit forms for consistency across the application.
+
+---
+
+## [2026-02-12 17:55] — Feature: Goals CRUD Interface
+
+**Summary:** Created goals page at /goals route with full CRUD operations (create, edit, delete) and GoalForm component with multi-select filter checkboxes. Fixed TypeScript errors (orderBy syntax, variable scoping, Date types).
+
+**Files:**
+- `src/routes/goals/+page.server.ts`: Server load and CRUD actions with row-level security
+- `src/routes/goals/+page.svelte`: Goals page with list, inline create/edit form, delete modal
+- `src/lib/components/GoalForm.svelte`: Reusable form with multi-select filter checkboxes
+- `src/lib/components/navigation.svelte`: Added Goals link to main navigation
+
+**Commit:**
+```
+feat(04-02): create goals CRUD interface with multi-select filters
+
+- Goals page at /goals route with list, create, edit, delete functionality
+- GoalForm component with multi-select checkboxes for account types and liquidity
+- Server actions: create, edit, delete with row-level security
+- Navigation updated with Goals link
+- Fixed TypeScript errors: orderBy callback syntax, variable scoping, Date vs number for timestamps
+```
+
+**Context:** Phase 04-02 provides the user interface for managing goals. Multi-select filters use Map-based checkbox state with JSON-serialized hidden inputs. All operations enforce row-level security via user_id filtering. Terminal aesthetic maintained throughout (borders, monospace, bracket-links).
+
+---
+
+## [2026-02-12 17:34] — Feature: Goals Database Schema
+
+**Summary:** Created goals table with Drizzle ORM schema and database migration for savings goals tracking. Goals support independent asset pools via JSON-based account type and liquidity filters, with row-level security via user_id foreign key.
+
+**Files:**
+- `src/lib/db/schema.ts`: Added goals table definition with slug, goalType enum, accountTypeFilters, liquidityFilters, timestamps
+- `src/lib/db/migrations/0002_acoustic_hammerhead.sql`: Generated migration with CHECK constraints and indexes
+
+**Commit:**
+```
+feat(04-01): create goals database schema
+
+- Add goals table with id, slug, userId, name, targetAmountInCents
+- Add goalType enum: emergency-fund, house-deposit, car, holiday, wedding, other
+- Add optional targetDate timestamp for goal deadlines
+- Add accountTypeFilters (JSON array) for multi-select account types
+- Add liquidityFilters (JSON array) for multi-select liquidity levels
+- Add unique constraint on slug for URL-safe routing
+- Add CHECK constraints for goal_type enum and positive target amounts
+- Create indexes on user_id, slug, and goal_type
+- Add row-level security via user_id foreign key to users table
+- Export Goal type from schema
+- Add users-to-goals relation in Drizzle ORM
+```
+
+**Context:** Phase 04-01 creates the data model foundation for the goals system. Goals track progress toward financial targets using independent asset pools defined by filters. Emergency Fund type enables tiered milestone tracking (1mo, 3mo, 6mo, 12mo) in later plans.
+
+---
+
 ## [2026-02-09 23:55] — Fix: Filter Count Logic and UI Cleanup
 
 **Summary:** Fixed a bug where empty multi-select filters were being counted as "active" in the filter indicator. Cleaned up redundant modal component rendering in `accounts/+page.svelte`.

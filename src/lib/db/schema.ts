@@ -64,6 +64,20 @@ export const accountBalances = sqliteTable('account_balances', {
 	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
 });
 
+export const goals = sqliteTable('goals', {
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	slug: text('slug').notNull().unique(), // URL-safe identifier for user-facing routes
+	userId: integer('user_id').notNull().references(() => users.id),
+	name: text('name').notNull(),
+	targetAmountInCents: integer('target_amount_in_cents').notNull(), // Stored as cents/pence (integer)
+	isEmergencyFund: integer('is_emergency_fund', { mode: 'boolean' }).notNull().default(false),
+	targetDate: integer('target_date', { mode: 'timestamp' }), // Optional target date
+	accountTypeFilters: text('account_type_filters').notNull(), // JSON array: ['current', 'savings', 'investment']
+	liquidityFilters: text('liquidity_filters').notNull(), // JSON array: ['instant', 'delayed', 'locked']
+	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
+	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+});
+
 export const systemMetadata = sqliteTable('system_metadata', {
 	key: text('key').primaryKey(),
 	value: text('value').notNull()
@@ -73,7 +87,8 @@ export const systemMetadata = sqliteTable('system_metadata', {
 export const usersRelations = relations(users, ({ many }) => ({
 	sessions: many(sessions),
 	backupCodes: many(backupCodes),
-	accounts: many(accounts)
+	accounts: many(accounts),
+	goals: many(goals)
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -101,9 +116,17 @@ export const accountBalancesRelations = relations(accountBalances, ({ one }) => 
 	})
 }));
 
+export const goalsRelations = relations(goals, ({ one }) => ({
+	user: one(users, {
+		fields: [goals.userId],
+		references: [users.id]
+	})
+}));
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type BackupCode = typeof backupCodes.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
 export type AccountBalance = typeof accountBalances.$inferSelect;
+export type Goal = typeof goals.$inferSelect;
 export type SystemMetadata = typeof systemMetadata.$inferSelect;

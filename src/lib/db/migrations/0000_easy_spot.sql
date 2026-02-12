@@ -18,6 +18,8 @@ CREATE TABLE `accounts` (
 	`name` text NOT NULL,
 	`institution` text,
 	`type` text NOT NULL,
+	`tax_wrapper` text DEFAULT 'none' NOT NULL,
+	`category` text NOT NULL,
 	`liquidity` text,
 	`excluded_from_net_worth` integer DEFAULT false NOT NULL,
 	`closed_at` integer,
@@ -36,6 +38,22 @@ CREATE TABLE `backup_codes` (
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
+CREATE TABLE `goals` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`slug` text NOT NULL,
+	`user_id` integer NOT NULL,
+	`name` text NOT NULL,
+	`target_amount_in_cents` integer NOT NULL,
+	`goal_type` text NOT NULL,
+	`target_date` integer,
+	`account_type_filters` text NOT NULL,
+	`liquidity_filters` text NOT NULL,
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	`updated_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `goals_slug_unique` ON `goals` (`slug`);--> statement-breakpoint
 CREATE TABLE `login_attempts` (
 	`username` text PRIMARY KEY NOT NULL,
 	`count` integer DEFAULT 0 NOT NULL,

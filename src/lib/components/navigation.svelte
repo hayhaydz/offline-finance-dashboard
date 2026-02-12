@@ -29,6 +29,7 @@
 		{ href: '/', label: 'Home' },
 		{ href: '/accounts', label: 'Accounts', authRequired: true },
 		{ href: '/snapshots', label: 'Snapshots', authRequired: true },
+		{ href: '/goals', label: 'Goals', authRequired: true },
 		{ href: '/settings', label: 'Settings', authRequired: true }
 	];
 
@@ -57,6 +58,7 @@
 			const labelMap: Record<string, string> = {
 				accounts: 'Accounts',
 				snapshots: 'Snapshots',
+				goals: 'Goals',
 				settings: 'Settings',
 				profile: 'Profile',
 				create: 'Create',
