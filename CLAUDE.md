@@ -215,6 +215,27 @@ After completing a significant unit of work or phase:
 
 ---
 
+## 🚧 PROJECT STATUS: ACTIVE DEVELOPMENT
+
+**IMPORTANT:** This project is in **active development**. There is NO production data, NO legacy users, and NO migration requirements.
+
+**What this means:**
+- Database schema can be modified without migration scripts
+- Breaking changes to UX are acceptable
+- No backward compatibility needed for existing features
+- All changes should prioritize the best design over legacy support
+
+**When to consider migration:**
+- Only when the project has real user data or production deployment
+- Until then, schema changes can be made directly (drop/recreate columns as needed)
+- This is intentional: we're designing the architecture before freezing it
+
+**Current Phase:** Phase 4 (Goals System) - being redesigned based on Monzo-inspired "pots" architecture
+
+**Reference Architecture:** `docs/goals-monzo-pots-architecture.md`
+
+---
+
 ## ABSOLUTE RULES (NON-NEGOTIABLE)
 
 1. ONLY produce code diffs or full file replacements when explicitly instructed.
