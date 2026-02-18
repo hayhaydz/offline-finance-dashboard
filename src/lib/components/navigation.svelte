@@ -28,8 +28,8 @@
 	const navItems = [
 		{ href: '/', label: 'Home' },
 		{ href: '/accounts', label: 'Accounts', authRequired: true },
-		{ href: '/snapshots', label: 'Snapshots', authRequired: true },
 		{ href: '/goals', label: 'Goals', authRequired: true },
+		{ href: '/snapshots', label: 'Snapshots', authRequired: true },
 		{ href: '/settings', label: 'Settings', authRequired: true }
 	];
 
@@ -58,7 +58,6 @@
 			const labelMap: Record<string, string> = {
 				accounts: 'Accounts',
 				snapshots: 'Snapshots',
-				goals: 'Goals',
 				settings: 'Settings',
 				profile: 'Profile',
 				create: 'Create',
@@ -118,9 +117,6 @@
 		{/if}
 	{/each}
 
-	{#if showDevBadge}
-		<span class="text-red-700 font-bold text-xs px-1">[!] DEV DATA [!]</span>
-	{/if}
 
 	{#if user}
 		<form action="/logout" method="POST">

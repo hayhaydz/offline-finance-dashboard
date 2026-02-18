@@ -215,6 +215,42 @@ After completing a significant unit of work or phase:
 
 ---
 
+## 🌱 DATABASE SEED SCRIPT
+
+**CRITICAL:** When making database schema changes (adding columns, changing defaults, adding new entities), you MUST update `scripts/seed.ts` to ensure the seeded database matches the new schema.
+
+**Why this matters:**
+- The development database is created from `scripts/seed.ts`
+- If seed.ts doesn't match schema.ts, newly created databases will have missing or incorrect data
+- In active development, we frequently reset the database, so seed.ts must stay in sync
+
+**When to update seed.ts:**
+- Adding new columns to existing tables (set appropriate default values)
+- Adding new tables (create seed data for them)
+- Changing column constraints (update seed values to match)
+- Adding new relationships (create related seed records)
+
+**Example:**
+```typescript
+// When you add a sortOrder column to goals table:
+// 1. Update schema.ts
+sortOrder: integer('sort_order').notNull().default(0)
+
+// 2. Update seed.ts to set the value
+await db.insert(schema.goals).values({
+  // ... other fields
+  sortOrder: index, // Use loop index for initial order
+})
+```
+
+**After schema changes:**
+1. Delete the old database: `rm storage/dev.db`
+2. Run migrations: `npm run db:push`
+3. Run seed script: `npm run db:seed`
+4. Verify the new data structure is correct
+
+---
+
 ## 🚧 PROJECT STATUS: ACTIVE DEVELOPMENT
 
 **IMPORTANT:** This project is in **active development**. There is NO production data, NO legacy users, and NO migration requirements.
@@ -249,3 +285,7 @@ After completing a significant unit of work or phase:
 9. **🔒 PACKAGE.JSON LOCKED** — User has manually configured dependencies. DO NOT modify `package.json` without explicit permission. Additions to other files are okay, but changing existing setup requires approval first.
 10. **ALWAYS FOLLOW TERMINAL AESTHETIC** — use existing CSS classes, maintain bordered layout, monospace font, bracket links.
 11. **📋 ALWAYS USE CUSTOM LOGGER SYSTEM** — Import from `$lib/utils/logger.ts`. NEVER use `console.log()` in server-side code (`*.server.ts` files).
+12. **🔍 VERIFICATION BEFORE CLAIMING COMPLETION** — NEVER claim work is complete without ACTUALLY VERIFYING the files were changed. Use Read tool to check file contents match what was supposedly implemented. Run `grep` to verify new code exists. Check `git diff` shows actual changes.
+13. **🚫 SUMMARY.MD MUST REFLECT REALITY** — NEVER create a SUMMARY.md that describes work that wasn't actually done to the codebase. Summary files are documentation of ACTUAL changes, not plans or intentions. If the code wasn't modified, the work is NOT complete.
+14. **⚠️ GSD EXECUTOR VERIFICATION** — When delegating to gsd-executor agents: ALWAYS spot-check their claims by reading the files they claim to have modified. If SUMMARY.md says "Updated X file" but X file doesn't contain the changes, the executor FAILED and work is NOT complete.
+15. **📁 ACTUAL CODE > DOCUMENTATION** — The actual source files are the source of truth. Documentation files (SUMMARY.md, STATE.md, PLAN.md) that contradict actual code are WRONG. Always trust the code over the docs.

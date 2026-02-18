@@ -66,16 +66,27 @@ export const accountBalances = sqliteTable('account_balances', {
 
 export const goals = sqliteTable('goals', {
 	id: integer('id').primaryKey({ autoIncrement: true }),
-	slug: text('slug').notNull().unique(), // URL-safe identifier for user-facing routes
+	slug: text('slug').notNull().unique(),
 	userId: integer('user_id').notNull().references(() => users.id),
 	name: text('name').notNull(),
-	targetAmountInCents: integer('target_amount_in_cents').notNull(), // Stored as cents/pence (integer)
+	targetAmountInCents: integer('target_amount_in_cents').notNull(),
+	currentAllocation: integer('current_allocation').notNull().default(0), // Explicit pot tracking
+	targetDate: integer('target_date', { mode: 'timestamp' }),
 	isEmergencyFund: integer('is_emergency_fund', { mode: 'boolean' }).notNull().default(false),
-	targetDate: integer('target_date', { mode: 'timestamp' }), // Optional target date
-	accountTypeFilters: text('account_type_filters').notNull(), // JSON array: ['current', 'savings', 'investment']
-	liquidityFilters: text('liquidity_filters').notNull(), // JSON array: ['instant', 'delayed', 'locked']
+	sortOrder: integer('sort_order').notNull().default(0), // Manual reordering
+	deletedAt: integer('deleted_at', { mode: 'timestamp' }), // Soft delete support
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+});
+
+export const goalAllocations = sqliteTable('goal_allocations', {
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	goalId: integer('goal_id').notNull().references(() => goals.id),
+	accountId: integer('account_id').references(() => accounts.id), // Nullable for returns to Ready to Assign pool
+	amount: integer('amount').notNull(), // Signed: + for adds, - for withdrawals
+	type: text('type').notNull(), // 'USER_ADD', 'USER_WITHDRAW', 'GOAL_DELETED', 'SYSTEM_CORRECTION'
+	allocationDate: integer('allocation_date', { mode: 'timestamp' }).notNull(),
+	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
 });
 
 export const systemMetadata = sqliteTable('system_metadata', {
@@ -109,17 +120,29 @@ export const accountsRelations = relations(accounts, ({ many }) => ({
 	balances: many(accountBalances)
 }));
 
-export const accountBalancesRelations = relations(accountBalances, ({ one }) => ({
+export const goalsRelations = relations(goals, ({ one, many }) => ({
+	user: one(users, {
+		fields: [goals.userId],
+		references: [users.id]
+	}),
+	allocations: many(goalAllocations)
+}));
+
+export const goalAllocationsRelations = relations(goalAllocations, ({ one }) => ({
+	goal: one(goals, {
+		fields: [goalAllocations.goalId],
+		references: [goals.id]
+	}),
 	account: one(accounts, {
-		fields: [accountBalances.accountId],
+		fields: [goalAllocations.accountId],
 		references: [accounts.id]
 	})
 }));
 
-export const goalsRelations = relations(goals, ({ one }) => ({
-	user: one(users, {
-		fields: [goals.userId],
-		references: [users.id]
+export const accountBalancesRelations = relations(accountBalances, ({ one }) => ({
+	account: one(accounts, {
+		fields: [accountBalances.accountId],
+		references: [accounts.id]
 	})
 }));
 
@@ -129,4 +152,5 @@ export type BackupCode = typeof backupCodes.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
 export type AccountBalance = typeof accountBalances.$inferSelect;
 export type Goal = typeof goals.$inferSelect;
+export type GoalAllocation = typeof goalAllocations.$inferSelect;
 export type SystemMetadata = typeof systemMetadata.$inferSelect;

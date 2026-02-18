@@ -1,0 +1,63 @@
+<script lang="ts">
+	import { enhance } from '$app/forms';
+	import { formatCurrency } from '$lib/utils/currency';
+	import type { PageData, ActionData } from './$types';
+
+	let { data, form } = $props<{
+		data: PageData;
+		form: ActionData;
+	}>();
+
+	let confirmed = $state(false);
+</script>
+
+<div class="border-b border-black p-2">
+	<h1 class="text-lg font-bold mb-0 mt-0">ARCHIVE: {data.goal.name}</h1>
+</div>
+
+<div class="p-2">
+	{#if form?.error}
+		<div class="bg-red-100 border border-black p-2 mb-4 text-sm text-red-900">
+			<span class="font-bold">ERROR:</span> {form.error}
+		</div>
+	{/if}
+
+	<div class="border border-black p-4 mb-4 bg-amber-50">
+		<div class="font-bold text-sm mb-2">⚠ CONFIRMATION REQUIRED</div>
+		<p class="text-sm mb-2">
+			You are about to archive <span class="font-bold">{data.goal.name}</span>.
+		</p>
+		<p class="text-sm mb-2">
+			This will return <span class="font-bold">{formatCurrency(data.goal.currentAllocation)}</span> to Ready to Assign.
+		</p>
+		<p class="text-xs text-gray-600">
+			The goal will be moved to the Archived section and can be viewed there, but cannot be edited or modified.
+		</p>
+	</div>
+
+	<form method="POST" use:enhance>
+		<div class="flex items-center gap-2 mb-4">
+			<input
+				type="checkbox"
+				id="confirm"
+				bind:checked={confirmed}
+				required
+				class="w-4 h-4"
+			/>
+			<label for="confirm" class="text-sm">
+				I understand this action and want to archive this goal
+			</label>
+		</div>
+
+		<div class="flex gap-2">
+			<button
+				type="submit"
+				disabled={!confirmed}
+				class="bracket-link text-xs text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+			>
+				[Confirm Archive]
+			</button>
+			<a href="/goals" class="bracket-link text-xs">[Cancel]</a>
+		</div>
+	</form>
+</div>

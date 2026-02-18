@@ -177,3 +177,42 @@ export function formatDateRange(oldest: Date, newest: Date): string {
 	// Different years: "as of 1 Jan 2025 - 15 Feb 2026"
 	return `as of ${oldestFormatted} - ${newestFormatted}`;
 }
+
+/**
+ * Format currency with shorthand notation for large round numbers
+ *
+ * Converts round thousands to shorthand format (£2k instead of £2,000.00)
+ * Removes .00 when there are no pence
+ *
+ * @param amountInPence - The amount in pence (integer)
+ * @returns Formatted currency string with shorthand (e.g., "£2k", "£1,500", "£123.45")
+ *
+ * @example
+ * formatCurrencyShorthand(200000)  // => "£2k"
+ * formatCurrencyShorthand(150000)  // => "£1,500"
+ * formatCurrencyShorthand(12345)   // => "£123.45"
+ * formatCurrencyShorthand(100000)  // => "£1k"
+ * formatCurrencyShorthand(100)     // => "£1"
+ */
+export function formatCurrencyShorthand(amountInPence: number): string {
+	const pounds = amountInPence / 100;
+
+	// Round thousands without pence: 200000 pence (£2,000) -> "£2k"
+	if (pounds >= 1000 && pounds % 1000 === 0) {
+		return `£${Math.floor(pounds / 1000)}k`;
+	}
+
+	// No pence: remove .00 suffix
+	if (pounds % 100 === 0) {
+		const formatter = new Intl.NumberFormat('en-GB', {
+			style: 'currency',
+			currency: 'GBP',
+			minimumFractionDigits: 0,
+			maximumFractionDigits: 0
+		});
+		return formatter.format(pounds);
+	}
+
+	// Has pence: use standard format
+	return formatCurrency(amountInPence);
+}

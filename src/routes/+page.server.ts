@@ -3,9 +3,8 @@ import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db/client';
 import { accounts, goals } from '$lib/db/schema';
 import { withUserFilter } from '$lib/auth/row-security';
-import { desc, and, inArray, sql, type SQL } from 'drizzle-orm';
+import { desc, and, inArray, sql, type SQL, asc } from 'drizzle-orm';
 import { devLog, logError } from '$lib/utils/logger';
-import { calculateAllGoalsProgress } from '$lib/server/goals';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
@@ -27,6 +26,35 @@ export const load: PageServerLoad = async ({ locals }) => {
 	});
 
 	devLog('homePage', 'Fetched user accounts', { accountCount: userAccounts.length });
+
+	// Fetch goals for homepage preview
+	const userGoals = await db.query.goals.findMany({
+		where: withUserFilter(locals.user.id, goals),
+		orderBy: [desc(goals.isEmergencyFund), asc(goals.sortOrder)],
+		with: {
+			allocations: {
+				columns: {
+					accountId: true,
+					amount: true
+				}
+			}
+		},
+		columns: {
+			id: true,
+			slug: true,
+			name: true,
+			targetAmountInCents: true,
+			currentAllocation: true,
+			targetDate: true,
+			isEmergencyFund: true,
+			deletedAt: true
+		}
+	});
+
+	// Filter out soft-deleted goals
+	const activeGoals = userGoals.filter(g => !g.deletedAt);
+
+	devLog('homePage', 'Fetched user goals', { goalCount: activeGoals.length });
 
 	// Calculate net worth totals
 	// Filter included accounts: not excluded AND not closed
@@ -103,35 +131,6 @@ export const load: PageServerLoad = async ({ locals }) => {
 		exclusionCount
 	});
 
-	// Fetch user goals for progress calculation
-	const userGoals = await db.query.goals.findMany({
-		where: withUserFilter(locals.user.id, goals)
-	});
-
-	devLog('homePage', 'Fetched user goals', { goalCount: userGoals.length });
-
-	// Calculate goals progress
-	let goalsWithProgress: import('$lib/server/goals').GoalProgress[] = [];
-	let totalAllocated = 0;
-	let unallocatedAssets = 0;
-
-	if (userGoals.length > 0) {
-		const goalsResult = await calculateAllGoalsProgress({
-			userId: locals.user.id,
-			userGoals
-		});
-
-		goalsWithProgress = goalsResult.goals;
-		totalAllocated = goalsResult.totalAllocated;
-		unallocatedAssets = goalsResult.unallocatedAssets;
-
-		devLog('homePage', 'Goals progress calculated', {
-			goalsCount: goalsWithProgress.length,
-			totalAllocated,
-			unallocatedAssets
-		});
-	}
-
 	devLog('homePage', 'Net worth calculation complete', {
 		netWorth,
 		totalAssets,
@@ -160,9 +159,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		hasStaleData,
 		exclusionCount,
 		accounts: userAccounts,
-		goalsWithProgress,
-		totalAllocated,
-		unallocatedAssets
+		goals: activeGoals
 	};
 };
 

@@ -9,4 +9,10 @@
 |----|------|---|-------|------|
 | #2396 | 7:25 PM | 🔵 | Server Goals Utilities Use goalType References | ~194 |
 | #2320 | 7:18 PM | 🔵 | Server-Side Goal Progress Calculation Logic Examined | ~338 |
+
+### Feb 18, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #3245 | 6:23 PM | 🔴 | Removed goals utility files that don't match current implementation | ~221 |
 </claude-mem-context>

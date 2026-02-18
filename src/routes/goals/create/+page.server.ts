@@ -1,26 +1,27 @@
 import { fail, redirect } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
+import { db } from '$lib/db/client';
+import { goals } from '$lib/db/schema';
 import { devLog, logError, logFormData } from '$lib/utils/logger';
+import { eq } from 'drizzle-orm';
+import { parseCurrency } from '$lib/utils/currency';
+import { nanoid } from 'nanoid';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
-		devLog('goals-create', 'Unauthenticated user, redirecting to login');
+		logError('goals-create', 'Authentication required');
 		redirect(302, '/login');
 	}
 
 	return {
-		user: {
-			id: locals.user.id,
-			username: locals.user.username,
-			createdAt: locals.user.createdAt
-		}
+		user: locals.user
 	};
 };
 
 export const actions: Actions = {
 	default: async ({ request, locals }) => {
 		if (!locals.user) {
-			logError('goals-create', 'Authentication required for create');
+			logError('goals-create', 'Authentication required');
 			return fail(401, { error: 'Authentication required' });
 		}
 
@@ -28,100 +29,48 @@ export const actions: Actions = {
 		logFormData('goals-create', Object.fromEntries(formData));
 
 		const name = formData.get('name') as string;
-		const targetAmountStr = formData.get('targetAmount') as string;
-		const isEmergencyFund = formData.get('isEmergencyFund') === 'true';
-		const targetDateStr = formData.get('targetDate') as string;
-		const accountTypeFiltersStr = formData.get('account_type_filters') as string;
-		const liquidityFiltersStr = formData.get('liquidity_filters') as string;
+		const targetAmountStr = formData.get('target_amount') as string;
+		const isEmergencyFundStr = formData.get('is_emergency_fund') as string;
+		const targetDateStr = formData.get('target_date') as string;
 
 		// Server-side validation
 		const errors: Record<string, string> = {};
 
-		// Name: required, min 3 chars, max 100 chars
-		if (!name?.trim()) {
+		if (!name || name.trim().length === 0) {
 			errors.name = 'Goal name is required';
-		} else if (name.trim().length < 3) {
-			errors.name = 'Goal name must be at least 3 characters';
 		} else if (name.trim().length > 100) {
 			errors.name = 'Goal name must be 100 characters or less';
 		}
 
-		// Target amount: required, valid monetary format, positive
-		let targetAmountInCents: number | undefined = undefined;
+		// Parse and validate target amount
+		let targetAmountInCents: number;
 		try {
-			const trimmed = targetAmountStr?.trim() || '';
-			const match = trimmed.match(/^(\d+)\.?(\d{0,2})?$/);
-			if (!match) {
-				errors.targetAmount = 'Invalid amount format. Enter amount like 1000.00 or 1000';
-			} else {
-				const pounds = parseInt(match[1], 10);
-				const pence = match[2] ? parseInt(match[2].padEnd(2, '0'), 10) : 0;
-				targetAmountInCents = (pounds * 100) + pence;
-				if (targetAmountInCents <= 0) {
-					errors.targetAmount = 'Target amount must be greater than zero';
-				}
+			targetAmountInCents = parseCurrency(targetAmountStr);
+			if (targetAmountInCents <= 0) {
+				errors.target_amount = 'Target amount must be greater than zero';
 			}
 		} catch (e) {
-			devLog('goals-create', 'Target amount validation failed', {
-				input: targetAmountStr,
-				error: e instanceof Error ? e.message : String(e)
-			});
-			errors.targetAmount = 'Invalid amount format. Enter amount like 1000.00 or 1000';
+			errors.target_amount = 'Invalid amount format. Enter amount like 10000.00 or 10000';
+			targetAmountInCents = 0;
 		}
 
-	
-		// Target date: optional, but must be valid if provided
+		// Parse isEmergencyFund
+		const isEmergencyFund = isEmergencyFundStr === 'true' || isEmergencyFundStr === '1';
+
+		// Parse target date (optional)
 		let targetDate: Date | undefined = undefined;
-		if (targetDateStr?.trim()) {
-			const parsedDate = new Date(targetDateStr);
-			if (isNaN(parsedDate.getTime())) {
-				errors.targetDate = 'Invalid date format';
+		if (targetDateStr && targetDateStr.trim()) {
+			const parsed = new Date(targetDateStr);
+			if (isNaN(parsed.getTime())) {
+				errors.target_date = 'Invalid date format';
+			} else if (parsed < new Date()) {
+				errors.target_date = 'Target date cannot be in the past';
 			} else {
-				targetDate = parsedDate;
+				targetDate = parsed;
 			}
 		}
 
-		// Account type filters: required, parse JSON array
-		let accountTypeFilters: string[] = [];
-		try {
-			if (!accountTypeFiltersStr?.trim()) {
-				errors.accountTypeFilters = 'Select at least one account type';
-			} else {
-				accountTypeFilters = JSON.parse(accountTypeFiltersStr);
-				if (!Array.isArray(accountTypeFilters) || accountTypeFilters.length === 0) {
-					errors.accountTypeFilters = 'Select at least one account type';
-				}
-			}
-		} catch (e) {
-			devLog('goals-create', 'Account type filters parse failed', {
-				input: accountTypeFiltersStr,
-				error: e instanceof Error ? e.message : String(e)
-			});
-			errors.accountTypeFilters = 'Invalid filter selection';
-		}
-
-		// Liquidity filters: required, parse JSON array
-		let liquidityFilters: string[] = [];
-		try {
-			if (!liquidityFiltersStr?.trim()) {
-				errors.liquidityFilters = 'Select at least one liquidity option';
-			} else {
-				liquidityFilters = JSON.parse(liquidityFiltersStr);
-				if (!Array.isArray(liquidityFilters) || liquidityFilters.length === 0) {
-					errors.liquidityFilters = 'Select at least one liquidity option';
-				}
-			}
-		} catch (e) {
-			devLog('goals-create', 'Liquidity filters parse failed', {
-				input: liquidityFiltersStr,
-				error: e instanceof Error ? e.message : String(e)
-			});
-			errors.liquidityFilters = 'Invalid filter selection';
-		}
-
-		// Return validation errors if any
-		if (Object.keys(errors).length > 0 || targetAmountInCents === undefined) {
-			devLog('goals-create', 'Validation failed', { errors });
+		if (Object.keys(errors).length > 0) {
 			return fail(400, {
 				error: 'Please fix errors below',
 				errors,
@@ -129,9 +78,7 @@ export const actions: Actions = {
 					name: name || '',
 					targetAmount: targetAmountStr || '',
 					isEmergencyFund: String(isEmergencyFund),
-					targetDate: targetDateStr || '',
-					accountTypeFilters: accountTypeFiltersStr || '',
-					liquidityFilters: liquidityFiltersStr || ''
+					targetDate: targetDateStr || ''
 				}
 			});
 		}
@@ -140,34 +87,33 @@ export const actions: Actions = {
 			name: name.trim(),
 			targetAmountInCents,
 			isEmergencyFund,
-			targetDate,
-			accountTypeFilters,
-			liquidityFilters
+			targetDate: targetDate?.toISOString()
 		});
 
-		// Import db and nanoid only after validation passes
-		const { db } = await import('$lib/db/client');
-		const { goals } = await import('$lib/db/schema');
-		const { nanoid } = await import('nanoid');
-
-		// Generate slug for URL-safe routing
+		// Generate unique slug
 		const slug = nanoid(16);
 
-		// Insert goal with user_id for row-level security
-		const [newGoal] = await db.insert(goals).values({
-			userId: locals.user.id,
+		// Insert new goal with currentAllocation starting at 0
+		const [newGoal] = await db
+			.insert(goals)
+			.values({
+				userId: locals.user.id,
+				slug,
+				name: name.trim(),
+				targetAmountInCents: targetAmountInCents,
+				isEmergencyFund: isEmergencyFund,
+				targetDate: targetDate,
+				currentAllocation: 0 // NEW: Start with zero allocation
+			})
+			.returning();
+
+		devLog('goals-create', 'Goal created', {
+			goalId: newGoal.id,
 			slug,
-			name: name.trim(),
-			targetAmountInCents: targetAmountInCents,
-			isEmergencyFund: isEmergencyFund,
-			targetDate: targetDate,
-			accountTypeFilters: JSON.stringify(accountTypeFilters),
-			liquidityFilters: JSON.stringify(liquidityFilters)
-		}).returning();
+			name: newGoal.name
+		});
 
-		devLog('goals-create', 'Goal created', { goalId: newGoal.id, slug });
-
-		// Redirect to goals list on success
+		// Redirect to goals list
 		redirect(303, '/goals');
 	}
 };

@@ -38,16 +38,29 @@ CREATE TABLE `backup_codes` (
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
+CREATE TABLE `goal_allocations` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`goal_id` integer NOT NULL,
+	`account_id` integer,
+	`amount` integer NOT NULL,
+	`type` text NOT NULL,
+	`allocation_date` integer NOT NULL,
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	FOREIGN KEY (`goal_id`) REFERENCES `goals`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`account_id`) REFERENCES `accounts`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
 CREATE TABLE `goals` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`slug` text NOT NULL,
 	`user_id` integer NOT NULL,
 	`name` text NOT NULL,
 	`target_amount_in_cents` integer NOT NULL,
-	`goal_type` text NOT NULL,
+	`current_allocation` integer DEFAULT 0 NOT NULL,
 	`target_date` integer,
-	`account_type_filters` text NOT NULL,
-	`liquidity_filters` text NOT NULL,
+	`is_emergency_fund` integer DEFAULT false NOT NULL,
+	`sort_order` integer DEFAULT 0 NOT NULL,
+	`deleted_at` integer,
 	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action

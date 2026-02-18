@@ -25,6 +25,9 @@
 			<span>OFFLINE-FINANCE-v0.exe</span>
 			<span>USER: {user.username.toUpperCase()}</span>
 			<span>{modeIndicator}</span>
+			{#if !environment.isProduction}
+				<span class="text-amber-400">[!] DEV DATA [!]</span>
+			{/if}
 		</div>
 	{/if}
 

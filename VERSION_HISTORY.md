@@ -1,3 +1,131 @@
+## [2026-02-18 22:05] — Fix: Set sortOrder in seed script and document schema change process
+
+**Summary:** Updated scripts/seed.ts to set correct sortOrder values when creating goals, and added documentation note to CLAUDE.md about checking seed.ts when making database schema changes.
+
+**Files:**
+- `scripts/seed.ts`: Changed loop from `for (const goalData of goalsToCreate)` to `for (let index = 0; index < goalsToCreate.length; index++)` to enable setting sortOrder: index for each goal
+- `CLAUDE.md`: Added "🌱 DATABASE SEED SCRIPT" section documenting the requirement to update seed.ts when making schema changes
+
+**Commit:**
+```
+fix(seeding): set sortOrder values in seed script, document schema change process
+```
+
+**Context:**
+- Goals created during seeding now have sortOrder values 0, 1, 2... matching array position
+- This fixes the bug where all goals had sortOrder=0, breaking the reordering functionality
+- Added comprehensive documentation section explaining when and why to update seed.ts
+- Documentation includes examples and instructions for database reset workflow
+
+---
+
+## [2026-02-18 21:35] — Feature: Add manual goal reordering with analog/terminal-style UI
+
+**Summary:** Added sortOrder column to goals table, created server actions for swapping goal positions, and added [↑] [↓] bracket-link buttons on each goal card for manual reordering.
+
+**Files:**
+- `src/lib/db/schema.ts`: Added sort_order column (integer, default 0) to goals table
+- `src/lib/db/migrations/0002_chunky_franklin_storm.sql`: Generated migration for sort_order column
+- `src/routes/goals/+page.server.ts`: Added moveUp and moveDown actions for goal reordering, updated orderBy to use sortOrder
+- `src/routes/goals/+page.svelte`: Added [↑] [↓] bracket-link reorder buttons with disabled state for edge cases
+- `src/routes/+page.server.ts`: Updated goals query orderBy to use sortOrder (after isEmergencyFund)
+- `src/routes/goals/archived/+page.server.ts`: Updated archived goals query orderBy to use sortOrder
+
+**Commit:**
+```
+feat(goals): add manual reordering with [↑] [↓] bracket-link buttons
+```
+
+**Context:**
+- Added sortOrder field to goals schema with default value of 0
+- Generated and applied migration using drizzle-kit
+- Created moveUp/moveDown server actions that swap sortOrder values between adjacent goals
+- Actions use validateUserAccess() for row-level security
+- Actions handle edge cases (goal at top/bottom) gracefully with redirect
+- UI uses bracket-link class for terminal aesthetic with [↑] [↓] arrow symbols
+- First/last goals have disabled buttons (opacity-50 class)
+- All goal queries now ORDER BY sortOrder ASC (lower numbers = higher priority)
+- Home page goals preview respects manual sort order
+- Archived goals maintain their original sortOrder (not reorderable on archived page)
+
+---
+
+**Summary:** Converted modal-based Add Money and Withdraw forms to full pages matching /accounts design style, renamed Delete to Archive with confirmation message, and created Archived Goals view page.
+
+**Files:**
+- `src/routes/goals/[slug]/add/+page.svelte`: Converted from modal to full page with border-b header and p-2 container
+- `src/routes/goals/[slug]/withdraw/+page.svelte`: Converted from modal to full page with border-b header and p-2 container
+- `src/routes/goals/+page.svelte`: Updated button text to [Archive], added [View Archived] link, changed confirm message and action URL
+- `src/routes/goals/[slug]/archive/+page.server.ts`: Renamed from delete/, updated log messages from 'goalsDelete' to 'goalsArchive'
+- `src/routes/goals/archived/+page.server.ts`: Created - loads archived goals (deletedAt IS NOT NULL) ordered by deletedAt DESC
+- `src/routes/goals/archived/+page.svelte`: Created - displays archived goals with read-only progress bars and archived dates
+
+**Commit:**
+```
+refactor(goals): convert add/withdraw modals to full pages, add archive functionality
+```
+
+**Context:**
+- Removed modal wrappers (fixed inset-0, bg-black bg-opacity-50) from Add Money and Withdraw pages
+- Added border-b border-black p-2 headers with h1 titles matching /accounts/[slug]/edit pattern
+- Wrapped form content in p-2 containers for consistent padding
+- Renamed Delete button to Archive with updated confirmation message ("Archive 'goal_name'?")
+- Created archive action at /goals/[slug]/archive (renamed from delete)
+- Created /goals/archived page showing soft-deleted goals with archived dates and read-only progress indicators
+- Terminal aesthetic maintained throughout (borders, monospace, bracket-links)
+
+---
+
+## [2026-02-18 19:50] — Fix: Homepage Goals UI Improvements
+
+**Summary:** Fixed four UI issues on the homepage goals preview section: removed duplicate milestone badges, added currency shorthand formatting (£2k), removed ".00" from round numbers, and added explanatory text next to GOALS title.
+
+**Files:**
+- `src/lib/utils/currency.ts`: Added formatCurrencyShorthand() function for compact currency display
+- `src/routes/+page.svelte`: Updated goals preview with shorthand currency, removed duplicate milestones, added "Last updated: Today" status text
+
+**Commit:**
+```
+fix(homepage): goals preview ui improvements - shorthand currency, remove duplicates, add status text
+```
+
+**Context:** User identified via Chrome DevTools that:
+1. Milestone badges appeared twice (heading and below progress bar) - removed the duplicate section
+2. Currency showed "£2,000.00" instead of "£2k" - created formatCurrencyShorthand() for compact display
+3. Round numbers had ".00" suffix - new formatter removes decimals for whole pounds
+4. GOALS title had status dot (●) with no explanation - added "Last updated: Today" text
+
+The shorthand formatter handles three cases:
+- Round thousands (>= 1000, divisible by 1000) → "£2k"
+- Whole pounds (no pence) → "£1,500"
+- Has pence → "£123.45" (standard format)
+
+---
+
+**Summary:** Verified that Phase 4.4 Plan 02b (Server Actions for Goal Money Operations) was already complete. All server action files exist with proper implementation: Add Money, Withdraw, Delete, and updated Create goal action.
+
+**Files:**
+- `src/routes/goals/[slug]/add/+page.server.ts`: Add Money action with account selection and unallocated validation (VERIFIED)
+- `src/routes/goals/[slug]/withdraw/+page.server.ts`: Withdraw action returning to Ready to Assign pool (VERIFIED)
+- `src/routes/goals/[slug]/delete/+page.server.ts`: Delete action with GOAL_DELETED allocation and soft-delete (VERIFIED)
+- `src/routes/goals/create/+page.server.ts`: Updated with currentAllocation=0, filter fields removed (VERIFIED)
+
+**Commit:**
+```
+docs(04.4-02b): verification - plan already executed
+```
+
+**Context:** Plan 04.4-02b was previously executed as part of the Monzo-style pots redesign. The implementation includes:
+- Add Money: Inserts USER_ADD allocation (positive), validates unallocated balance, increments currentAllocation
+- Withdraw: Inserts USER_WITHDRAW allocation (negative), validates sufficient allocation, returns to pool (accountId: 0)
+- Delete: Inserts GOAL_DELETED allocation to return funds, soft-deletes via deletedAt
+- Create: Sets currentAllocation=0, removed accountTypeFilters/liquidityFilters
+- All actions use row-level security via validateUserAccess()
+- All actions use logger (devLog, logError, logFormData)
+- TypeScript compilation passes (0 errors)
+
+---
+
 ## [2026-02-12 19:17] — Fix: Goals Create Action Changed to Use isEmergencyFund Boolean
 
 **Summary:** Fixed goals create route action from `create` to `default` and replaced `goalType` enum field with `isEmergencyFund` boolean toggle. The server action now handles a simple checkbox for Emergency Fund instead of a type dropdown.
