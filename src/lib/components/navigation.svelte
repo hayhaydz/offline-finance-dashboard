@@ -105,7 +105,7 @@
 </div>
 
 <!-- Navigation Links -->
-<div class="flex justify-between p-2">
+<div class="flex justify-between p-2 border-b">
 	{#each navItems as item}
 		{#if !item.authRequired || user}
 			<a

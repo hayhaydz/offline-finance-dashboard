@@ -5,6 +5,7 @@ import { accounts, goals } from '$lib/db/schema';
 import { withUserFilter } from '$lib/auth/row-security';
 import { desc, and, inArray, sql, type SQL, asc } from 'drizzle-orm';
 import { devLog, logError } from '$lib/utils/logger';
+import { getStaleness } from '$lib/utils/staleness';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
@@ -141,6 +142,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 		exclusionCount
 	});
 
+	// Calculate staleness based on newest balance date
+	const staleness = getStaleness(newestDate);
+
 	return {
 		user: {
 			id: locals.user.id,
@@ -159,7 +163,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		hasStaleData,
 		exclusionCount,
 		accounts: userAccounts,
-		goals: activeGoals
+		goals: activeGoals,
+		staleness
 	};
 };
 

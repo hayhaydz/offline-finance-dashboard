@@ -6,6 +6,7 @@ import { withUserFilter, validateUserAccess } from '$lib/auth/row-security';
 import { devLog, logError, logFormData } from '$lib/utils/logger';
 import { eq, and, isNull, desc, asc, lt, gt } from 'drizzle-orm';
 import { calculateReadyToAssign } from '$lib/server/goals';
+import { getStaleness, getMostRecentDate } from '$lib/utils/staleness';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
@@ -26,6 +27,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 		userId: locals.user.id
 	});
 
+	// Calculate staleness based on most recent goal creation/update
+	const goalDates = userGoals.map((g) => new Date(g.createdAt));
+	const mostRecentGoalDate = getMostRecentDate(goalDates);
+	const staleness = getStaleness(mostRecentGoalDate);
+
 	return {
 		goals: userGoals,
 		readyToAssign,
@@ -35,7 +41,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			id: locals.user.id,
 			username: locals.user.username,
 			createdAt: locals.user.createdAt
-		}
+		},
+		staleness
 	};
 };
 

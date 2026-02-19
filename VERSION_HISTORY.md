@@ -1,3 +1,117 @@
+## [2026-02-19 21:29] — Quick Task 032: Fix Snapshot Detail Page Design Consistency (COMPLETED)
+
+**Summary:** Refactored snapshot detail page to match the consistent design pattern used across the app - removed back link, moved Archive action to header, fixed double borders, and corrected spacing.
+
+**Files:**
+
+- `src/routes/snapshots/[slug]/+page.svelte`: Restructured layout to match accounts detail page pattern
+
+**Commit:**
+
+```
+refactor(quick-032): fix snapshot detail page design consistency
+```
+
+**Context:**
+
+- Removed "Back to Snapshots" link (breadcrumbs provide navigation)
+- Moved "Archive" action to header next to snapshot date
+- Removed horizontal `border border-black` from content sections (caused double borders)
+- Now uses only vertical `border-b border-black` between sections
+- Removed nested `bg-gray-50` boxes - content sits directly in section divs
+- Removed `max-w-[1200px] mx-auto p-8` wrapper (not needed)
+- Removed unused `handleCancel()` function
+- Simplified notes form - removed cancel button, kept only "Save Notes"
+- Structure now matches: title header → entity header (with action) → content sections
+
+---
+
+## [2026-02-19 21:15] — Quick Task 031: Add Accounts/Goals Counts and Restore Colored Trend Arrows (COMPLETED)
+
+**Summary:** Enhanced snapshots table from 3 to 6 columns displaying Accounts and Goals counts with colored trend arrows (green/red/gray) separated from MoM Change currency values.
+
+**Files:**
+
+- `src/routes/snapshots/+page.svelte`: Added Accounts/Goals/Trend columns, separated Trend from MoM Change, updated helper functions
+
+**Commit:**
+
+```
+feat(quick-031): add accounts/goals counts and restore colored trend arrows to snapshots table
+```
+
+**Context:**
+
+- Table now has 6 columns: Date, Net Worth, Accounts, Goals, Trend (colored arrow), MoM Change (currency)
+- Accounts column displays count from `snapshot.accountsBreakdown?.accounts?.length ?? 0`
+- Goals column displays count from `snapshot.goalsBreakdown?.goals?.length ?? 0`
+- Trend column shows colored arrow only: ↑ green (positive), ↓ red (negative), → gray (zero)
+- MoM Change column shows currency amount with +/- sign only (no arrow, no percent)
+- Updated getTrendArrow() to return '→' for zero change (previously empty string)
+- Updated getTrendColor() to return 'text-gray-600' for zero change (previously empty string)
+- Removed formatMoMChange() function (no longer needed)
+- Removed netWorthPercent calculation from trends (percent no longer displayed)
+- Added null-safe optional chaining (?.) and nullish coalescing (??) for JSON column access
+- TypeScript compilation passes with 0 errors
+
+---
+
+## [2026-02-19 20:57] — Quick Task 030: Simplify Snapshots List and Change Delete to Archive (COMPLETED)
+
+**Summary:** Simplified snapshots list table to 3 columns (Date, Net Worth, MoM Change) with clickable Date links and changed detail page button text from "Delete" to "Archive" while removing max-width container.
+
+**Files:**
+
+- `src/routes/snapshots/+page.svelte`: Simplified table to 3 columns, removed unused helper functions, made Date clickable
+- `src/routes/snapshots/[slug]/+page.svelte`: Removed max-width wrapper, changed button text to "Archive Snapshot"
+
+**Commit:**
+
+```
+feat(quick-030): simplify snapshots list to 3 columns and change delete to archive terminology
+```
+
+**Context:**
+
+- Table now shows only Date (clickable link), Net Worth, and MoM Change
+- Removed columns: Assets, Liabilities, Allocated, MoM %, Notes, Actions
+- Removed functions: truncateNotes(), confirmDelete(), formatTrend()
+- Added formatMoMChange() to combine arrow, currency, and percent in single cell
+- Date cell contains anchor tag: `<a href="/snapshots/{snapshot.slug}">`
+- Detail page removed `max-w-[1200px] mx-auto p-8` wrapper for full-width layout
+- Button text changed from "[Delete Snapshot]" to "[Archive Snapshot]"
+- TypeScript compilation passes with 0 errors
+
+---
+
+## [2026-02-19 20:46] — Quick Task 029: Refactor Snapshots Page Design to Match Terminal Aesthetic (COMPLETED)
+
+**Summary:** Refactored snapshots page to match accounts/goals homepage terminal aesthetic for visual consistency across the application.
+
+**Files:**
+
+- `src/routes/snapshots/+page.svelte`: Refactored entire page structure to match terminal aesthetic
+
+**Commit:**
+
+```
+feat(quick-029): refactor snapshots page to match terminal aesthetic design system
+```
+
+**Context:**
+
+- Removed max-width container and non-standard header styling
+- Applied standard header pattern: border-b border-black p-2 with text-lg font-bold title
+- Added green bullet point (text-green-700 ●) to section header
+- Added gray timestamp (text-xs text-gray-600) to section header
+- Updated empty state to use text-gray-600 text-xs classes
+- Created footer navigation section with pagination controls and create button
+- All navigation links use bracket-link class
+- Table styling updated to match standard pattern (pl-1/pr-1 cell padding)
+- TypeScript compilation passes with 0 errors
+
+---
+
 ## [2026-02-19 20:25] — Phase 05-03: Snapshots Delete Functionality and Modal Extraction (COMPLETED)
 
 **Summary:** Implemented snapshot delete functionality with ownership validation, hard delete pattern for derivative data, and extracted CreateSnapshotModal component for code reusability.

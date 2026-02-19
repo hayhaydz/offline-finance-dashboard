@@ -5,6 +5,7 @@ import { snapshots } from '$lib/db/schema';
 import { withUserFilter } from '$lib/auth/row-security';
 import { desc } from 'drizzle-orm';
 import { devLog, logError } from '$lib/utils/logger';
+import { getStaleness, getMostRecentDate } from '$lib/utils/staleness';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
@@ -41,11 +42,17 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		offset
 	});
 
+	// Calculate staleness based on most recent snapshot date
+	const snapshotDates = snapshotsList.map((s) => new Date(s.snapshotDate));
+	const mostRecentSnapshotDate = getMostRecentDate(snapshotDates);
+	const staleness = getStaleness(mostRecentSnapshotDate);
+
 	return {
 		user: locals.user,
 		snapshots: snapshotsList,
 		hasMore,
 		offset,
-		limit
+		limit,
+		staleness
 	};
 };

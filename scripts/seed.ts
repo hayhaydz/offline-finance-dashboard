@@ -449,13 +449,13 @@ async function main() {
     console.log('\n📸 Creating sample snapshots...');
 
     const snapshotDates = [
-      '2025-11-01',
-      '2025-12-01',
-      '2026-01-01',
-      '2026-02-01'
+      { date: '2025-11-01', multiplier: 0.85 }, // 3 months ago, 15% less
+      { date: '2025-12-01', multiplier: 0.90 }, // 2 months ago, 10% less
+      { date: '2026-01-01', multiplier: 0.95 }, // 1 month ago, 5% less
+      { date: '2026-02-01', multiplier: 1.00 }  // current, full value
     ];
 
-    for (const date of snapshotDates) {
+    for (const { date, multiplier } of snapshotDates) {
       // Check if snapshot for this date already exists
       const existing = await db.query.snapshots.findFirst({
         where: and(
@@ -487,48 +487,61 @@ async function main() {
         )
       });
 
-      // Calculate totals
+      // Apply historical multiplier to account balances
       const openAccounts = allAccounts.filter(a => !a.closedAt);
-      const totalAssets = openAccounts
-        .filter(a => a.category === 'asset')
-        .reduce((sum, a) => sum + (a.balances[0]?.balanceInCents || 0), 0);
+      const accountsWithAdjustedBalances = openAccounts.map(a => ({
+        ...a,
+        adjustedBalance: Math.round((a.balances[0]?.balanceInCents || 0) * multiplier)
+      }));
 
-      const totalLiabilities = openAccounts
+      // Calculate totals using adjusted balances
+      const totalAssets = accountsWithAdjustedBalances
+        .filter(a => a.category === 'asset')
+        .reduce((sum, a) => sum + a.adjustedBalance, 0);
+
+      const totalLiabilities = accountsWithAdjustedBalances
         .filter(a => a.category === 'liability')
-        .reduce((sum, a) => sum + (a.balances[0]?.balanceInCents || 0), 0);
+        .reduce((sum, a) => sum + a.adjustedBalance, 0);
 
       const netWorth = totalAssets + totalLiabilities;
-      const totalAllocated = allGoals.reduce((sum, g) => sum + g.currentAllocation, 0);
 
-      // Build accounts breakdown
+      // Apply multiplier to goal allocations
+      const goalsWithAdjustedAllocations = allGoals.map(g => ({
+        ...g,
+        adjustedAllocation: Math.round(g.currentAllocation * multiplier)
+      }));
+
+      const totalAllocated = goalsWithAdjustedAllocations.reduce((sum, g) => sum + g.adjustedAllocation, 0);
+
+      // Build accounts breakdown with adjusted balances
       const accountsBreakdown = {
         snapshotTakenAt: new Date().toISOString(),
-        accounts: openAccounts.map(a => ({
+        accounts: accountsWithAdjustedBalances.map(a => ({
           accountId: a.id,
           accountSlug: a.slug,
           name: a.name,
           type: a.type,
           category: a.category as 'asset' | 'liability',
-          balanceInCents: a.balances[0]?.balanceInCents || 0,
+          balanceInCents: a.adjustedBalance, // Use adjusted balance for snapshot
           includedInTotal: !a.excludedFromNetWorth
         })),
-        totalByType: openAccounts.reduce((acc, a) => {
-          acc[a.type] = (acc[a.type] || 0) + (a.balances[0]?.balanceInCents || 0);
+        totalByType: accountsWithAdjustedBalances.reduce((acc, a) => {
+          acc[a.type] = (acc[a.type] || 0) + a.adjustedBalance;
           return acc;
         }, {} as Record<string, number>)
       };
 
-      // Build goals breakdown
+      // Build goals breakdown with adjusted allocations
       const goalsBreakdown = {
-        goals: allGoals.map(g => ({
+        goals: goalsWithAdjustedAllocations.map(g => ({
           goalId: g.id,
           goalSlug: g.slug,
           name: g.name,
           targetAmountInCents: g.targetAmountInCents,
-          currentAllocation: g.currentAllocation,
+          currentAllocation: g.adjustedAllocation, // Use adjusted allocation for snapshot
           isEmergencyFund: g.isEmergencyFund
         })),
-        totalAllocated
+        totalAllocated // Already adjusted
       };
 
       await db.insert(schema.snapshots).values({

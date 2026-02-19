@@ -102,8 +102,8 @@
 	{#if goals && goals.length > 0}
 		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 			<div class="flex items-center gap-2">
-				<span><span class="text-green-700">●</span> GOALS</span>
-				<span class="text-xs text-gray-500 font-normal">Last updated: Today</span>
+				<span><span class={data.staleness.cssClass}>●</span> GOALS</span>
+				<span class="text-xs text-gray-500 font-normal">{data.staleness.label}</span>
 			</div>
 			<a href="/goals" class="bracket-link text-xs">View All</a>
 		</div>

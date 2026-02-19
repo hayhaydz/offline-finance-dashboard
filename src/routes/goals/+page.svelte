@@ -71,11 +71,6 @@
 	}
 </script>
 
-<div class="border-b border-black p-2">
-	<h1 class="text-lg font-bold mb-0 mt-0">SAVINGS GOALS</h1>
-	<p class="text-gray-600 my-1">Allocate funds across your savings goals</p>
-</div>
-
 <!-- READY TO ASSIGN SECTION -->
 <div class="border-b border-black bg-gray-50 p-2">
 	<div class="flex justify-between items-center mb-1">
@@ -89,8 +84,14 @@
 
 <!-- GOALS LIST SECTION -->
 <div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-	<span><span class="text-green-700">●</span> GOALS ({data.goals.length})</span>
-	<span class="text-xs text-gray-600">Last updated: Today</span>
+	<span><span class={data.staleness.cssClass}>●</span> GOALS ({data.goals.length})</span>
+	<span class="text-xs text-gray-600">{data.staleness.label}</span>
+</div>
+
+<!-- Action Buttons -->
+<div class="bg-gray-100 border-b border-black p-2 flex justify-end gap-2">
+	<a href="/goals/archived" class="bracket-link text-xs">[View Archived]</a>
+	<a href="/goals/create" class="bracket-link text-xs">[+ Create New Goal]</a>
 </div>
 
 <div class="border-b border-black p-2">
@@ -129,10 +130,4 @@
 			</div>
 		{/each}
 	{/if}
-
-	<!-- Create Goal Button -->
-	<div class="flex justify-between items-center mt-4">
-		<a href="/goals/archived" class="bracket-link text-xs">[View Archived]</a>
-		<a href="/goals/create" class="bracket-link text-xs">[+ Create New Goal]</a>
-	</div>
 </div>

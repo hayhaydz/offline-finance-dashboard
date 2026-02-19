@@ -159,10 +159,6 @@
 	const netWorth = $derived(totalAssets + totalLiabilities);
 </script>
 
-<div class="border-b border-black p-2">
-	<h1 class="text-lg font-bold mb-2 mt-0">ACCOUNTS</h1>
-</div>
-
 <!-- NET WORTH SECTION -->
 <div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 	<span>NET WORTH</span>
@@ -338,7 +334,7 @@
 	</div>
 </div>
 
-<div class="border-b border-black p-2">
+<div class="p-2">
 	{#if sortedAccounts.length === 0}
 		<p class="text-gray-600 text-xs mb-2">No accounts yet. Add your first account to start tracking.</p>
 		<table>
