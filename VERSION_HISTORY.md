@@ -1,3 +1,60 @@
+## [2026-02-19 22:06] — Quick Task 034: Convert Snapshots Table to CSS Grid Layout (COMPLETED)
+
+**Summary:** Replaced HTML table structure with CSS grid layout and updated columns to show Assets and Liabilities instead of Accounts and Goals counts.
+
+**Files:**
+
+- `src/routes/snapshots/+page.svelte`: Replaced table elements with CSS grid layout
+
+**Commit:**
+
+```
+refactor(quick-034): convert snapshots table to CSS grid layout
+```
+
+**Context:**
+
+- Removed `<table>`, `<thead>`, `<tbody>`, `<tr>`, `<th>`, `<td>` elements
+- Implemented CSS grid: `display: grid; grid-template-columns: auto 1fr repeat(4, auto); gap: 8px;`
+- Changed column order from: Date, Net Worth, Accounts, Goals, Trend, MoM Change
+- To: T, Date, Net Worth, Assets, Liabilities, MoM Change
+- Trend column (T) now shows colored arrow first: ↑ green (positive), ↓ red (negative), → gray (zero)
+- Assets column displays totalAssetsInCents formatted as currency
+- Liabilities column displays totalLiabilitiesInCents formatted as currency
+- Terminal aesthetic maintained (borders, spacing, bracket-link for dates)
+- TypeScript compilation passes with 0 errors
+
+---
+
+## [2026-02-19 21:45] — Quick Task 033: Convert Snapshot Creation from Modal to Full Page (COMPLETED)
+
+**Summary:** Converted snapshot creation flow from modal-based pattern to full page pattern, matching the style and behavior of `/accounts/create` and `/goals/create` pages.
+
+**Files:**
+
+- `src/routes/snapshots/create/+page.svelte`: Replaced modal component with full-page form
+- `src/routes/snapshots/create/+page.server.ts`: Changed action from named `createSnapshot` to default
+
+**Commit:**
+
+```
+refactor(quick-033): convert snapshot creation from modal to full page
+```
+
+**Context:**
+
+- Page now renders as full-width form (no modal overlay)
+- Black header bar with "CREATE SNAPSHOT" title and Cancel link
+- Form submits via `method="POST"` (not `action="?/createSnapshot"`)
+- Server action renamed from `createSnapshot` to `default`
+- Preview sections show: Financial Summary, Accounts grouped by type, Goals summary
+- Footer with [Cancel] and [Create Snapshot] bracket-link buttons
+- Terminal aesthetic maintained: borders, monospace font, bracket-links
+- Same-day duplicate detection still works with error display
+- `CreateSnapshotModal.svelte` component no longer used (can be removed later)
+
+---
+
 ## [2026-02-19 21:29] — Quick Task 032: Fix Snapshot Detail Page Design Consistency (COMPLETED)
 
 **Summary:** Refactored snapshot detail page to match the consistent design pattern used across the app - removed back link, moved Archive action to header, fixed double borders, and corrected spacing.

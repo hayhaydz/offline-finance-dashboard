@@ -45,43 +45,48 @@
 	<a href="/snapshots/create" class="bracket-link text-xs">[+ Create Snapshot]</a>
 </div>
 
-<div class="p-2">
+<div class="p-0">
 	{#if data.snapshots.length === 0}
-		<p class="text-gray-600 text-xs mb-2">
+		<p class="text-gray-600 text-xs p-2">
 			No snapshots yet. Create your first snapshot to start tracking your net worth over time.
 		</p>
 	{:else}
 		<table>
 			<thead>
 				<tr>
-					<th class="text-left pl-1">Date</th>
+					<th class="w-8 text-center border-r border-gray-200">T</th>
+					<th class="pl-2 text-left">Date</th>
 					<th class="text-right pr-1">Net Worth</th>
-					<th class="text-right pr-1">Accounts</th>
-					<th class="text-right pr-1">Goals</th>
-					<th class="text-right pr-1">Trend</th>
+					<th class="text-right pr-1">Assets</th>
+					<th class="text-right pr-1">Liabilities</th>
 					<th class="text-right pr-1">MoM Change</th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each snapshotsWithTrends as snapshot}
-					<tr>
-						<td class="pl-1 text-sm">
+					<tr class="border-b border-gray-200 last:border-b-0">
+						<td class="text-center border-r border-gray-200 text-sm py-2">
+							{#if snapshot.trends}
+								<span class={getTrendColor(snapshot.trends.netWorthChange)}>
+									{getTrendArrow(snapshot.trends.netWorthChange)}
+								</span>
+							{:else}
+								<span class="text-gray-600">→</span>
+							{/if}
+						</td>
+						<td class="pl-2 text-sm py-2">
 							<a href="/snapshots/{snapshot.slug}" class="bracket-link text-xs">{snapshot.snapshotDate}</a>
 						</td>
-						<td class="text-right pr-1 text-sm">{formatCurrencyShorthand(snapshot.netWorthInCents)}</td>
-						<td class="text-right pr-1 text-sm">{snapshot.accountsBreakdown?.accounts?.length ?? 0}</td>
-						<td class="text-right pr-1 text-sm">{snapshot.goalsBreakdown?.goals?.length ?? 0}</td>
-						{#if snapshot.trends}
-							<td class="text-right pr-1 text-sm {getTrendColor(snapshot.trends.netWorthChange)}">
-								{getTrendArrow(snapshot.trends.netWorthChange)}
-							</td>
-							<td class="text-right pr-1 text-sm">
+						<td class="text-right pr-1 text-sm tabular-nums py-2">{formatCurrencyShorthand(snapshot.netWorthInCents)}</td>
+						<td class="text-right pr-1 text-sm tabular-nums py-2">{formatCurrencyShorthand(snapshot.totalAssetsInCents)}</td>
+						<td class="text-right pr-1 text-sm tabular-nums py-2">{formatCurrencyShorthand(snapshot.totalLiabilitiesInCents)}</td>
+						<td class="text-right pr-1 text-sm tabular-nums py-2">
+							{#if snapshot.trends}
 								{snapshot.trends.netWorthChange >= 0 ? '+' : ''}{formatCurrencyShorthand(snapshot.trends.netWorthChange)}
-							</td>
-						{:else}
-							<td class="text-right pr-1 text-sm text-gray-600">→</td>
-							<td class="text-right pr-1 text-sm text-gray-600">N/A</td>
-						{/if}
+							{:else}
+								<span class="text-gray-600">N/A</span>
+							{/if}
+						</td>
 					</tr>
 				{/each}
 			</tbody>

@@ -13,7 +13,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		throw error(401, 'Authentication required');
 	}
 
-	// Calculate preview data for confirmation modal
+	// Calculate preview data for confirmation page
 	const previewData = await calculateSnapshotData(locals.user.id);
 
 	// Default to today's date
@@ -33,7 +33,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
-	createSnapshot: async ({ request, locals }) => {
+	default: async ({ request, locals }) => {
 		if (!locals.user) {
 			logError('createSnapshot', 'Authentication required');
 			return fail(401, { error: 'Authentication required' });

@@ -44,7 +44,7 @@
 	<div class="flex justify-between items-center">
 		<h2 class="text-base font-bold m-0 leading-none">{data.snapshot.snapshotDate}</h2>
 		<form method="POST" action="/snapshots/{data.snapshot.slug}/delete" class="m-0">
-			<button type="submit" class="bracket-link text-xs text-red-700">Archive</button>
+			<button type="submit" class="bracket-link text-xs text-red-700">Delete</button>
 		</form>
 	</div>
 </div>
