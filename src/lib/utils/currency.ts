@@ -202,8 +202,8 @@ export function formatCurrencyShorthand(amountInPence: number): string {
 		return `£${Math.floor(pounds / 1000)}k`;
 	}
 
-	// No pence: remove .00 suffix
-	if (pounds % 100 === 0) {
+	// No pence: remove .00 suffix (check if pounds is a whole number)
+	if (pounds % 1 === 0) {
 		const formatter = new Intl.NumberFormat('en-GB', {
 			style: 'currency',
 			currency: 'GBP',

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
+	import GoalCard from '$lib/components/GoalCard.svelte';
 	import { formatCurrency, formatCurrencyShorthand, formatAccountType, formatDate } from '$lib/utils/currency';
 
 	let { data } = $props();
@@ -52,27 +53,6 @@
 
 	const assetGroups = $derived(accountsByType.filter(g => g.category === 'asset'));
 	const liabilityGroups = $derived(accountsByType.filter(g => g.category === 'liability'));
-
-	// Goals preview helpers
-	function calculateProgress(current: number, target: number): number {
-		return target > 0 ? Math.round((current / target) * 100) : 0;
-	}
-
-	function getProgressColorClass(progress: number): string {
-		if (progress >= 70) return 'green';
-		if (progress >= 30) return 'amber';
-		return 'red';
-	}
-
-	// Emergency Fund milestones (1mo = 8.33%, 3mo = 25%, 6mo = 50%, 12mo = 100%)
-	function getEmergencyFundMilestones(target: number) {
-		return [
-			{ label: '1mo', percent: 8.33 },
-			{ label: '3mo', percent: 25 },
-			{ label: '6mo', percent: 50 },
-			{ label: '12mo', percent: 100 }
-		];
-	}
 </script>
 
 {#if !user}
@@ -129,49 +109,8 @@
 		</div>
 		<div class="p-2">
 			{#each goals as goal}
-				{@const progress = calculateProgress(goal.currentAllocation, goal.targetAmountInCents)}
-				{@const progressColor = getProgressColorClass(progress)}
 				<div class="border border-black p-2 mb-2 last:mb-0">
-					<div class="flex justify-between items-center mb-1">
-						<span class="font-bold text-sm">
-							{goal.name}
-							{#if goal.isEmergencyFund}
-								<span class="text-[10px] text-gray-500 font-normal ml-1">
-									[
-									<span class="text-green-700">1mo</span>
-									<span class="text-green-700">3mo</span>
-									<span class="text-green-700">6mo</span>
-									<span class="text-gray-400">12mo</span>
-								]
-							</span>
-						{/if}
-						</span>
-					</div>
-
-					<!-- Progress bar (ASSET_CONTAINER style) -->
-					<div class="flex items-center gap-2 text-sm leading-none font-bold {progressColor === 'green' ? 'text-green-700' : progressColor === 'amber' ? 'text-amber-600' : 'text-red-600'} mb-1">
-						<span>[</span>
-						<div class="flex-1 h-5 relative mt-px border-y border-gray-100">
-							<div class="absolute inset-0 flex justify-between opacity-20">
-								{#each Array(40) as _} <div class="w-[1px] h-full bg-current"></div> {/each}
-							</div>
-							<div class="h-full {progressColor === 'green' ? 'bg-green-700' : progressColor === 'amber' ? 'bg-amber-600' : 'bg-red-600'} transition-all duration-300 mix-blend-multiply" style="width: {progress}%"></div>
-						</div>
-						<span>]</span>
-						<span class="text-xs text-gray-500 min-w-[30px] text-right font-normal">{progress}%</span>
-					</div>
-
-					<div class="flex justify-between text-xs mb-1">
-						<span>{formatCurrencyShorthand(goal.currentAllocation)} of {formatCurrencyShorthand(goal.targetAmountInCents)}</span>
-						<span class="font-bold {progressColor === 'green' ? 'text-green-700' : progressColor === 'amber' ? 'text-amber-600' : 'text-red-600'}">
-							Remaining: {formatCurrencyShorthand(goal.targetAmountInCents - goal.currentAllocation)}
-						</span>
-					</div>
-
-					<div class="flex gap-2 mt-2">
-						<a href="/goals/{goal.slug}/add" class="bracket-link text-xs">[Add Money]</a>
-						<a href="/goals/{goal.slug}/withdraw" class="bracket-link text-xs">[Withdraw]</a>
-					</div>
+					<GoalCard {goal} />
 				</div>
 			{/each}
 		</div>

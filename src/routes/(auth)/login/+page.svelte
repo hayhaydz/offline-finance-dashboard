@@ -71,6 +71,12 @@
 	<p class="text-gray-600 my-1">Enter your credentials and authentication code</p>
 </div>
 
+{#if data?.autoLoginEnabled}
+	<div class="border border-amber-700 border-l-4 p-2 mb-2">
+		<span class="text-amber-700 font-bold">Development Auto-Login Enabled - Redirecting...</span>
+	</div>
+{/if}
+
 	{#if form?.locked}
 		<div class="bg-red-50 border border-red-600 p-4 mb-4">
 			<h2 class="mt-0 text-red-600 text-lg">Account Locked</h2>

@@ -1,17 +1,109 @@
+## [2026-02-19 20:25] — Phase 05-03: Snapshots Delete Functionality and Modal Extraction (COMPLETED)
+
+**Summary:** Implemented snapshot delete functionality with ownership validation, hard delete pattern for derivative data, and extracted CreateSnapshotModal component for code reusability.
+
+**Files:**
+
+- `src/routes/snapshots/[slug]/delete/+page.server.ts`: Created delete action with validateUserAccess() for row-level security
+- `src/routes/snapshots/+page.svelte`: Added delete button with JavaScript confirmation dialog
+- `src/lib/components/CreateSnapshotModal.svelte`: Extracted reusable modal component using Svelte 5 props API
+- `src/routes/snapshots/create/+page.svelte`: Refactored to use CreateSnapshotModal component
+- `src/lib/utils/snapshots.ts`: Exported SnapshotPreviewData type for component type safety
+
+**Commit:**
+
+```
+feat(05-03): snapshot delete action with ownership validation and hard delete
+feat(05-03): extract CreateSnapshotModal component with Svelte 5 props API
+```
+
+**Context:**
+
+- Hard delete used for snapshots (derivative data, not ledger transactions requiring audit trail)
+- Delete confirmation via JavaScript confirm() matches existing patterns (goals, accounts)
+- CreateSnapshotModal uses explicit type definition instead of ActionData import (component files can't import $types)
+- TypeScript compilation passes with 0 errors (6 pre-existing accessibility warnings)
+
+---
+
+## [2026-02-19 18:40] — UI/UX Audit: Comprehensive Site Review (COMPLETED)
+
+**Summary:** Conducted a site-wide UI/UX audit across all major pages (Home, Accounts, Goals, Snapshots, Settings) to identify inconsistencies with the Terminal/Research-Paper Aesthetic.
+
+**Files:**
+
+- `docs/ui-ux-audit-goals-report.md`: Initial audit focused on the Goals system.
+- `docs/ui-ux-audit-full-site.md`: Comprehensive audit report covering core visual deviations, form elements, and page-specific issues.
+
+**Commit:**
+
+```
+docs(audit): comprehensive site-wide ui/ux review and report
+```
+
+**Context:**
+
+- Identified critical drift in form elements (browser-native radios/selects vs terminal components).
+- Documented "Double Bracket" bug recurring in buttons and links.
+- Verified progress bar inconsistency (solid CSS blocks vs desired ASCII patterns).
+- Cataloged navigation and hierarchy issues across all major user flows.
+
+---
+
+## [2026-02-19 11:30] — Quick Task 028: Shared GoalCard component with smart money formatting (COMPLETED)
+
+**Summary:** Created shared GoalCard component for consistent goal display across homepage and goals index, with fixed smart money formatting removing .00 from all amounts without pence.
+
+**Files:**
+
+- `src/lib/utils/currency.ts`: Fixed formatCurrencyShorthand to remove .00 from non-round thousands (pounds % 1 === 0 instead of % 100)
+- `src/lib/components/GoalCard.svelte`: Created shared goal card component using Svelte 5 runes API
+- `src/routes/+page.svelte`: Updated to use GoalCard component, removed duplicate goal rendering code
+- `src/routes/goals/+page.svelte`: Updated to use GoalCard component, removed duplicate goal rendering code
+
+**Commits:**
+
+```
+fix(quick-028): fix formatCurrencyShorthand to remove .00 from non-round thousands
+feat(quick-028): create shared GoalCard component with Svelte 5 runes
+refactor(quick-028): update homepage and goals index to use shared GoalCard component
+fix(quick-028): move action buttons into GoalCard component with conditional Archive button
+```
+
+**Context:**
+
+- Changed condition from `pounds % 100 === 0` to `pounds % 1 === 0` for proper whole number detection
+- Now formats: 150000p -> "£1,500" (not "£1,500.00"), 248100p -> "£2,481" (not "£2,481.00")
+- Round thousands still get k notation: 200000p -> "£2k"
+- Pence amounts still show decimals: 12345p -> "£123.45"
+- GoalCard uses Svelte 5 $props and $derived for reactive state
+- Component uses GoalDisplay interface to work with partial Goal data from server queries
+- Action buttons ([Add Money] [Withdraw]) now always shown in component
+- Archive button conditionally shown via `showArchive` prop (default false)
+- Homepage uses <GoalCard {goal} /> (no Archive button, no reorder buttons)
+- Goals index uses <GoalCard {goal} showArchive={true}> with snippet for reorder buttons in header
+- Reorder buttons [↑] [↓] now appear in top-right of goal card header
+- TypeScript checks pass: 0 errors, 4 pre-existing accessibility warnings (unrelated)
+
+---
+
 ## [2026-02-18 22:05] — Fix: Set sortOrder in seed script and document schema change process
 
 **Summary:** Updated scripts/seed.ts to set correct sortOrder values when creating goals, and added documentation note to CLAUDE.md about checking seed.ts when making database schema changes.
 
 **Files:**
+
 - `scripts/seed.ts`: Changed loop from `for (const goalData of goalsToCreate)` to `for (let index = 0; index < goalsToCreate.length; index++)` to enable setting sortOrder: index for each goal
 - `CLAUDE.md`: Added "🌱 DATABASE SEED SCRIPT" section documenting the requirement to update seed.ts when making schema changes
 
 **Commit:**
+
 ```
 fix(seeding): set sortOrder values in seed script, document schema change process
 ```
 
 **Context:**
+
 - Goals created during seeding now have sortOrder values 0, 1, 2... matching array position
 - This fixes the bug where all goals had sortOrder=0, breaking the reordering functionality
 - Added comprehensive documentation section explaining when and why to update seed.ts
@@ -24,6 +116,7 @@ fix(seeding): set sortOrder values in seed script, document schema change proces
 **Summary:** Added sortOrder column to goals table, created server actions for swapping goal positions, and added [↑] [↓] bracket-link buttons on each goal card for manual reordering.
 
 **Files:**
+
 - `src/lib/db/schema.ts`: Added sort_order column (integer, default 0) to goals table
 - `src/lib/db/migrations/0002_chunky_franklin_storm.sql`: Generated migration for sort_order column
 - `src/routes/goals/+page.server.ts`: Added moveUp and moveDown actions for goal reordering, updated orderBy to use sortOrder
@@ -32,11 +125,13 @@ fix(seeding): set sortOrder values in seed script, document schema change proces
 - `src/routes/goals/archived/+page.server.ts`: Updated archived goals query orderBy to use sortOrder
 
 **Commit:**
+
 ```
 feat(goals): add manual reordering with [↑] [↓] bracket-link buttons
 ```
 
 **Context:**
+
 - Added sortOrder field to goals schema with default value of 0
 - Generated and applied migration using drizzle-kit
 - Created moveUp/moveDown server actions that swap sortOrder values between adjacent goals
@@ -53,6 +148,7 @@ feat(goals): add manual reordering with [↑] [↓] bracket-link buttons
 **Summary:** Converted modal-based Add Money and Withdraw forms to full pages matching /accounts design style, renamed Delete to Archive with confirmation message, and created Archived Goals view page.
 
 **Files:**
+
 - `src/routes/goals/[slug]/add/+page.svelte`: Converted from modal to full page with border-b header and p-2 container
 - `src/routes/goals/[slug]/withdraw/+page.svelte`: Converted from modal to full page with border-b header and p-2 container
 - `src/routes/goals/+page.svelte`: Updated button text to [Archive], added [View Archived] link, changed confirm message and action URL
@@ -61,11 +157,13 @@ feat(goals): add manual reordering with [↑] [↓] bracket-link buttons
 - `src/routes/goals/archived/+page.svelte`: Created - displays archived goals with read-only progress bars and archived dates
 
 **Commit:**
+
 ```
 refactor(goals): convert add/withdraw modals to full pages, add archive functionality
 ```
 
 **Context:**
+
 - Removed modal wrappers (fixed inset-0, bg-black bg-opacity-50) from Add Money and Withdraw pages
 - Added border-b border-black p-2 headers with h1 titles matching /accounts/[slug]/edit pattern
 - Wrapped form content in p-2 containers for consistent padding
@@ -81,21 +179,25 @@ refactor(goals): convert add/withdraw modals to full pages, add archive function
 **Summary:** Fixed four UI issues on the homepage goals preview section: removed duplicate milestone badges, added currency shorthand formatting (£2k), removed ".00" from round numbers, and added explanatory text next to GOALS title.
 
 **Files:**
+
 - `src/lib/utils/currency.ts`: Added formatCurrencyShorthand() function for compact currency display
 - `src/routes/+page.svelte`: Updated goals preview with shorthand currency, removed duplicate milestones, added "Last updated: Today" status text
 
 **Commit:**
+
 ```
 fix(homepage): goals preview ui improvements - shorthand currency, remove duplicates, add status text
 ```
 
 **Context:** User identified via Chrome DevTools that:
+
 1. Milestone badges appeared twice (heading and below progress bar) - removed the duplicate section
 2. Currency showed "£2,000.00" instead of "£2k" - created formatCurrencyShorthand() for compact display
 3. Round numbers had ".00" suffix - new formatter removes decimals for whole pounds
 4. GOALS title had status dot (●) with no explanation - added "Last updated: Today" text
 
 The shorthand formatter handles three cases:
+
 - Round thousands (>= 1000, divisible by 1000) → "£2k"
 - Whole pounds (no pence) → "£1,500"
 - Has pence → "£123.45" (standard format)
@@ -105,17 +207,20 @@ The shorthand formatter handles three cases:
 **Summary:** Verified that Phase 4.4 Plan 02b (Server Actions for Goal Money Operations) was already complete. All server action files exist with proper implementation: Add Money, Withdraw, Delete, and updated Create goal action.
 
 **Files:**
+
 - `src/routes/goals/[slug]/add/+page.server.ts`: Add Money action with account selection and unallocated validation (VERIFIED)
 - `src/routes/goals/[slug]/withdraw/+page.server.ts`: Withdraw action returning to Ready to Assign pool (VERIFIED)
 - `src/routes/goals/[slug]/delete/+page.server.ts`: Delete action with GOAL_DELETED allocation and soft-delete (VERIFIED)
 - `src/routes/goals/create/+page.server.ts`: Updated with currentAllocation=0, filter fields removed (VERIFIED)
 
 **Commit:**
+
 ```
 docs(04.4-02b): verification - plan already executed
 ```
 
 **Context:** Plan 04.4-02b was previously executed as part of the Monzo-style pots redesign. The implementation includes:
+
 - Add Money: Inserts USER_ADD allocation (positive), validates unallocated balance, increments currentAllocation
 - Withdraw: Inserts USER_WITHDRAW allocation (negative), validates sufficient allocation, returns to pool (accountId: 0)
 - Delete: Inserts GOAL_DELETED allocation to return funds, soft-deletes via deletedAt
@@ -131,9 +236,11 @@ docs(04.4-02b): verification - plan already executed
 **Summary:** Fixed goals create route action from `create` to `default` and replaced `goalType` enum field with `isEmergencyFund` boolean toggle. The server action now handles a simple checkbox for Emergency Fund instead of a type dropdown.
 
 **Files:**
+
 - `src/routes/goals/create/+page.server.ts`: Changed action name from `create` to `default`, replaced `goalType` handling with `isEmergencyFund` boolean
 
 **Commit:**
+
 ```
 fix(goals): replace goal type enum with emergency fund toggle
 ```
@@ -147,10 +254,12 @@ fix(goals): replace goal type enum with emergency fund toggle
 **Summary:** Created server-side goal progress calculation with asset pool filtering and client-side display utilities for terminal aesthetic progress bars. Emergency Fund milestones computed from monthly expenses (1mo, 3mo, 6mo, 12mo).
 
 **Files:**
+
 - `src/lib/server/goals.ts`: calculateGoalProgress, calculateAllGoalsProgress, calculateMilestones
 - `src/lib/utils/goals.ts`: formatGoalProgress, getMilestonePositions, formatEmergencyFundRuler, formatGoalType, getDaysRemaining
 
 **Commit:**
+
 ```
 feat(04-03): implement goal progress calculation and display utilities
 
@@ -173,9 +282,11 @@ feat(04-03): implement goal progress calculation and display utilities
 **Summary:** Updated GoalForm component to use direct terminal-styled inputs matching the account create/edit form design. Removed FormField component dependency and implemented inline validation with individual error state variables. All form inputs now use consistent `class="w-full max-w-md border border-black px-2 py-1 text-sm focus:outline-none font-terminal"` styling like account forms.
 
 **Files:**
+
 - `src/lib/components/GoalForm.svelte`: Updated form fields to use direct terminal-styled inputs
 
 **Changes:**
+
 - Removed FormField component import and usage
 - Replaced with direct terminal-styled inputs
 - Added individual error state variables (nameError, targetAmountError, goalTypeError, targetDateError, accountTypeFiltersError, liquidityFiltersError)
@@ -186,6 +297,7 @@ feat(04-03): implement goal progress calculation and display utilities
 - Cancel button styling: `border border-black px-4 py-2 text-sm no-underline text-black`
 
 **Commit:**
+
 ```
 fix(goals): standardize goal form styling to match account forms
 ```
@@ -199,12 +311,14 @@ fix(goals): standardize goal form styling to match account forms
 **Summary:** Created goals page at /goals route with full CRUD operations (create, edit, delete) and GoalForm component with multi-select filter checkboxes. Fixed TypeScript errors (orderBy syntax, variable scoping, Date types).
 
 **Files:**
+
 - `src/routes/goals/+page.server.ts`: Server load and CRUD actions with row-level security
 - `src/routes/goals/+page.svelte`: Goals page with list, inline create/edit form, delete modal
 - `src/lib/components/GoalForm.svelte`: Reusable form with multi-select filter checkboxes
 - `src/lib/components/navigation.svelte`: Added Goals link to main navigation
 
 **Commit:**
+
 ```
 feat(04-02): create goals CRUD interface with multi-select filters
 
@@ -224,10 +338,12 @@ feat(04-02): create goals CRUD interface with multi-select filters
 **Summary:** Created goals table with Drizzle ORM schema and database migration for savings goals tracking. Goals support independent asset pools via JSON-based account type and liquidity filters, with row-level security via user_id foreign key.
 
 **Files:**
+
 - `src/lib/db/schema.ts`: Added goals table definition with slug, goalType enum, accountTypeFilters, liquidityFilters, timestamps
 - `src/lib/db/migrations/0002_acoustic_hammerhead.sql`: Generated migration with CHECK constraints and indexes
 
 **Commit:**
+
 ```
 feat(04-01): create goals database schema
 
@@ -253,9 +369,11 @@ feat(04-01): create goals database schema
 **Summary:** Fixed a bug where empty multi-select filters were being counted as "active" in the filter indicator. Cleaned up redundant modal component rendering in `accounts/+page.svelte`.
 
 **Files:**
+
 - `src/routes/accounts/+page.svelte`: Implemented `activeFilterCount` to correctly evaluate non-empty strings and arrays; removed duplicate `AccountFiltersModal` block.
 
 **Commit:**
+
 ```
 fix(accounts): correct active filter counting and remove duplicate component
 ```
@@ -265,10 +383,12 @@ fix(accounts): correct active filter counting and remove duplicate component
 **Summary:** Enhanced the advanced filter modal to support multi-selection for Account Type, Tax Wrapper, Liquidity, and Institution. This allows users to view complex account cross-sections (e.g., "Savings AND Investments").
 
 **Files:**
+
 - `src/lib/components/AccountFiltersModal.svelte`: Updated state to use arrays for multi-select fields; implemented toggle logic and comma-separated URL parameter generation.
 - `src/routes/accounts/+page.svelte`: Updated filter logic to support array-based matching and comma-separated URL parameter parsing.
 
 **Commit:**
+
 ```
 feat(accounts): add multi-select support for key filter categories
 ```
@@ -278,9 +398,11 @@ feat(accounts): add multi-select support for key filter categories
 **Summary:** Refined the advanced filter modal into a single-column accordion layout. This design improves mobile/desktop UX by stacking categories vertically, removing nested scroll areas, and increasing text readability while maintaining the terminal aesthetic.
 
 **Files:**
+
 - `src/lib/components/AccountFiltersModal.svelte`: Implemented vertically stacked sections with smooth transitions and full-modal scrolling.
 
 **Commit:**
+
 ```
 ui(accounts): refactor filter modal to accordion layout for better readability
 ```
@@ -290,9 +412,11 @@ ui(accounts): refactor filter modal to accordion layout for better readability
 **Summary:** Redesigned the advanced filter modal to use a more spacious "Control Panel" layout. Increased width, added logical section numbering, and utilized a multi-column grid to improve information density and UX while adhering to the terminal aesthetic.
 
 **Files:**
+
 - `src/lib/components/AccountFiltersModal.svelte`: Expanded to `max-w-2xl`, implemented multi-column layout, and added ASCII/System-style metadata and borders.
 
 **Commit:**
+
 ```
 ui(accounts): overhaul filter modal to control panel style for better UX
 ```
@@ -302,9 +426,11 @@ ui(accounts): overhaul filter modal to control panel style for better UX
 **Summary:** Refactored the advanced filters modal to use terminal-style `[X]` checkboxes and radio-like selectors instead of standard HTML dropdowns, improving visual consistency with the rest of the application.
 
 **Files:**
+
 - `src/lib/components/AccountFiltersModal.svelte`: Replaced all `<select>` elements with custom terminal-style interactive elements.
 
 **Commit:**
+
 ```
 ui(accounts): refactor advanced filters to terminal-style checkboxes/radio
 ```
@@ -314,9 +440,11 @@ ui(accounts): refactor advanced filters to terminal-style checkboxes/radio
 **Summary:** Relocated the "Quick Balance Entry" form to the top of the accounts page (above the table) and wrapped it in a smooth CSS-transition accordion to save space while keeping it easily accessible.
 
 **Files:**
+
 - `src/routes/accounts/+page.svelte`: Moved form section and implemented smooth height transition with `grid-template-rows`.
 
 **Commit:**
+
 ```
 ux(accounts): move quick add form to top with smooth accordion
 ```
@@ -326,11 +454,13 @@ ux(accounts): move quick add form to top with smooth accordion
 **Summary:** Implemented a comprehensive "Advanced Filters" modal on the accounts page. Added support for filtering by status (open/closed), net worth exclusion, category (asset/liability), tax wrapper, account type, liquidity, staleness, and institution.
 
 **Files:**
+
 - `src/lib/components/AccountFiltersModal.svelte`: Created new modal component for complex filter management.
 - `src/routes/accounts/+page.server.ts`: Added unique institutions to page data for filtering.
 - `src/routes/accounts/+page.svelte`: Integrated filter modal, added complex filtering logic, and updated header UI with filter status.
 
 **Commit:**
+
 ```
 feat(accounts): implement advanced filtering modal and multi-parameter logic
 ```
@@ -340,10 +470,12 @@ feat(accounts): implement advanced filtering modal and multi-parameter logic
 **Summary:** Added support for filtering accounts by type on the main accounts page via URL parameters. Connected the dashboard's "Accounts by Type" table to these filtered views for easier navigation.
 
 **Files:**
+
 - `src/routes/accounts/+page.svelte`: Added reactivity to handle `type` search parameter, filtering the account list accordingly. Added filter status indicator and "Clear" button.
 - `src/routes/+page.svelte`: Linked account type rows to the filtered accounts page.
 
 **Commit:**
+
 ```
 feat(accounts): add type-based filtering and dashboard navigation links
 ```
@@ -353,9 +485,11 @@ feat(accounts): add type-based filtering and dashboard navigation links
 **Summary:** Refined the "Accounts by Type" table layout by moving account counts to a dedicated first column and ensuring all text columns are properly left-aligned for better readability.
 
 **Files:**
+
 - `src/routes/+page.svelte`: Added `[#]` column for account counts; updated "Type" and "Balance" columns to `text-left` alignment.
 
 **Commit:**
+
 ```
 ui(dashboard): improve accounts by type table layout and alignment
 ```
@@ -365,9 +499,11 @@ ui(dashboard): improve accounts by type table layout and alignment
 **Summary:** Resolved all `npm run check` accessibility warnings in the `ExclusionsModal` component. Added appropriate ARIA roles, keyboard event handlers, and focus management (tabindex).
 
 **Files:**
+
 - `src/lib/components/ExclusionsModal.svelte`: Added `role="dialog"`, `role="presentation"`, `role="button"`, `tabindex`, and keyboard listeners for backdrop and type toggles.
 
 **Commit:**
+
 ```
 fix(a11y): resolve svelte-check warnings in exclusions modal
 ```
@@ -377,10 +513,12 @@ fix(a11y): resolve svelte-check warnings in exclusions modal
 **Summary:** Replaced the flat individual account list on the dashboard with a grouped "Accounts by Type" overview. This provides a cleaner summary of the portfolio structure while remaining in sync with net worth exclusions.
 
 **Files:**
+
 - `src/lib/utils/currency.ts`: Promoted `formatAccountType` and `formatDate` to shared utilities.
 - `src/routes/+page.svelte`: Implemented grouping logic and new table layout for Assets and Liabilities by type, including exclusion styling (line-through).
 
 **Commit:**
+
 ```
 refactor(dashboard): change accounts overview to grouped accounts by type
 ```
@@ -390,11 +528,13 @@ refactor(dashboard): change accounts overview to grouped accounts by type
 **Summary:** Fixed issue where net worth dashboard UI would not update after changing exclusions without a hard refresh. Fixed display logic for excluded liabilities to correctly handle negative values. Refactored components to use proper Svelte 5 runes and standard SvelteKit data handling.
 
 **Files:**
+
 - `src/routes/+page.svelte`: Updated to use Svelte 5 `$props()` instead of legacy `$:` reactive declarations for page data.
 - `src/lib/components/NetWorthDisplay.svelte`: Refactored `$derived` functions to `$derived` values; fixed `excludedLiabilities` visibility condition to use `Math.abs()`.
 - `src/lib/components/ExclusionsModal.svelte`: Refactored `$derived` functions to `$derived` values and updated `use:enhance` to use the standard `update()` function for reliable data invalidation.
 
 **Commit:**
+
 ```
 fix(ui): resolve dashboard reactivity issues by modernizing to Svelte 5 runes
 ```
@@ -404,10 +544,12 @@ fix(ui): resolve dashboard reactivity issues by modernizing to Svelte 5 runes
 **Summary:** Made Save Changes button visually distinct when disabled vs enabled. Created simple `cn()` utility for conditional class names.
 
 **Files:**
+
 - `src/lib/utils/cn.ts` (created - simple clsx utility)
 - `src/lib/components/ExclusionsModal.svelte` (added dynamic button styling based on hasChanges state)
 
 **Commit:**
+
 ```
 ux(03-03): add distinct disabled state for save button
 
@@ -426,9 +568,11 @@ ux(03-03): add distinct disabled state for save button
 **Summary:** Fixed modal toggle state not displaying ([X] wasn't showing) due to Svelte 5 Map reactivity. Added proper disabled state for Save Changes button - only enabled when user makes changes from original state.
 
 **Files:**
+
 - `src/lib/components/ExclusionsModal.svelte` (fixed Map mutation, added hasChanges derived, added originalStates tracking)
 
 **Commit:**
+
 ```
 fix(03-03): fix modal state tracking and save button ux
 
@@ -448,9 +592,11 @@ fix(03-03): fix modal state tracking and save button ux
 **Summary:** Fixed net worth calculation on accounts page (same bug as home page - liabilities are negative values, so add them). Also fixed table headings to be left-aligned instead of centered.
 
 **Files:**
+
 - `src/routes/accounts/+page.svelte` (fixed formula, added Math.abs for display, added text-left to th elements)
 
 **Commit:**
+
 ```
 fix(accounts): correct net worth calculation and table alignment
 
@@ -468,9 +614,11 @@ fix(accounts): correct net worth calculation and table alignment
 **Summary:** Rewrote ExclusionsModal to match mockup design exactly - shows account types with counts (not individual accounts), excluded types are dimmed gray, proper box-shadow and button styling.
 
 **Files:**
+
 - `src/lib/components/ExclusionsModal.svelte` (rewritten - type-based exclusion UI)
 
 **Commit:**
+
 ```
 style(03-03): modal matches mockup design exactly
 
@@ -491,6 +639,7 @@ style(03-03): modal matches mockup design exactly
 **Summary:** Replaced vanilla HTML checkboxes and radio buttons with terminal-style `[X]` and `[•]` toggles matching the mockup design. Created reusable TerminalToggle and TerminalRadio components.
 
 **Files:**
+
 - `src/lib/components/ui/terminal-toggle/TerminalToggle.svelte` (created - checkbox with `[X]` style)
 - `src/lib/components/ui/terminal-toggle/TerminalRadio.svelte` (created - radio with `[•]` style)
 - `src/lib/components/ui/terminal-toggle/index.ts` (created - exports)
@@ -498,6 +647,7 @@ style(03-03): modal matches mockup design exactly
 - `src/routes/accounts/create/+page.svelte` (updated - uses TerminalRadio for type/tax wrapper)
 
 **Commit:**
+
 ```
 style(03-03): add terminal-style toggle components
 
@@ -517,10 +667,12 @@ style(03-03): add terminal-style toggle components
 **Summary:** Fixed net worth calculation formula (assets + liabilities, not assets - liabilities) since liability balances are stored as negative values in the database. Also fixed liability display to show positive values with red color instead of negative values.
 
 **Files:**
+
 - `src/routes/+page.server.ts` (changed formula to `totalAssets + totalLiabilities`)
 - `src/lib/components/NetWorthDisplay.svelte` (added `Math.abs()` for liability display)
 
 **Commit:**
+
 ```
 fix(03-01): correct net worth calculation and liability display
 
@@ -538,10 +690,12 @@ fix(03-01): correct net worth calculation and liability display
 **Summary:** Updated NetWorthDisplay component to integrate the ExclusionsModal, replacing the placeholder modal. Added accounts prop to pass account data to the modal. Updated home page to pass accounts from page.data.
 
 **Files:**
+
 - `src/lib/components/NetWorthDisplay.svelte` (added accounts prop, replaced placeholder modal)
 - `src/routes/+page.svelte` (passed accounts prop to NetWorthDisplay)
 
 **Commit:**
+
 ```
 feat(03-03): integrate ExclusionsModal with NetWorthDisplay
 
@@ -561,9 +715,11 @@ feat(03-03): integrate ExclusionsModal with NetWorthDisplay
 **Summary:** Added updateExclusions form action to +page.server.ts for bulk exclusion updates using Drizzle ORM CASE statement. Implemented authentication validation, form data parsing, and row-level security.
 
 **Files:**
+
 - `src/routes/+page.server.ts` (added updateExclusions action with CASE statement bulk update)
 
 **Commit:**
+
 ```
 feat(03-03): add bulk exclusion update action
 
@@ -586,9 +742,11 @@ feat(03-03): add bulk exclusion update action
 **Summary:** Created ExclusionsModal.svelte component with account grouping, checkbox state tracking, keyboard/backdrop handlers, and form with enhance(). Follows terminal aesthetic design from mockup with black title bar and bracket-link buttons.
 
 **Files:**
+
 - `src/lib/components/ExclusionsModal.svelte` (created modal component with full implementation)
 
 **Commit:**
+
 ```
 feat(03-03): create ExclusionsModal component
 
@@ -614,9 +772,11 @@ feat(03-03): create ExclusionsModal component
 **Summary:** Updated home page (+page.svelte) to use the new NetWorthDisplay component, passing all required props from the server load function. Removed placeholder net worth data and integrated real server-side calculations.
 
 **Files:**
+
 - `src/routes/+page.svelte` (replaced placeholder sections with NetWorthDisplay component)
 
 **Commit:**
+
 ```
 feat(03-02): update home page to use NetWorthDisplay component
 
@@ -636,9 +796,11 @@ feat(03-02): update home page to use NetWorthDisplay component
 **Summary:** Created NetWorthDisplay.svelte component with full net worth display, breakdown section, date range formatting, stale data warning, exclusions button with modal placeholder, and terminal aesthetic styling.
 
 **Files:**
+
 - `src/lib/components/NetWorthDisplay.svelte` (created with net worth display UI)
 
 **Commit:**
+
 ```
 feat(03-02): create NetWorthDisplay component
 
@@ -665,9 +827,11 @@ feat(03-02): create NetWorthDisplay component
 **Summary:** Added date range formatting functions to currency.ts for displaying "as of" dates on the net worth dashboard. Handles same-year and different-year cases, single dates, and uses locale-aware formatting.
 
 **Files:**
+
 - `src/lib/utils/currency.ts` (added formatDateForRange and formatDateForRange functions)
 
 **Commit:**
+
 ```
 feat(03-01): add date range formatting utility
 
@@ -688,9 +852,11 @@ feat(03-01): add date range formatting utility
 **Summary:** Created server-side load function for home page that calculates net worth from user's accounts and balances. Implements row-level security, handles excluded accounts, detects stale data, and calculates date ranges.
 
 **Files:**
+
 - `src/routes/+page.server.ts` (created with net worth calculation load function)
 
 **Commit:**
+
 ```
 feat(03-01): add net worth data loading function to home page
 
@@ -713,6 +879,7 @@ feat(03-01): add net worth data loading function to home page
 **Summary:** Separated account types from tax wrappers, added category field for asset/liability distinction, and improved account creation UX with dual radio button forms.
 
 **Files:**
+
 - `src/lib/db/schema.ts` (added taxWrapper, category fields; updated type enum to 6 values)
 - `src/lib/validation/rules.ts` (updated ACCOUNT_TYPES, added TAX_WRAPPERS constant)
 - `src/routes/accounts/create/+page.svelte` (dual radio buttons with reactive disabled state)
@@ -727,6 +894,7 @@ feat(03-01): add net worth data loading function to home page
 - `tests/integration/database.test.ts` (added new required fields)
 
 **Commit:**
+
 ```
 feat(02.1-01): separate account types from tax wrappers and add category field
 
@@ -748,6 +916,7 @@ feat(02.1-01): separate account types from tax wrappers and add category field
 **Summary:** (1) Changed default currency from USD to GBP, (2) Fixed breadcrumb system to show account names instead of slugs with proper segmentIndex, (3) Fixed all remaining account.id links to use account.slug, (4) Improved message timing (10s success, errors persist with dismiss button), (5) Fixed navigation component for non-existent routes.
 
 **Files:**
+
 - `src/lib/utils/currency.ts` (en-GB locale, GBP currency, pounds/pence comments)
 - `src/lib/components/navigation.svelte` (breadcrumbOverrides with segmentIndex, skipLink for non-routes)
 - `src/routes/+layout.svelte` (pass breadcrumbOverrides to navigation)
@@ -761,6 +930,7 @@ feat(02.1-01): separate account types from tax wrappers and add category field
 - `src/routes/accounts/+page.svelte` (10s success timeout, errors persist, dismiss button)
 
 **Commit:**
+
 ```
 fix: gbp currency breadcrumbs links messages timing
 
@@ -782,6 +952,7 @@ fix: gbp currency breadcrumbs links messages timing
 **Summary:** Fixed three critical issues: (1) balance conflict detection now uses range query instead of Date equality, (2) delete balance uses goto() to force fresh data fetch bypassing browser cache, (3) extracted shared balance entry logic to eliminate 80+ lines of duplicate code, (4) fixed markdown link rendering in quick-add error messages.
 
 **Files:**
+
 - `src/lib/utils/balances.ts` (created shared addBalanceEntry function with range-based conflict detection)
 - `src/routes/accounts/+page.server.ts` (refactored to use shared function, renamed action from 'default' to 'quickAdd')
 - `src/routes/accounts/[slug]/+page.server.ts` (refactored to use shared function)
@@ -789,6 +960,7 @@ fix: gbp currency breadcrumbs links messages timing
 - `src/routes/accounts/+page.svelte` (quick-add error messages now parse markdown links)
 
 **Commit:**
+
 ```
 fix(balances): conflict detection, caching, and deduplication
 
@@ -810,10 +982,12 @@ fix(balances): conflict detection, caching, and deduplication
 **Summary:** Converted accounts list page quick-add balance form from redirect-based flow to SPA-style response handling. The form now updates UI instantly without full page reload, matches the behavior implemented for the account detail page's add/delete balance forms.
 
 **Files:**
+
 - `src/routes/accounts/+page.server.ts` (quickAdd action returns { success } instead of redirect)
 - `src/routes/accounts/+page.svelte` (added quickAddMessage state, updated use:enhance callback with proper error handling)
 
 **Commit:**
+
 ```
 feat(ux): spa-style quick-add balance on accounts list
 
@@ -834,6 +1008,7 @@ feat(ux): spa-style quick-add balance on accounts list
 **Summary:** Completed comprehensive logging coverage by adding logging before every control flow exit point (fail, error, redirect) across the entire application. This creates a complete traceable history of all code paths and user actions. Security events (401, 429, 500) use logError, validation failures (400, 409) use devLog, and all redirects use devLog before executing.
 
 **Files:**
+
 - `src/routes/settings/profile/+page.server.ts` (added devLog before auth redirect, fixed throw redirect)
 - `src/routes/snapshots/+page.server.ts` (added devLog before auth redirect, fixed throw redirect)
 - `src/routes/accounts/[slug]/edit/+page.server.ts` (added logError before error 404, devLog before validation fails and redirect)
@@ -844,6 +1019,7 @@ feat(ux): spa-style quick-add balance on accounts list
 - `.planning/quick/20-add-logging-to-all-fail-error-and-redire/020-SUMMARY.md` (created)
 
 **Commit:**
+
 ```
 feat(logging): add logging to all fail, error, and redirect calls
 
@@ -866,6 +1042,7 @@ feat(logging): add logging to all fail, error, and redirect calls
 **Summary:** Added comprehensive Winston-based logging to ALL remaining server operations (authentication, account operations, settings). All form actions now log form data at entry point with automatic sensitive field masking, successful operations log with relevant context, and errors use logError for security auditing. This completes full logging coverage across the entire application.
 
 **Files:**
+
 - `src/routes/accounts/[slug]/+page.server.ts` (added logFormData import, deleteBalance logging)
 - `src/routes/accounts/[slug]/balances/[balanceSlug]/edit/+page.server.ts` (added logFormData import, comprehensive edit balance logging)
 - `src/routes/logout/+page.server.ts` (added logger imports, logout logging)
@@ -879,6 +1056,7 @@ feat(logging): add logging to all fail, error, and redirect calls
 - `.planning/quick/19-add-comprehensive-logging-to-all-remaini/019-SUMMARY.md` (created)
 
 **Commit:**
+
 ```
 feat(logging): add comprehensive logging to all remaining server operations
 
@@ -903,12 +1081,14 @@ feat(logging): add comprehensive logging to all remaining server operations
 **Summary:** Added comprehensive Winston-based logging to all account-related server operations (quick-add balance, edit account, close account). All form actions now log form data at entry point, successful operations log with relevant context, and errors are logged with appropriate details. This follows the logging patterns established in quick-014 and quick-015.
 
 **Files:**
+
 - `src/routes/accounts/+page.server.ts` (added logFormData, success logging, conflict logging)
 - `src/routes/accounts/[slug]/edit/+page.server.ts` (added logger imports, load logging, form data logging, validation logging, success logging)
 - `src/routes/accounts/[slug]/delete/+page.server.ts` (added logger imports, load logging, close action logging, error logging)
 - `.planning/quick/18-add-comprehensive-logging-to-accounts-ar/018-SUMMARY.md` (created)
 
 **Commit:**
+
 ```
 feat(logging): add comprehensive logging to account operations
 
@@ -929,12 +1109,14 @@ feat(logging): add comprehensive logging to account operations
 **Summary:** Replaced browser confirm() alert with custom ConfirmationModal component for balance deletion. Fixed Svelte 5 use:enhance callback syntax for proper form handling. Added realtime page invalidation after deletion and success/error feedback messages.
 
 **Files:**
+
 - `src/routes/accounts/[slug]/+page.svelte` (fixed enhance callbacks, added modal)
 - `src/routes/accounts/[slug]/+page.server.ts` (return success message instead of redirect)
 - `src/lib/components/ConfirmationModal.svelte` (created)
 - `src/routes/+error.svelte` (created custom error page)
 
 **Commit:**
+
 ```
 fix(delete-balance): replace alert with modal and add realtime updates
 
@@ -953,11 +1135,13 @@ fix(delete-balance): replace alert with modal and add realtime updates
 **Summary:** Added documentation rules to forbid database IDs in URLs, requiring nanoid-based slugs for all user-facing routes. Updated CLAUDE.md and GEMINI.md with security-focused URL slug rules and created architecture documentation for implementation guidance.
 
 **Files:**
+
 - `CLAUDE.md` (added "## 🔗 URL SLUGS" section)
 - `GEMINI.md` (added "## 🔗 URL SLUGS" section)
 - `docs/architecture/url-slugs.md` (created)
 
 **Commit:**
+
 ```
 docs(url-slugs): add nanoid-based URL slug rules
 
@@ -974,10 +1158,12 @@ docs(url-slugs): add nanoid-based URL slug rules
 **Summary:** Created environment-aware logging utility for development debugging. Added logging to account creation action to help debug form submission issues. Logger automatically masks sensitive fields (passwords, tokens, secrets) and suppresses output in production mode.
 
 **Files:**
+
 - `src/lib/utils/logger.ts` (created)
 - `src/routes/accounts/create/+page.server.ts` (updated)
 
 **Commit:**
+
 ```
 feat(logging): add environment-aware development logging system
 
@@ -995,11 +1181,13 @@ feat(logging): add environment-aware development logging system
 **Summary:** Moved navigation component from bottom to top of page and added breadcrumb trail for better UX. Implemented independent scrolling for main content area so navigation stays visible when viewing long content. All changes maintain the terminal aesthetic.
 
 **Files:**
+
 - `src/app.css` (added scrollable-content utility)
 - `src/lib/components/navigation.svelte` (added breadcrumbs, removed bottom positioning)
 - `src/routes/+layout.svelte` (moved nav to top, added scrollable wrapper)
 
 **Commit:**
+
 ```
 feat(ui): move navigation to top with breadcrumbs and scrollable content
 
@@ -1018,10 +1206,12 @@ feat(ui): move navigation to top with breadcrumbs and scrollable content
 **Summary:** Updated database setup and workflow guides to include `db:push` and `db:studio` commands. Clearly defined the "Tiered Environment Strategy" differences between development (Loose Mode) and production (Strict Encryption).
 
 **Files:**
+
 - `docs/setup/database.md` (updated)
 - `docs/setup/database-workflow.md` (updated)
 
 **Commit:**
+
 ```
 docs: expand database guides with db:push and db:studio
 
@@ -1038,9 +1228,11 @@ docs: expand database guides with db:push and db:studio
 **Summary:** Resolved 5 Svelte 5 `state_referenced_locally` warnings in the account creation page by decoupling `$state` initialization from props and using `$effect` for synchronization. This ensures proper reactivity and adheres to Svelte 5 best practices.
 
 **Files:**
+
 - `src/routes/accounts/create/+page.svelte` (updated)
 
 **Commit:**
+
 ```
 fix(ui): resolve Svelte 5 state warnings in account creation
 
@@ -1056,10 +1248,12 @@ fix(ui): resolve Svelte 5 state warnings in account creation
 **Summary:** Updated `CLAUDE.md` and `GEMINI.md` with a new `🔍 QA & VALIDATION` section requiring TypeScript checks and full test suite execution after significant changes. Refined `ABSOLUTE RULES` to allow these necessary validation steps while maintaining restrictions on general command execution.
 
 **Files:**
+
 - `CLAUDE.md` (updated)
 - `GEMINI.md` (updated)
 
 **Commit:**
+
 ```
 docs: add QA & validation requirements to agent guidelines
 
@@ -1075,12 +1269,14 @@ docs: add QA & validation requirements to agent guidelines
 **Summary:** Deleted the legacy `scripts/init-db.ts` script as it has been replaced by the tiered environment strategy (Drizzle migrations + seed script). Updated `docs/setup/database.md` and architecture reports to reflect the new database initialization workflow.
 
 **Files:**
+
 - `scripts/init-db.ts` (deleted)
 - `docs/setup/database.md` (updated)
 - `docs/architecture/environment-strategy-plan.md` (updated)
 - `docs/architecture/environment-strategy-report.md` (updated)
 
 **Commit:**
+
 ```
 chore: remove legacy init-db script and update documentation
 

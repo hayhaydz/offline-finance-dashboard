@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 import { relations } from 'drizzle-orm';
 
@@ -94,12 +94,58 @@ export const systemMetadata = sqliteTable('system_metadata', {
 	value: text('value').notNull()
 });
 
+export const snapshots = sqliteTable('snapshots', {
+	id: integer('id').primaryKey({ autoIncrement: true }),
+	slug: text('slug').notNull().unique(),
+	userId: integer('user_id').notNull().references(() => users.id),
+	snapshotDate: text('snapshot_date').notNull(), // ISO 8601 date only (YYYY-MM-DD)
+
+	// Primary financial data
+	netWorthInCents: integer('net_worth_in_cents').notNull(),
+	totalAssetsInCents: integer('total_assets_in_cents').notNull(),
+	totalLiabilitiesInCents: integer('total_liabilities_in_cents').notNull(),
+	totalAllocatedInCents: integer('total_allocated_in_cents').notNull().default(0),
+
+	// JSON breakdowns for point-in-time preservation
+	accountsBreakdown: text('accounts_breakdown', { mode: 'json' }).$type<{
+		snapshotTakenAt: string;
+		accounts: Array<{
+			accountId: number;
+			accountSlug: string;
+			name: string;
+			type: string;
+			category: 'asset' | 'liability';
+			balanceInCents: number;
+			includedInTotal: boolean;
+		}>;
+		totalByType: Record<string, number>;
+	}>(),
+	goalsBreakdown: text('goals_breakdown', { mode: 'json' }).$type<{
+		goals: Array<{
+			goalId: number;
+			goalSlug: string;
+			name: string;
+			targetAmountInCents: number;
+			currentAllocation: number;
+			isEmergencyFund: boolean;
+		}>;
+		totalAllocated: number;
+	}>(),
+
+	notes: text('notes'),
+	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
+}, (table) => ({
+	userIdx: index('idx_snapshots_user_date').on(table.userId, table.snapshotDate),
+	slugIdx: index('idx_snapshots_slug').on(table.slug),
+}));
+
 // Define relations for Drizzle ORM
 export const usersRelations = relations(users, ({ many }) => ({
 	sessions: many(sessions),
 	backupCodes: many(backupCodes),
 	accounts: many(accounts),
-	goals: many(goals)
+	goals: many(goals),
+	snapshots: many(snapshots)
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -146,6 +192,13 @@ export const accountBalancesRelations = relations(accountBalances, ({ one }) => 
 	})
 }));
 
+export const snapshotsRelations = relations(snapshots, ({ one }) => ({
+	user: one(users, {
+		fields: [snapshots.userId],
+		references: [users.id]
+	})
+}));
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type BackupCode = typeof backupCodes.$inferSelect;
@@ -153,4 +206,5 @@ export type Account = typeof accounts.$inferSelect;
 export type AccountBalance = typeof accountBalances.$inferSelect;
 export type Goal = typeof goals.$inferSelect;
 export type GoalAllocation = typeof goalAllocations.$inferSelect;
+export type Snapshot = typeof snapshots.$inferSelect;
 export type SystemMetadata = typeof systemMetadata.$inferSelect;

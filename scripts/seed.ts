@@ -9,10 +9,11 @@ import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as schema from '../src/lib/db/schema.js';
 import { hashPassword } from '../src/lib/auth/password.js';
 import { generateTOTPSecret, encryptTOTPSecret } from '../src/lib/auth/mfa.js';
-import { eq } from 'drizzle-orm';
+import { eq, and, desc, isNull } from 'drizzle-orm';
 import crypto from 'crypto';
 import fs from 'fs';
 import { nanoid } from 'nanoid';
+import { devLog } from '../src/lib/utils/logger.js';
 
 // 1. Environment & Path Setup
 const appEnv = process.env.APP_ENV || 'development';
@@ -435,6 +436,117 @@ async function main() {
     const percentage = Math.round((totalAllocated / goal.targetAmountInCents) * 100);
     console.log(`  ✓ Allocated £${totalAllocated / 100} to "${goal.name}" (${percentage}% of target)`);
   }
+  }
+
+  // 11. Create sample snapshots for historical tracking
+  const existingSnapshots = await db.query.snapshots.findMany({
+    where: eq(schema.snapshots.userId, userId)
+  });
+
+  if (existingSnapshots.length > 0) {
+    console.log(`\n⚠️  ${existingSnapshots.length} snapshots already exist. Skipping snapshot creation.`);
+  } else {
+    console.log('\n📸 Creating sample snapshots...');
+
+    const snapshotDates = [
+      '2025-11-01',
+      '2025-12-01',
+      '2026-01-01',
+      '2026-02-01'
+    ];
+
+    for (const date of snapshotDates) {
+      // Check if snapshot for this date already exists
+      const existing = await db.query.snapshots.findFirst({
+        where: and(
+          eq(schema.snapshots.userId, userId),
+          eq(schema.snapshots.snapshotDate, date)
+        )
+      });
+
+      if (existing) {
+        devLog('seed', `Snapshot for ${date} already exists, skipping`);
+        continue;
+      }
+
+      // Calculate current financial state
+      const allAccounts = await db.query.accounts.findMany({
+        where: eq(schema.accounts.userId, userId),
+        with: {
+          balances: {
+            orderBy: [desc(schema.accountBalances.asOfDate)],
+            limit: 1
+          }
+        }
+      });
+
+      const allGoals = await db.query.goals.findMany({
+        where: and(
+          eq(schema.goals.userId, userId),
+          isNull(schema.goals.deletedAt)
+        )
+      });
+
+      // Calculate totals
+      const openAccounts = allAccounts.filter(a => !a.closedAt);
+      const totalAssets = openAccounts
+        .filter(a => a.category === 'asset')
+        .reduce((sum, a) => sum + (a.balances[0]?.balanceInCents || 0), 0);
+
+      const totalLiabilities = openAccounts
+        .filter(a => a.category === 'liability')
+        .reduce((sum, a) => sum + (a.balances[0]?.balanceInCents || 0), 0);
+
+      const netWorth = totalAssets + totalLiabilities;
+      const totalAllocated = allGoals.reduce((sum, g) => sum + g.currentAllocation, 0);
+
+      // Build accounts breakdown
+      const accountsBreakdown = {
+        snapshotTakenAt: new Date().toISOString(),
+        accounts: openAccounts.map(a => ({
+          accountId: a.id,
+          accountSlug: a.slug,
+          name: a.name,
+          type: a.type,
+          category: a.category as 'asset' | 'liability',
+          balanceInCents: a.balances[0]?.balanceInCents || 0,
+          includedInTotal: !a.excludedFromNetWorth
+        })),
+        totalByType: openAccounts.reduce((acc, a) => {
+          acc[a.type] = (acc[a.type] || 0) + (a.balances[0]?.balanceInCents || 0);
+          return acc;
+        }, {} as Record<string, number>)
+      };
+
+      // Build goals breakdown
+      const goalsBreakdown = {
+        goals: allGoals.map(g => ({
+          goalId: g.id,
+          goalSlug: g.slug,
+          name: g.name,
+          targetAmountInCents: g.targetAmountInCents,
+          currentAllocation: g.currentAllocation,
+          isEmergencyFund: g.isEmergencyFund
+        })),
+        totalAllocated
+      };
+
+      await db.insert(schema.snapshots).values({
+        slug: nanoid(16),
+        userId,
+        snapshotDate: date,
+        netWorthInCents: netWorth,
+        totalAssetsInCents: totalAssets,
+        totalLiabilitiesInCents: totalLiabilities,
+        totalAllocatedInCents: totalAllocated,
+        accountsBreakdown,
+        goalsBreakdown,
+        notes: `Auto-generated snapshot for ${date}`
+      });
+
+      devLog('seed', `Created snapshot for ${date}`, { netWorth, totalAssets, totalLiabilities });
+      console.log(`  ✓ Created snapshot for ${date}`);
+    }
   }
 
   console.log('\n✅ Seed complete!');

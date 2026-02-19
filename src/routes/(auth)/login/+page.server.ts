@@ -1,4 +1,4 @@
-import { fail, redirect } from '@sveltejs/kit';
+import { fail, redirect, error } from '@sveltejs/kit';
 import { db } from '$lib/db/client';
 import { users, sessions, backupCodes } from '$lib/db/schema';
 import { verifyPassword } from '$lib/auth/password';
@@ -8,10 +8,62 @@ import { devLog, logError, logFormData } from '$lib/utils/logger';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 
-export async function load() {
-	// If user is already logged in, hooks.server.ts will redirect to /app
-	// We just return empty data here
-	return {};
+export async function load({ cookies }) {
+	const appEnv = process.env.APP_ENV || 'unknown';
+	const devAutoLogin = process.env.DEV_AUTO_LOGIN === 'true';
+
+	// Auto-login only works in development with DEV_AUTO_LOGIN enabled
+	if (appEnv === 'development' && devAutoLogin) {
+		devLog('login', 'Development auto-login initiated');
+
+		// Find the admin user (created by seed script)
+		const adminUser = await db.query.users.findFirst({
+			where: eq(users.username, 'admin')
+		});
+
+		if (!adminUser) {
+			logError('login', 'Admin user not found for auto-login');
+			// Return autoLoginEnabled flag but allow normal login to proceed
+			return { autoLoginEnabled: true, autoLoginFailed: true };
+		}
+
+		// Invalidate any existing sessions for this user (single session policy)
+		await db.delete(sessions).where(eq(sessions.userId, adminUser.id));
+
+		// Generate opaque session token (32 random bytes as hex string)
+		const sessionToken = crypto.randomBytes(32).toString('hex');
+
+		// Create session in database
+		await db.insert(sessions).values({
+			token: sessionToken,
+			userId: adminUser.id,
+			createdAt: new Date(),
+			lastActivity: new Date()
+		});
+
+		// Set HTTP-only cookie with session token
+		cookies.set('session', sessionToken, {
+			path: '/',
+			httpOnly: true,
+			sameSite: 'strict',
+			secure: false, // Development - no HTTPS
+			maxAge: 60 * 60 * 24 * 30 // 30 days in development
+		});
+
+		devLog('login', 'Development auto-login successful', {
+			username: adminUser.username,
+			userId: adminUser.id,
+			sessionMaxAge: '30 days'
+		});
+
+		// Redirect to home page
+		throw redirect(302, '/');
+	}
+
+	// Return auto-login status for UI indicator
+	return {
+		autoLoginEnabled: appEnv === 'development' && devAutoLogin
+	};
 }
 
 export const actions = {
@@ -158,7 +210,7 @@ export const actions = {
 			usedBackupCode: !!usedBackupCodeId
 		});
 
-		// Redirect to app
-		throw redirect(302, '/accounts');
+		// Redirect to home page
+		throw redirect(302, '/');
 	}
 };
