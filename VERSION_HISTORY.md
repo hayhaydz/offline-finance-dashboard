@@ -1,3 +1,42 @@
+## [2026-02-21 13:14] — Phase 06-01: Tabbed Settings Page with Hash Navigation (COMPLETED)
+
+**Summary:** Created tabbed settings page with horizontal navigation bar, URL hash-based tab state persistence, MFA status display, and monthly expenses reference data using Svelte 5 runes.
+
+**Files:**
+
+- `src/routes/settings/+page.svelte`: Replaced placeholder with horizontal tab bar, URL hash navigation, four content panels (Profile, Security, Reference, Data)
+- `src/routes/settings/+page.server.ts`: Added MFA status detection (mfaSetupToken null check) and monthly expenses query from system_metadata
+
+**Suggested Commit:**
+
+```
+feat(06-settings-01): create tabbed settings page with hash navigation
+
+- Implement horizontal tab bar with four tabs: Profile, Security, Reference, Data
+- Add URL hash-based navigation (#profile, #security, #reference, #data)
+- Support browser back/forward navigation with hashchange event listener
+- Use Svelte 5 runes ($state, $derived) for reactive tab state
+- Terminal aesthetic: black borders, monospace font, bracket-link buttons
+- Active tab indicator with bg-gray-100 and font-bold
+- Display MFA status (from data.mfaEnabled) in Security tab
+- Display monthly expenses (from data.monthlyExpensesInPence) in Reference tab
+- Profile tab shows user info with link to /settings/profile
+```
+
+**Context:**
+- Tab state management using Svelte 5 `$state` rune for reactive activeTab variable
+- URL hash synchronization implemented with hashchange event listener for browser back/forward support
+- Tab configuration array with id and label for Profile, Security, Reference, Data
+- Terminal aesthetic applied: border-black, bg-gray-100, font-bold classes for active indicator
+- Accessibility ARIA attributes added (role="tab", aria-selected, aria-controls)
+- MFA status detection: query user.mfaSetupToken - null means MFA setup complete (enabled)
+- Monthly expenses query: fetch from system_metadata table with key 'monthly_expenses'
+- Data type handling: parse string value as integer (pence) with NaN check
+- Row-level security: query uses eq(users.id, locals.user.id) for user isolation
+- TypeScript compilation passes with 0 errors
+
+---
+
 ## [2026-02-19 22:06] — Quick Task 034: Convert Snapshots Table to CSS Grid Layout (COMPLETED)
 
 **Summary:** Replaced HTML table structure with CSS grid layout and updated columns to show Assets and Liabilities instead of Accounts and Goals counts.

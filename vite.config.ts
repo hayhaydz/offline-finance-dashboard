@@ -30,7 +30,8 @@ export default defineConfig({
 				'**/VERSION_HISTORY.md',
 				'**/docs/**',
 				'**/.planning/**',
-				'**/*.log'
+				'**/*.log',
+        '**/CLAUDE.md'
 			]
 		}
 	}

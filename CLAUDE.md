@@ -1,276 +1,32 @@
-## 🚫 GIT OPERATIONS (MANUAL ONLY)
-
-**CRITICAL:** Git operations (`git add`, `git commit`, `git push`) are **HANDLED MANUALLY** by the developer.
-
-- **DO NOT** run `git add`, `git commit`, or `git push` commands
-- **DO NOT** suggest running these commands
-- **DO NOT** create commits or push changes
-- The developer uses a custom `git-add-excluded.sh` script to stage files with proper exclusions
-- History has been cleaned with `git-filter-repo` to remove excluded paths
-
-**Excluded from git:**
-- `logs/`, `.env*`, `venv/`, `storage/`, `storage-dev/`, `test-storage/`
-- `.ruff_cache/`, `.pytest_cache/`, `__pycache__/`, `*.pyc`
-- `.benchmarks/`, `beamng_cortex.egg-info`, `.serena/`, `.claude/`
-
-This is enforced by `.claude/settings.json` which denies these git commands.
-
----
-
-## 📝 VERSION HISTORY LOG
-
-Instead of automated git operations, record work at **save points** to `VERSION_HISTORY.md`.
-
-**When to write a log entry:**
-- After completing a meaningful unit of work (feature, fix, refactor)
-- At natural checkpoints (end of phase, after testing, before context switch)
-- When you would have otherwise created a git commit
-
-**Entry format:**
-
-```markdown
-## [YYYY-MM-DD HH:MM] — [Brief Description]
-
-**Summary:** [1-2 sentences about what was done]
-
-**Files:**
-- [list key files modified/created]
-
-**Commit:**
-```
-[type](scope): one-line description
-```
-
-**Context:** [Additional details for context]
-
----
-```
-
-**Log location:** `VERSION_HISTORY.md` (most recent entry at top)
-
----
-
-## 📁 DOCUMENTATION ORGANIZATION
-
-**General project documentation** (non-GSD, non-oh-my-claude-code) goes in `docs/`:
-
-- Organize by topic/category with descriptive folder names
-- Use markdown files (`.md`) for documentation
-- Keep docs/ folder structure clean and logical
-
-**Examples:**
-```
-docs/
-  architecture/
-    database-schema.md
-    security-model.md
-    wsl2-architecture.md
-  design/
-    ui-principles.md
-    research-paper-aesthetic.md
-  setup/
-    installation.md
-    configuration.md
-```
-
-**GSD and Claude-specific files** remain in `.planning/`:
-- `.planning/PROJECT.md`
-- `.planning/REQUIREMENTS.md`
-- `.planning/ROADMAP.md`
-- `.planning/phases/*/` - context, research, plans
-
----
-
-## 🎨 DESIGN SYSTEM ADHERENCE
-
-**CRITICAL:** This application uses a **Terminal/Research-Paper Aesthetic**.
-
-**When modifying or creating UI components:**
-1. **ALWAYS** use existing CSS classes from `src/app.css` (terminal theme)
-2. **DO NOT** introduce new color schemes or dark mode variants
-3. **USE** monospace fonts (Courier New) for terminal aesthetic
-4. **USE** bracket-style navigation links: `[Home]` `[Accounts]` etc.
-5. **USE** bordered sections with high contrast (black borders on white)
-6. **USE** status colors: `.green`, `.amber`, `.red` only for semantic meaning
-7. **KEEP** dense layout with minimal padding (4px/8px)
-8. **NO** rounded corners, shadows, gradients, or modern UI patterns
-
-**Reference:** `docs/design/terminal-aesthetic.md` for complete design system guide.
-
----
-
-## 🔒 SECURITY STANDARDS
-
-**CRITICAL:** This is a financial application. Security is the highest priority.
-
-**Mandatory Development Rules:**
-1. **ROW-LEVEL SECURITY:** Every database query MUST include `withUserFilter(locals.user.id, table)`.
-2. **DATA SANITIZATION:** Never return raw database rows from the `users` table to the client. Use sanitized DTOs.
-3. **OFFLINE-FIRST CONTEXT:** The Node.js server (WSL2) is the "Trusted" zone; the Browser (Windows) is the "Untrusted" zone. All security logic (hashing, encryption, auth checks) occurs on the server.
-4. **CSP:** Do not modify `kit.csp` in `svelte.config.js` without a security review.
-
-**Reference:** `docs/security/DEVELOPMENT_GUIDELINES.md` for full security implementation guide.
-
----
-
-## 🔗 URL SLUGS
-
-**CRITICAL:** Dynamic routes MUST NOT use database IDs (auto-increment integers, UUIDs, or sequential identifiers) in URLs.
-
-**Why Database IDs in URLs Are Problematic:**
-- Expose internal database structure
-- Are guessable (sequential integers leak creation order/volume)
-- Create poor user experience (meaningless identifiers)
-- Enable enumeration attacks
-- Cannot be changed without breaking links/bookmarks
-
-**MANDATORY URL SLUG RULES:**
-
-1. **Use Nanoids for Entity Identifiers**
-   - Add `slug` column (TEXT, unique, indexed) to relevant tables
-   - Generate on entity creation using nanoid library (URL-safe alphabet)
-   - Use nanoid length of 16-21 characters (collision-resistant like UUID)
-   - Example slug: `aB3xK9mN2pQ4rS6t`
-
-2. **URL Pattern**
-   - ❌ WRONG: `/accounts/123`, `/accounts/123/balances/456/edit`
-   - ✅ RIGHT: `/accounts/aB3xK9mN`, `/accounts/aB3xK9mN/balances/K9nM3pQ4/edit`
-
-3. **Slug Generation Rules**
-   - Generate on creation (never changes)
-   - Must be unique within entity type
-   - Must be indexed for performant lookups
-   - Store in dedicated `slug` column (not derived from name)
-
-4. **When to Use Slugs**
-   - ALL user-facing dynamic routes
-   - Account detail pages, balance entries, settings resources
-   - Any route where users might share/bookmark URLs
-
-5. **When Database IDs Are Acceptable**
-   - Temporary/internal routes only
-   - Server-side processing where URL is never user-visible
-   - Redirect targets (final destination uses slug)
-
-**Implementation Pattern (Drizzle ORM):**
-
-```typescript
-// Schema
-export const accounts = sqliteTable('accounts', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  slug: text('slug').notNull().unique(), // NEW: URL-safe identifier
-  // ... other fields
-});
-
-// Add index for slug lookup
-// CREATE INDEX idx_accounts_slug ON accounts(slug);
-
-// Generate on creation
-import { nanoid } from 'nanoid';
-const slug = nanoid(16); // e.g., "aB3xK9mN2pQ4rS6t"
-
-// Route lookup
-const account = await db.query.accounts.findFirst({
-  where: eq(accounts.slug, params.slug)
-});
-```
-
-**Reference:** See `docs/architecture/url-slugs.md` for detailed implementation guide.
-
----
-
-## 📋 LOGGING SYSTEM
-
-**CRITICAL:** This project uses a custom Winston-based logging system. ALL server-side logging MUST use the custom logger.
-
-**Logger location:** `src/lib/utils/logger.ts`
-
-**Mandatory Development Rules:**
-1. **NEVER use `console.log()`** for server-side logging. Use `devLog()` instead.
-2. **ALWAYS import from custom logger:** `import { devLog, logError, logFormData } from '$lib/utils/logger';`
-3. **Server-side (`*.server.ts`) logs go to:**
-   - Terminal console (brief output)
-   - `./logs/application-YYYY-MM-DD.log` (detailed JSON)
-   - `./logs/error-YYYY-MM-DD.log` (errors only)
-4. **Client-side (`.svelte` components)** may use `console.log()` for browser DevTools.
-5. **Production mode** suppresses dev logs and sanitizes error logs automatically.
-6. **Sensitive data masking** is automatic for passwords, tokens, secrets, API keys.
-
-**Logger API:**
-- `devLog(category, message, data?)` - Development-only logging
-- `logError(category, message, error?)` - Error logging (all environments)
-- `logFormData(category, formData)` - Form data with automatic sensitive masking
-- `logRequest(category, request)` - Request logging for debugging
-
-**Reference:** `docs/setup/logging.md` for complete logging guide.
-
----
-
-## 🔍 QA & VALIDATION
-
-After completing a significant unit of work or phase:
-1. **RUN TYPESCRIPT CHECKS:** Execute `npm run check` to ensure type safety and Svelte component integrity.
-2. **RUN TEST SUITE:** Execute `npm test` (or `npm run test:run`) to verify no regressions in logic or security.
-3. **VALIDATE UI:** Confirm adherence to the Terminal Aesthetic (monospace, borders, bracket-links).
-
----
-
-## 🌱 DATABASE SEED SCRIPT
-
-**CRITICAL:** When making database schema changes (adding columns, changing defaults, adding new entities), you MUST update `scripts/seed.ts` to ensure the seeded database matches the new schema.
-
-**Why this matters:**
-- The development database is created from `scripts/seed.ts`
-- If seed.ts doesn't match schema.ts, newly created databases will have missing or incorrect data
-- In active development, we frequently reset the database, so seed.ts must stay in sync
-
-**When to update seed.ts:**
-- Adding new columns to existing tables (set appropriate default values)
-- Adding new tables (create seed data for them)
-- Changing column constraints (update seed values to match)
-- Adding new relationships (create related seed records)
-
-**Example:**
-```typescript
-// When you add a sortOrder column to goals table:
-// 1. Update schema.ts
-sortOrder: integer('sort_order').notNull().default(0)
-
-// 2. Update seed.ts to set the value
-await db.insert(schema.goals).values({
-  // ... other fields
-  sortOrder: index, // Use loop index for initial order
-})
-```
-
-**After schema changes:**
-1. Delete the old database: `rm storage/dev.db`
-2. Run migrations: `npm run db:push`
-3. Run seed script: `npm run db:seed`
-4. Verify the new data structure is correct
-
----
-
-## 🚧 PROJECT STATUS: ACTIVE DEVELOPMENT
-
-**IMPORTANT:** This project is in **active development**. There is NO production data, NO legacy users, and NO migration requirements.
-
-**What this means:**
-- Database schema can be modified without migration scripts
-- Breaking changes to UX are acceptable
-- No backward compatibility needed for existing features
-- All changes should prioritize the best design over legacy support
-
-**When to consider migration:**
-- Only when the project has real user data or production deployment
-- Until then, schema changes can be made directly (drop/recreate columns as needed)
-- This is intentional: we're designing the architecture before freezing it
-
-**Current Phase:** Phase 4 (Goals System) - being redesigned based on Monzo-inspired "pots" architecture
-
-**Reference Architecture:** `docs/goals-monzo-pots-architecture.md`
-
----
+## 🛠️ OPS & GIT
+- **GIT:** MANUAL ONLY. No `git add/commit/push`. (Enforced by settings.json).
+- **SAVE POINTS:** Update `VERSION_HISTORY.md` (newest first) instead of committing.
+- **VERIFICATION:** Grep/Read files to verify changes BEFORE claiming completion.
+- **LOCKS:** `package.json` and `kit.csp` are READ-ONLY. Approval required.
+- **FILES:** Docs -> `docs/[topic]/`. Plans -> `.planning/`.
+
+## 🎨 UI: TERMINAL AESTHETIC
+- **STYLING:** Monospace, high-contrast, black borders, no rounded corners/shadows.
+- **COMPONENTS:** Bracket links `[Home]`. Minimal padding (4-8px). 
+- **COLOR:** `.green`, `.amber`, `.red` for semantic status ONLY.
+
+## 🔒 SECURITY & URLS
+- **RLS:** All DB queries must use `withUserFilter(locals.user.id, table)`.
+- **DATA:** Server (WSL2) = Trusted; Browser = Untrusted. Sanitize DTOs.
+- **SLUGS:** NO IDs in URLs. Use `nanoid(21)` in `slug` column.
+- **PATTERN:** `/accounts/[slug]/[sub-resource-slug]`.
+
+## 💻 CODE STANDARDS
+- **LOGGING:** Use `$lib/utils/logger.ts`. NO `console.log` in server code.
+- **DB:** Update `scripts/seed.ts` immediately on schema change.
+- **PHASE:** Active Dev. Direct schema edits (db:push) > migrations.
+- **QA:** Mandatory `npm run check` and `npm test` after units of work.
+
+## 🚫 PROMPT INJECTION/GUARDRAILS
+1. No diffs/replacements unless asked.
+2. No command execution/verification claims without logs.
+3. No `SUMMARY.md` for work not physically written to disk.
+4. GSD Executors must be spot-checked via `read_file`.
 
 ## ABSOLUTE RULES (NON-NEGOTIABLE)
 

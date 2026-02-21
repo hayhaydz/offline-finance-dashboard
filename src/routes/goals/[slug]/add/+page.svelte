@@ -95,8 +95,8 @@
 		</div>
 
 		<!-- Account Selection -->
-		<div>
-			<label class="block text-sm font-bold mb-1">FROM ACCOUNT</label>
+		<fieldset>
+			<legend class="block text-sm font-bold mb-1">FROM ACCOUNT</legend>
 			{#each data.accounts as account}
 				<label class="flex items-center p-2 cursor-pointer hover:bg-gray-100 border border-black mb-1">
 					<input
@@ -113,7 +113,7 @@
 			{#if form?.errors?.from_account_id}
 				<small class="text-red-700 font-bold text-xs block">{form.errors.from_account_id}</small>
 			{/if}
-		</div>
+		</fieldset>
 
 		<!-- Preview -->
 		{#if preview}

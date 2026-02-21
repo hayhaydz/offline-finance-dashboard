@@ -1,18 +1,10 @@
 <script lang="ts">
 	import { formatCurrency } from '$lib/utils/currency';
-	import GoalCard from '$lib/components/GoalCard.svelte';
+	import { getStaleness } from '$lib/utils/staleness';
+	import GoalRow from '$lib/components/GoalRow.svelte';
 	import type { Goal } from '$lib/db/schema';
-	import { invalidate } from '$app/navigation';
 
-	let { data } = $props<{
-		data: {
-			goals: Goal[];
-			readyToAssign: number;
-			totalAssets: number;
-			totalAllocated: number;
-			user: { id: number; username: string; createdAt: Date };
-		};
-	}>();
+	let { data } = $props();
 
 	// Reactive goals array for client-side reordering
 	let goals = $state<Goal[]>([]);
@@ -22,6 +14,24 @@
 	$effect(() => {
 		goals = [...data.goals];
 	});
+
+	// Reorder mode state
+	let reorderMode = $state(false);
+	let archiveMode = $state(false);
+
+	// Toggle reorder mode
+	function toggleReorderMode() {
+		reorderMode = !reorderMode;
+		// Disable archive mode when enabling reorder mode
+		if (reorderMode) archiveMode = false;
+	}
+
+	// Toggle archive mode
+	function toggleArchiveMode() {
+		archiveMode = !archiveMode;
+		// Disable reorder mode when enabling archive mode
+		if (archiveMode) reorderMode = false;
+	}
 
 	// Move goal up or down (client-side fetch for smooth reordering)
 	async function moveGoal(slug: string, direction: 'up' | 'down', index: number) {
@@ -69,6 +79,40 @@
 			console.log(`[move${direction}] Complete`);
 		}
 	}
+
+	// Calculate progress percentage for a goal
+	function getProgress(goal: Goal): number {
+		return goal.targetAmountInCents > 0
+			? Math.min(100, Math.round((goal.currentAllocation / goal.targetAmountInCents) * 100))
+			: 0;
+	}
+
+	// Get progress color class based on percentage
+	function getProgressColor(progress: number): { text: string; bg: string } {
+		if (progress >= 70) return { text: 'text-green-700', bg: 'bg-green-700' };
+		if (progress >= 30) return { text: 'text-amber-600', bg: 'bg-amber-600' };
+		return { text: 'text-red-600', bg: 'bg-red-600' };
+	}
+
+	// Get emergency fund milestones display
+	function getEmergencyFundMilestones(goal: Goal) {
+		if (!goal.isEmergencyFund) return null;
+
+		const monthlyExpenses = goal.targetAmountInCents / 12;
+		const current = goal.currentAllocation;
+
+		return [
+			{ label: '1mo', achieved: current >= monthlyExpenses },
+			{ label: '3mo', achieved: current >= monthlyExpenses * 3 },
+			{ label: '6mo', achieved: current >= monthlyExpenses * 6 },
+			{ label: '12mo', achieved: current >= monthlyExpenses * 12 }
+		];
+	}
+
+	// Get staleness info for a goal
+	function getGoalStaleness(goal: Goal) {
+		return getStaleness(new Date(goal.updatedAt));
+	}
 </script>
 
 <!-- READY TO ASSIGN SECTION -->
@@ -84,50 +128,64 @@
 
 <!-- GOALS LIST SECTION -->
 <div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-	<span><span class={data.staleness.cssClass}>●</span> GOALS ({data.goals.length})</span>
-	<span class="text-xs text-gray-600">{data.staleness.label}</span>
+	<span>GOALS ({data.goals.length})</span>
+	<div class="flex gap-2">
+		<button
+			type="button"
+			onclick={toggleReorderMode}
+			class="bracket-link text-xs"
+		>
+			[{reorderMode ? 'Done' : 'Re-order'}]
+		</button>
+		<button
+			type="button"
+			onclick={toggleArchiveMode}
+			class="bracket-link text-xs"
+		>
+			[{archiveMode ? 'Done' : 'Archive'}]
+		</button>
+		<a href="/goals/archived" class="bracket-link text-xs">[View Archived]</a>
+		<a href="/goals/create" class="bracket-link text-xs">[+ Create New Goal]</a>
+	</div>
 </div>
 
-<!-- Action Buttons -->
-<div class="bg-gray-100 border-b border-black p-2 flex justify-end gap-2">
-	<a href="/goals/archived" class="bracket-link text-xs">[View Archived]</a>
-	<a href="/goals/create" class="bracket-link text-xs">[+ Create New Goal]</a>
-</div>
-
-<div class="border-b border-black p-2">
+<div class="p-0">
 	{#if data.goals.length === 0}
-		<p class="text-gray-600 text-xs mb-2">
+		<p class="text-gray-600 text-xs p-2">
 			No goals yet. Create your first goal to start tracking.
 		</p>
 	{:else}
-		{#each goals as goal, index}
-			<div class="border border-black p-2 mb-2 last:mb-0">
-				<!-- GoalCard with reorder buttons in header -->
-				<GoalCard {goal} showArchive={true}>
-					{#snippet headerActions()}
-						<button
-							type="button"
-							onclick={() => moveGoal(goal.slug, 'up', index)}
-							class="bracket-link text-xs"
-							title="Move up"
-							disabled={index === 0 || moving.has(goal.slug)}
-							class:opacity-50={index === 0 || moving.has(goal.slug)}
-						>
-							[↑]
-						</button>
-						<button
-							type="button"
-							onclick={() => moveGoal(goal.slug, 'down', index)}
-							class="bracket-link text-xs ml-1"
-							title="Move down"
-							disabled={index === goals.length - 1 || moving.has(goal.slug)}
-							class:opacity-50={index === goals.length - 1 || moving.has(goal.slug)}
-						>
-							[↓]
-						</button>
-					{/snippet}
-				</GoalCard>
-			</div>
-		{/each}
+		<table>
+			<thead>
+				<tr>
+					<th class="pl-2 text-left">Goal</th>
+					<th class="text-right pr-1">Progress</th>
+					<th class="text-right pr-1">Target</th>
+					<th class="text-right pr-1">Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each goals as goal, index}
+					{@const progress = getProgress(goal)}
+					{@const progressColor = getProgressColor(progress)}
+					{@const milestones = getEmergencyFundMilestones(goal)}
+					{@const staleness = getGoalStaleness(goal)}
+					<GoalRow
+						{goal}
+						{progress}
+						{progressColor}
+						{milestones}
+						{staleness}
+						archiveMode={archiveMode}
+						reorderMode={reorderMode}
+						canMoveUp={index > 0 && !moving.has(goal.slug)}
+						canMoveDown={index < goals.length - 1 && !moving.has(goal.slug)}
+						onMoveUp={() => moveGoal(goal.slug, 'up', index)}
+						onMoveDown={() => moveGoal(goal.slug, 'down', index)}
+						isMoving={moving.has(goal.slug)}
+					/>
+				{/each}
+			</tbody>
+		</table>
 	{/if}
 </div>

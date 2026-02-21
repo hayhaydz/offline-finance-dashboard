@@ -59,9 +59,6 @@
 				class="border border-black p-1 text-sm focus:outline-none"
 			/>
 			<p class="text-xs text-gray-600 mt-1 mb-0">Default is today. Edit if needed.</p>
-			{#if form?.errors?.snapshotDate}
-				<small class="text-red-700 font-bold text-xs block">{form.errors.snapshotDate}</small>
-			{/if}
 		</div>
 	</div>
 
@@ -146,9 +143,6 @@
 				placeholder="Add context for this snapshot..."
 				class="w-full border border-black p-1 text-sm focus:outline-none"
 			></textarea>
-			{#if form?.errors?.notes}
-				<small class="text-red-700 font-bold text-xs block">{form.errors.notes}</small>
-			{/if}
 		</div>
 	</div>
 </form>

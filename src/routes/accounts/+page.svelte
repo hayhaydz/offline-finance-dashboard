@@ -4,11 +4,13 @@
 	import { formatCurrency, formatAccountType as commonFormatAccountType, formatDate as commonFormatDate } from '$lib/utils/currency';
 	import { invalidateAll } from '$app/navigation';
 	import AccountFiltersModal from '$lib/components/AccountFiltersModal.svelte';
+	import AccountSortModal from '$lib/components/AccountSortModal.svelte';
 
 	let { data, form } = $props();
 
 	// Modal state
 	let filterModalOpen = $state(false);
+	let sortModalOpen = $state(false);
 
 	// Current filters from URL
 	const activeFilters = $derived({
@@ -323,8 +325,15 @@
 		{/if}
 	</div>
 	<div class="flex gap-2">
-		<button 
-			type="button" 
+		<button
+			type="button"
+			class="bracket-link text-xs"
+			onclick={() => sortModalOpen = true}
+		>
+			Sort
+		</button>
+		<button
+			type="button"
 			class="bracket-link text-xs"
 			onclick={() => filterModalOpen = true}
 		>
@@ -334,14 +343,14 @@
 	</div>
 </div>
 
-<div class="p-2">
+<div class="p-0">
 	{#if sortedAccounts.length === 0}
-		<p class="text-gray-600 text-xs mb-2">No accounts yet. Add your first account to start tracking.</p>
+		<p class="text-gray-600 text-xs p-2">No accounts yet. Add your first account to start tracking.</p>
 		<table>
 			<thead>
 				<tr>
-					<th class="text-left pl-1">Name</th>
-					<th class="text-left pl-1">Type</th>
+					<th class="pl-2 text-left">Name</th>
+					<th class="pl-2 text-left">Type</th>
 					<th class="text-right pr-1">Balance</th>
 				</tr>
 			</thead>
@@ -352,45 +361,28 @@
 			</tbody>
 		</table>
 	{:else}
-		<!-- Sort dropdown -->
-		<div class="mb-2">
-			<label for="sort" class="font-bold text-xs mr-2">Sort by:</label>
-			<select
-				id="sort"
-				bind:value={sortBy}
-				class="border border-black p-1 font-terminal text-sm focus:outline-none"
-			>
-				<option value="">Default (newest first)</option>
-				<option value="name">Name</option>
-				<option value="type">Type</option>
-				<option value="institution">Institution</option>
-				<option value="balance">Balance</option>
-				<option value="updated">Last Updated</option>
-			</select>
-		</div>
-
 		<table>
 			<thead>
 				<tr>
-					<th class="text-left pl-1">Name</th>
-					<th class="text-left pl-1">Type</th>
-					<th class="text-left pl-1">Institution</th>
-					<th class="text-right pl-1 pr-4">Balance</th>
+					<th class="pl-2 text-left">Name</th>
+					<th class="pl-2 text-left">Type</th>
+					<th class="pl-2 text-left">Institution</th>
+					<th class="text-right pr-1">Balance</th>
 					<th class="text-right pr-1">Last Updated</th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each sortedAccounts as account}
-					<tr>
-						<td class="pl-1">
+					<tr class="border-b border-gray-200 last:border-b-0">
+						<td class="pl-2 text-sm py-2">
 							<a href="/accounts/{account.slug}" class="bracket-link" class:line-through={account.closedAt}>{account.name}</a>
 							{#if account.closedAt}
 								<span class="text-gray-600 text-xs"> (closed)</span>
 							{/if}
 						</td>
-						<td class="pl-1" class:line-through={account.closedAt}>{formatAccountType(account.type)}</td>
-						<td class="pl-1" class:line-through={account.closedAt}>{account.institution || '-'}</td>
-						<td class="text-right pl-1 pr-4" class:line-through={account.closedAt}>
+						<td class="pl-2 text-sm py-2" class:line-through={account.closedAt}>{formatAccountType(account.type)}</td>
+						<td class="pl-2 text-sm py-2" class:line-through={account.closedAt}>{account.institution || '-'}</td>
+						<td class="text-right pr-1 text-sm py-2" class:line-through={account.closedAt}>
 							{#if account.currentBalance !== null}
 								<span class={account.category === 'liability' ? 'text-red-700' : 'text-green-700'}>
 									{formatCurrency(account.currentBalance)}
@@ -399,7 +391,7 @@
 								<span class="text-gray-600">-</span>
 							{/if}
 						</td>
-						<td class="text-right pr-1" class:line-through={account.closedAt}>{formatDate(account.lastUpdated)}</td>
+						<td class="text-right pr-1 text-sm py-2" class:line-through={account.closedAt}>{formatDate(account.lastUpdated)}</td>
 					</tr>
 				{/each}
 			</tbody>
@@ -408,9 +400,18 @@
 </div>
 
 {#if filterModalOpen}
-	<AccountFiltersModal 
-		open={filterModalOpen} 
-		onClose={() => filterModalOpen = false} 
-		institutions={data.institutions} 
+	<AccountFiltersModal
+		open={filterModalOpen}
+		onClose={() => filterModalOpen = false}
+		institutions={data.institutions}
+	/>
+{/if}
+
+{#if sortModalOpen}
+	<AccountSortModal
+		open={sortModalOpen}
+		onClose={() => sortModalOpen = false}
+		onApply={(value) => sortBy = value}
+		currentSort={sortBy}
 	/>
 {/if}

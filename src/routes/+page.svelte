@@ -107,9 +107,9 @@
 			</div>
 			<a href="/goals" class="bracket-link text-xs">View All</a>
 		</div>
-		<div class="p-2">
+		<div>
 			{#each goals as goal}
-				<div class="border border-black p-2 mb-2 last:mb-0">
+				<div class="p-2 border-b border-black last:border-0 mb-2 last:mb-0">
 					<GoalCard {goal} />
 				</div>
 			{/each}
@@ -117,7 +117,10 @@
 	{/if}
 
 	<!-- ACCOUNTS BY TYPE -->
-	<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">ACCOUNTS BY TYPE</div>
+	<div class="font-bold flex justify-between bg-gray-100 border-t border-b border-black p-2">
+		<span>ACCOUNTS BY TYPE</span>
+		<a href="/accounts" class="bracket-link text-xs">[View All]</a>
+	</div>
 	<div class="p-0">
 		<table>
 			<thead>
@@ -131,22 +134,22 @@
 			<tbody>
 				{#if assetGroups.length > 0}
 					<tr class="bg-gray-50">
-						<td colspan="4" class="pl-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider border-y border-gray-200">Assets</td>
+						<td colspan="4" class="pl-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider border-y border-gray-200 py-2">Assets</td>
 					</tr>
 					{#each assetGroups as group}
 						<tr class:line-through={group.excluded} class:text-gray-500={group.excluded}>
-							<td class="text-center tabular-nums border-r border-gray-200 text-gray-400 text-xs">
+							<td class="text-center tabular-nums border-r border-gray-200 text-gray-400 text-xs py-2">
 								{group.count}
 							</td>
-							<td class="pl-2">
+							<td class="pl-2 py-2">
 								<a href="/accounts?type={group.type}" class="hover:underline">
 									{formatAccountType(group.type)}
 								</a>
 							</td>
-							<td class="text-left pl-2 tabular-nums">
+							<td class="text-left pl-2 tabular-nums py-2">
 								{formatCurrency(group.balance)}
 							</td>
-							<td class="text-right pr-1 tabular-nums">
+							<td class="text-right pr-1 tabular-nums py-2">
 								{formatDate(group.lastUpdated)}
 							</td>
 						</tr>
@@ -154,22 +157,22 @@
 				{/if}
 				{#if liabilityGroups.length > 0}
 					<tr class="bg-gray-50">
-						<td colspan="4" class="pl-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider border-y border-gray-200">Liabilities</td>
+						<td colspan="4" class="pl-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider border-y border-gray-200 py-2">Liabilities</td>
 					</tr>
 					{#each liabilityGroups as group}
 						<tr class:line-through={group.excluded} class:text-gray-500={group.excluded}>
-							<td class="text-center tabular-nums border-r border-gray-200 text-gray-400 text-xs">
+							<td class="text-center tabular-nums border-r border-gray-200 text-gray-400 text-xs py-2">
 								{group.count}
 							</td>
-							<td class="pl-2">
+							<td class="pl-2 py-2">
 								<a href="/accounts?type={group.type}" class="hover:underline">
 									{formatAccountType(group.type)}
 								</a>
 							</td>
-							<td class="text-left pl-2 tabular-nums">
+							<td class="text-left pl-2 tabular-nums py-2">
 								{formatCurrency(Math.abs(group.balance))}
 							</td>
-							<td class="text-right pr-1 tabular-nums">
+							<td class="text-right pr-1 tabular-nums py-2">
 								{formatDate(group.lastUpdated)}
 							</td>
 						</tr>
@@ -177,8 +180,5 @@
 				{/if}
 			</tbody>
 		</table>
-		<div class="px-2 py-1">
-			<a href="/accounts" class="bracket-link">View All Accounts</a>
-		</div>
 	</div>
 {/if}

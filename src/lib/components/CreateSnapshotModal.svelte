@@ -25,13 +25,16 @@
 	});
 </script>
 
+<svelte:window onkeydown={(e) => e.key === 'Escape' && onClose()} />
+
 <div
 	class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+	role="presentation"
 	onclick={(e) => {
 		if (e.target === e.currentTarget) onClose();
 	}}
 >
-	<div class="bg-white border border-black max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+	<div class="bg-white border border-black max-w-2xl w-full max-h-[90vh] overflow-y-auto" role="dialog" aria-modal="true">
 		<div class="bg-black text-white p-3 flex justify-between items-center">
 			<h2 class="m-0 text-lg">Create Snapshot - Preview</h2>
 			<button onclick={onClose} class="text-white hover:text-gray-300">[Close]</button>
