@@ -26,7 +26,7 @@
 {#if totalPages > 1}
 	<div class="border-t border-black p-2 flex gap-2 items-center text-sm">
 		{#if currentPage > 0}
-			<a href={buildHref(currentPage)} class="bracket-link">[Prev]</a>
+			<a href={buildHref(currentPage)} class="bracket-link">Prev</a>
 		{/if}
 		{#each pages as p}
 			{#if p === '...'}
@@ -38,7 +38,7 @@
 			{/if}
 		{/each}
 		{#if currentPage < totalPages - 1}
-			<a href={buildHref(currentPage + 2)} class="bracket-link">[Next]</a>
+			<a href={buildHref(currentPage + 2)} class="bracket-link">Next</a>
 		{/if}
 	</div>
 {/if}

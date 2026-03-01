@@ -141,7 +141,7 @@
 			</p>
 
 			<div class="flex justify-end gap-4">
-				<button type="submit" class="bracket-link text-sm">[Save Notes]</button>
+				<button type="submit" class="bracket-link text-sm">Save Notes</button>
 			</div>
 		</form>
 	</div>

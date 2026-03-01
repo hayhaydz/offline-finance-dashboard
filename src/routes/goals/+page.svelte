@@ -142,10 +142,10 @@
 			onclick={toggleReorderMode}
 			class="bracket-link text-xs"
 		>
-			[{reorderMode ? 'Done' : 'Re-order'}]
+			{reorderMode ? 'Done' : 'Re-order'}
 		</button>
-		<a href="/goals/archived" class="bracket-link text-xs">[View Archived]</a>
-		<a href="/goals/create" class="bracket-link text-xs">[+ Create New Goal]</a>
+		<a href="/goals/archived" class="bracket-link text-xs">View Archived</a>
+		<a href="/goals/create" class="bracket-link text-xs">+ Create New Goal</a>
 	</div>
 </div>
 
@@ -160,8 +160,8 @@
 			<thead>
 				<tr>
 					<th class="pl-2 text-left whitespace-nowrap">Goal</th>
-					<th class="text-right pr-4 whitespace-nowrap min-w-[220px]">Progress</th>
-					<th class="text-right pr-1 whitespace-nowrap min-w-[120px]">Target</th>
+					<th class="text-right pr-4 whitespace-nowrap min-w-55">Progress</th>
+					<th class="text-right pr-1 whitespace-nowrap min-w-30">Target</th>
 				</tr>
 			</thead>
 			<tbody>

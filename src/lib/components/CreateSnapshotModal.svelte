@@ -136,8 +136,8 @@
 				</div>
 
 				<div class="flex justify-end gap-4">
-					<button type="button" onclick={onClose} class="bracket-link">[Cancel]</button>
-					<button type="submit" class="bracket-link">[Create Snapshot]</button>
+					<button type="button" onclick={onClose} class="bracket-link">Cancel</button>
+					<button type="submit" class="bracket-link">Create Snapshot</button>
 				</div>
 			</form>
 		</div>

@@ -18,7 +18,7 @@
       <span class="{staleness.cssClass} shrink-0">●</span>
       <span class="truncate">{truncateDisplay(data.goal.name, DISPLAY_LIMITS.GOAL_NAME)}</span>
     </h1>
-    <a href="/goals" class="bracket-link text-xs shrink-0">[Back to Goals]</a>
+    <a href="/goals" class="bracket-link text-xs shrink-0">Back to Goals</a>
   </div>
 </div>
 

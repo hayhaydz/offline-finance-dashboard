@@ -1,3 +1,48 @@
+## [2026-03-01 20:54] — Goals Flow Refinement + Withdrawal Reallocation Fix
+
+**Summary:** Finalized goals add/withdraw UX refinements after locked mockup implementation. Add flow now starts all account accordions at `£0` and excluded-by-default (auto-included only when amount > 0), moved include behavior to amount-driven logic, added `£0` quick action, updated preview ordering/content, and aligned terminal slider styling. Withdraw preview copy and milestone logic were refined to trigger only on real emergency milestones (`1mo/3mo/6mo/12mo`) and use clearer wording. Fixed backend allocation accounting bug so withdrawals correctly redistribute back to source accounts, restoring accurate per-account available values on goal add. Database reset and standard seed were run to restore a clean baseline dataset.
+
+**Files:**
+- `src/routes/goals/[slug]/add/+page.svelte` — default row state and auto-include behavior, preview content/order updates, terminal slider styling, contextual UI cleanup
+- `src/routes/goals/[slug]/withdraw/+page.svelte` — goal balance/progress display refinements, milestone warning trigger/copy updates
+- `src/lib/server/goals.ts` — switched per-account allocation math to signed sums; added withdrawal distribution helpers
+- `src/routes/goals/[slug]/withdraw/+page.server.ts` — distributed withdrawals across contributing accounts in a transaction
+- `src/routes/goals/[slug]/+page.server.ts` — applied same withdrawal distribution/accounting fix to detail-route withdraw action
+- `tests/unit/goals-withdraw-distribution.test.ts` — new unit tests for proportional withdrawal distribution and guard rails
+
+**Validation:**
+- `npm run check` → 0 errors / 0 warnings
+- `npm run lint:biome` → clean
+- `npm run test:run` → 84 tests passed
+- `npm run db:reset` + `npm run seed:standard` → completed successfully
+
+**Commit:**
+`fix: reallocate goal withdrawals back to source accounts and refine goals add/withdraw UX`
+
+---
+
+## [2026-03-01 20:13] — Goals Add/Withdraw Locked Mockup Execution (Open 12 + Open 03)
+
+**Summary:** Implemented the locked goals flow mockups in Svelte. Withdraw page now follows locked `open 03` terminal controls (narrow amount input, stepper, terminal slider, quick buttons, preview + milestone rail). Add page now follows locked `open 12` with per-account accordion controls (independent input/slider/quick actions per account), preview breakdown by account, and one-submit batch funding UX. Add server action upgraded from single-account add to batch row processing with atomic DB transaction.
+
+**Files:**
+- `src/routes/goals/[slug]/withdraw/+page.svelte` — recreated locked withdraw `open 03` UI interaction pattern
+- `src/routes/goals/[slug]/add/+page.svelte` — recreated locked add `open 12` accordion-per-account UX with per-row controls + breakdown preview
+- `src/routes/goals/[slug]/add/+page.server.ts` — batch `rows_json` contract, legacy fallback support, per-account validation, atomic transaction commit
+- `docs/plans/2026-03-01-goals-add-withdraw-mockup-implementation-plan.md` — implementation plan doc (new)
+- `docs/mockups/goals-add-withdraw-terminal-v2/03-withdraw-safe-rails.html` — finalized/locked reference adjustments
+- `docs/mockups/goals-add-withdraw-terminal-v2/12-add-accordion-accounts.html` — finalized/locked add reference
+
+**Validation:**
+- `npm run check` → 0 errors / 0 warnings
+- `npm run lint:biome` → clean
+- `npm run test:run` → 82 tests passed
+
+**Commit:**
+`feat: implement locked goals add/withdraw mockups with batch add transaction`
+
+---
+
 ## [2026-03-01 19:18] — Biome Lint Rollout + Svelte Check Recovery
 
 **Summary:** Added Biome-based linting workflow, fixed lint/style issues across the codebase, and resolved a Svelte runtime/type regression in the exclusions modal so `npm run lint` is fully green (`svelte-check` + `biome check`).

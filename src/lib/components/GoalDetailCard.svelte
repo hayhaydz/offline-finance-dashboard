@@ -120,10 +120,10 @@
 
 	<!-- Actions -->
 	<div class="flex gap-2 pt-2 border-t border-gray-300">
-		<a href="/goals/{goal.slug}/add" class="bracket-link text-xs">[Add Money]</a>
-		<a href="/goals/{goal.slug}/withdraw" class="bracket-link text-xs">[Withdraw]</a>
+		<a href="/goals/{goal.slug}/add" class="bracket-link text-xs">Add Money</a>
+		<a href="/goals/{goal.slug}/withdraw" class="bracket-link text-xs">Withdraw</a>
 		{#if showArchive}
-			<a href="/goals/{goal.slug}/confirm-archive" class="bracket-link text-xs text-red-700">[Archive]</a>
+			<a href="/goals/{goal.slug}/confirm-archive" class="bracket-link text-xs text-red-700">Archive</a>
 		{/if}
 	</div>
 </div>

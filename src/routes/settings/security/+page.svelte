@@ -231,9 +231,9 @@
 						<button
 							type="submit"
 							disabled={!isPasswordFormValid}
-							class="bracket-link disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+							class="bracket-link disabled:text-gray-500 disabled:cursor-not-allowed"
 						>
-							[Change Password]
+							Change Password
 						</button>
 					</div>
 				</form>
@@ -313,9 +313,9 @@
 						type="button"
 						onclick={startRegeneration}
 						disabled={isRegenerating}
-						class="px-3 py-1 border border-black hover:bg-black hover:text-white text-sm disabled:bg-gray-400 disabled:text-gray-600 disabled:cursor-not-allowed"
+						class="bracket-link text-sm disabled:text-gray-500 disabled:cursor-not-allowed"
 					>
-						[{isRegenerating ? 'Regenerating...' : 'Regenerate Backup Codes'}]
+						{isRegenerating ? 'Regenerating...' : 'Regenerate Backup Codes'}
 					</button>
 				{/if}
 
@@ -348,10 +348,10 @@
 			<div class="flex gap-2 justify-end">
 				<button
 					onclick={() => (showConfirmModal = false)}
-					class="bracket-link px-3 py-1 border border-black hover:bg-gray-200 text-sm"
+					class="bracket-link text-sm"
 					type="button"
 				>
-					[Cancel]
+					Cancel
 				</button>
 				<form
 					method="POST"
@@ -366,10 +366,10 @@
 					<button
 						type="submit"
 						onclick={() => (isRegenerating = true)}
-						class="px-3 py-1 border border-black bg-red-700 text-white hover:bg-red-800 text-sm font-bold"
+						class="bracket-link text-sm text-red-700"
 						disabled={isRegenerating}
 					>
-						[{isRegenerating ? 'Regenerating...' : 'Regenerate'}]
+						{isRegenerating ? 'Regenerating...' : 'Regenerate'}
 					</button>
 				</form>
 			</div>
@@ -394,11 +394,11 @@
 				<span id="codes-title">BACKUP CODES</span>
 				<button
 					type="button"
-					class="bg-black text-white border-none p-0 hover:bg-white hover:text-black"
+					class="bracket-link text-white"
 					onclick={closeCodesModal}
 					aria-label="Close modal"
 				>
-					[X]
+					X
 				</button>
 			</div>
 
@@ -420,7 +420,7 @@
 								class="text-xs bracket-link"
 								aria-label="Copy code"
 							>
-								[{copiedCodeIndex === index ? 'Copied!' : 'Copy'}]
+								{copiedCodeIndex === index ? 'Copied!' : 'Copy'}
 							</button>
 						</div>
 					{/each}
@@ -438,9 +438,9 @@
 				<button
 					type="button"
 					onclick={closeCodesModal}
-					class="bg-white border border-black px-3 py-1 font-terminal text-sm hover:bg-black hover:text-white"
+					class="bracket-link text-sm"
 				>
-					[I have saved my codes]
+					I have saved my codes
 				</button>
 			</div>
 		</div>

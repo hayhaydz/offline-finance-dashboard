@@ -251,7 +251,7 @@
       <div class="h-4 w-full flex items-center">
         <div class="w-full h-0.5 bg-gray-300 absolute"></div>
         <div class="h-1 {colors.bg} relative transition-all duration-300" style="width: {p}%">
-           <div class="absolute right-0 top-[-6px] h-4 w-2 bg-black"></div>
+           <div class="absolute right-0 -top-1.5 h-4 w-2 bg-black"></div>
         </div>
       </div>
     </div>

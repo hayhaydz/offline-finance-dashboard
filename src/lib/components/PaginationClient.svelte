@@ -24,7 +24,7 @@
 {#if totalPages > 1}
 	<div class="border-t border-black p-2 flex gap-2 items-center text-sm">
 		{#if page > 0}
-			<button type="button" onclick={() => page -= 1} class="bracket-link">[Prev]</button>
+			<button type="button" onclick={() => page -= 1} class="bracket-link">Prev</button>
 		{/if}
 		{#each pages as p}
 			{#if p === '...'}
@@ -36,7 +36,7 @@
 			{/if}
 		{/each}
 		{#if page < totalPages - 1}
-			<button type="button" onclick={() => page += 1} class="bracket-link">[Next]</button>
+			<button type="button" onclick={() => page += 1} class="bracket-link">Next</button>
 		{/if}
 	</div>
 {/if}

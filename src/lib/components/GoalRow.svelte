@@ -40,7 +40,7 @@
 				<span>{truncateDisplay(goal.name, DISPLAY_LIMITS.GOAL_NAME)}</span>
 				<span class="text-xs text-red-700 ml-1">[ARCHIVED]</span>
 			{:else}
-				<a href="/goals/{goal.slug}" class="bracket-link">[{truncateDisplay(goal.name, DISPLAY_LIMITS.GOAL_NAME)}]</a>
+				<a href="/goals/{goal.slug}" class="bracket-link">{truncateDisplay(goal.name, DISPLAY_LIMITS.GOAL_NAME)}</a>
 			{/if}
 		</div>
 		<!-- Reorder controls inline under name -->
@@ -48,11 +48,11 @@
 			<div class="mt-1">
 				{#if isSelected}
 					<span class="text-xs text-amber-700 font-bold">MOVING —</span>
-					<button type="button" onclick={onSelect} class="bracket-link text-xs ml-1">[Cancel]</button>
+					<button type="button" onclick={onSelect} class="bracket-link text-xs ml-1">Cancel</button>
 				{:else if isOtherSelected}
-					<button type="button" onclick={onPlaceHere} class="bracket-link text-xs text-amber-700">[Move Here]</button>
+					<button type="button" onclick={onPlaceHere} class="bracket-link text-xs text-amber-700">Move Here</button>
 				{:else}
-					<button type="button" onclick={onSelect} class="bracket-link text-xs">[Select]</button>
+					<button type="button" onclick={onSelect} class="bracket-link text-xs">Select</button>
 				{/if}
 			</div>
 		{/if}
@@ -68,7 +68,7 @@
 			</div>
 		{/if}
 	</td>
-	<td class="text-right pr-4 text-sm py-2 whitespace-nowrap min-w-[220px]">
+	<td class="text-right pr-4 text-sm py-2 whitespace-nowrap min-w-55">
 		<div class="font-bold {isArchived ? 'text-gray-600' : progressColor.text}">
 			{formatCurrencyShorthand(goal.currentAllocation)} / {formatCurrencyShorthand(goal.targetAmountInCents)}
 		</div>
@@ -85,7 +85,7 @@
 			<span class="min-w-5 font-bold">{progress}%</span>
 		</div>
 	</td>
-	<td class="text-right pr-1 text-sm py-2 whitespace-nowrap min-w-[120px]">
+	<td class="text-right pr-1 text-sm py-2 whitespace-nowrap min-w-30">
 		{#if goal.targetDate}
 			<div class="text-xs text-gray-600">{formatDate(new Date(goal.targetDate))}</div>
 		{:else}

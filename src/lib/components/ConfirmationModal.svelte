@@ -37,17 +37,17 @@
 		<div class="flex gap-2 justify-end">
 			<button
 				onclick={onCancel}
-				class="bracket-link px-3 py-1 border border-black hover:bg-gray-200 text-sm"
+				class="bracket-link text-sm"
 				type="button"
 			>
-				[{cancelText}]
+				{cancelText}
 			</button>
 			<button
 				onclick={onConfirm}
-				class="px-3 py-1 border border-black bg-red-700 text-white hover:bg-red-800 text-sm font-bold"
+				class="bracket-link text-sm text-red-700"
 				type="button"
 			>
-				[{confirmText}]
+				{confirmText}
 			</button>
 		</div>
 	</div>

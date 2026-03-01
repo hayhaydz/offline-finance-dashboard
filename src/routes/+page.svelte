@@ -92,7 +92,7 @@
 			<a href="/register" class="bracket-link">Create Account</a>
 			<a href="/login" class="bracket-link">Log In</a>
 			{#if env?.mode === 'development'}
-				<a href="/dev-login" class="bracket-link text-amber-700 font-bold">[Dev Auto-Login]</a>
+				<a href="/dev-login" class="bracket-link text-amber-700 font-bold">Dev Auto-Login</a>
 			{/if}
 		</div>
 	</div>
@@ -125,7 +125,7 @@
 			<span>ACCOUNTS ({activeAccountCount})</span>
 			<span class="text-xs font-bold text-gray-500">{data.staleness.label}</span>
 		</div>
-		<a href="/accounts" class="bracket-link text-xs">[View All]</a>
+		<a href="/accounts" class="bracket-link text-xs">View All</a>
 	</div>
 	<div class="p-0">
 		<table>
@@ -188,7 +188,7 @@
 		</table>
 		{#if hiddenAccountGroupsCount > 0}
 			<div class="border-t border-black p-2 text-xs text-gray-500">
-				... and {hiddenAccountGroupsCount} more — <a href="/accounts" class="bracket-link">[View All]</a>
+				... and {hiddenAccountGroupsCount} more — <a href="/accounts" class="bracket-link">View All</a>
 			</div>
 		{/if}
 	</div>

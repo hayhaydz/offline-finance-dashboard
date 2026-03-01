@@ -7,6 +7,8 @@ import { accounts, goalAllocations, goals } from "$lib/db/schema";
 import {
 	calculatePerAccountUnallocated,
 	calculateReadyToAssign,
+	distributeWithdrawalAcrossAccounts,
+	getGoalAccountNetAllocations,
 } from "$lib/server/goals";
 import { parseCurrency } from "$lib/utils/currency";
 import { devLog, logError, logFormData } from "$lib/utils/logger";
@@ -152,12 +154,12 @@ export const actions: Actions = {
 
 		const accountAllocations = await db
 			.select({
-				sum: sql<number>`cast(sum(abs(${goalAllocations.amount})) as integer)`,
+				sum: sql<number>`coalesce(sum(${goalAllocations.amount}), 0)`,
 			})
 			.from(goalAllocations)
 			.where(eq(goalAllocations.accountId, account.id));
 
-		const totalAllocated = accountAllocations[0]?.sum || 0;
+		const totalAllocated = Math.max(0, accountAllocations[0]?.sum || 0);
 		const accountBalance = account.balances[0]?.balanceInCents || 0;
 		const unallocated = accountBalance - totalAllocated;
 
@@ -233,22 +235,41 @@ export const actions: Actions = {
 			return fail(400, { error: "Please fix errors", errors });
 		}
 
-		await db.insert(goalAllocations).values({
+		const contributions = await getGoalAccountNetAllocations({
 			goalId: goal.id,
-			accountId: null,
-			amount: -amountInCents,
-			type: "USER_WITHDRAW",
-			allocationDate: new Date(),
-			createdAt: new Date(),
 		});
+		let distribution: Array<{ accountId: number; amountInCents: number }>;
+		try {
+			distribution = distributeWithdrawalAcrossAccounts({
+				amountInCents,
+				contributions,
+			});
+		} catch (error) {
+			logError("goalsDetailWithdraw", "Failed to distribute withdrawal", error);
+			return fail(400, {
+				error: "Unable to distribute withdrawal back to source accounts",
+			});
+		}
 
-		await db
-			.update(goals)
-			.set({
-				currentAllocation: goal.currentAllocation - amountInCents,
-				updatedAt: new Date(),
-			})
-			.where(eq(goals.id, goal.id));
+		db.transaction((tx) => {
+			for (const row of distribution) {
+				tx.insert(goalAllocations).values({
+					goalId: goal.id,
+					accountId: row.accountId,
+					amount: -row.amountInCents,
+					type: "USER_WITHDRAW",
+					allocationDate: new Date(),
+					createdAt: new Date(),
+				});
+			}
+
+			tx.update(goals)
+				.set({
+					currentAllocation: goal.currentAllocation - amountInCents,
+					updatedAt: new Date(),
+				})
+				.where(eq(goals.id, goal.id));
+		});
 
 		devLog("goalsDetailWithdraw", "Withdrawal processed", {
 			goalId: goal.id,

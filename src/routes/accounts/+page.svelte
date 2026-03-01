@@ -227,7 +227,7 @@
 				{#if quickAddMessage}
 					<div class="mb-2 p-2 border border-black text-sm flex justify-between items-start {quickAddMessage.type === 'error' ? 'bg-red-100' : 'bg-green-100'}">
 						<div class="flex-1">
-							{@html quickAddMessage.text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="bracket-link text-xs">[$1]</a>')}
+							{@html quickAddMessage.text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="bracket-link text-xs">$1</a>')}
 						</div>
 						<button
 							type="button"
@@ -304,7 +304,7 @@
 
 					{#if form?.error}
 						<div class="bg-amber-100 border border-black p-2 mb-2 text-sm">
-							{@html form.error.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="bracket-link text-xs">[$1]</a>')}
+							{@html form.error.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="bracket-link text-xs">$1</a>')}
 						</div>
 					{/if}
 
@@ -327,7 +327,7 @@
 			<span class="bg-black text-white px-1 text-xs uppercase">
 				Filtered ({activeFilterCount})
 			</span>
-			<a href="/accounts" class="bracket-link text-xs">[Clear All]</a>
+			<a href="/accounts" class="bracket-link text-xs">Clear All</a>
 		{/if}
 	</div>
 	<div class="flex gap-2">

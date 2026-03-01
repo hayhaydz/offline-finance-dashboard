@@ -88,7 +88,7 @@
 			onclick={openModal}
 			onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(); } }}
 		>
-			[Exclusions: {exclusionCount}]
+			Exclusions: {exclusionCount}
 		</button>
 		<span>{formattedDateRange}</span>
 	</div>

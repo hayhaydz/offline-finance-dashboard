@@ -137,10 +137,10 @@ const liabilityTypes = $derived(
 
 // Button class helper
 const saveButtonClass = $derived(
-	`border px-3 py-0.5 font-terminal text-sm ${
+	`bracket-link text-sm ${
 		hasChanges
-			? "bg-black text-white hover:bg-white hover:text-black cursor-pointer"
-			: "bg-gray-400 text-gray-600 cursor-not-allowed"
+			? ""
+			: "text-gray-500 cursor-not-allowed"
 	}`,
 );
 
@@ -185,11 +185,11 @@ const handleExclusionUpdate: SubmitFunction = () => {
         <span id="modal-title">NET WORTH SETTINGS</span>
         <button
           type="button"
-          class="bg-black text-white border-none p-0 hover:bg-white hover:text-black"
+          class="bracket-link text-white"
           onclick={onClose}
           aria-label="Close modal"
         >
-          [X]
+          X
         </button>
       </div>
 
@@ -275,7 +275,7 @@ const handleExclusionUpdate: SubmitFunction = () => {
         </form>
         <button
           type="button"
-          class="bg-white border border-black px-3 py-0.5 font-terminal text-sm hover:bg-black hover:text-white"
+          class="bracket-link text-sm"
           onclick={onClose}
         >
           Cancel

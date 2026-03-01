@@ -56,13 +56,13 @@
 		<div class="flex gap-2">
 			<button
 				type="submit"
-				class="bg-red-700 text-white px-4 py-2 text-sm font-bold hover:bg-red-800"
+				class="bracket-link text-sm text-red-700"
 			>
 				Yes, Close This Account
 			</button>
 			<a
 				href="/accounts/{data.account.slug}"
-				class="border border-black px-4 py-2 text-sm hover:bg-gray-100 no-underline text-black"
+				class="bracket-link text-sm"
 			>
 				Cancel
 			</a>

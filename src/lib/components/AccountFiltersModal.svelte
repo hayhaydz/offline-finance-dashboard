@@ -136,7 +136,7 @@
 			<!-- Header -->
 			<div class="bg-black text-white px-3 py-2 flex justify-between items-center font-bold">
 				<span id="filter-modal-title" class="tracking-tighter">FILTER_SYSTEM // SELECT_CRITERIA</span>
-				<button type="button" class="hover:bg-red-600 px-1" onclick={onClose}>[X]</button>
+				<button type="button" class="bracket-link text-red-700" onclick={onClose}>X</button>
 			</div>
 
 			<!-- Scrollable Accordion List -->
@@ -291,14 +291,14 @@
 
 			<!-- Footer Actions -->
 			<div class="p-3 bg-gray-50 flex flex-col gap-2">
-				<button type="button" class="w-full bg-black text-white font-bold py-2 border-2 border-black hover:bg-white hover:text-black transition-all" onclick={applyFilters}>
+				<button type="button" class="bracket-link text-sm" onclick={applyFilters}>
 					APPLY_FILTERS
 				</button>
 				<div class="flex gap-2">
-					<button type="button" class="flex-1 border border-black py-1 text-xs font-bold hover:bg-black hover:text-white transition-colors" onclick={clearAll}>
+					<button type="button" class="bracket-link text-xs" onclick={clearAll}>
 						CLEAR_ALL
 					</button>
-					<button type="button" class="flex-1 border border-black py-1 text-xs font-bold hover:bg-red-600 hover:text-white transition-colors" onclick={onClose}>
+					<button type="button" class="bracket-link text-xs text-red-700" onclick={onClose}>
 						CANCEL
 					</button>
 				</div>

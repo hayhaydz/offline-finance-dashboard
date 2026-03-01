@@ -58,7 +58,7 @@
 			>
 				[Delete Entry]
 			</button>
-			<a href="/accounts/{data.account.slug}" class="bracket-link text-xs">[Cancel]</a>
+			<a href="/accounts/{data.account.slug}" class="bracket-link text-xs">Cancel</a>
 		</div>
 	</form>
 </div>

@@ -3,6 +3,10 @@ import { eq } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { goalAllocations, goals } from "$lib/db/schema";
+import {
+	distributeWithdrawalAcrossAccounts,
+	getGoalAccountNetAllocations,
+} from "$lib/server/goals";
 import { parseCurrency } from "$lib/utils/currency";
 import { devLog, logError, logFormData } from "$lib/utils/logger";
 import type { Actions, PageServerLoad } from "./$types";
@@ -33,6 +37,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	return {
 		goal,
+		breadcrumbOverrides: [
+			{ segmentIndex: 1, label: goal.name, skipLink: false },
+			{ segmentIndex: 2, label: "Withdraw Money", skipLink: false },
+		],
 	};
 };
 
@@ -86,28 +94,46 @@ export const actions: Actions = {
 			return fail(400, { error: "Please fix errors below", errors });
 		}
 
-		// Insert allocation record (negative for USER_WITHDRAW)
-		// Note: accountId is NULL for withdraws since money returns to Ready to Assign pool
-		await db.insert(goalAllocations).values({
+		const contributions = await getGoalAccountNetAllocations({
 			goalId: goal.id,
-			// accountId: NULL - money returns to Ready to Assign pool, not a specific account
-			amount: -amountInCents, // Negative for withdrawal
-			type: "USER_WITHDRAW",
-			allocationDate: new Date(),
-			createdAt: new Date(),
 		});
 
-		// Update goal.current_allocation
+		let distribution: Array<{ accountId: number; amountInCents: number }>;
+		try {
+			distribution = distributeWithdrawalAcrossAccounts({
+				amountInCents,
+				contributions,
+			});
+		} catch (error) {
+			logError("goalsWithdraw", "Failed to distribute withdrawal", error);
+			return fail(400, {
+				error: "Unable to distribute withdrawal back to source accounts",
+			});
+		}
+
 		const newAllocation = goal.currentAllocation - amountInCents;
-		await db
-			.update(goals)
-			.set({ currentAllocation: newAllocation, updatedAt: new Date() })
-			.where(eq(goals.id, goal.id));
+		db.transaction((tx) => {
+			for (const row of distribution) {
+				tx.insert(goalAllocations).values({
+					goalId: goal.id,
+					accountId: row.accountId,
+					amount: -row.amountInCents,
+					type: "USER_WITHDRAW",
+					allocationDate: new Date(),
+					createdAt: new Date(),
+				});
+			}
+
+			tx.update(goals)
+				.set({ currentAllocation: newAllocation, updatedAt: new Date() })
+				.where(eq(goals.id, goal.id));
+		});
 
 		devLog("goalsWithdraw", "Withdrawal processed", {
 			goalId: goal.id,
 			amount: amountInCents,
 			newAllocation,
+			distributionCount: distribution.length,
 		});
 
 		// Redirect to goals list (no success modal per user decision)

@@ -66,7 +66,7 @@
 			<!-- Header -->
 			<div class="bg-black text-white px-3 py-2 flex justify-between items-center font-bold">
 				<span id="sort-modal-title" class="tracking-tighter">SORT_ACCOUNTS // SELECT_ORDER</span>
-				<button type="button" class="hover:bg-red-600 px-1" onclick={onClose}>[X]</button>
+				<button type="button" class="bracket-link text-red-700" onclick={onClose}>X</button>
 			</div>
 
 			<!-- Sort Options -->
@@ -89,11 +89,7 @@
 
 			<!-- Footer -->
 			<div class="p-3 bg-gray-50">
-				<button
-					type="button"
-					class="w-full border border-black py-2 text-xs font-bold hover:bg-black hover:text-white transition-colors"
-					onclick={onClose}
-				>
+				<button type="button" class="bracket-link text-xs" onclick={onClose}>
 					CANCEL
 				</button>
 			</div>

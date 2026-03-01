@@ -59,10 +59,10 @@
 	{/if}
 
 	<div class="flex gap-2">
-		<button onclick={reload} class="bracket-link px-2 py-1 border border-black hover:bg-gray-200">
+		<button onclick={reload} class="bracket-link">
 			Reload Page
 		</button>
-		<button onclick={goHome} class="bracket-link px-2 py-1 border border-black hover:bg-gray-200">
+		<button onclick={goHome} class="bracket-link">
 			Go Home
 		</button>
 	</div>

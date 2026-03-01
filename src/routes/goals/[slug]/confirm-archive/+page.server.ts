@@ -31,6 +31,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	return {
 		goal,
 		user: locals.user,
+		breadcrumbOverrides: [
+			{ segmentIndex: 1, label: goal.name, skipLink: false },
+			{ segmentIndex: 2, label: "Archive", skipLink: false },
+		],
 	};
 };
 

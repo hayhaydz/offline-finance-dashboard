@@ -1,9 +1,9 @@
 import { error, fail, redirect } from "@sveltejs/kit";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import type { Account } from "$lib/db/schema";
-import { accounts, goalAllocations, goals } from "$lib/db/schema";
+import { goalAllocations, goals } from "$lib/db/schema";
 import {
 	calculatePerAccountUnallocated,
 	calculateReadyToAssign,
@@ -16,6 +16,12 @@ import type { Actions, PageServerLoad } from "./$types";
 type AccountWithUnallocated = Account & {
 	unallocated: number;
 	balances: Array<{ balanceInCents: number }>;
+};
+
+type AddRowInput = {
+	accountId: number;
+	selected: boolean;
+	amountInCents: number;
 };
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -59,6 +65,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		accounts: accountsWithUnallocated,
 		totalAssets,
 		readyToAssign,
+		breadcrumbOverrides: [
+			{ segmentIndex: 1, label: goal.name, skipLink: false },
+			{ segmentIndex: 2, label: "Add Money", skipLink: false },
+		],
 	};
 };
 
@@ -72,33 +82,7 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		logFormData("goalsAdd", Object.fromEntries(formData));
 
-		const amountStr = formData.get("amount") as string;
-		const fromAccountId = formData.get("from_account_id") as string;
-
-		// Server-side validation
 		const errors: Record<string, string> = {};
-
-		if (!fromAccountId) {
-			errors.from_account_id = "Please select an account";
-		}
-
-		// Parse and validate amount
-		let amountInCents: number;
-		try {
-			amountInCents = parseCurrency(amountStr);
-			if (amountInCents <= 0) {
-				errors.amount = "Amount must be greater than zero";
-			}
-		} catch (_e) {
-			errors.amount = "Invalid amount format. Enter amount like 100.00 or 100";
-			// Set a default value to avoid "used before assigned" error
-			// This won't be used because we return early
-			amountInCents = 0;
-		}
-
-		if (Object.keys(errors).length > 0) {
-			return fail(400, { error: "Please fix errors below", errors });
-		}
 
 		// Validate goal exists and belongs to user
 		const goal = await db.query.goals.findFirst({
@@ -112,59 +96,132 @@ export const actions: Actions = {
 
 		validateUserAccess(goal, locals.user, "Goal");
 
-		// Fetch account with balances
-		const account = await db.query.accounts.findFirst({
-			where: eq(accounts.id, parseInt(fromAccountId, 10)),
-			with: {
-				balances: {
-					orderBy: (balances, { desc }) => desc(balances.asOfDate),
-					limit: 1,
+		// Parse batch rows payload (with legacy fallback)
+		const rowsJson = formData.get("rows_json");
+		let requestedRows: AddRowInput[] = [];
+
+		if (typeof rowsJson === "string" && rowsJson.trim().length > 0) {
+			try {
+				const parsed = JSON.parse(rowsJson);
+				if (!Array.isArray(parsed)) {
+					return fail(400, { error: "Invalid allocation rows payload" });
+				}
+
+				requestedRows = parsed
+					.map((row) => ({
+						accountId: Number(row.accountId),
+						selected: Boolean(row.selected),
+						amountInCents: Number(row.amountInCents),
+					}))
+					.filter((row) => Number.isFinite(row.accountId))
+					.filter((row) => Number.isFinite(row.amountInCents));
+			} catch (_e) {
+				return fail(400, { error: "Invalid allocation rows payload" });
+			}
+		} else {
+			// Legacy single-row fallback
+			const amountStr = formData.get("amount") as string;
+			const fromAccountId = formData.get("from_account_id") as string;
+
+			if (!fromAccountId) {
+				errors.from_account_id = "Please select an account";
+			}
+
+			let amountInCents = 0;
+			try {
+				amountInCents = parseCurrency(amountStr);
+				if (amountInCents <= 0) {
+					errors.amount = "Amount must be greater than zero";
+				}
+			} catch (_e) {
+				errors.amount =
+					"Invalid amount format. Enter amount like 100.00 or 100";
+			}
+
+			if (Object.keys(errors).length > 0) {
+				return fail(400, { error: "Please fix errors below", errors });
+			}
+
+			requestedRows = [
+				{
+					accountId: parseInt(fromAccountId, 10),
+					selected: true,
+					amountInCents,
 				},
-			},
-		});
-
-		if (!account) {
-			errors.from_account_id = "Account not found";
-			return fail(400, { error: "Please fix errors below", errors });
+			];
 		}
 
-		// Validate account has sufficient unallocated
-		const accountAllocations = await db
-			.select({
-				sum: sql<number>`cast(sum(abs(${goalAllocations.amount})) as integer)`,
-			})
-			.from(goalAllocations)
-			.where(eq(goalAllocations.accountId, account.id));
-
-		const totalAllocated = accountAllocations[0]?.sum || 0;
-		const accountBalance = account.balances[0]?.balanceInCents || 0;
-		const unallocated = accountBalance - totalAllocated;
-
-		if (unallocated < amountInCents) {
-			errors.amount = `Insufficient funds. Only £${(unallocated / 100).toFixed(2)} available in this account`;
-			return fail(400, { error: "Please fix errors below", errors });
+		const validRows = requestedRows.filter(
+			(row) => row.selected && row.amountInCents > 0,
+		);
+		if (validRows.length === 0) {
+			return fail(400, { error: "Enter at least one allocation amount" });
 		}
 
-		// Insert allocation record (positive for USER_ADD)
-		await db.insert(goalAllocations).values({
-			goalId: goal.id,
-			accountId: account.id,
-			amount: amountInCents,
-			type: "USER_ADD",
-			allocationDate: new Date(),
-			createdAt: new Date(),
+		// Merge duplicate rows by account
+		const mergedByAccount = new Map<number, number>();
+		for (const row of validRows) {
+			mergedByAccount.set(
+				row.accountId,
+				(mergedByAccount.get(row.accountId) ?? 0) + row.amountInCents,
+			);
+		}
+
+		// Validate accounts and unallocated limits
+		const accountsWithUnallocated = (await calculatePerAccountUnallocated({
+			userId: locals.user.id,
+		})) as AccountWithUnallocated[];
+		const availableByAccount = new Map(
+			accountsWithUnallocated.map((account) => [
+				account.id,
+				{ available: account.unallocated, name: account.name },
+			]),
+		);
+
+		for (const [accountId, amountInCents] of mergedByAccount.entries()) {
+			const account = availableByAccount.get(accountId);
+			if (!account) {
+				return fail(400, { error: `Account ${accountId} not found` });
+			}
+			if (amountInCents > account.available) {
+				return fail(400, {
+					error: `Insufficient funds in ${account.name}. Available £${(
+						account.available / 100
+					).toFixed(2)}`,
+				});
+			}
+		}
+
+		const mergedRows = Array.from(mergedByAccount.entries()).map(
+			([accountId, amountInCents]) => ({ accountId, amountInCents }),
+		);
+		const totalAdding = mergedRows.reduce(
+			(sum, row) => sum + row.amountInCents,
+			0,
+		);
+		const newAllocation = goal.currentAllocation + totalAdding;
+
+		db.transaction((tx) => {
+			for (const row of mergedRows) {
+				tx.insert(goalAllocations).values({
+					goalId: goal.id,
+					accountId: row.accountId,
+					amount: row.amountInCents,
+					type: "USER_ADD",
+					allocationDate: new Date(),
+					createdAt: new Date(),
+				});
+			}
+
+			tx.update(goals)
+				.set({ currentAllocation: newAllocation, updatedAt: new Date() })
+				.where(eq(goals.id, goal.id));
 		});
 
-		// Update goal.current_allocation
-		const newAllocation = goal.currentAllocation + amountInCents;
-		await db
-			.update(goals)
-			.set({ currentAllocation: newAllocation, updatedAt: new Date() })
-			.where(eq(goals.id, goal.id));
-
-		devLog("goalsAdd", "Allocation added", {
+		devLog("goalsAdd", "Allocation batch added", {
 			goalId: goal.id,
-			amount: amountInCents,
+			rows: mergedRows.length,
+			totalAdding,
 			newAllocation,
 		});
 

@@ -68,10 +68,10 @@
 <div class="goal-card-content">
 	<!-- Goal Name with Emergency Fund Badge -->
 	<div class="flex justify-between items-center mb-1">
-		<div class="flex items-center gap-1 min-w-0 overflow-hidden">
+		<div class="flex items-start gap-1 min-w-0 overflow-hidden">
 			<span class="shrink-0 {staleness.cssClass}">●</span>
 			<span class="font-bold text-sm min-w-0 overflow-hidden">
-				<a href="/goals/{goal.slug}" class="bracket-link block truncate">[{goal.name}]</a>
+				<a href="/goals/{goal.slug}" class="bracket-link block truncate">{goal.name}</a>
 				{#if emergencyFundMilestones()}
 					<span class="text-xs text-gray-500 font-normal">
 						[
@@ -124,10 +124,10 @@
 
 	<!-- Action Buttons -->
 	<div class="flex gap-2 mt-2">
-		<a href="/goals/{goal.slug}/add" class="bracket-link text-xs">[Add Money]</a>
-		<a href="/goals/{goal.slug}/withdraw" class="bracket-link text-xs">[Withdraw]</a>
+		<a href="/goals/{goal.slug}/add" class="bracket-link text-xs">Add Money</a>
+		<a href="/goals/{goal.slug}/withdraw" class="bracket-link text-xs">Withdraw</a>
 		{#if showArchive}
-			<a href="/goals/{goal.slug}/confirm-archive" class="bracket-link text-xs text-red-700">[Archive]</a>
+			<a href="/goals/{goal.slug}/confirm-archive" class="bracket-link text-xs text-red-700">Archive</a>
 		{/if}
 	</div>
 </div>

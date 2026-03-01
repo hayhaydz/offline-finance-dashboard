@@ -103,7 +103,7 @@
 {#if submitMessage}
 	<div class="p-2 border-b border-black text-sm flex justify-between items-start {submitMessage.type === 'error' ? 'bg-red-100' : 'bg-green-100'}">
 		<div class="flex-1">
-			{@html submitMessage.text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="bracket-link text-xs">[$1]</a>')}
+			{@html submitMessage.text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="bracket-link text-xs">$1</a>')}
 		</div>
 		<button
 			type="button"
@@ -117,7 +117,7 @@
 
 {#if form?.error}
 	<div class="bg-amber-100 border-b border-black p-2 text-sm">
-		{@html form.error.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="bracket-link text-xs">[$1]</a>')}
+		{@html form.error.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="bracket-link text-xs">$1</a>')}
 	</div>
 {/if}
 
@@ -274,4 +274,3 @@
 		/>
 	{/if}
 </div>
-
