@@ -2,6 +2,7 @@
 	import { enhance } from '$app/forms';
 	import type { SnapshotPreviewData } from '$lib/utils/snapshots';
 	import { formatCurrencyShorthand } from '$lib/utils/currency';
+	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 
 	interface Props {
 		preview: SnapshotPreviewData;
@@ -94,7 +95,7 @@
 								<div class="font-bold text-xs mb-1">{type} ({accounts.length})</div>
 								{#each accounts as account}
 									<div class="text-xs flex justify-between py-1">
-										<span>{account.name}</span>
+										<span>{truncateDisplay(account.name, DISPLAY_LIMITS.ACCOUNT_NAME)}</span>
 										<span
 											class={account.includedInTotal ? '' : 'text-gray-400'}
 										>
@@ -113,7 +114,7 @@
 					<div class="bg-gray-50 border border-black p-4 max-h-60 overflow-y-auto">
 						{#each preview.goalsBreakdown.goals as goal}
 							<div class="text-xs flex justify-between py-1 border-b border-gray-200 last:border-0">
-								<span>{goal.name}</span>
+								<span>{truncateDisplay(goal.name, DISPLAY_LIMITS.GOAL_NAME)}</span>
 								<span
 									>{formatCurrencyShorthand(goal.currentAllocation)} /
 									{formatCurrencyShorthand(goal.targetAmountInCents)}</span

@@ -139,7 +139,7 @@
 
 <div class="border-b border-black p-2">
 	<h1 class="text-lg font-bold mb-2 mt-0">EDIT ACCOUNT</h1>
-	<p class="text-gray-600 my-1">Update account details for {data.account.name}</p>
+	<p class="text-gray-600 my-1 truncate">Update account details for {data.account.name}</p>
 </div>
 
 <form

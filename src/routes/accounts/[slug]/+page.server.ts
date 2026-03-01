@@ -107,6 +107,11 @@ export const actions: Actions = {
 		const asOfDateStr = formData.get('asOfDate') as string; // YYYY-MM-DD format
 		const notes = formData.get('notes') as string | null;
 
+		// Validate notes length
+		if (notes && notes.trim().length > 500) {
+			return fail(400, { error: 'Notes must be 500 characters or less' });
+		}
+
 		// Parse date (midnight UTC to avoid timezone issues)
 		const asOfDate = new Date(asOfDateStr + 'T00:00:00.000Z');
 

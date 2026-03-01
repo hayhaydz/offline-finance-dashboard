@@ -3,6 +3,7 @@
 	import type { ActionData } from './$types';
 	import type { SnapshotPreviewData } from '$lib/utils/snapshots';
 	import { formatCurrencyShorthand } from '$lib/utils/currency';
+	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 
 	let { data, form }: { data: { preview: SnapshotPreviewData; defaultDate: string }; form: ActionData } =
 		$props();
@@ -97,7 +98,7 @@
 				<div class="font-bold text-xs mb-1 mt-1 first:mt-0">{capitalizeType(type)} ({accounts.length})</div>
 				{#each accounts as account}
 					<div class="text-xs flex justify-between py-1 border-b border-gray-200 last:border-0">
-						<span>{account.name}</span>
+						<span>{truncateDisplay(account.name, DISPLAY_LIMITS.ACCOUNT_NAME)}</span>
 						<span class="{account.includedInTotal ? '' : 'text-gray-400'}">
 							{formatCurrencyShorthand(account.balanceInCents)}
 							{!account.includedInTotal ? ' (excluded)' : ''}
@@ -116,7 +117,7 @@
 		<div class="p-2">
 			{#each data.preview.goalsBreakdown.goals as goal}
 				<div class="text-xs flex justify-between py-1 border-b border-gray-200 last:border-0">
-					<span>{goal.name}</span>
+					<span>{truncateDisplay(goal.name, DISPLAY_LIMITS.GOAL_NAME)}</span>
 					<span>
 						{formatCurrencyShorthand(goal.currentAllocation)} /
 						{formatCurrencyShorthand(goal.targetAmountInCents)}

@@ -48,6 +48,8 @@
 			: (netWorth >= 0 ? 'text-green-700' : 'text-red-700')
 	);
 
+	const totalAssetsColor = $derived(totalAssets >= 0 ? 'text-green-700' : 'text-red-700');
+
 	const formattedDateRange = $derived(formatDateRange(dateRange.oldest, dateRange.newest));
 
 	const showNeutralColor = $derived(
@@ -112,7 +114,7 @@
 <div class="border-b border-black p-2">
 	<div class="flex justify-between my-1">
 		<span>Total Assets</span>
-		<span class="text-green-700 font-bold">{formatCurrency(totalAssets)}</span>
+		<span class="{totalAssetsColor} font-bold">{formatCurrency(totalAssets)}</span>
 	</div>
 	{#if excludedAssets > 0}
 		<div class="flex justify-between my-1 text-gray-600">

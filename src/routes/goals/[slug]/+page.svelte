@@ -1,6 +1,7 @@
 <script lang="ts">
   import { formatCurrency, formatDateShorthand } from "$lib/utils/currency";
   import { getStaleness } from "$lib/utils/staleness";
+  import { DISPLAY_LIMITS, truncateDisplay } from "$lib/utils/fieldLimits";
   import GoalDetailCard from "$lib/components/GoalDetailCard.svelte";
   import Pagination from "$lib/components/Pagination.svelte";
   import type { PageData } from "./$types";
@@ -12,12 +13,12 @@
 
 <!-- GOAL INFO HEADER -->
 <div class="border-b border-black p-2">
-  <div class="flex justify-between items-center">
-    <h1 class="text-lg font-bold">
-      <span class={staleness.cssClass}>●</span>
-      {data.goal.name}
+  <div class="flex justify-between items-center gap-2">
+    <h1 class="text-lg font-bold flex items-center gap-1 min-w-0 overflow-hidden">
+      <span class="{staleness.cssClass} shrink-0">●</span>
+      <span class="truncate">{truncateDisplay(data.goal.name, DISPLAY_LIMITS.GOAL_NAME)}</span>
     </h1>
-    <a href="/goals" class="bracket-link text-xs">[Back to Goals]</a>
+    <a href="/goals" class="bracket-link text-xs shrink-0">[Back to Goals]</a>
   </div>
 </div>
 
@@ -73,7 +74,7 @@
             </td>
             <td class="text-right pr-1 text-sm py-2">
               {#if allocation.account}
-                <span>{allocation.account.name}</span>
+                <span>{truncateDisplay(allocation.account.name, DISPLAY_LIMITS.ACCOUNT_NAME)}</span>
               {:else}
                 <span class="text-gray-500">-</span>
               {/if}

@@ -35,13 +35,19 @@ export async function calculateSnapshotData(userId: number) {
 
 	// Calculate totals (only include accounts not excluded from net worth)
 	const includedAccounts = allAccounts.filter(a => !a.excludedFromNetWorth);
-	const totalAssets = includedAccounts
-		.filter(a => a.category === 'asset')
-		.reduce((sum, a) => sum + (a.balances[0]?.balanceInCents || 0), 0);
-
-	const totalLiabilities = includedAccounts
-		.filter(a => a.category === 'liability')
-		.reduce((sum, a) => sum + (a.balances[0]?.balanceInCents || 0), 0);
+	// Calculate totals — asset accounts with negative balance reclassify as liabilities
+	let totalAssets = 0;
+	let totalLiabilities = 0;
+	for (const a of includedAccounts) {
+		const bal = a.balances[0]?.balanceInCents || 0;
+		if (a.category === 'liability') {
+			totalLiabilities += bal;
+		} else if (bal >= 0) {
+			totalAssets += bal;
+		} else {
+			totalLiabilities += bal;
+		}
+	}
 
 	const netWorth = totalAssets + totalLiabilities;
 	const totalAllocated = allGoals.reduce((sum, g) => sum + g.currentAllocation, 0);

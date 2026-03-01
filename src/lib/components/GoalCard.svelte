@@ -68,12 +68,12 @@
 <div class="goal-card-content">
 	<!-- Goal Name with Emergency Fund Badge -->
 	<div class="flex justify-between items-center mb-1">
-		<div class="flex items-center gap-1">
-			<span class={staleness.cssClass}>●</span>
-			<span class="font-bold text-sm">
-				<a href="/goals/{goal.slug}" class="bracket-link">[{goal.name}]</a>
+		<div class="flex items-center gap-1 min-w-0 overflow-hidden">
+			<span class="shrink-0 {staleness.cssClass}">●</span>
+			<span class="font-bold text-sm min-w-0 overflow-hidden">
+				<a href="/goals/{goal.slug}" class="bracket-link block truncate">[{goal.name}]</a>
 				{#if emergencyFundMilestones()}
-					<span class="text-xs text-gray-500 font-normal ml-1">
+					<span class="text-xs text-gray-500 font-normal">
 						[
 						{#each emergencyFundMilestones() as milestone, index}
 							<span class={milestone.achieved ? 'text-green-700' : 'text-gray-400'}>{milestone.label}</span
@@ -85,7 +85,7 @@
 			</span>
 		</div>
 		{#if headerActions}
-			<div class="flex gap-1">{@render headerActions()}</div>
+			<div class="flex gap-1 shrink-0">{@render headerActions()}</div>
 		{/if}
 	</div>
 

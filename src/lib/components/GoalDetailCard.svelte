@@ -75,20 +75,20 @@
 
 	<!-- Stats Row -->
 	<div class="grid grid-cols-3 border border-black divide-x divide-black mb-2">
-		<div class="p-2">
+		<div class="p-2 overflow-hidden">
 			<div class="text-xs tracking-widest text-gray-500 mb-1">SAVED</div>
-			<div class="font-bold text-sm text-green-700">{formatCurrencyShorthand(goal.currentAllocation)}</div>
-			<div class="text-xs text-gray-500">{formatCurrency(goal.currentAllocation)}</div>
+			<div class="font-bold text-sm text-green-700 truncate">{formatCurrencyShorthand(goal.currentAllocation)}</div>
+			<div class="text-xs text-gray-500 truncate">{formatCurrency(goal.currentAllocation)}</div>
 		</div>
-		<div class="p-2">
+		<div class="p-2 overflow-hidden">
 			<div class="text-xs tracking-widest text-gray-500 mb-1">TARGET</div>
-			<div class="font-bold text-sm">{formatCurrencyShorthand(goal.targetAmountInCents)}</div>
-			<div class="text-xs text-gray-500">{formatCurrency(goal.targetAmountInCents)}</div>
+			<div class="font-bold text-sm truncate">{formatCurrencyShorthand(goal.targetAmountInCents)}</div>
+			<div class="text-xs text-gray-500 truncate">{formatCurrency(goal.targetAmountInCents)}</div>
 		</div>
-		<div class="p-2">
+		<div class="p-2 overflow-hidden">
 			<div class="text-xs tracking-widest text-gray-500 mb-1">REMAINING</div>
-			<div class="font-bold text-sm {progressTextColor}">{formatCurrencyShorthand(remaining)}</div>
-			<div class="text-xs text-gray-500">{formatCurrency(remaining)}</div>
+			<div class="font-bold text-sm {progressTextColor} truncate">{formatCurrencyShorthand(remaining)}</div>
+			<div class="text-xs text-gray-500 truncate">{formatCurrency(remaining)}</div>
 		</div>
 	</div>
 

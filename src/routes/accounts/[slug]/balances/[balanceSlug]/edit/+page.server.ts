@@ -126,6 +126,11 @@ export const actions: Actions = {
 		const asOfDateStr = formData.get('asOfDate') as string;
 		const notes = formData.get('notes') as string | null;
 
+		// Validate notes length
+		if (notes && notes.trim().length > 500) {
+			return fail(400, { error: 'Notes must be 500 characters or less' });
+		}
+
 		// Validate balance
 		let balanceInCents: number;
 		try {

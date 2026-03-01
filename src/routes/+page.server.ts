@@ -3,7 +3,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db/client';
 import { accounts, goals } from '$lib/db/schema';
 import { withUserFilter } from '$lib/auth/row-security';
-import { desc, and, inArray, sql, type SQL, asc } from 'drizzle-orm';
+import { desc, and, inArray, isNull, sql, type SQL, asc } from 'drizzle-orm';
 import { devLog, logError } from '$lib/utils/logger';
 import { getStaleness } from '$lib/utils/staleness';
 
@@ -70,22 +70,39 @@ export const load: PageServerLoad = async ({ locals }) => {
 	);
 
 	// Calculate totals from included accounts
-	const totalAssets = includedAccounts
-		.filter((a) => a.category === 'asset')
-		.reduce((sum, a) => sum + (a.balances[0]?.balanceInCents || 0), 0);
+	// If an asset account has a negative balance it is effectively a liability,
+	// so we split each asset balance on sign: positive → assets, negative → liabilities.
+	// Liability account balances are always negative (debt) and go straight to totalLiabilities.
+	let totalAssets = 0;
+	let totalLiabilities = 0;
+	for (const a of includedAccounts) {
+		const balance = a.balances[0]?.balanceInCents ?? 0;
+		if (a.category === 'asset') {
+			if (balance >= 0) {
+				totalAssets += balance;
+			} else {
+				totalLiabilities += balance; // negative, so adds to debt
+			}
+		} else {
+			totalLiabilities += balance;
+		}
+	}
 
-	const totalLiabilities = includedAccounts
-		.filter((a) => a.category === 'liability')
-		.reduce((sum, a) => sum + (a.balances[0]?.balanceInCents || 0), 0);
-
-	// Calculate excluded amounts
-	const excludedAssets = excludedAccounts
-		.filter((a) => a.category === 'asset')
-		.reduce((sum, a) => sum + (a.balances[0]?.balanceInCents || 0), 0);
-
-	const excludedLiabilities = excludedAccounts
-		.filter((a) => a.category === 'liability')
-		.reduce((sum, a) => sum + (a.balances[0]?.balanceInCents || 0), 0);
+	// Calculate excluded amounts (same sign-split logic for consistency)
+	let excludedAssets = 0;
+	let excludedLiabilities = 0;
+	for (const a of excludedAccounts) {
+		const balance = a.balances[0]?.balanceInCents ?? 0;
+		if (a.category === 'asset') {
+			if (balance >= 0) {
+				excludedAssets += balance;
+			} else {
+				excludedLiabilities += balance;
+			}
+		} else {
+			excludedLiabilities += balance;
+		}
+	}
 
 	// Net worth = assets + liabilities (liabilities stored as negative values)
 	const netWorth = totalAssets + totalLiabilities;
@@ -123,8 +140,20 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 
 	// Count excluded TYPES (not individual accounts)
+	// A type is "excluded" only when ALL open accounts of that type are excluded
+	// (matches the modal's all-or-nothing toggle logic; closed accounts are ignored)
+	const openAccounts = userAccounts.filter((a) => !a.closedAt);
+	const typeMap = new Map<string, { total: number; excluded: number }>();
+	for (const a of openAccounts) {
+		const entry = typeMap.get(a.type) ?? { total: 0, excluded: 0 };
+		entry.total++;
+		if (a.excludedFromNetWorth) entry.excluded++;
+		typeMap.set(a.type, entry);
+	}
 	const excludedTypes = new Set(
-		userAccounts.filter((a) => a.excludedFromNetWorth).map((a) => a.type)
+		Array.from(typeMap.entries())
+			.filter(([, { total, excluded }]) => total > 0 && excluded === total)
+			.map(([type]) => type)
 	);
 	const exclusionCount = excludedTypes.size;
 
@@ -216,9 +245,10 @@ export const actions: Actions = {
 		});
 
 		try {
-			// Fetch user's accounts to get their IDs by type
+			// Fetch user's open (non-closed) accounts to get their IDs by type
+			// Closed accounts must be excluded to avoid the prevent_edit_closed_account trigger
 			const userAccounts = await db.query.accounts.findMany({
-				where: withUserFilter(locals.user.id, accounts),
+				where: and(withUserFilter(locals.user.id, accounts), isNull(accounts.closedAt)),
 				columns: { id: true, type: true }
 			});
 

@@ -1,4 +1,43 @@
-## [2026-03-01 16:43] — Pagination: Standard Components + All Routes
+## [2026-03-01 17:51] — Stress Seed Bug Fixes, UI Hardening & UGC Truncation
+
+**Summary:** Stress seed revealed multiple issues with net worth calculations, exclusions modal, table layout, and overflowing user-generated content. Fixed sign-split accounting (negative asset balances reclassify as liabilities) across homepage, `/accounts`, and snapshots. Hardened all tables with horizontal scroll and JS-enforced character truncation. Applied truncation to every UGC rendering site across the app.
+
+**Files:**
+- `src/routes/+page.server.ts` — exclusionCount all-or-nothing logic, `isNull` guard on `updateExclusions`, sign-split totalAssets/totalLiabilities calculation
+- `src/routes/+page.svelte` — accountsByType keyed by `type:displayCategory`, sign-split display, empty/zero account skip
+- `src/lib/components/NetWorthDisplay.svelte` — totalAssetsColor conditional (green/red by sign)
+- `src/lib/components/navigation.svelte` — breadcrumb horizontal scroll, `$effect` scroll-to-end, 24-char JS truncation
+- `src/lib/utils/fieldLimits.ts` — added `DISPLAY_LIMITS` constants and `truncateDisplay()` helper
+- `src/routes/accounts/+page.svelte` — sign-split net worth widget + account counts, balance color by sign, horizontal scroll table, UGC truncation
+- `src/routes/accounts/+page.server.ts` — no changes (calc moved client-side)
+- `src/routes/accounts/[slug]/+page.svelte` — heading truncation, institution truncation, balance color by sign, table-fixed balance history with notes wrap + align-top
+- `src/routes/accounts/[slug]/edit/+page.svelte` — subtitle truncation
+- `src/routes/accounts/[slug]/delete/+page.svelte` — UGC truncation in summary grid
+- `src/routes/accounts/[slug]/balances/[balanceSlug]/edit/+page.svelte` — account name truncation
+- `src/routes/accounts/[slug]/balances/[balanceSlug]/delete/+page.svelte` — account name truncation
+- `src/routes/goals/+page.svelte` — horizontal scroll table, min-width on progress/target columns
+- `src/routes/goals/[slug]/+page.svelte` — heading truncation, allocation account name truncation
+- `src/routes/goals/[slug]/add/+page.svelte` — goal name + account name truncation
+- `src/routes/goals/[slug]/withdraw/+page.svelte` — goal name truncation
+- `src/routes/goals/[slug]/confirm-archive/+page.svelte` — goal name truncation
+- `src/routes/snapshots/[slug]/+page.svelte` — account/goal name truncation
+- `src/routes/snapshots/create/+page.svelte` — account/goal name truncation
+- `src/lib/components/GoalRow.svelte` — removed truncate CSS, JS truncation on goal name, whitespace-nowrap on data cells, min-width on progress/target
+- `src/lib/components/GoalCard.svelte` — flex truncation pattern on name
+- `src/lib/components/GoalDetailCard.svelte` — stats grid overflow-hidden + truncate on currency values
+- `src/lib/components/CreateSnapshotModal.svelte` — account/goal name truncation
+- `src/lib/utils/snapshots.ts` — sign-split totalAssets/totalLiabilities calculation
+
+**Commit:**
+```
+fix: sign-split accounting, table scroll, and UGC truncation across all pages
+```
+
+**Context:** All changes validated with `npm run check` (0 errors). Standard seed re-applied after stress seed testing. No schema changes.
+
+---
+
+
 
 **Summary:** Created two reusable pagination components (`Pagination.svelte` for URL-driven routes, `PaginationClient.svelte` for client-side). Migrated all paginated routes — snapshots, account balances, goals index, goal allocation history — from offset/hasMore patterns to `?page=N` (and `?allocPage=N`). Homepage goals uses client-side `$state` (5/page, resets on refresh). Homepage accounts by type is hard-capped at 8 rows with overflow notice. Also fixed a pre-existing corruption in `balances/delete/+page.server.ts` from a prior session.
 

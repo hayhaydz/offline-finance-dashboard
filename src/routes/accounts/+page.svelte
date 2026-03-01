@@ -5,6 +5,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import AccountFiltersModal from '$lib/components/AccountFiltersModal.svelte';
 	import AccountSortModal from '$lib/components/AccountSortModal.svelte';
+	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 
 	let { data, form } = $props();
 
@@ -139,24 +140,33 @@
 	// Calculate summary stats
 	const totalAccounts = $derived(data.accounts.length);
 	const assetAccounts = $derived(
-		data.accounts.filter((a) => a.category === 'asset').length
+		data.accounts.filter((a) => a.category === 'asset' && (a.currentBalance ?? 0) >= 0).length
 	);
 	const liabilityAccounts = $derived(
-		data.accounts.filter((a) => a.category === 'liability').length
+		data.accounts.filter((a) => a.category === 'liability' || (a.category === 'asset' && (a.currentBalance ?? 0) < 0)).length
 	);
 
-	// Calculate net worth (liabilities stored as negative, so add them)
-	const totalAssets = $derived(
-		data.accounts
-			.filter((a) => a.category === 'asset' && !a.excludedFromNetWorth && !a.closedAt)
-			.reduce((sum, a) => sum + (a.currentBalance ?? 0), 0)
-	);
+	// Calculate net worth — asset accounts with negative balance reclassify as liabilities
+	const totalAssets = $derived.by(() => {
+		let sum = 0;
+		for (const a of data.accounts) {
+			if (a.excludedFromNetWorth || a.closedAt) continue;
+			const bal = a.currentBalance ?? 0;
+			if (a.category === 'asset' && bal > 0) sum += bal;
+		}
+		return sum;
+	});
 
-	const totalLiabilities = $derived(
-		data.accounts
-			.filter((a) => a.category === 'liability' && !a.excludedFromNetWorth && !a.closedAt)
-			.reduce((sum, a) => sum + (a.currentBalance ?? 0), 0)
-	);
+	const totalLiabilities = $derived.by(() => {
+		let sum = 0;
+		for (const a of data.accounts) {
+			if (a.excludedFromNetWorth || a.closedAt) continue;
+			const bal = a.currentBalance ?? 0;
+			if (a.category === 'liability') sum += bal;
+			else if (a.category === 'asset' && bal < 0) sum += bal;
+		}
+		return sum;
+	});
 
 	const netWorth = $derived(totalAssets + totalLiabilities);
 </script>
@@ -164,7 +174,7 @@
 <!-- NET WORTH SECTION -->
 <div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 	<span>NET WORTH</span>
-	<span class="text-green-700 font-bold">{formatCurrency(netWorth)}</span>
+	<span class="{netWorth >= 0 ? 'text-green-700' : 'text-red-700'} font-bold">{formatCurrency(netWorth)}</span>
 </div>
 <div class="border-b border-black p-2">
 	<div class="flex justify-between my-1">
@@ -357,41 +367,45 @@
 			</tbody>
 		</table>
 	{:else}
-		<table>
+		<div class="overflow-x-auto">
+		<table class="w-full">
 			<thead>
 				<tr>
-					<th class="pl-2 text-left">Name</th>
-					<th class="pl-2 text-left">Type</th>
-					<th class="pl-2 text-left">Institution</th>
-					<th class="text-right pr-1">Balance</th>
-					<th class="text-right pr-1">Last Updated</th>
+					<th class="pl-2 text-left whitespace-nowrap">Name</th>
+					<th class="pl-2 text-left whitespace-nowrap">Type</th>
+					<th class="pl-2 text-left whitespace-nowrap">Institution</th>
+					<th class="text-right pr-1 whitespace-nowrap">Balance</th>
+					<th class="text-right pr-1 whitespace-nowrap">Last Updated</th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each sortedAccounts as account}
 					<tr class="border-b border-gray-200 last:border-b-0">
-						<td class="pl-2 text-sm py-2">
-							<a href="/accounts/{account.slug}" class="bracket-link" class:line-through={account.closedAt}>{account.name}</a>
+						<td class="pl-2 text-sm py-2 whitespace-nowrap">
+							<a href="/accounts/{account.slug}" class="bracket-link" class:line-through={account.closedAt}>{truncateDisplay(account.name, DISPLAY_LIMITS.ACCOUNT_NAME)}</a>
 							{#if account.closedAt}
 								<span class="text-gray-600 text-xs"> (closed)</span>
 							{/if}
 						</td>
-						<td class="pl-2 text-sm py-2" class:line-through={account.closedAt}>{formatAccountType(account.type)}</td>
-						<td class="pl-2 text-sm py-2" class:line-through={account.closedAt}>{account.institution || '-'}</td>
-						<td class="text-right pr-1 text-sm py-2" class:line-through={account.closedAt}>
+						<td class="pl-2 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>{formatAccountType(account.type)}</td>
+						<td class="pl-2 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>
+							{truncateDisplay(account.institution || '-', DISPLAY_LIMITS.INSTITUTION_NAME)}
+						</td>
+						<td class="text-right pr-1 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>
 							{#if account.currentBalance !== null}
-								<span class={account.category === 'liability' ? 'text-red-700' : 'text-green-700'}>
+								<span class={account.currentBalance >= 0 ? 'text-green-700' : 'text-red-700'}>
 									{formatCurrency(account.currentBalance)}
 								</span>
 							{:else}
 								<span class="text-gray-600">-</span>
 							{/if}
 						</td>
-						<td class="text-right pr-1 text-sm py-2" class:line-through={account.closedAt}>{formatDate(account.lastUpdated)}</td>
+						<td class="text-right pr-1 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>{formatDate(account.lastUpdated)}</td>
 					</tr>
 				{/each}
 			</tbody>
 		</table>
+		</div>
 	{/if}
 </div>
 

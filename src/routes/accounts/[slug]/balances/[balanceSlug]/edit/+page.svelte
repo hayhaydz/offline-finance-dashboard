@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { formatCurrency } from '$lib/utils/currency';
+	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
@@ -34,7 +35,7 @@
 <!-- ACCOUNT INFO -->
 <div class="border-b border-black p-2 bg-gray-100">
 	<div class="text-sm">
-		<span class="font-bold">Account:</span> {data.account.name}
+		<span class="font-bold">Account:</span> {truncateDisplay(data.account.name, DISPLAY_LIMITS.ACCOUNT_NAME)}
 		<span class="text-gray-600 mx-2">|</span>
 		<span class="font-bold">Type:</span> {getAccountType(data.account.type)}
 	</div>

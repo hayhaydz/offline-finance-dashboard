@@ -77,3 +77,7 @@ td {
 .shadow-hard {
 	box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.3);
 }
+
+/* Hide scrollbar for breadcrumb trail */
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }

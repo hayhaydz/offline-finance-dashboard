@@ -7,23 +7,35 @@
 	let { data } = $props();
 	let { user, environment: env, goals } = $derived(data);
 
-	// Group accounts by type for the overview
+	// Group accounts by type for the overview.
+	// Each account's balance is split by sign: positive balances sit under Assets,
+	// negative balances sit under Liabilities — even if the account category is 'asset'.
+	// This means a type like "Investments" can appear in BOTH sections simultaneously.
 	const accountsByType = $derived.by(() => {
-		const typeMap = new Map<string, { 
-			count: number; 
-			balance: number; 
-			lastUpdated: Date | null; 
+		// Key: `${type}:asset` or `${type}:liability`
+		const typeMap = new Map<string, {
+			type: string;
+			count: number;
+			balance: number;
+			lastUpdated: Date | null;
 			excluded: boolean;
-			category: 'asset' | 'liability';
+			displayCategory: 'asset' | 'liability';
 		}>();
 
 		for (const account of data.accounts) {
 			if (account.closedAt) continue;
 
-			const existing = typeMap.get(account.type);
 			const latestBalance = account.balances[0];
-			const balance = latestBalance?.balanceInCents || 0;
-			const updatedAt = latestBalance?.asOfDate || null;
+			if (!latestBalance || latestBalance.balanceInCents === 0) continue; // skip accounts with no balance entries or zero balance
+			const balance = latestBalance?.balanceInCents ?? 0;
+			const updatedAt = latestBalance?.asOfDate ?? null;
+
+			// Decide which section this account's balance belongs to
+			const displayCategory: 'asset' | 'liability' =
+				account.category === 'liability' || balance < 0 ? 'liability' : 'asset';
+
+			const key = `${account.type}:${displayCategory}`;
+			const existing = typeMap.get(key);
 
 			if (existing) {
 				existing.count++;
@@ -31,29 +43,24 @@
 				if (updatedAt && (!existing.lastUpdated || updatedAt > existing.lastUpdated)) {
 					existing.lastUpdated = updatedAt;
 				}
-				// Type is excluded if ALL accounts of this type are excluded
-				if (!account.excludedFromNetWorth) {
-					existing.excluded = false;
-				}
+				if (!account.excludedFromNetWorth) existing.excluded = false;
 			} else {
-				typeMap.set(account.type, {
+				typeMap.set(key, {
+					type: account.type,
 					count: 1,
 					balance,
 					lastUpdated: updatedAt,
 					excluded: account.excludedFromNetWorth,
-					category: account.category
+					displayCategory
 				});
 			}
 		}
 
-		return Array.from(typeMap.entries()).map(([type, stats]) => ({
-			type,
-			...stats
-		}));
+		return Array.from(typeMap.values());
 	});
 
-	const assetGroups = $derived(accountsByType.filter(g => g.category === 'asset'));
-	const liabilityGroups = $derived(accountsByType.filter(g => g.category === 'liability'));
+	const assetGroups = $derived(accountsByType.filter(g => g.displayCategory === 'asset'));
+	const liabilityGroups = $derived(accountsByType.filter(g => g.displayCategory === 'liability'));
 	const activeAccountCount = $derived(data.accounts.filter(a => !a.closedAt).length);
 
 	// Accounts hard cap (8 combined rows)

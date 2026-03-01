@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { formatCurrency } from '$lib/utils/currency';
+	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form } = $props<{
@@ -71,7 +72,7 @@
 </script>
 
 <div class="border-b border-black p-2">
-	<h1 class="text-lg font-bold mb-0 mt-0">WITHDRAW MONEY: {data.goal.name}</h1>
+	<h1 class="text-lg font-bold mb-0 mt-0">WITHDRAW MONEY: {truncateDisplay(data.goal.name, DISPLAY_LIMITS.GOAL_NAME)}</h1>
 </div>
 
 <div class="p-2">
@@ -84,15 +85,7 @@
 	<form method="POST" use:enhance class="flex flex-col gap-4">
 		<!-- Goal Info -->
 		<div class="text-center mb-4 pb-4 border-b border-black">
-			<div class="font-bold">{data.goal.name}</div>
-			<div class="text-xs text-gray-600 mt-1">
-				Currently: {formatCurrency(data.goal.currentAllocation)} of {formatCurrency(data.goal.targetAmountInCents)} target
-			</div>
-		</div>
-
-		<!-- Amount Input -->
-		<div>
-			<label for="amount" class="block text-sm font-bold mb-1">AMOUNT TO WITHDRAW</label>
+			<div class="font-bold">{truncateDisplay(data.goal.name, DISPLAY_LIMITS.GOAL_NAME)}</div>
 			<input
 				type="text"
 				id="amount"

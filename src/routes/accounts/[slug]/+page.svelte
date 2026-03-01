@@ -4,6 +4,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
 	import Pagination from '$lib/components/Pagination.svelte';
+	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -68,15 +69,17 @@
 
 <!-- ACCOUNT INFO HEADER -->
 <div class="border-b border-black p-2">
-	<div class="flex justify-between items-center mb-2">
-		<h2 class="text-base font-bold m-0">
-			{data.account.name}
-			{#if data.account.closedAt}
-				<span class="text-xs font-normal text-gray-500 ml-1">[CLOSED]</span>
-			{/if}
+	<div class="flex justify-between items-center gap-2 mb-2">
+		<h2 class="text-base font-bold m-0 min-w-0 overflow-hidden">
+			<span class="truncate block">
+				{data.account.name}
+				{#if data.account.closedAt}
+					<span class="text-xs font-normal text-gray-500 ml-1">[CLOSED]</span>
+				{/if}
+			</span>
 		</h2>
 		{#if !data.account.closedAt}
-		<div class="flex gap-2">
+		<div class="flex gap-2 shrink-0">
 			<a href="/accounts/{data.account.slug}/edit" class="bracket-link text-xs">Edit</a>
 			<a href="/accounts/{data.account.slug}/delete" class="bracket-link text-xs text-red-700">Close</a>
 		</div>
@@ -88,11 +91,11 @@
 		<div>Tax Wrapper:</div>
 		<div>{data.account.taxWrapper === 'none' ? '-' : data.account.taxWrapper.toUpperCase()}</div>
 		<div>Institution:</div>
-		<div>{data.account.institution || '-'}</div>
+		<div>{truncateDisplay(data.account.institution || '-', DISPLAY_LIMITS.INSTITUTION_NAME)}</div>
 		<div>Liquidity:</div>
 		<div class="capitalize">{data.account.liquidity}</div>
 		<div>Current Balance:</div>
-		<div class="font-bold">{formatCurrency(data.currentBalance)}</div>
+		<div class="font-bold {data.currentBalance >= 0 ? 'text-green-700' : 'text-red-700'}">{formatCurrency(data.currentBalance)}</div>
 	</div>
 </div>
 
@@ -207,24 +210,29 @@
 <!-- BALANCE HISTORY TABLE -->
 <div>
 	{#if data.balances.length === 0}
-		<p class="text-gray-600 text-xs">No balance history yet. Add your first entry above.</p>
+		<p class="text-gray-600 text-xs p-2">No balance history yet. Add your first entry above.</p>
 	{:else}
-		<table>
+		<div class="overflow-x-auto">
+		<table class="w-full table-fixed min-w-[600px]">
 			<thead>
 				<tr>
-					<th class="pl-2 text-left">Date</th>
-					<th class="text-right pr-1">Balance</th>
-					<th class="text-right pr-1">Change</th>
+					<th class="pl-2 text-left whitespace-nowrap w-[12%]">Date</th>
+					<th class="text-right pr-1 whitespace-nowrap w-[18%]">Balance</th>
+					<th class="text-right pr-1 whitespace-nowrap w-[18%]">Change</th>
 					<th class="pl-2 text-left">Notes</th>
-					<th class="text-right pr-1">Actions</th>
+					<th class="text-right pr-1 whitespace-nowrap w-[16%]">Actions</th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each data.balances as balance}
-					<tr class="border-b border-gray-200 last:border-b-0">
-						<td class="pl-2 text-sm py-2">{formatDate(balance.asOfDate)}</td>
-						<td class="text-right pr-1 text-sm tabular-nums py-2">{formatCurrency(balance.balanceInCents)}</td>
-						<td class="text-right pr-1 text-sm tabular-nums py-2">
+					<tr class="border-b border-gray-200 last:border-b-0 align-top">
+						<td class="pl-2 text-sm py-2 whitespace-nowrap">{formatDate(balance.asOfDate)}</td>
+						<td class="text-right pr-1 text-sm tabular-nums py-2 whitespace-nowrap">
+							<span class={balance.balanceInCents >= 0 ? 'text-green-700' : 'text-red-700'}>
+								{formatCurrency(balance.balanceInCents)}
+							</span>
+						</td>
+						<td class="text-right pr-1 text-sm tabular-nums py-2 whitespace-nowrap">
 							{#if balance.changeFromPrevious !== null}
 								<span
 									class={balance.changeFromPrevious >= 0
@@ -238,8 +246,10 @@
 								<span class="text-gray-500">-</span>
 							{/if}
 						</td>
-						<td class="pl-2 text-sm py-2 text-gray-600">{balance.notes || '-'}</td>
-						<td class="text-right pr-1 text-sm py-2">
+						<td class="pl-2 text-sm py-2 text-gray-600 break-words">
+							{truncateDisplay(balance.notes || '-', DISPLAY_LIMITS.BALANCE_NOTES)}
+						</td>
+						<td class="text-right pr-1 text-sm py-2 whitespace-nowrap">
 							{#if !data.account.closedAt}
 							<a
 								href="/accounts/{data.account.slug}/balances/{balance.slug}/edit"
@@ -255,6 +265,7 @@
 				{/each}
 			</tbody>
 		</table>
+		</div>
 
 		<Pagination
 			currentPage={data.page}

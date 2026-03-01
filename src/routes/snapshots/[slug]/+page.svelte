@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { formatCurrencyShorthand } from '$lib/utils/currency';
+	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 
 	let { data, form } = $props();
 
@@ -83,7 +84,7 @@
 			<div class="font-bold text-xs mb-1 mt-1 first:mt-0">{capitalizeType(type)} ({accounts.length})</div>
 			{#each accounts as account}
 				<div class="text-xs flex justify-between py-1 border-b border-gray-200 last:border-0">
-					<span>{account.name}</span>
+					<span>{truncateDisplay(account.name, DISPLAY_LIMITS.ACCOUNT_NAME)}</span>
 					<span class="{account.includedInTotal ? '' : 'text-gray-400'}">
 						{formatCurrencyShorthand(account.balanceInCents)}
 						{!account.includedInTotal ? ' (excluded)' : ''}
@@ -102,7 +103,7 @@
 	<div class="p-2">
 		{#each goalsBreakdown.goals as goal}
 			<div class="text-xs flex justify-between py-1 border-b border-gray-200 last:border-0">
-				<span>{goal.name}</span>
+				<span>{truncateDisplay(goal.name, DISPLAY_LIMITS.GOAL_NAME)}</span>
 				<span
 					>{formatCurrencyShorthand(goal.currentAllocation)} /
 					{formatCurrencyShorthand(goal.targetAmountInCents)}</span

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { formatCurrency } from '$lib/utils/currency';
+	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form } = $props<{ data: PageData; form: ActionData }>();
@@ -24,7 +25,7 @@
 		<div class="font-bold text-sm mb-2">⚠ CONFIRMATION REQUIRED</div>
 		<p class="text-sm mb-2">
 			You are about to delete the balance entry for
-			<span class="font-bold">{data.account.name}</span> on
+			<span class="font-bold">{truncateDisplay(data.account.name, DISPLAY_LIMITS.ACCOUNT_NAME)}</span> on
 			<span class="font-bold">{data.asOfDateStr}</span>.
 		</p>
 		<p class="text-sm mb-2">

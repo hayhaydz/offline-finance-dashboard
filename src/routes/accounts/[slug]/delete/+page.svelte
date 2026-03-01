@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { formatCurrency } from '$lib/utils/currency';
+	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -41,11 +42,11 @@
 		<h3 class="font-bold mb-2">Account Summary</h3>
 		<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
 			<div>Name:</div>
-			<div class="font-bold">{data.account.name}</div>
+			<div class="font-bold truncate">{truncateDisplay(data.account.name, DISPLAY_LIMITS.ACCOUNT_NAME)}</div>
 			<div>Type:</div>
 			<div>{getAccountTypeLabel(data.account.type)}</div>
 			<div>Institution:</div>
-			<div>{data.account.institution || '-'}</div>
+			<div class="truncate">{truncateDisplay(data.account.institution || '-', DISPLAY_LIMITS.INSTITUTION_NAME)}</div>
 			<div>Liquidity:</div>
 			<div class="capitalize">{data.account.liquidity}</div>
 		</div>

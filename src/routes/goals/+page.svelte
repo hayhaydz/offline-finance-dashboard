@@ -155,12 +155,13 @@
 			No goals yet. Create your first goal to start tracking.
 		</p>
 	{:else}
-		<table>
+		<div class="overflow-x-auto">
+		<table class="w-full">
 			<thead>
 				<tr>
-					<th class="pl-2 text-left">Goal</th>
-					<th class="text-right pr-1">Progress</th>
-					<th class="text-right pr-1">Target</th>
+					<th class="pl-2 text-left whitespace-nowrap">Goal</th>
+					<th class="text-right pr-4 whitespace-nowrap min-w-[220px]">Progress</th>
+					<th class="text-right pr-1 whitespace-nowrap min-w-[120px]">Target</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -182,6 +183,7 @@
 				{/each}
 			</tbody>
 		</table>
+		</div>
 		{#if reorderMode && selectedSlug !== null}
 			<div class="border-t border-gray-300 p-2">
 				<button type="button" onclick={placeAtEnd} class="bracket-link text-xs text-amber-700">

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { formatCurrencyShorthand, formatDate } from '$lib/utils/currency';
 	import { getStaleness } from '$lib/utils/staleness';
+	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 	import type { Goal } from '$lib/db/schema';
 
 	type Milestone = { label: string; achieved: boolean };
@@ -36,10 +37,10 @@
 			{/if}
       <span class={staleness.cssClass}>●</span>
 			{#if isArchived}
-				<span>{goal.name}</span>
+				<span>{truncateDisplay(goal.name, DISPLAY_LIMITS.GOAL_NAME)}</span>
 				<span class="text-xs text-red-700 ml-1">[ARCHIVED]</span>
 			{:else}
-				<a href="/goals/{goal.slug}" class="bracket-link">[{goal.name}]</a>
+				<a href="/goals/{goal.slug}" class="bracket-link">[{truncateDisplay(goal.name, DISPLAY_LIMITS.GOAL_NAME)}]</a>
 			{/if}
 		</div>
 		<!-- Reorder controls inline under name -->
@@ -67,8 +68,7 @@
 			</div>
 		{/if}
 	</td>
-	<td class="text-right pr-1 text-sm py-2">
-		<!-- Progress amount -->
+	<td class="text-right pr-4 text-sm py-2 whitespace-nowrap min-w-[220px]">
 		<div class="font-bold {isArchived ? 'text-gray-600' : progressColor.text}">
 			{formatCurrencyShorthand(goal.currentAllocation)} / {formatCurrencyShorthand(goal.targetAmountInCents)}
 		</div>
@@ -85,7 +85,7 @@
 			<span class="min-w-5 font-bold">{progress}%</span>
 		</div>
 	</td>
-	<td class="text-right pr-1 text-sm py-2">
+	<td class="text-right pr-1 text-sm py-2 whitespace-nowrap min-w-[120px]">
 		{#if goal.targetDate}
 			<div class="text-xs text-gray-600">{formatDate(new Date(goal.targetDate))}</div>
 		{:else}
@@ -93,7 +93,7 @@
 		{/if}
 	</td>
 	{#if showArchivedDate}
-		<td class="text-right pr-1 text-sm py-2">
+		<td class="text-right pr-1 text-sm py-2 whitespace-nowrap">
 		{#if goal.deletedAt}
 			<div class="text-xs text-gray-600">{formatDate(new Date(goal.deletedAt))}</div>
 		{:else}
@@ -102,7 +102,7 @@
 		</td>
 	{/if}
 	{#if showActions}
-	<td class="text-right pr-1 text-sm py-2">
+	<td class="text-right pr-1 text-sm py-2 whitespace-nowrap">
 	</td>
 	{/if}
 </tr>

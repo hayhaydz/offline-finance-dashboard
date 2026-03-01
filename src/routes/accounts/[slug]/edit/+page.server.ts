@@ -94,6 +94,14 @@ export const actions: Actions = {
 			return fail(400, { error: 'Account name is required' });
 		}
 
+		if (name.trim().length > 100) {
+			return fail(400, { error: 'Account name must be 100 characters or less' });
+		}
+
+		if (institution && institution.trim().length > 100) {
+			return fail(400, { error: 'Institution name must be 100 characters or less' });
+		}
+
 		if (!VALID_ACCOUNT_TYPES.includes(type)) {
 			devLog('editAccount', 'Validation failed - invalid type', { accountSlug, type });
 			return fail(400, { error: 'Invalid account type' });
