@@ -40,7 +40,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	return {
 		user: locals.user,
-		snapshot
+		snapshot,
+		breadcrumbOverrides: [
+			{ segmentIndex: 1, label: snapshot.snapshotDate, skipLink: false }
+		]
 	};
 };
 

@@ -62,7 +62,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		allocationHistory,
 		accounts: accountsWithUnallocated,
 		totalAssets,
-		readyToAssign
+		readyToAssign,
+		breadcrumbOverrides: [
+			{ segmentIndex: 1, label: goal.name, skipLink: false }
+		]
 	};
 };
 

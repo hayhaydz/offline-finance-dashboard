@@ -1,4 +1,31 @@
-## [2026-03-01 14:21] — Tailwind Arbitrary Unit Cleanup
+## [2026-03-01 14:44] — UX Polish: Breadcrumbs, Cancel Links, Delete Confirmation Pages
+
+**Summary:** Fixed missing `Goals` label in breadcrumb map, added `breadcrumbOverrides` to goals and snapshots slug pages so the actual name/date shows instead of the raw slug. Cancel buttons on goals add/withdraw now return to the goal detail page. Archive and delete confirmations (goals, balance entries, snapshots) now require typing the exact name/date before submitting. Balance delete and snapshot delete converted from modal/inline form to separate confirmation pages.
+
+**Files:**
+- `src/lib/components/navigation.svelte`: Added `goals: 'Goals'` to breadcrumb `labelMap`
+- `src/routes/goals/[slug]/+page.server.ts`: Returns `breadcrumbOverrides` with `goal.name`
+- `src/routes/snapshots/[slug]/+page.server.ts`: Returns `breadcrumbOverrides` with `snapshot.snapshotDate`
+- `src/routes/goals/[slug]/add/+page.svelte`: Cancel href → `/goals/{data.goal.slug}`
+- `src/routes/goals/[slug]/withdraw/+page.svelte`: Cancel href → `/goals/{data.goal.slug}`
+- `src/routes/goals/[slug]/confirm-archive/+page.svelte`: Replaced checkbox with typed name confirmation
+- `src/routes/accounts/[slug]/+page.svelte`: Removed modal/hidden-form delete; Delete button → link to delete page
+- `src/routes/accounts/[slug]/+page.server.ts`: Removed `deleteBalance` action; cleaned unused imports
+- `src/routes/accounts/[slug]/balances/[balanceSlug]/delete/+page.server.ts`: New — loads balance, validates typed date, deletes
+- `src/routes/accounts/[slug]/balances/[balanceSlug]/delete/+page.svelte`: New — confirmation page requiring typed date
+- `src/routes/snapshots/[slug]/+page.svelte`: Delete button → link to delete page
+- `src/routes/snapshots/[slug]/delete/+page.server.ts`: Converted from redirect-on-GET to proper load + date validation
+- `src/routes/snapshots/[slug]/delete/+page.svelte`: New — confirmation page requiring typed date
+- `src/routes/settings/reference/+page.svelte`: Fixed 3 Svelte `state_referenced_locally` warnings
+
+**Commit:**
+```
+fix: breadcrumbs, cancel links, typed-confirmation delete pages
+```
+
+---
+
+
 
 **Summary:** Replaced all arbitrary pixel/unit Tailwind classes with standard scale equivalents across the codebase. Custom terminal shadow extracted into a shared reusable `.shadow-hard` utility class in `app.css`.
 

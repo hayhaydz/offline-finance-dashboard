@@ -147,7 +147,7 @@
 				[Add {amount ? `£${amount}` : '£0'}]
 			</button>
 			<a
-				href="/goals"
+				href="/goals/{data.goal.slug}"
 				class="border border-black px-4 py-2 text-sm hover:bg-gray-100 no-underline text-black"
 			>
 				Cancel

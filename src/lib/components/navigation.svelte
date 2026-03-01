@@ -57,6 +57,7 @@
 			buildPath += '/' + segment;
 			const labelMap: Record<string, string> = {
 				accounts: 'Accounts',
+				goals: 'Goals',
 				snapshots: 'Snapshots',
 				settings: 'Settings',
 				profile: 'Profile',

@@ -1,17 +1,10 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { formatCurrency, formatDateShorthand } from '$lib/utils/currency';
-	import { onMount } from 'svelte';
-	import { invalidateAll, goto } from '$app/navigation';
-	import ConfirmationModal from '$lib/components/ConfirmationModal.svelte';
+	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
-
-	// Delete confirmation modal state
-	let showDeleteModal = $state(false);
-	let balanceToDelete = $state<{ slug: string; date: string; balance: string } | null>(null);
-	let deleteBalanceSlug = $state(''); // Reactive state for form input
 
 	// Form submission feedback state
 	let isSubmitting = $state(false);
@@ -51,39 +44,6 @@
 		const currentOffset = new URLSearchParams(window.location.search).get('offset') || '0';
 		const newOffset = parseInt(currentOffset) + 50;
 		return `?offset=${newOffset}`;
-	}
-
-	// Open delete confirmation modal
-	function openDeleteModal(balance: typeof data.balances[number]) {
-		console.log('[openDeleteModal] Setting balanceToDelete to:', balance.slug, 'Date:', formatDate(balance.asOfDate));
-		balanceToDelete = {
-			slug: balance.slug,
-			date: formatDate(balance.asOfDate),
-			balance: formatCurrency(balance.balanceInCents)
-		};
-		deleteBalanceSlug = balance.slug; // Update form value immediately
-		showDeleteModal = true;
-		console.log('[openDeleteModal] balanceToDelete set to:', balanceToDelete.slug, 'deleteBalanceSlug:', deleteBalanceSlug);
-	}
-
-	// Cancel delete
-	function cancelDelete() {
-		showDeleteModal = false;
-		balanceToDelete = null;
-	}
-
-	// Confirm delete - update form and submit
-	function confirmDelete() {
-		if (!balanceToDelete) return;
-
-		showDeleteModal = false;
-		isSubmitting = true;
-
-		// Submit the form programmatically
-		const deleteForm = document.getElementById('delete-balance-form') as HTMLFormElement;
-		if (deleteForm) {
-			deleteForm.requestSubmit();
-		}
 	}
 
 	// Clear success messages after 10 seconds, errors persist until manually dismissed
@@ -278,13 +238,10 @@
 								href="/accounts/{data.account.slug}/balances/{balance.slug}/edit"
 								class="bracket-link text-xs"
 							>Edit</a>
-							<button
-								type="button"
-								onclick={() => openDeleteModal(balance)}
+							<a
+								href="/accounts/{data.account.slug}/balances/{balance.slug}/delete"
 								class="bracket-link text-xs text-red-700"
-							>
-								Delete
-							</button>
+							>Delete</a>
 						</td>
 					</tr>
 				{/each}
@@ -299,41 +256,3 @@
 	{/if}
 </div>
 
-<!-- DELETE BALANCE FORM (single form, triggered by modal) -->
-<form
-	method="POST"
-	action="?/deleteBalance"
-	class="hidden"
-	id="delete-balance-form"
-	use:enhance={() => {
-		return async ({ result }) => {
-			if (result.type === 'success') {
-				// Show success message
-				submitMessage = { type: 'success', text: (result.data as { success?: string }).success || 'Balance entry deleted' };
-				// Navigate to current page to force fresh data fetch (bypasses browser cache)
-				await goto('.', { invalidateAll: true });
-			} else if (result.type === 'failure' && result.data) {
-				// Show error message
-				const errorData = result.data as { error?: string };
-				if (errorData.error) {
-					submitMessage = { type: 'error', text: errorData.error };
-				}
-			}
-			isSubmitting = false;
-		};
-	}}
->
-	<input type="hidden" name="balanceSlug" bind:value={deleteBalanceSlug} />
-</form>
-
-<!-- DELETE CONFIRMATION MODAL -->
-{#if showDeleteModal && balanceToDelete}
-	<ConfirmationModal
-		title="Delete Balance Entry"
-		message={`Are you sure you want to delete the balance entry for ${balanceToDelete.date} with amount ${balanceToDelete.balance}? This action cannot be undone.`}
-		confirmText="Delete"
-		cancelText="Cancel"
-		onConfirm={confirmDelete}
-		onCancel={cancelDelete}
-	/>
-{/if}

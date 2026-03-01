@@ -8,11 +8,15 @@
 	let { data, form } = $props();
 
 	// Form state - initialize from server data (pence to pounds)
-	let monthlyExpenses = $state(
-		data.monthlyExpensesInPence !== null && data.monthlyExpensesInPence !== undefined
-			? (data.monthlyExpensesInPence / 100).toFixed(2)
-			: ''
-	);
+	let monthlyExpenses = $state('');
+
+	// Sync state when server data changes
+	$effect(() => {
+		monthlyExpenses =
+			data.monthlyExpensesInPence !== null && data.monthlyExpensesInPence !== undefined
+				? (data.monthlyExpensesInPence / 100).toFixed(2)
+				: '';
+	});
 
 	// Validation rules for monthly expenses
 	const validationRules = [
