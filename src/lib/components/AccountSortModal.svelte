@@ -59,7 +59,7 @@
 		tabindex="-1"
 	>
 		<div
-			class="bg-white border-2 border-black shadow-[8px_8px_0_rgba(0,0,0,0.3)] w-full max-w-sm flex flex-col max-h-[90vh]"
+			class="bg-white border-2 border-black shadow-hard w-full max-w-sm flex flex-col max-h-[90vh]"
 			onclick={(e) => e.stopPropagation()}
 			role="presentation"
 		>

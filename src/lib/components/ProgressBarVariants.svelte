@@ -59,7 +59,7 @@
     <div class="flex justify-between items-end mb-2">
       <div>
         <h1 class="font-bold text-sm">FINANCIAL_GOAL: {goalName}</h1>
-        <div class="text-[10px] text-gray-500">TARGET: {formatCurrencyShorthand(target)}</div>
+        <div class="text-xs text-gray-500">TARGET: {formatCurrencyShorthand(target)}</div>
       </div>
       <div class="text-right">
         <div class="font-bold {colors.text}">STATUS: {progressColor.toUpperCase()}</div>
@@ -88,7 +88,7 @@
         <div class="flex-1 h-4 border border-black relative">
           <div class="h-full transition-all duration-100" style="width: {p}%; background-color: {bar1Color};"></div>
         </div>
-        <span class="text-xs text-gray-500 min-w-[30px] text-right">{p}%</span>
+        <span class="text-xs text-gray-500 min-w-8 text-right">{p}%</span>
       </div>
     </div>
 
@@ -206,7 +206,7 @@
         <span>[</span>
         <div class="flex-1 h-6 relative mt-1 border-y border-gray-100">
           <div class="absolute inset-0 flex justify-between opacity-20">
-            {#each Array(40) as _} <div class="w-[1px] h-full bg-current"></div> {/each}
+            {#each Array(40) as _} <div class="w-px h-full bg-current"></div> {/each}
           </div>
           <div class="h-full {colors.bg} transition-all duration-300 mix-blend-multiply" style="width: {p}%"></div>
         </div>
@@ -249,8 +249,8 @@
         <span>AUDIT_OK</span>
       </div>
       <div class="h-4 w-full flex items-center">
-        <div class="w-full h-[2px] bg-gray-300 absolute"></div>
-        <div class="h-[4px] {colors.bg} relative transition-all duration-300" style="width: {p}%">
+        <div class="w-full h-0.5 bg-gray-300 absolute"></div>
+        <div class="h-1 {colors.bg} relative transition-all duration-300" style="width: {p}%">
            <div class="absolute right-0 top-[-6px] h-4 w-2 bg-black"></div>
         </div>
       </div>
@@ -261,7 +261,7 @@
         <span>15 :: ASSET_ID</span>
         <span>|| ||| ||</span>
       </div>
-      <div class="h-10 border border-black bg-white p-[2px]">
+      <div class="h-10 border border-black bg-white p-0.5">
         <div class="h-full overflow-hidden transition-all duration-300 border-r-2 border-black" style="width: {p}%">
           <div class="h-full w-screen pattern-barcode {colors.bg}"></div>
         </div>
@@ -273,7 +273,7 @@
         <span>16 :: YIELD_TRACK</span>
         <span>{formatCurrencyShorthand(current)}</span>
       </div>
-      <div class="h-6 border-y-2 border-black relative py-[2px]">
+      <div class="h-6 border-y-2 border-black relative py-0.5">
         <div class="h-full {colors.bg} transition-all duration-300 opacity-80" style="width: {p}%"></div>
         <div class="absolute inset-0 pattern-ticks opacity-30"></div>
       </div>
@@ -296,7 +296,7 @@
         <span>Q{Math.ceil(p/25)}</span>
       </div>
       <div class="h-8 relative flex items-center">
-        <div class="w-full h-[1px] bg-black"></div>
+        <div class="w-full h-px bg-black"></div>
         <div class="absolute left-0 h-2 {colors.bg} transition-all duration-300" style="width: {p}%"></div>
         <div class="absolute inset-0 pattern-wide-ruler opacity-50"></div>
       </div>

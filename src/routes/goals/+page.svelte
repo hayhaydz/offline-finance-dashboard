@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { formatCurrency } from '$lib/utils/currency';
-	import { getStaleness } from '$lib/utils/staleness';
 	import GoalRow from '$lib/components/GoalRow.svelte';
 	import type { Goal } from '$lib/db/schema';
 
@@ -8,7 +7,7 @@
 
 	// Reactive goals array for client-side reordering
 	let goals = $state<Goal[]>([]);
-	let moving = $state<Set<string>>(new Set());
+	let selectedSlug = $state<string | null>(null);
 
 	// Sync goals with server data
 	$effect(() => {
@@ -17,66 +16,65 @@
 
 	// Reorder mode state
 	let reorderMode = $state(false);
-	let archiveMode = $state(false);
 
-	// Toggle reorder mode
+	// Toggle reorder mode (clear selection on exit)
 	function toggleReorderMode() {
 		reorderMode = !reorderMode;
-		// Disable archive mode when enabling reorder mode
-		if (reorderMode) archiveMode = false;
+		selectedSlug = null;
 	}
 
-	// Toggle archive mode
-	function toggleArchiveMode() {
-		archiveMode = !archiveMode;
-		// Disable reorder mode when enabling archive mode
-		if (archiveMode) reorderMode = false;
+	// Select a goal to move (toggle deselect)
+	function selectGoal(slug: string) {
+		selectedSlug = selectedSlug === slug ? null : slug;
 	}
 
-	// Move goal up or down (client-side fetch for smooth reordering)
-	async function moveGoal(slug: string, direction: 'up' | 'down', index: number) {
-		console.log(`[move${direction}] Starting`, { slug, index, currentOrder: goals.map(g => ({ slug: g.slug, sortOrder: g.sortOrder })) });
+	// Place selected goal before the target goal's current position
+	async function placeAt(targetSlug: string) {
+		const slug = selectedSlug;
+		if (!slug || slug === targetSlug) return;
 
-		moving.add(slug);
+		const selected = goals.find(g => g.slug === slug);
+		if (!selected) return;
 
-		try {
-			const formData = new FormData();
-			formData.append('slug', slug);
+		// Use original index so the selected item lands exactly at the clicked row's position
+		const originalTargetIdx = goals.findIndex(g => g.slug === targetSlug);
 
-			const actionName = direction === 'up' ? 'moveUp' : 'moveDown';
-			console.log(`[move${direction}] Posting to`, { actionName, url: `/goals?/${actionName}` });
+		const others = goals.filter(g => g.slug !== slug);
+		const clampedIdx = Math.min(originalTargetIdx, others.length);
+		others.splice(clampedIdx, 0, selected);
+		goals = others;
+		selectedSlug = null;
 
-			const response = await fetch(`/goals?/${actionName}`, {
-				method: 'POST',
-				body: formData
-			});
+		const formData = new FormData();
+		formData.append('slug', slug);
+		formData.append('targetIndex', originalTargetIdx.toString());
 
-			if (!response.ok) {
-				const error = await response.json();
-				console.error(`[move${direction}] Failed`, error);
-				alert(error.error || 'Failed to move goal');
-				return;
-			}
+		const response = await fetch('/goals?/moveTo', { method: 'POST', body: formData });
+		if (!response.ok) {
+			goals = [...data.goals]; // revert on failure
+		}
+	}
 
-			console.log(`[move${direction}] Server responded OK`);
+	// Place selected goal at the end
+	async function placeAtEnd() {
+		const slug = selectedSlug;
+		if (!slug) return;
 
-			// Update local state for smooth visual feedback
-			if (direction === 'up' && index > 0) {
-				const temp = goals[index];
-				goals[index] = goals[index - 1];
-				goals[index - 1] = temp;
-				console.log(`[move${direction}] Client state updated (swapped ${index} with ${index - 1})`);
-			} else if (direction === 'down' && index < goals.length - 1) {
-				const temp = goals[index];
-				goals[index] = goals[index + 1];
-				goals[index + 1] = temp;
-				console.log(`[move${direction}] Client state updated (swapped ${index} with ${index + 1})`);
-			}
+		const selected = goals.find(g => g.slug === slug);
+		if (!selected) return;
 
-			console.log(`[move${direction}] New order`, { newOrder: goals.map(g => ({ slug: g.slug, sortOrder: g.sortOrder })) });
-		} finally {
-			moving.delete(slug);
-			console.log(`[move${direction}] Complete`);
+		const others = goals.filter(g => g.slug !== slug);
+		others.push(selected);
+		goals = others;
+		selectedSlug = null;
+
+		const formData = new FormData();
+		formData.append('slug', slug);
+		formData.append('targetIndex', others.length.toString());
+
+		const response = await fetch('/goals?/moveTo', { method: 'POST', body: formData });
+		if (!response.ok) {
+			goals = [...data.goals];
 		}
 	}
 
@@ -108,11 +106,6 @@
 			{ label: '12mo', achieved: current >= monthlyExpenses * 12 }
 		];
 	}
-
-	// Get staleness info for a goal
-	function getGoalStaleness(goal: Goal) {
-		return getStaleness(new Date(goal.updatedAt));
-	}
 </script>
 
 <!-- READY TO ASSIGN SECTION -->
@@ -137,13 +130,6 @@
 		>
 			[{reorderMode ? 'Done' : 'Re-order'}]
 		</button>
-		<button
-			type="button"
-			onclick={toggleArchiveMode}
-			class="bracket-link text-xs"
-		>
-			[{archiveMode ? 'Done' : 'Archive'}]
-		</button>
 		<a href="/goals/archived" class="bracket-link text-xs">[View Archived]</a>
 		<a href="/goals/create" class="bracket-link text-xs">[+ Create New Goal]</a>
 	</div>
@@ -161,7 +147,6 @@
 					<th class="pl-2 text-left">Goal</th>
 					<th class="text-right pr-1">Progress</th>
 					<th class="text-right pr-1">Target</th>
-					<th class="text-right pr-1">Actions</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -169,23 +154,26 @@
 					{@const progress = getProgress(goal)}
 					{@const progressColor = getProgressColor(progress)}
 					{@const milestones = getEmergencyFundMilestones(goal)}
-					{@const staleness = getGoalStaleness(goal)}
 					<GoalRow
 						{goal}
 						{progress}
 						{progressColor}
 						{milestones}
-						{staleness}
-						archiveMode={archiveMode}
 						reorderMode={reorderMode}
-						canMoveUp={index > 0 && !moving.has(goal.slug)}
-						canMoveDown={index < goals.length - 1 && !moving.has(goal.slug)}
-						onMoveUp={() => moveGoal(goal.slug, 'up', index)}
-						onMoveDown={() => moveGoal(goal.slug, 'down', index)}
-						isMoving={moving.has(goal.slug)}
+						isSelected={selectedSlug === goal.slug}
+						isOtherSelected={selectedSlug !== null && selectedSlug !== goal.slug}
+						onSelect={() => selectGoal(goal.slug)}
+						onPlaceHere={() => placeAt(goal.slug)}
 					/>
 				{/each}
 			</tbody>
 		</table>
+		{#if reorderMode && selectedSlug !== null}
+			<div class="border-t border-gray-300 p-2">
+				<button type="button" onclick={placeAtEnd} class="bracket-link text-xs text-amber-700">
+					[Move to End]
+				</button>
+			</div>
+		{/if}
 	{/if}
 </div>

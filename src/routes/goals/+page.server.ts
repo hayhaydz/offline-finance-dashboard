@@ -47,6 +47,59 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
+	// Move a goal to a specific index in the sort order
+	moveTo: async ({ request, locals }) => {
+		if (!locals.user) {
+			logError('moveTo', 'Authentication required');
+			return fail(401, { error: 'Authentication required' });
+		}
+
+		const formData = await request.formData();
+		const slug = formData.get('slug')?.toString();
+		const targetIndexStr = formData.get('targetIndex')?.toString();
+
+		if (!slug || targetIndexStr === undefined) {
+			return fail(400, { error: 'Missing parameters' });
+		}
+
+		const targetIndex = parseInt(targetIndexStr);
+		if (isNaN(targetIndex) || targetIndex < 0) {
+			return fail(400, { error: 'Invalid target index' });
+		}
+
+		try {
+			const allGoals = await db.query.goals.findMany({
+				where: and(withUserFilter(locals.user.id, goals), isNull(goals.deletedAt)),
+				orderBy: asc(goals.sortOrder)
+			});
+
+			const currentIdx = allGoals.findIndex(g => g.slug === slug);
+			if (currentIdx === -1) {
+				return fail(404, { error: 'Goal not found' });
+			}
+
+			validateUserAccess(allGoals[currentIdx], locals.user, 'Goal');
+
+			// Reorder array
+			const reordered = [...allGoals];
+			const [removed] = reordered.splice(currentIdx, 1);
+			const clampedIndex = Math.min(targetIndex, reordered.length);
+			reordered.splice(clampedIndex, 0, removed);
+
+			// Persist new sort orders
+			for (let i = 0; i < reordered.length; i++) {
+				await db.update(goals).set({ sortOrder: i + 1 }).where(eq(goals.id, reordered[i].id));
+			}
+
+			devLog('moveTo', 'Goal reordered', { slug, targetIndex });
+		} catch (error) {
+			logError('moveTo', 'Failed to reorder goal', error);
+			return fail(500, { error: 'Failed to reorder goal' });
+		}
+
+		redirect(302, '/goals');
+	},
+
 	// Move goal up in sort order (swap with goal above)
 	moveUp: async ({ request, locals }) => {
 		devLog('moveUp', '=== ACTION START ===', { url: request.url, method: request.method });

@@ -101,7 +101,7 @@ export const actions: Actions = {
 		const newAllocation = goal.currentAllocation - amountInCents;
 		await db
 			.update(goals)
-			.set({ currentAllocation: newAllocation })
+			.set({ currentAllocation: newAllocation, updatedAt: new Date() })
 			.where(eq(goals.id, goal.id));
 
 		devLog('goalsWithdraw', 'Withdrawal processed', {
@@ -111,6 +111,6 @@ export const actions: Actions = {
 		});
 
 		// Redirect to goals list (no success modal per user decision)
-		redirect(303, '/goals');
+		redirect(303, `/goals/${params.slug}`);
 	}
 };

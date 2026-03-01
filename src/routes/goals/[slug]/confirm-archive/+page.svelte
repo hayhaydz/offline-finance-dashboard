@@ -57,7 +57,7 @@
 			>
 				[Confirm Archive]
 			</button>
-			<a href="/goals" class="bracket-link text-xs">[Cancel]</a>
+			<a href="/goals/{data.goal.slug}" class="bracket-link text-xs">[Cancel]</a>
 		</div>
 	</form>
 </div>

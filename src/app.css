@@ -72,3 +72,8 @@ td {
 	max-height: calc(100vh - 200px);
 	overflow-y: auto;
 }
+
+/* Terminal hard shadow — used on modal overlays */
+.shadow-hard {
+	box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.3);
+}

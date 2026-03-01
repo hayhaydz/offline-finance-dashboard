@@ -48,7 +48,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			currentAllocation: true,
 			targetDate: true,
 			isEmergencyFund: true,
-			deletedAt: true
+			deletedAt: true,
+			updatedAt: true
 		}
 	});
 

@@ -1,57 +1,63 @@
 <script lang="ts">
 	import { formatCurrencyShorthand, formatDate } from '$lib/utils/currency';
+	import { getStaleness } from '$lib/utils/staleness';
 	import type { Goal } from '$lib/db/schema';
 
 	type Milestone = { label: string; achieved: boolean };
-
-	type StalenessInfo = {
-		color: 'green' | 'amber' | 'red';
-		label: string;
-		cssClass: string;
-	};
 
 	interface Props {
 		goal: Goal;
 		progress: number;
 		progressColor: { text: string; bg: string };
 		milestones: Milestone[] | null;
-		staleness?: StalenessInfo;
 		showActions?: boolean;
 		showArchivedDate?: boolean;
 		showStatus?: boolean;
 		isArchived?: boolean;
 		// Inline reorder props
 		reorderMode?: boolean;
-		canMoveUp?: boolean;
-		canMoveDown?: boolean;
-		onMoveUp?: () => void;
-		onMoveDown?: () => void;
-		isMoving?: boolean;
-		// Archive mode prop
-		archiveMode?: boolean;
+		isSelected?: boolean;
+		isOtherSelected?: boolean;
+		onSelect?: () => void;
+		onPlaceHere?: () => void;
 	}
 
-	let { goal, progress, progressColor, milestones, staleness, showActions = true, showArchivedDate = false, showStatus = false, isArchived = false, reorderMode = false, canMoveUp = true, canMoveDown = true, onMoveUp, onMoveDown, isMoving = false, archiveMode = false }: Props = $props();
+	let { goal, progress, progressColor, milestones, showActions = true, showArchivedDate = false, showStatus = false, isArchived = false, reorderMode = false, isSelected = false, isOtherSelected = false, onSelect, onPlaceHere }: Props = $props();
+
+	const staleness = $derived(getStaleness(goal.updatedAt));
 </script>
 
-<tr class="border-b border-gray-200 last:border-b-0 {isArchived ? 'bg-gray-50' : ''}">
+<tr class="border-b border-gray-200 last:border-b-0 {isArchived ? 'bg-gray-50' : ''} {isSelected ? 'bg-amber-50' : ''}">
 	<td class="pl-2 text-sm py-2">
 		<!-- Goal name -->
-		<div class="font-bold {isArchived ? 'text-gray-600' : ''} {reorderMode && !isMoving ? 'flex items-center gap-2' : ''}">
+		<div class="font-bold {isArchived ? 'text-gray-600' : ''}">
 			{#if reorderMode}
-				<span class="text-gray-400 select-none">⋮⋮</span>
+				<span class="text-gray-400 select-none mr-1">⋮⋮</span>
 			{/if}
-      {#if staleness}
-				<span class={staleness.cssClass}>●</span>
-			{/if}
-			<span>{goal.name}</span>
+      <span class={staleness.cssClass}>●</span>
 			{#if isArchived}
+				<span>{goal.name}</span>
 				<span class="text-xs text-red-700 ml-1">[ARCHIVED]</span>
+			{:else}
+				<a href="/goals/{goal.slug}" class="bracket-link">[{goal.name}]</a>
 			{/if}
 		</div>
+		<!-- Reorder controls inline under name -->
+		{#if reorderMode && !isArchived}
+			<div class="mt-1">
+				{#if isSelected}
+					<span class="text-xs text-amber-700 font-bold">MOVING —</span>
+					<button type="button" onclick={onSelect} class="bracket-link text-xs ml-1">[Cancel]</button>
+				{:else if isOtherSelected}
+					<button type="button" onclick={onPlaceHere} class="bracket-link text-xs text-amber-700">[Move Here]</button>
+				{:else}
+					<button type="button" onclick={onSelect} class="bracket-link text-xs">[Select]</button>
+				{/if}
+			</div>
+		{/if}
 		<!-- Emergency fund milestones below name -->
 		{#if goal.isEmergencyFund && milestones}
-			<div class="text-[10px] font-normal mt-2">
+			<div class="text-xs font-normal mt-2">
 				[
 					{#each milestones as milestone, mIndex}
 						{#if mIndex > 0}&nbsp;{/if}
@@ -76,7 +82,7 @@
 				></div>
 			</div>
 			<span>]</span>
-			<span class="min-w-[20px] font-bold">{progress}%</span>
+			<span class="min-w-5 font-bold">{progress}%</span>
 		</div>
 	</td>
 	<td class="text-right pr-1 text-sm py-2">
@@ -97,42 +103,6 @@
 	{/if}
 	{#if showActions}
 	<td class="text-right pr-1 text-sm py-2">
-		{#if reorderMode}
-			<div class="flex justify-end gap-1 {isMoving ? 'opacity-50' : ''}">
-				<span class="text-gray-400 text-xs select-none">⋮⋮</span>
-				<button
-					type="button"
-					onclick={onMoveUp}
-					class="bracket-link text-xs"
-					disabled={!canMoveUp || isMoving}
-					class:opacity-50={!canMoveUp || isMoving}
-				>
-					↑
-				</button>
-				<button
-					type="button"
-					onclick={onMoveDown}
-					class="bracket-link text-xs"
-					disabled={!canMoveDown || isMoving}
-					class:opacity-50={!canMoveDown || isMoving}
-				>
-					↓
-				</button>
-			</div>
-		{:else if archiveMode && !isArchived}
-			<div class="flex justify-end gap-1">
-				<a href="/goals/{goal.slug}/confirm-archive" class="bracket-link text-xs text-red-700">[Archive]</a>
-			</div>
-		{:else}
-			<div class="flex justify-end gap-1">
-				{#if !isArchived}
-					<a href="/goals/{goal.slug}/add" class="bracket-link text-xs">[+]</a>
-					<a href="/goals/{goal.slug}/withdraw" class="bracket-link text-xs">[-]</a>
-				{:else}
-					<span class="text-xs text-gray-500">Read-only</span>
-				{/if}
-			</div>
-		{/if}
 	</td>
 	{/if}
 </tr>

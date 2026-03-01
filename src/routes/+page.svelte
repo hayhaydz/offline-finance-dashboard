@@ -102,7 +102,7 @@
 	{#if goals && goals.length > 0}
 		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 			<div class="flex items-center gap-2">
-				<span><span class={data.staleness.cssClass}>●</span> GOALS</span>
+				<span>GOALS</span>
 				<span class="text-xs text-gray-500 font-normal">{data.staleness.label}</span>
 			</div>
 			<a href="/goals" class="bracket-link text-xs">View All</a>
@@ -134,7 +134,7 @@
 			<tbody>
 				{#if assetGroups.length > 0}
 					<tr class="bg-gray-50">
-						<td colspan="4" class="pl-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider border-y border-gray-200 py-2">Assets</td>
+						<td colspan="4" class="pl-1 text-xs font-bold text-gray-500 uppercase tracking-wider border-y border-gray-200 py-2">Assets</td>
 					</tr>
 					{#each assetGroups as group}
 						<tr class:line-through={group.excluded} class:text-gray-500={group.excluded}>
@@ -157,7 +157,7 @@
 				{/if}
 				{#if liabilityGroups.length > 0}
 					<tr class="bg-gray-50">
-						<td colspan="4" class="pl-1 text-[10px] font-bold text-gray-500 uppercase tracking-wider border-y border-gray-200 py-2">Liabilities</td>
+						<td colspan="4" class="pl-1 text-xs font-bold text-gray-500 uppercase tracking-wider border-y border-gray-200 py-2">Liabilities</td>
 					</tr>
 					{#each liabilityGroups as group}
 						<tr class:line-through={group.excluded} class:text-gray-500={group.excluded}>

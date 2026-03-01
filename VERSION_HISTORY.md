@@ -1,4 +1,51 @@
-## [2026-03-01 12:30] — UI Consistency: Date Formatting, Navigation States, and Styling Alignment (COMPLETED)
+## [2026-03-01 14:21] — Tailwind Arbitrary Unit Cleanup
+
+**Summary:** Replaced all arbitrary pixel/unit Tailwind classes with standard scale equivalents across the codebase. Custom terminal shadow extracted into a shared reusable `.shadow-hard` utility class in `app.css`.
+
+**Files:**
+- `src/app.css`: Added `.shadow-hard` reusable class (`box-shadow: 8px 8px 0 rgba(0,0,0,0.3)`)
+- `src/lib/components/GoalDetailCard.svelte`: `text-[10px]` → `text-xs`, `w-[1px]` → `w-px`, `min-w-[36px]` → `min-w-9`
+- `src/lib/components/GoalCard.svelte`: `text-[10px]` → `text-xs`, `w-[1px]` → `w-px`, `min-w-[30px]` → `min-w-8`
+- `src/lib/components/GoalRow.svelte`: `text-[10px]` → `text-xs`, `min-w-[20px]` → `min-w-5`
+- `src/lib/components/ProgressBarVariants.svelte`: `text-[10px]` → `text-xs`, `w-[1px]` → `w-px`, `h-[1px][0m` (corruption) → `h-px`, `h-[2px]` → `h-0.5`, `h-[4px]` → `h-1`, `p-[2px]` → `p-0.5`, `py-[2px]` → `py-0.5`, `min-w-[30px]` → `min-w-8`
+- `src/lib/components/ProgressBarVariants copy.svelte`: same conversions as above
+- `src/lib/components/AccountSortModal.svelte`: `shadow-[8px_8px_0_rgba(0,0,0,0.3)]` → `shadow-hard`
+- `src/lib/components/AccountFiltersModal.svelte`: `shadow-[8px_8px_0_rgba(0,0,0,0.3)]` → `shadow-hard`
+- `src/routes/+page.svelte`: `text-[10px]` → `text-xs`
+- `src/routes/accounts/+page.svelte`: `text-[10px]` → `text-xs`
+- `src/routes/(auth)/mfa-setup/+page.svelte`: `max-w-[200px]` → `max-w-48`
+- `docs/design/tailwind-arbitrary-unit-audit.md`: Created audit document
+
+**Commit:**
+```
+chore: replace arbitrary tailwind units with standard scale, extract shadow-hard utility
+```
+
+**Context:** `max-h-[90vh]` (3 modal files) and `h-[1.1em]` (ProgressBarVariants) intentionally kept — no vh/em equivalent on Tailwind standard scale.
+
+---
+
+## [2026-03-01 13:15] — Goals Slug Page: Server Actions + UI Completion
+
+**Summary:** Completed the goals detail page (`/goals/[slug]`) with full server actions (add money, withdraw money, archive), filled accordion form content, linked goal names to detail pages, and cleaned up the index page by removing the Actions column and archive mode toggle.
+
+**Files:**
+- `src/routes/goals/[slug]/+page.server.ts`: Added `addMoney`, `withdrawMoney`, `archiveGoal` actions
+- `src/routes/goals/[slug]/+page.svelte`: Filled accordion content (add/withdraw/archive forms)
+- `src/lib/components/GoalRow.svelte`: Goal name now links to slug page; removed archiveMode + [+][-] action links
+- `src/routes/goals/+page.svelte`: Removed Actions column header, removed archiveMode state/button
+- `src/routes/goals/[slug]/add/+page.server.ts`: Redirect updated to `/goals/${params.slug}`
+- `src/routes/goals/[slug]/withdraw/+page.server.ts`: Redirect updated to `/goals/${params.slug}`
+- `src/routes/goals/[slug]/confirm-archive/+page.svelte`: Cancel link updated to `/goals/{data.goal.slug}`
+
+**Commit:**
+```
+feat: complete goals slug detail page with server actions and accordion forms
+```
+
+---
+
+
 
 **Summary:** Standardized date display to ISO 8601 shorthand format, fixed navigation active states for subpage highlighting, aligned settings navigation with terminal aesthetic, and refactored account detail page with collapsible Add Balance form.
 

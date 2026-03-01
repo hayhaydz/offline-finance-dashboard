@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { formatCurrencyShorthand, formatDate } from '$lib/utils/currency';
+	import { getStaleness } from '$lib/utils/staleness';
 	import type { Snippet } from 'svelte';
 
 	// GoalDisplay interface - only the fields needed for display
@@ -11,6 +12,7 @@
 		currentAllocation: number;
 		targetDate: Date | null;
 		isEmergencyFund: boolean;
+		updatedAt: Date;
 	}
 
 	interface Props {
@@ -59,24 +61,29 @@
 	const progressBgColor = $derived(
 		progressColor() === 'green' ? 'bg-green-700' : progressColor() === 'amber' ? 'bg-amber-600' : 'bg-red-600'
 	);
+
+	const staleness = $derived(getStaleness(new Date(goal.updatedAt)));
 </script>
 
 <div class="goal-card-content">
 	<!-- Goal Name with Emergency Fund Badge -->
 	<div class="flex justify-between items-center mb-1">
-		<span class="font-bold text-sm">
-			{goal.name}
-			{#if emergencyFundMilestones()}
-				<span class="text-[10px] text-gray-500 font-normal ml-1">
-					[
-					{#each emergencyFundMilestones() as milestone, index}
-						<span class={milestone.achieved ? 'text-green-700' : 'text-gray-400'}>{milestone.label}</span
-						><span class="text-gray-400">{index < emergencyFundMilestones()!.length - 1 ? ' ' : ''}</span>
-					{/each}
-					]
-				</span>
-			{/if}
-		</span>
+		<div class="flex items-center gap-1">
+			<span class={staleness.cssClass}>●</span>
+			<span class="font-bold text-sm">
+				<a href="/goals/{goal.slug}" class="bracket-link">[{goal.name}]</a>
+				{#if emergencyFundMilestones()}
+					<span class="text-xs text-gray-500 font-normal ml-1">
+						[
+						{#each emergencyFundMilestones() as milestone, index}
+							<span class={milestone.achieved ? 'text-green-700' : 'text-gray-400'}>{milestone.label}</span
+							><span class="text-gray-400">{index < emergencyFundMilestones()!.length - 1 ? ' ' : ''}</span>
+						{/each}
+						]
+					</span>
+				{/if}
+			</span>
+		</div>
 		{#if headerActions}
 			<div class="flex gap-1">{@render headerActions()}</div>
 		{/if}
@@ -88,7 +95,7 @@
 		<div class="flex-1 h-5 relative mt-px border-y border-gray-100">
 			<div class="absolute inset-0 flex justify-between opacity-20">
 				{#each Array(40) as _}
-					<div class="w-[1px] h-full bg-current"></div>
+					<div class="w-px h-full bg-current"></div>
 				{/each}
 			</div>
 			<div
@@ -97,7 +104,7 @@
 			></div>
 		</div>
 		<span>]</span>
-		<span class="text-xs text-gray-900 min-w-[30px] text-right font-bold">{progress}%</span>
+		<span class="text-xs text-gray-900 min-w-8 text-right font-bold">{progress}%</span>
 	</div>
 
 	<!-- Goal Details -->

@@ -52,7 +52,7 @@
 
 	{#if qrCodeUrl}
 		<div class="border-b border-black p-2 text-center">
-			<img src={qrCodeUrl} alt="QR Code for TOTP Setup" class="max-w-[200px] mx-auto" />
+			<img src={qrCodeUrl} alt="QR Code for TOTP Setup" class="max-w-48 mx-auto" />
 			<p class="mt-2 font-bold">{username}</p>
 		</div>
 	{/if}

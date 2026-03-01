@@ -315,10 +315,10 @@
 	<div class="flex items-center gap-2">
 		<span>ACCOUNTS OVERVIEW</span>
 		{#if hasActiveFilters}
-			<span class="bg-black text-white px-1 text-[10px] uppercase">
+			<span class="bg-black text-white px-1 text-xs uppercase">
 				Filtered ({activeFilterCount})
 			</span>
-			<a href="/accounts" class="bracket-link text-[10px]">[Clear All]</a>
+			<a href="/accounts" class="bracket-link text-xs">[Clear All]</a>
 		{/if}
 	</div>
 	<div class="flex gap-2">
