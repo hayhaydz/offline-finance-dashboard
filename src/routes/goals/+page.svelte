@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { formatCurrency } from '$lib/utils/currency';
+	import { getStaleness } from '$lib/utils/staleness';
 	import GoalRow from '$lib/components/GoalRow.svelte';
 	import type { Goal } from '$lib/db/schema';
 
@@ -13,6 +14,14 @@
 	$effect(() => {
 		goals = [...data.goals];
 	});
+
+	const lastUpdated = $derived(
+		goals.length > 0
+			? goals.reduce((latest, g) => (g.updatedAt > latest ? g.updatedAt : latest), goals[0].updatedAt)
+			: null
+	);
+
+	const staleness = $derived(lastUpdated ? getStaleness(lastUpdated) : null);
 
 	// Reorder mode state
 	let reorderMode = $state(false);
@@ -121,7 +130,11 @@
 
 <!-- GOALS LIST SECTION -->
 <div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-	<span>GOALS ({data.goals.length})</span>
+	<div class="flex items-center gap-2">
+		{#if staleness}
+			<span class="text-xs text-gray-500">{staleness.label}</span>
+		{/if}
+	</div>
 	<div class="flex gap-2">
 		<button
 			type="button"

@@ -313,7 +313,6 @@
 <!-- ACCOUNTS OVERVIEW SECTION -->
 <div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 	<div class="flex items-center gap-2">
-		<span>ACCOUNTS OVERVIEW</span>
 		{#if hasActiveFilters}
 			<span class="bg-black text-white px-1 text-xs uppercase">
 				Filtered ({activeFilterCount})

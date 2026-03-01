@@ -1,0 +1,384 @@
+import { eq } from 'drizzle-orm';
+import * as schema from '../../../src/lib/db/schema.js';
+import { slug, daysAgo, randomBetween } from '../lib/helpers.js';
+import { wipeUserData } from '../lib/wipe.js';
+import type { DB } from '../lib/db.js';
+
+const ACCOUNT_TYPES = [
+	'current',
+	'savings',
+	'investment',
+	'credit-card',
+	'loan',
+	'mortgage'
+] as const;
+
+const MAX_SAFE = 9_007_199_254_740_991;
+
+function stressAccountName(i: number): string {
+	return `Stress Account ${String(i + 1).padStart(2, '0')}`;
+}
+
+export async function seedStress(db: DB, userId: number): Promise<void> {
+	console.log('\n💥 [stress] Starting seed...');
+	await wipeUserData(db, userId);
+
+	// ─── Accounts ────────────────────────────────────────────────────────────
+
+	console.log('\n📊 Creating 50 stress accounts...');
+
+	const createdAccountIds: number[] = [];
+	let stressPaginationAccountId = 0; // account that will get 500 balance entries
+
+	// 30 normal accounts (5 per type)
+	for (let t = 0; t < ACCOUNT_TYPES.length; t++) {
+		const type = ACCOUNT_TYPES[t];
+		const isLiability = type === 'credit-card' || type === 'loan' || type === 'mortgage';
+		for (let i = 0; i < 5; i++) {
+			const now = new Date();
+			const [account] = await db
+				.insert(schema.accounts)
+				.values({
+					slug: slug(),
+					userId,
+					name: stressAccountName(t * 5 + i),
+					institution: i < 3 ? 'Stress Bank' : null,
+					type,
+					taxWrapper: 'none',
+					category: isLiability ? 'liability' : 'asset',
+					liquidity: isLiability ? 'locked' : 'instant',
+					excludedFromNetWorth: false,
+					closedAt: null,
+					createdAt: now,
+					updatedAt: now
+				})
+				.returning();
+			createdAccountIds.push(account.id);
+			// First current account gets 500 entries
+			if (t === 0 && i === 0) stressPaginationAccountId = account.id;
+		}
+	}
+
+	// Special name accounts (3)
+	const specialAccounts = [
+		{ name: 'A', type: 'savings' as const, category: 'asset' as const },
+		{ name: 'A'.repeat(200), type: 'savings' as const, category: 'asset' as const },
+		{
+			name: 'Háček & Ñoño <script>alert(1)</script> £€$',
+			type: 'current' as const,
+			category: 'asset' as const
+		}
+	];
+	for (const sa of specialAccounts) {
+		const now = new Date();
+		const [account] = await db
+			.insert(schema.accounts)
+			.values({
+				slug: slug(),
+				userId,
+				name: sa.name,
+				institution: null,
+				type: sa.type,
+				taxWrapper: 'none',
+				category: sa.category,
+				liquidity: 'instant',
+				excludedFromNetWorth: false,
+				closedAt: null,
+				createdAt: now,
+				updatedAt: now
+			})
+			.returning();
+		createdAccountIds.push(account.id);
+	}
+
+	// 7 excluded accounts (5 asset + 2 liability)
+	for (let i = 0; i < 7; i++) {
+		const isLiability = i >= 5;
+		const now = new Date();
+		const [account] = await db
+			.insert(schema.accounts)
+			.values({
+				slug: slug(),
+				userId,
+				name: `Excluded Account ${i + 1}`,
+				institution: null,
+				type: isLiability ? 'loan' : 'investment',
+				taxWrapper: 'none',
+				category: isLiability ? 'liability' : 'asset',
+				liquidity: 'locked',
+				excludedFromNetWorth: true,
+				closedAt: null,
+				createdAt: now,
+				updatedAt: now
+			})
+			.returning();
+		createdAccountIds.push(account.id);
+	}
+
+	// 10 closed accounts
+	for (let i = 0; i < 10; i++) {
+		const now = new Date();
+		await db.insert(schema.accounts).values({
+			slug: slug(),
+			userId,
+			name: `Closed Account ${i + 1}`,
+			institution: i < 5 ? 'Closed Bank' : null,
+			type: 'savings',
+			taxWrapper: 'none',
+			category: 'asset',
+			liquidity: 'instant',
+			excludedFromNetWorth: false,
+			closedAt: new Date('2024-01-01'),
+			createdAt: now,
+			updatedAt: now
+		});
+	}
+
+	console.log(`  ✓ 50 accounts created`);
+
+	// ─── Account Balances ─────────────────────────────────────────────────────
+
+	console.log('\n📈 Creating stress balance entries...');
+
+	// 500 entries on the pagination account
+	for (let i = 0; i < 500; i++) {
+		await db.insert(schema.accountBalances).values({
+			slug: slug(),
+			accountId: stressPaginationAccountId,
+			balanceInCents: 100000 + i * 200,
+			asOfDate: daysAgo(500 - i),
+			notes: i % 50 === 0 ? 'x'.repeat(1000) : null,
+			createdAt: new Date(),
+			updatedAt: new Date()
+		});
+	}
+
+	// Extreme balance values on first 6 normal accounts
+	const extremeBalances = [
+		{ balanceInCents: 99_999_999_900, notes: '£999,999,999 — 9-digit shorthand' },
+		{ balanceInCents: 100_000_000_000, notes: '£1,000,000,000 — 1B boundary' },
+		{ balanceInCents: -50_000_000_000, notes: '£-500,000,000 — negative 9-digit' },
+		{ balanceInCents: 1, notes: '£0.01 — 1-penny precision' },
+		{ balanceInCents: -1, notes: '£-0.01 — negative 1-penny' },
+		{ balanceInCents: 0, notes: '£0 — exact zero' }
+	];
+	for (let i = 0; i < extremeBalances.length; i++) {
+		const accountId = createdAccountIds[i + 5] ?? createdAccountIds[i]; // skip pagination account
+		await db.insert(schema.accountBalances).values({
+			slug: slug(),
+			accountId,
+			balanceInCents: extremeBalances[i].balanceInCents,
+			asOfDate: daysAgo(0),
+			notes: extremeBalances[i].notes,
+			createdAt: new Date(),
+			updatedAt: new Date()
+		});
+	}
+
+	// MAX_SAFE_INTEGER / JS edge values
+	const edgeAccountId = createdAccountIds[12] ?? createdAccountIds[0];
+	for (const val of [MAX_SAFE, -MAX_SAFE, 2_147_483_647]) {
+		await db.insert(schema.accountBalances).values({
+			slug: slug(),
+			accountId: edgeAccountId,
+			balanceInCents: val,
+			asOfDate: daysAgo(randomBetween(1, 30)),
+			notes: `Edge value: ${val}`,
+			createdAt: new Date(),
+			updatedAt: new Date()
+		});
+	}
+
+	// 10 null-notes entries
+	for (let i = 0; i < 10; i++) {
+		await db.insert(schema.accountBalances).values({
+			slug: slug(),
+			accountId: createdAccountIds[i % createdAccountIds.length],
+			balanceInCents: randomBetween(10000, 500000),
+			asOfDate: daysAgo(randomBetween(10, 200)),
+			notes: null,
+			createdAt: new Date(),
+			updatedAt: new Date()
+		});
+	}
+
+	console.log(`  ✓ 500-entry pagination account, extreme values, edge integers`);
+
+	// ─── Goals ───────────────────────────────────────────────────────────────
+
+	console.log('\n🎯 Creating 70 stress goals (50 active + 20 archived)...');
+
+	let richGoalId = 0; // goal that gets 200 allocations
+
+	// 50 active goals
+	for (let i = 0; i < 50; i++) {
+		const now = new Date();
+		const isSpecial = i === 0;
+		const [goal] = await db
+			.insert(schema.goals)
+			.values({
+				slug: slug(),
+				userId,
+				name:
+					i === 1
+						? 'A'
+						: i === 2
+							? 'A'.repeat(300)
+							: i === 3
+								? 'Multiple Emergency Fund'
+								: `Stress Goal ${String(i + 1).padStart(2, '0')}`,
+				targetAmountInCents:
+					i === 4 ? 0 : i === 5 ? 1 : i === 6 ? MAX_SAFE : randomBetween(50000, 5000000),
+				currentAllocation: 0,
+				targetDate: i % 3 === 0 ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000) : null,
+				isEmergencyFund: i === 3,
+				sortOrder: i,
+				deletedAt: null,
+				createdAt: now,
+				updatedAt: now
+			})
+			.returning();
+
+		if (isSpecial) richGoalId = goal.id;
+
+		// Give first goal 200 allocations (all 4 types + null accountId)
+		if (isSpecial) {
+			const types = ['USER_ADD', 'USER_WITHDRAW', 'GOAL_DELETED', 'SYSTEM_CORRECTION'] as const;
+			let runningTotal = 0;
+			for (let j = 0; j < 200; j++) {
+				const type = types[j % 4];
+				const isNegative = type === 'USER_WITHDRAW' || type === 'GOAL_DELETED';
+				const amount = isNegative ? -1000 : j % 10 === 0 ? 500000 : 5000;
+				const accountId = j % 10 === 0 ? null : (createdAccountIds[j % createdAccountIds.length] ?? null);
+				const allocDate = daysAgo(200 - j);
+				await db.insert(schema.goalAllocations).values({
+					goalId: goal.id,
+					accountId,
+					amount,
+					type,
+					allocationDate: allocDate,
+					createdAt: allocDate
+				});
+				runningTotal += amount;
+			}
+			await db
+				.update(schema.goals)
+				.set({ currentAllocation: runningTotal })
+				.where(eq(schema.goals.id, goal.id));
+		} else if (i === 6) {
+			// Goal with MAX_SAFE allocation (wildly overfunded)
+			const alloc = MAX_SAFE;
+			const now2 = new Date();
+			await db.insert(schema.goalAllocations).values({
+				goalId: goal.id,
+				accountId: createdAccountIds[0] ?? null,
+				amount: alloc,
+				type: 'USER_ADD',
+				allocationDate: now2,
+				createdAt: now2
+			});
+			await db
+				.update(schema.goals)
+				.set({ currentAllocation: alloc })
+				.where(eq(schema.goals.id, goal.id));
+		} else if (i > 7) {
+			const amount = randomBetween(1000, 200000);
+			const now2 = new Date();
+			await db.insert(schema.goalAllocations).values({
+				goalId: goal.id,
+				accountId: createdAccountIds[i % createdAccountIds.length] ?? null,
+				amount,
+				type: 'USER_ADD',
+				allocationDate: now2,
+				createdAt: now2
+			});
+			await db
+				.update(schema.goals)
+				.set({ currentAllocation: amount })
+				.where(eq(schema.goals.id, goal.id));
+		}
+	}
+
+	// 20 archived goals
+	for (let i = 0; i < 20; i++) {
+		const archivedDate = daysAgo(randomBetween(30, 700));
+		const now = new Date();
+		await db.insert(schema.goals).values({
+			slug: slug(),
+			userId,
+			name: `Archived Goal ${String(i + 1).padStart(2, '0')}`,
+			targetAmountInCents: randomBetween(50000, 500000),
+			currentAllocation: 0,
+			targetDate: null,
+			isEmergencyFund: false,
+			sortOrder: 50 + i,
+			deletedAt: archivedDate,
+			createdAt: now,
+			updatedAt: now
+		});
+	}
+
+	console.log(`  ✓ 50 active goals (goal #1 has 200 allocations) + 20 archived`);
+
+	// ─── Snapshots ───────────────────────────────────────────────────────────
+
+	console.log('\n📸 Creating ~204 monthly snapshots (2009-03-01 → 2026-02-01)...');
+
+	let snapshotCount = 0;
+	const startYear = 2009,
+		startMonth = 3;
+	const endYear = 2026,
+		endMonth = 2;
+
+	for (let y = startYear; y <= endYear; y++) {
+		const mStart = y === startYear ? startMonth : 1;
+		const mEnd = y === endYear ? endMonth : 12;
+		for (let m = mStart; m <= mEnd; m++) {
+			const date = `${y}-${String(m).padStart(2, '0')}-01`;
+			const monthIdx = (y - startYear) * 12 + (m - startMonth);
+			const total = monthIdx;
+
+			// Trending net worth with some oscillation
+			const base = 5_000_000 + monthIdx * 50_000;
+			const wave = Math.round(Math.sin(monthIdx / 6) * 200_000);
+			let netWorth = base + wave;
+
+			// Special snapshots
+			let notes: string | null = null;
+			if (monthIdx === 0) notes = null; // oldest: no trends
+			if (monthIdx === 100) notes = 'x'.repeat(5000); // 5000-char notes
+			if (monthIdx === 80) netWorth = -500_000; // negative net worth dip
+			if (monthIdx === total - 1) netWorth = MAX_SAFE; // extreme positive (second-last)
+
+			const assets = Math.max(0, netWorth + 500_000);
+			const liabilities = assets - netWorth;
+
+			await db.insert(schema.snapshots).values({
+				slug: slug(),
+				userId,
+				snapshotDate: date,
+				netWorthInCents: netWorth,
+				totalAssetsInCents: assets,
+				totalLiabilitiesInCents: -liabilities,
+				totalAllocatedInCents: randomBetween(0, 200_000),
+				accountsBreakdown: {
+					snapshotTakenAt: new Date().toISOString(),
+					accounts: [],
+					totalByType: {}
+				},
+				goalsBreakdown: {
+					goals: [],
+					totalAllocated: 0
+				},
+				notes
+			});
+
+			snapshotCount++;
+		}
+	}
+
+	console.log(`  ✓ ${snapshotCount} snapshots created`);
+	console.log('\n✅ [stress] Seed complete!');
+	console.log(`   50 accounts | 70 goals (50+20 archived) | ${snapshotCount} snapshots`);
+	console.log(`   ~${500 + 6 + 3 + 10} special balance entries + pagination account`);
+}

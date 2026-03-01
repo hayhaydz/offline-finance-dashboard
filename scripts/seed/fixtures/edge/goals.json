@@ -1,0 +1,192 @@
+[
+  {
+    "name": "Emergency Fund",
+    "targetAmountInCents": 4000000,
+    "isEmergencyFund": true,
+    "targetDate": null,
+    "deletedAt": null,
+    "allocations": [
+      { "accountName": "Emergency Fund", "amount": 2200000, "type": "USER_ADD", "daysAgo": 60 }
+    ]
+  },
+  {
+    "name": "House Deposit",
+    "targetAmountInCents": 5000000,
+    "isEmergencyFund": false,
+    "targetDate": "2028-06-01",
+    "deletedAt": null,
+    "allocations": [
+      { "accountName": "ISA Saver",           "amount": 120000, "type": "USER_ADD",          "daysAgo": 200 },
+      { "accountName": "ISA Saver",           "amount": 120000, "type": "USER_ADD",          "daysAgo": 180 },
+      { "accountName": "ISA Saver",           "amount": 120000, "type": "USER_ADD",          "daysAgo": 160 },
+      { "accountName": "ISA Saver",           "amount": 120000, "type": "USER_ADD",          "daysAgo": 140 },
+      { "accountName": "ISA Saver",           "amount": 120000, "type": "USER_ADD",          "daysAgo": 120 },
+      { "accountName": "ISA Saver",           "amount": 120000, "type": "USER_ADD",          "daysAgo": 100 },
+      { "accountName": "ISA Saver",           "amount": 120000, "type": "USER_ADD",          "daysAgo": 90  },
+      { "accountName": "ISA Saver",           "amount": 120000, "type": "USER_ADD",          "daysAgo": 80  },
+      { "accountName": "ISA Saver",           "amount": 120000, "type": "USER_ADD",          "daysAgo": 70  },
+      { "accountName": "ISA Saver",           "amount": 120000, "type": "USER_ADD",          "daysAgo": 60  },
+      { "accountName": "ISA Saver",           "amount": 120000, "type": "USER_ADD",          "daysAgo": 50  },
+      { "accountName": "ISA Saver",           "amount": 120000, "type": "USER_ADD",          "daysAgo": 40  },
+      { "accountName": "Main Current",        "amount": -50000, "type": "USER_WITHDRAW",     "daysAgo": 170 },
+      { "accountName": "Main Current",        "amount": -50000, "type": "USER_WITHDRAW",     "daysAgo": 130 },
+      { "accountName": "Main Current",        "amount": -50000, "type": "USER_WITHDRAW",     "daysAgo": 110 },
+      { "accountName": null,                  "amount": -20000, "type": "GOAL_DELETED",      "daysAgo": 95  },
+      { "accountName": null,                  "amount": -20000, "type": "GOAL_DELETED",      "daysAgo": 85  },
+      { "accountName": null,                  "amount": -20000, "type": "GOAL_DELETED",      "daysAgo": 75  },
+      { "accountName": "Stocks & Shares ISA", "amount": 10000,  "type": "SYSTEM_CORRECTION", "daysAgo": 65  },
+      { "accountName": null,                  "amount": 10000,  "type": "SYSTEM_CORRECTION", "daysAgo": 30  }
+    ]
+  },
+  {
+    "name": "Holiday Fund",
+    "targetAmountInCents": 300000,
+    "isEmergencyFund": false,
+    "targetDate": "2026-08-01",
+    "deletedAt": null,
+    "allocations": [
+      { "accountName": "Main Current", "amount": 300000, "type": "USER_ADD", "daysAgo": 30 }
+    ]
+  },
+  {
+    "name": "New Car",
+    "targetAmountInCents": 800000,
+    "isEmergencyFund": false,
+    "targetDate": "2027-01-01",
+    "deletedAt": null,
+    "allocations": [
+      { "accountName": "Main Current", "amount": 900000, "type": "USER_ADD",          "daysAgo": 60 },
+      { "accountName": null,           "amount": 20000,  "type": "SYSTEM_CORRECTION", "daysAgo": 30 }
+    ]
+  },
+  {
+    "name": "Wedding",
+    "targetAmountInCents": 1500000,
+    "isEmergencyFund": false,
+    "targetDate": "2027-09-01",
+    "deletedAt": null,
+    "allocations": []
+  },
+  {
+    "name": "New Laptop",
+    "targetAmountInCents": 150000,
+    "isEmergencyFund": false,
+    "targetDate": "2026-12-01",
+    "deletedAt": null,
+    "allocations": [
+      { "accountName": "Main Current", "amount": 75000, "type": "USER_ADD", "daysAgo": 45 }
+    ]
+  },
+  {
+    "name": "Home Renovation",
+    "targetAmountInCents": 2000000,
+    "isEmergencyFund": false,
+    "targetDate": "2028-01-01",
+    "deletedAt": null,
+    "allocations": [
+      { "accountName": "ISA Saver", "amount": 400000, "type": "USER_ADD", "daysAgo": 90 }
+    ]
+  },
+  {
+    "name": "Education Fund",
+    "targetAmountInCents": 1000000,
+    "isEmergencyFund": false,
+    "targetDate": null,
+    "deletedAt": null,
+    "allocations": [
+      { "accountName": "ISA Saver", "amount": 250000, "type": "USER_ADD", "daysAgo": 120 }
+    ]
+  },
+  {
+    "name": "Rainy Day Buffer",
+    "targetAmountInCents": 500000,
+    "isEmergencyFund": false,
+    "targetDate": null,
+    "deletedAt": null,
+    "allocations": [
+      { "accountName": "Emergency Fund", "amount": 480000, "type": "USER_ADD", "daysAgo": 30 }
+    ]
+  },
+  {
+    "name": "New Sofa",
+    "targetAmountInCents": 80000,
+    "isEmergencyFund": false,
+    "targetDate": "2026-04-01",
+    "deletedAt": null,
+    "allocations": [
+      { "accountName": "Main Current", "amount": 80000, "type": "USER_ADD", "daysAgo": 14 }
+    ]
+  },
+  {
+    "name": "Concert Tickets",
+    "targetAmountInCents": 30000,
+    "isEmergencyFund": false,
+    "targetDate": "2026-07-01",
+    "deletedAt": null,
+    "allocations": [
+      { "accountName": "Main Current", "amount": 15000, "type": "USER_ADD", "daysAgo": 7 }
+    ]
+  },
+  {
+    "name": "Investment Pot",
+    "targetAmountInCents": 2500000,
+    "isEmergencyFund": false,
+    "targetDate": null,
+    "deletedAt": null,
+    "allocations": [
+      { "accountName": "Stocks & Shares ISA", "amount": 100, "type": "USER_ADD", "daysAgo": 3 }
+    ]
+  },
+  {
+    "name": "Old Gaming PC",
+    "targetAmountInCents": 200000,
+    "isEmergencyFund": false,
+    "targetDate": null,
+    "deletedAt": "2025-10-15",
+    "allocations": [
+      { "accountName": "Main Current", "amount": 50000, "type": "USER_ADD",    "daysAgo": 400 },
+      { "accountName": null,           "amount": -50000, "type": "GOAL_DELETED", "daysAgo": 350 }
+    ]
+  },
+  {
+    "name": "Laptop Fund",
+    "targetAmountInCents": 120000,
+    "isEmergencyFund": false,
+    "targetDate": null,
+    "deletedAt": "2025-12-01",
+    "allocations": [
+      { "accountName": "Main Current", "amount": 120000,  "type": "USER_ADD",    "daysAgo": 500 },
+      { "accountName": null,           "amount": -120000, "type": "GOAL_DELETED", "daysAgo": 460 }
+    ]
+  },
+  {
+    "name": "Holiday 2024",
+    "targetAmountInCents": 250000,
+    "isEmergencyFund": false,
+    "targetDate": null,
+    "deletedAt": "2025-01-10",
+    "allocations": [
+      { "accountName": "Main Current", "amount": 250000,  "type": "USER_ADD",    "daysAgo": 600 },
+      { "accountName": null,           "amount": -250000, "type": "GOAL_DELETED", "daysAgo": 570 }
+    ]
+  },
+  {
+    "name": "Car Repair",
+    "targetAmountInCents": 60000,
+    "isEmergencyFund": false,
+    "targetDate": null,
+    "deletedAt": "2024-08-20",
+    "allocations": [
+      { "accountName": "Main Current", "amount": 60000,  "type": "USER_ADD",    "daysAgo": 700 },
+      { "accountName": null,           "amount": -60000, "type": "GOAL_DELETED", "daysAgo": 660 }
+    ]
+  },
+  {
+    "name": "Festival Tickets",
+    "targetAmountInCents": 40000,
+    "isEmergencyFund": false,
+    "targetDate": null,
+    "deletedAt": "2024-11-05",
+    "allocations": []
+  }
+]

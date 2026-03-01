@@ -1,0 +1,6 @@
+[
+  { "date": "2025-11-01", "multiplier": 0.85, "notes": null },
+  { "date": "2025-12-01", "multiplier": 0.90, "notes": null },
+  { "date": "2026-01-01", "multiplier": 0.95, "notes": null },
+  { "date": "2026-02-01", "multiplier": 1.00, "notes": null }
+]

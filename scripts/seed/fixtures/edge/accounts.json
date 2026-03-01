@@ -1,0 +1,194 @@
+[
+  {
+    "name": "Main Current",
+    "institution": "HSBC",
+    "type": "current",
+    "taxWrapper": "none",
+    "category": "asset",
+    "liquidity": "instant",
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": 320000, "daysAgo": 0, "notes": "Current balance" }
+    ],
+    "generateBalances": { "count": 59, "spanDays": 720, "baseAmount": 280000, "variance": 60000 }
+  },
+  {
+    "name": "Bills Current",
+    "institution": "Barclays",
+    "type": "current",
+    "taxWrapper": "none",
+    "category": "asset",
+    "liquidity": "instant",
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": 95000, "daysAgo": 30, "notes": "After direct debits" },
+      { "balanceInCents": 0,     "daysAgo": 0,  "notes": "Zero balance — account drained" }
+    ]
+  },
+  {
+    "name": "Emergency Fund",
+    "institution": "Nationwide",
+    "type": "savings",
+    "taxWrapper": "none",
+    "category": "asset",
+    "liquidity": "instant",
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": 1500000, "daysAgo": 180, "notes": "After contribution" },
+      { "balanceInCents": 1850000, "daysAgo": 0,   "notes": "Current balance" }
+    ]
+  },
+  {
+    "name": "ISA Saver",
+    "institution": "Santander",
+    "type": "savings",
+    "taxWrapper": "isa",
+    "category": "asset",
+    "liquidity": "instant",
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": 1100000, "daysAgo": 60, "notes": "After contribution" },
+      { "balanceInCents": 1100000, "daysAgo": 30, "notes": "No change this month — identical consecutive" },
+      { "balanceInCents": 1150000, "daysAgo": 0,  "notes": "After interest" }
+    ]
+  },
+  {
+    "name": "LISA",
+    "institution": "Moneybox",
+    "type": "savings",
+    "taxWrapper": "lisa",
+    "category": "asset",
+    "liquidity": "instant",
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": 400000, "daysAgo": 90, "notes": null },
+      { "balanceInCents": 450000, "daysAgo": 0,  "notes": null }
+    ]
+  },
+  {
+    "name": "Stocks & Shares ISA",
+    "institution": "Vanguard",
+    "type": "investment",
+    "taxWrapper": "isa",
+    "category": "asset",
+    "liquidity": "delayed",
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": 3050000, "daysAgo": 90, "notes": "Market growth" },
+      { "balanceInCents": 3200000, "daysAgo": 0,  "notes": "Current valuation" }
+    ]
+  },
+  {
+    "name": "Pension",
+    "institution": null,
+    "type": "investment",
+    "taxWrapper": "none",
+    "category": "asset",
+    "liquidity": "locked",
+    "excludedFromNetWorth": true,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": 125000000, "daysAgo": 0, "notes": "Annual pension valuation — £1.25M shorthand test" }
+    ]
+  },
+  {
+    "name": "Crypto Wallet",
+    "institution": null,
+    "type": "investment",
+    "taxWrapper": "none",
+    "category": "asset",
+    "liquidity": "delayed",
+    "excludedFromNetWorth": true,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": 50000, "daysAgo": 45, "notes": "Stale — no recent entry, exercises staleness filter" }
+    ]
+  },
+  {
+    "name": "Mortgage",
+    "institution": "Halifax",
+    "type": "mortgage",
+    "taxWrapper": "none",
+    "category": "liability",
+    "liquidity": "locked",
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": -18000000, "daysAgo": 365, "notes": "Mortgage start" },
+      { "balanceInCents": -17800000, "daysAgo": 180, "notes": "After payments" },
+      { "balanceInCents": -17650000, "daysAgo": 0,   "notes": "Current balance" }
+    ]
+  },
+  {
+    "name": "Car Loan",
+    "institution": "Tesco Bank",
+    "type": "loan",
+    "taxWrapper": "none",
+    "category": "liability",
+    "liquidity": "locked",
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": -1200000, "daysAgo": 365, "notes": "Loan start" },
+      { "balanceInCents": -1120000, "daysAgo": 0,   "notes": "Current balance" }
+    ]
+  },
+  {
+    "name": "Visa Gold",
+    "institution": "HSBC",
+    "type": "credit-card",
+    "taxWrapper": "none",
+    "category": "liability",
+    "liquidity": null,
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": -240000, "daysAgo": 0, "notes": null }
+    ]
+  },
+  {
+    "name": "Mastercard",
+    "institution": "Barclays",
+    "type": "credit-card",
+    "taxWrapper": "none",
+    "category": "liability",
+    "liquidity": null,
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": -45000, "daysAgo": 0, "notes": null }
+    ]
+  },
+  {
+    "name": "Old Savings Account",
+    "institution": "Lloyds",
+    "type": "savings",
+    "taxWrapper": "none",
+    "category": "asset",
+    "liquidity": "instant",
+    "excludedFromNetWorth": false,
+    "closedAt": "2024-06-01",
+    "balances": [
+      { "balanceInCents": 5000, "daysAgo": 800, "notes": "Final balance before closure" }
+    ]
+  },
+  {
+    "name": "Student Overdraft",
+    "institution": "NatWest",
+    "type": "current",
+    "taxWrapper": "none",
+    "category": "liability",
+    "liquidity": "instant",
+    "excludedFromNetWorth": false,
+    "closedAt": "2023-09-01",
+    "balances": [
+      { "balanceInCents": -30000, "daysAgo": 1200, "notes": "Overdraft cleared on account closure" }
+    ]
+  }
+]

@@ -1,0 +1,131 @@
+[
+  {
+    "name": "Main Current",
+    "institution": "HSBC",
+    "type": "current",
+    "taxWrapper": "none",
+    "category": "asset",
+    "liquidity": "instant",
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": 245000, "daysAgo": 90, "notes": "Monthly statement" },
+      { "balanceInCents": 280000, "daysAgo": 60, "notes": "Salary credited" },
+      { "balanceInCents": 310000, "daysAgo": 30, "notes": "After bills payment" },
+      { "balanceInCents": 320000, "daysAgo": 0, "notes": "Current balance" }
+    ]
+  },
+  {
+    "name": "Bills Current",
+    "institution": "Barclays",
+    "type": "current",
+    "taxWrapper": "none",
+    "category": "asset",
+    "liquidity": "instant",
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": 85000, "daysAgo": 60, "notes": "Monthly statement" },
+      { "balanceInCents": 95000, "daysAgo": 30, "notes": "After direct debits" },
+      { "balanceInCents": 110000, "daysAgo": 0, "notes": "Current balance" }
+    ]
+  },
+  {
+    "name": "Emergency Fund",
+    "institution": "Nationwide",
+    "type": "savings",
+    "taxWrapper": "none",
+    "category": "asset",
+    "liquidity": "instant",
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": 1500000, "daysAgo": 365, "notes": "Initial deposit" },
+      { "balanceInCents": 1650000, "daysAgo": 180, "notes": "After contribution" },
+      { "balanceInCents": 1780000, "daysAgo": 90, "notes": "Monthly interest" },
+      { "balanceInCents": 1850000, "daysAgo": 0, "notes": "Current balance" }
+    ]
+  },
+  {
+    "name": "ISA Saver",
+    "institution": "Santander",
+    "type": "savings",
+    "taxWrapper": "isa",
+    "category": "asset",
+    "liquidity": "instant",
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": 820000, "daysAgo": 365, "notes": "ISA opening balance" },
+      { "balanceInCents": 950000, "daysAgo": 270, "notes": "After contribution" },
+      { "balanceInCents": 1080000, "daysAgo": 180, "notes": "Monthly interest" },
+      { "balanceInCents": 1150000, "daysAgo": 90, "notes": "After contribution" },
+      { "balanceInCents": 1200000, "daysAgo": 0, "notes": "Current balance" }
+    ]
+  },
+  {
+    "name": "Stocks & Shares ISA",
+    "institution": "Vanguard",
+    "type": "investment",
+    "taxWrapper": "isa",
+    "category": "asset",
+    "liquidity": "delayed",
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": 2500000, "daysAgo": 365, "notes": "Initial investment" },
+      { "balanceInCents": 2750000, "daysAgo": 270, "notes": "Market growth" },
+      { "balanceInCents": 2900000, "daysAgo": 180, "notes": "Dividend reinvested" },
+      { "balanceInCents": 3050000, "daysAgo": 90, "notes": "Market growth" },
+      { "balanceInCents": 3200000, "daysAgo": 0, "notes": "Current valuation" }
+    ]
+  },
+  {
+    "name": "Visa Gold",
+    "institution": "HSBC",
+    "type": "credit-card",
+    "taxWrapper": "none",
+    "category": "liability",
+    "liquidity": null,
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": -120000, "daysAgo": 90, "notes": "Monthly statement" },
+      { "balanceInCents": -160000, "daysAgo": 60, "notes": "After purchases" },
+      { "balanceInCents": -210000, "daysAgo": 30, "notes": "After holiday spending" },
+      { "balanceInCents": -240000, "daysAgo": 0, "notes": "Current balance" }
+    ]
+  },
+  {
+    "name": "Mastercard",
+    "institution": "Barclays",
+    "type": "credit-card",
+    "taxWrapper": "none",
+    "category": "liability",
+    "liquidity": null,
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": -80000, "daysAgo": 60, "notes": "Monthly statement" },
+      { "balanceInCents": -65000, "daysAgo": 30, "notes": "After payment" },
+      { "balanceInCents": -45000, "daysAgo": 0, "notes": "Current balance (being paid down)" }
+    ]
+  },
+  {
+    "name": "Car Loan",
+    "institution": "Tesco Bank",
+    "type": "loan",
+    "taxWrapper": "none",
+    "category": "liability",
+    "liquidity": "locked",
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "balances": [
+      { "balanceInCents": -1200000, "daysAgo": 365, "notes": "Loan start" },
+      { "balanceInCents": -1180000, "daysAgo": 270, "notes": "After payment" },
+      { "balanceInCents": -1160000, "daysAgo": 180, "notes": "After payment" },
+      { "balanceInCents": -1140000, "daysAgo": 90, "notes": "After payment" },
+      { "balanceInCents": -1120000, "daysAgo": 0, "notes": "Current balance (being paid down)" }
+    ]
+  }
+]

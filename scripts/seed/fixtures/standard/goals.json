@@ -1,0 +1,34 @@
+[
+  {
+    "name": "Emergency Fund",
+    "targetAmountInCents": 4000000,
+    "isEmergencyFund": true,
+    "targetDate": null,
+    "deletedAt": null,
+    "allocations": [
+      { "accountName": "Emergency Fund", "amount": 150000, "type": "USER_ADD" },
+      { "accountName": "Main Current",   "amount": 50000,  "type": "USER_ADD" }
+    ]
+  },
+  {
+    "name": "House Deposit",
+    "targetAmountInCents": 5000000,
+    "isEmergencyFund": false,
+    "targetDate": "2027-12-31",
+    "deletedAt": null,
+    "allocations": [
+      { "accountName": "ISA Saver",          "amount": 80000,  "type": "USER_ADD" },
+      { "accountName": "Stocks & Shares ISA", "amount": 100000, "type": "USER_ADD" }
+    ]
+  },
+  {
+    "name": "Holiday Fund",
+    "targetAmountInCents": 300000,
+    "isEmergencyFund": false,
+    "targetDate": "2026-08-01",
+    "deletedAt": null,
+    "allocations": [
+      { "accountName": "Main Current", "amount": 20000, "type": "USER_ADD" }
+    ]
+  }
+]

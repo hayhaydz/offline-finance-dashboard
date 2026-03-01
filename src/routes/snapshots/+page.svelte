@@ -36,12 +36,7 @@
 
 <!-- SNAPSHOTS LIST SECTION -->
 <div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-	<span><span class={data.staleness.cssClass}>●</span> SNAPSHOTS ({data.snapshots.length})</span>
-	<span class="text-xs text-gray-600">{data.staleness.label}</span>
-</div>
-
-<!-- Action Button -->
-<div class="bg-gray-100 border-b border-black p-2 flex justify-end">
+	<span class="text-xs text-gray-500"><span class={data.staleness.cssClass}>●</span> {data.staleness.label}</span>
 	<a href="/snapshots/create" class="bracket-link text-xs">[+ Create Snapshot]</a>
 </div>
 

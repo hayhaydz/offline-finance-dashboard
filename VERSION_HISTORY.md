@@ -1,3 +1,33 @@
+## [2026-03-01 15:20] — Seed System Overhaul: Modular Architecture + Three Modes
+
+**Summary:** Refactored the monolithic 571-line `scripts/seed.ts` into a modular system with shared lib helpers, JSON fixtures, and three named modes. `standard` reproduces the original dataset identically. `edge` exercises every UI conditional, schema field variant, and pagination boundary. `stress` generates absurd volumes (50 accounts, 70 goals, 204 snapshots, 500+ balance entries) using generator functions.
+
+**Files:**
+- `scripts/seed.ts`: Replaced with thin dispatcher (~30 lines); supports `--mode=standard|edge|stress`
+- `scripts/seed/lib/db.ts`: DB setup extracted as `setupDb()` + `DB` type export
+- `scripts/seed/lib/user.ts`: `ensureAdminUser()` shared across all modes
+- `scripts/seed/lib/helpers.ts`: `pence`, `slug`, `daysAgo`, `randomBetween`, `formatGBP`, `loadFixture`
+- `scripts/seed/lib/wipe.ts`: `wipeUserData()` — clears all user data in dependency order
+- `scripts/seed/lib/snapshot.ts`: `createSnapshot()` — shared snapshot generator with special-case opts
+- `scripts/seed/fixtures/standard/accounts.json`: 8 accounts (exact existing data)
+- `scripts/seed/fixtures/standard/goals.json`: 3 goals with `accountName` refs (replaces hardcoded IDs)
+- `scripts/seed/fixtures/standard/snapshots.json`: 4 date/multiplier pairs
+- `scripts/seed/fixtures/edge/accounts.json`: 14 accounts — all type/wrapper/liquidity combinations, closed accounts, excluded accounts, null institution
+- `scripts/seed/fixtures/edge/goals.json`: 17 goals — 12 active (0%, <1%, 50%, 96%, 100%, >100%, 20 allocations) + 5 archived with GOAL_DELETED entries
+- `scripts/seed/fixtures/edge/snapshots.json`: 30 monthly snapshots with `special` flags for excluded accounts, empty goals, and forced negative net worth
+- `scripts/seed/modes/standard.ts`: Standard mode implementation
+- `scripts/seed/modes/edge.ts`: Edge mode — handles `generateBalances`, dated allocations, snapshot special cases
+- `scripts/seed/modes/stress.ts`: Stress mode — generators for 50 accounts, 500-entry pagination account, MAX_SAFE_INTEGER values, 200-allocation goal, 204 snapshots
+
+**Commit:**
+```
+feat: modular seed system with standard, edge, and stress modes
+```
+
+**Context:** All three modes verified working (`npm run check` passes, all modes exit cleanly). Dev DB restored to `standard` after testing.
+
+---
+
 ## [2026-03-01 14:44] — UX Polish: Breadcrumbs, Cancel Links, Delete Confirmation Pages
 
 **Summary:** Fixed missing `Goals` label in breadcrumb map, added `breadcrumbOverrides` to goals and snapshots slug pages so the actual name/date shows instead of the raw slug. Cancel buttons on goals add/withdraw now return to the goal detail page. Archive and delete confirmations (goals, balance entries, snapshots) now require typing the exact name/date before submitting. Balance delete and snapshot delete converted from modal/inline form to separate confirmation pages.
