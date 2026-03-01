@@ -35,10 +35,6 @@
 	}
 </script>
 
-<div class="border-b border-black p-2">
-	<h1 class="text-lg font-bold mb-0 mt-0">SNAPSHOT DETAIL</h1>
-</div>
-
 <!-- SNAPSHOT HEADER -->
 <div class="border-b border-black p-2">
 	<div class="flex justify-between items-center">

@@ -119,7 +119,7 @@ export function formatAccountType(type: string): string {
 
 /**
  * Format a date for general UI display (e.g., "9 Feb 2026")
- * 
+ *
  * @param date - The date to format
  * @returns Formatted date string or "-" if null
  */
@@ -130,6 +130,28 @@ export function formatDate(date: Date | null | undefined): string {
 		month: 'short',
 		year: 'numeric'
 	});
+}
+
+/**
+ * Format a date in compact ISO shorthand for table columns (e.g., "2026-02-09")
+ *
+ * Matches the snapshot date format for consistency across the UI.
+ *
+ * @param date - The date to format
+ * @returns ISO date string (YYYY-MM-DD) or "-" if null
+ *
+ * @example
+ * formatDateShorthand(new Date(2026, 1, 9))  // => "2026-02-09"
+ * formatDateShorthand(new Date(2025, 11, 1))  // => "2025-12-01"
+ */
+export function formatDateShorthand(date: Date | null | undefined): string {
+	if (!date) return '-';
+
+	const year = date.getFullYear();
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const day = String(date.getDate()).padStart(2, '0');
+
+	return `${year}-${month}-${day}`;
 }
 
 /**

@@ -1,3 +1,41 @@
+## [2026-03-01 12:30] — UI Consistency: Date Formatting, Navigation States, and Styling Alignment (COMPLETED)
+
+**Summary:** Standardized date display to ISO 8601 shorthand format, fixed navigation active states for subpage highlighting, aligned settings navigation with terminal aesthetic, and refactored account detail page with collapsible Add Balance form.
+
+**Files:**
+
+- `src/lib/utils/currency.ts`: Added `formatDateShorthand()` for ISO 8601 format (YYYY-MM-DD)
+- `src/lib/components/navigation.svelte`: Fixed active state to highlight parent sections using `currentPath.startsWith()`
+- `src/lib/components/SettingsNav.svelte`: Changed from border-based tabs to bracket-link style
+- `src/routes/+page.svelte`: Updated Accounts by Type table to use `formatDateShorthand`
+- `src/routes/accounts/+page.svelte`: Updated to use `formatDateShorthand`, removed redundant SUMMARY header
+- `src/routes/accounts/[slug]/+page.svelte`: Refactored with accordion pattern for Add Balance form, removed redundant header
+- `src/routes/snapshots/[slug]/+page.svelte`: Removed redundant SNAPSHOT DETAIL header
+
+**Suggested Commit:**
+
+```
+refactor(ui): standardize date format, navigation states, and styling
+
+- Add formatDateShorthand() utility for ISO 8601 dates (YYYY-MM-DD)
+- Fix navigation active state to highlight parent sections for subpages
+- Align settings navigation with terminal aesthetic (bracket-links)
+- Convert Add Balance form to collapsible accordion on account detail page
+- Remove redundant section headers (ACCOUNT DETAIL, SNAPSHOT DETAIL, SUMMARY)
+- Consistent date display across home, accounts, and account detail pages
+```
+
+**Context:**
+
+- formatDateShorthand() returns YYYY-MM-DD format matching snapshot dates
+- Navigation uses `startsWith()` for subpage matching (e.g., /accounts/123 highlights Accounts)
+- SettingsNav switched from `[[Tab]]` to bracket-link class style
+- Account detail page now uses accordion state ($state) for Add Balance form visibility
+- Removed duplicate/redundant headers to reduce visual noise
+- TypeScript compilation passes with 0 errors
+
+---
+
 ## [2026-02-21 13:14] — Phase 06-01: Tabbed Settings Page with Hash Navigation (COMPLETED)
 
 **Summary:** Created tabbed settings page with horizontal navigation bar, URL hash-based tab state persistence, MFA status display, and monthly expenses reference data using Svelte 5 runes.

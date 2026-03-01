@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { enhance } from '$app/forms';
-	import { formatCurrency, formatAccountType as commonFormatAccountType, formatDate as commonFormatDate } from '$lib/utils/currency';
+	import { formatCurrency, formatAccountType as commonFormatAccountType, formatDateShorthand as commonFormatDateShorthand } from '$lib/utils/currency';
 	import { invalidateAll } from '$app/navigation';
 	import AccountFiltersModal from '$lib/components/AccountFiltersModal.svelte';
 	import AccountSortModal from '$lib/components/AccountSortModal.svelte';
@@ -61,7 +61,7 @@
 
 	// Helper function to format date
 	function formatDate(date: Date | null): string {
-		return commonFormatDate(date);
+		return commonFormatDateShorthand(date);
 	}
 
 	// Helper function to format account type for display
@@ -178,9 +178,6 @@
 </div>
 
 <!-- SUMMARY SECTION -->
-<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-	<span>SUMMARY</span>
-</div>
 <div class="border-b border-black p-2">
 	<div class="flex justify-between my-1">
 		<span>Total Accounts</span>

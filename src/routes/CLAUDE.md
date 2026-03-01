@@ -18,4 +18,10 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #3628 | 5:31 PM | 🔄 | Began refactoring homepage to use shared GoalCard component | ~244 |
+
+### Mar 1, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #7240 | 12:40 PM | ✅ | Home page date formatting switched to ISO shorthand format | ~125 |
 </claude-mem-context>

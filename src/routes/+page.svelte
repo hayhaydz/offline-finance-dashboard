@@ -1,7 +1,7 @@
 <script lang="ts">
 	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
 	import GoalCard from '$lib/components/GoalCard.svelte';
-	import { formatCurrency, formatCurrencyShorthand, formatAccountType, formatDate } from '$lib/utils/currency';
+	import { formatCurrency, formatCurrencyShorthand, formatAccountType, formatDateShorthand } from '$lib/utils/currency';
 
 	let { data } = $props();
 	let { user, environment: env, goals } = $derived(data);
@@ -150,7 +150,7 @@
 								{formatCurrency(group.balance)}
 							</td>
 							<td class="text-right pr-1 tabular-nums py-2">
-								{formatDate(group.lastUpdated)}
+								{formatDateShorthand(group.lastUpdated)}
 							</td>
 						</tr>
 					{/each}
@@ -173,7 +173,7 @@
 								{formatCurrency(Math.abs(group.balance))}
 							</td>
 							<td class="text-right pr-1 tabular-nums py-2">
-								{formatDate(group.lastUpdated)}
+								{formatDateShorthand(group.lastUpdated)}
 							</td>
 						</tr>
 					{/each}

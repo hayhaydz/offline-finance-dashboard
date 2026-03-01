@@ -7,5 +7,5 @@
 
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
-| #7243 | 12:40 PM | 🔄 | Account detail page refactored with accordion pattern and utility updates | ~155 |
+| #7245 | 12:40 PM | ✅ | Snapshot detail page header removed | ~103 |
 </claude-mem-context>

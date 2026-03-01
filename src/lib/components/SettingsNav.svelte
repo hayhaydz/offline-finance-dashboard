@@ -13,16 +13,16 @@
 	];
 </script>
 
-<nav class="flex border-b border-black" aria-label="Settings navigation">
+<nav class="flex justify-start gap-2 p-2 border-b border-black" aria-label="Settings navigation">
 	{#each tabs as tab (tab.id)}
 		<a
 			href="/settings/{tab.id}"
-			class="px-4 py-2 border-r border-black font-normal text-sm transition-colors"
+			class="bracket-link text-xs"
 			class:bg-gray-100={current === tab.id}
 			class:font-bold={current === tab.id}
 			aria-current={current === tab.id ? 'page' : undefined}
 		>
-			[[{tab.label}]]
+			{tab.label}
 		</a>
 	{/each}
 </nav>

@@ -110,7 +110,9 @@
 		{#if !item.authRequired || user}
 			<a
 				href={item.href}
-				class="bracket-link text-xs {currentPath === item.href ? 'bg-white' : ''}"
+				class="bracket-link text-xs"
+				class:bg-gray-100={item.href === '/' ? currentPath === item.href : currentPath.startsWith(item.href)}
+				class:font-bold={item.href === '/' ? currentPath === item.href : currentPath.startsWith(item.href)}
 			>
 				{item.label}
 			</a>
