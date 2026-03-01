@@ -1,6 +1,6 @@
-import { db } from '$lib/db/client';
-import { loginAttempts } from '$lib/db/schema';
-import { eq, sql } from 'drizzle-orm';
+import { eq } from "drizzle-orm";
+import { db } from "$lib/db/client";
+import { loginAttempts } from "$lib/db/schema";
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
@@ -17,10 +17,12 @@ export interface RateLimitResult {
  * Check rate limit for a username using login_attempts table.
  * This works identically for existent and non-existent users.
  */
-export async function checkRateLimit(username: string): Promise<RateLimitResult> {
+export async function checkRateLimit(
+	username: string,
+): Promise<RateLimitResult> {
 	// Look up attempt record for this username
 	const attempt = await db.query.loginAttempts.findFirst({
-		where: eq(loginAttempts.username, username)
+		where: eq(loginAttempts.username, username),
 	});
 
 	// If no attempt record, allow
@@ -33,7 +35,7 @@ export async function checkRateLimit(username: string): Promise<RateLimitResult>
 		return {
 			allowed: false,
 			locked: true,
-			attemptsRemaining: 0
+			attemptsRemaining: 0,
 		};
 	}
 
@@ -45,15 +47,16 @@ export async function checkRateLimit(username: string): Promise<RateLimitResult>
 	}
 
 	// Calculate delay: 2^count seconds (1s, 2s, 4s, 8s, 16s)
-	const delay = attempt.count > 0
-		? Math.min(Math.pow(2, attempt.count) * 1000, MAX_DELAY)
-		: undefined;
+	const delay =
+		attempt.count > 0
+			? Math.min(2 ** attempt.count * 1000, MAX_DELAY)
+			: undefined;
 	const attemptsRemaining = Math.max(0, MAX_ATTEMPTS - attempt.count);
 
 	return {
 		allowed: true,
 		delay,
-		attemptsRemaining
+		attemptsRemaining,
 	};
 }
 
@@ -62,7 +65,7 @@ export async function checkRateLimit(username: string): Promise<RateLimitResult>
  */
 export async function recordFailedAttempt(username: string): Promise<void> {
 	const attempt = await db.query.loginAttempts.findFirst({
-		where: eq(loginAttempts.username, username)
+		where: eq(loginAttempts.username, username),
 	});
 
 	if (!attempt) {
@@ -70,7 +73,7 @@ export async function recordFailedAttempt(username: string): Promise<void> {
 		await db.insert(loginAttempts).values({
 			username,
 			count: 1,
-			lastAttempt: new Date()
+			lastAttempt: new Date(),
 		});
 		return;
 	}
@@ -83,7 +86,7 @@ export async function recordFailedAttempt(username: string): Promise<void> {
 			.set({
 				count: newCount,
 				lastAttempt: new Date(),
-				lockedUntil: new Date(Date.now() + LOCKOUT_DURATION)
+				lockedUntil: new Date(Date.now() + LOCKOUT_DURATION),
 			})
 			.where(eq(loginAttempts.username, username));
 	} else {
@@ -91,7 +94,7 @@ export async function recordFailedAttempt(username: string): Promise<void> {
 			.update(loginAttempts)
 			.set({
 				count: newCount,
-				lastAttempt: new Date()
+				lastAttempt: new Date(),
 			})
 			.where(eq(loginAttempts.username, username));
 	}

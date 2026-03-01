@@ -1,13 +1,16 @@
-import { redirect, error, fail } from '@sveltejs/kit';
-import type { PageServerLoad, Actions } from './$types';
-import { db } from '$lib/db/client';
-import { goals, goalAllocations, accounts } from '$lib/db/schema';
-import { validateUserAccess } from '$lib/auth/row-security';
-import { devLog, logError, logFormData } from '$lib/utils/logger';
-import { eq, desc, sql, count } from 'drizzle-orm';
-import { calculatePerAccountUnallocated, calculateReadyToAssign } from '$lib/server/goals';
-import { parseCurrency } from '$lib/utils/currency';
-import type { Account } from '$lib/db/schema';
+import { error, fail, redirect } from "@sveltejs/kit";
+import { count, desc, eq, sql } from "drizzle-orm";
+import { validateUserAccess } from "$lib/auth/row-security";
+import { db } from "$lib/db/client";
+import type { Account } from "$lib/db/schema";
+import { accounts, goalAllocations, goals } from "$lib/db/schema";
+import {
+	calculatePerAccountUnallocated,
+	calculateReadyToAssign,
+} from "$lib/server/goals";
+import { parseCurrency } from "$lib/utils/currency";
+import { devLog, logError, logFormData } from "$lib/utils/logger";
+import type { Actions, PageServerLoad } from "./$types";
 
 type AccountWithUnallocated = Account & {
 	unallocated: number;
@@ -16,25 +19,28 @@ type AccountWithUnallocated = Account & {
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
 	if (!locals.user) {
-		logError('goalsDetail', 'Authentication required');
-		redirect(302, '/login');
+		logError("goalsDetail", "Authentication required");
+		redirect(302, "/login");
 	}
 
 	// Fetch goal by slug
 	const goal = await db.query.goals.findFirst({
-		where: eq(goals.slug, params.slug)
+		where: eq(goals.slug, params.slug),
 	});
 
 	if (!goal || goal.deletedAt) {
-		logError('goalsDetail', 'Goal not found', { slug: params.slug });
-		error(404, 'Goal not found');
+		logError("goalsDetail", "Goal not found", { slug: params.slug });
+		error(404, "Goal not found");
 	}
 
-	validateUserAccess(goal, locals.user, 'Goal');
+	validateUserAccess(goal, locals.user, "Goal");
 
 	const ALLOC_PAGE_SIZE = 20;
-	const allocPageParam = url.searchParams.get('allocPage');
-	const allocPage = Math.max(0, allocPageParam ? parseInt(allocPageParam) - 1 : 0);
+	const allocPageParam = url.searchParams.get("allocPage");
+	const allocPage = Math.max(
+		0,
+		allocPageParam ? parseInt(allocPageParam, 10) - 1 : 0,
+	);
 
 	// Total allocation count for pagination
 	const [{ total: allocTotal }] = await db
@@ -52,24 +58,24 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		limit: ALLOC_PAGE_SIZE,
 		offset: safeAllocPage * ALLOC_PAGE_SIZE,
 		with: {
-			account: true
-		}
+			account: true,
+		},
 	});
 
 	// Fetch user's asset accounts with unallocated balances (for add money form)
-	const accountsWithUnallocated = await calculatePerAccountUnallocated({
-		userId: locals.user.id
-	}) as AccountWithUnallocated[];
+	const accountsWithUnallocated = (await calculatePerAccountUnallocated({
+		userId: locals.user.id,
+	})) as AccountWithUnallocated[];
 
 	// Calculate Ready to Assign
 	const { readyToAssign, totalAssets } = await calculateReadyToAssign({
-		userId: locals.user.id
+		userId: locals.user.id,
 	});
 
-	devLog('goalsDetail', 'Loaded goal detail page', {
+	devLog("goalsDetail", "Loaded goal detail page", {
 		goalId: goal.id,
 		goalSlug: goal.slug,
-		allocationCount: allocationHistory.length
+		allocationCount: allocationHistory.length,
 	});
 
 	return {
@@ -81,71 +87,73 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		totalAssets,
 		readyToAssign,
 		breadcrumbOverrides: [
-			{ segmentIndex: 1, label: goal.name, skipLink: false }
-		]
+			{ segmentIndex: 1, label: goal.name, skipLink: false },
+		],
 	};
 };
 
 export const actions: Actions = {
 	addMoney: async ({ request, locals, params }) => {
 		if (!locals.user) {
-			logError('goalsDetailAddMoney', 'Authentication required');
-			return fail(401, { error: 'Authentication required' });
+			logError("goalsDetailAddMoney", "Authentication required");
+			return fail(401, { error: "Authentication required" });
 		}
 
 		const formData = await request.formData();
-		logFormData('goalsDetailAddMoney', Object.fromEntries(formData));
+		logFormData("goalsDetailAddMoney", Object.fromEntries(formData));
 
-		const amountStr = formData.get('amount') as string;
-		const fromAccountId = formData.get('from_account_id') as string;
+		const amountStr = formData.get("amount") as string;
+		const fromAccountId = formData.get("from_account_id") as string;
 
 		const errors: Record<string, string> = {};
 		if (!fromAccountId) {
-			errors.from_account_id = 'Please select an account';
+			errors.from_account_id = "Please select an account";
 		}
 
 		let amountInCents: number;
 		try {
 			amountInCents = parseCurrency(amountStr);
 			if (amountInCents <= 0) {
-				errors.amount = 'Amount must be greater than zero';
+				errors.amount = "Amount must be greater than zero";
 			}
-		} catch (e) {
-			errors.amount = 'Invalid amount format';
+		} catch (_e) {
+			errors.amount = "Invalid amount format";
 			amountInCents = 0;
 		}
 
 		if (Object.keys(errors).length > 0) {
-			return fail(400, { error: 'Please fix errors', errors });
+			return fail(400, { error: "Please fix errors", errors });
 		}
 
 		const goal = await db.query.goals.findFirst({
-			where: eq(goals.slug, params.slug)
+			where: eq(goals.slug, params.slug),
 		});
 
 		if (!goal || goal.deletedAt) {
-			return fail(404, { error: 'Goal not found' });
+			return fail(404, { error: "Goal not found" });
 		}
 
-		validateUserAccess(goal, locals.user, 'Goal');
+		validateUserAccess(goal, locals.user, "Goal");
 
 		const account = await db.query.accounts.findFirst({
-			where: eq(accounts.id, parseInt(fromAccountId)),
+			where: eq(accounts.id, parseInt(fromAccountId, 10)),
 			with: {
 				balances: {
 					orderBy: (balances, { desc }) => desc(balances.asOfDate),
-					limit: 1
-				}
-			}
+					limit: 1,
+				},
+			},
 		});
 
 		if (!account) {
-			errors.from_account_id = 'Account not found';
-			return fail(400, { error: 'Please fix errors', errors });
+			errors.from_account_id = "Account not found";
+			return fail(400, { error: "Please fix errors", errors });
 		}
 
 		const accountAllocations = await db
-			.select({ sum: sql<number>`cast(sum(abs(${goalAllocations.amount})) as integer)` })
+			.select({
+				sum: sql<number>`cast(sum(abs(${goalAllocations.amount})) as integer)`,
+			})
 			.from(goalAllocations)
 			.where(eq(goalAllocations.accountId, account.id));
 
@@ -155,131 +163,146 @@ export const actions: Actions = {
 
 		if (unallocated < amountInCents) {
 			errors.amount = `Insufficient funds. Only £${(unallocated / 100).toFixed(2)} available`;
-			return fail(400, { error: 'Please fix errors', errors });
+			return fail(400, { error: "Please fix errors", errors });
 		}
 
 		await db.insert(goalAllocations).values({
 			goalId: goal.id,
 			accountId: account.id,
 			amount: amountInCents,
-			type: 'USER_ADD',
+			type: "USER_ADD",
 			allocationDate: new Date(),
-			createdAt: new Date()
+			createdAt: new Date(),
 		});
 
-		await db.update(goals)
-			.set({ currentAllocation: goal.currentAllocation + amountInCents, updatedAt: new Date() })
+		await db
+			.update(goals)
+			.set({
+				currentAllocation: goal.currentAllocation + amountInCents,
+				updatedAt: new Date(),
+			})
 			.where(eq(goals.id, goal.id));
 
-		devLog('goalsDetailAddMoney', 'Allocation added', { goalId: goal.id, amount: amountInCents });
+		devLog("goalsDetailAddMoney", "Allocation added", {
+			goalId: goal.id,
+			amount: amountInCents,
+		});
 
 		redirect(303, `/goals/${params.slug}`);
 	},
 
 	withdrawMoney: async ({ request, locals, params }) => {
 		if (!locals.user) {
-			logError('goalsDetailWithdraw', 'Authentication required');
-			return fail(401, { error: 'Authentication required' });
+			logError("goalsDetailWithdraw", "Authentication required");
+			return fail(401, { error: "Authentication required" });
 		}
 
 		const formData = await request.formData();
-		logFormData('goalsDetailWithdraw', Object.fromEntries(formData));
+		logFormData("goalsDetailWithdraw", Object.fromEntries(formData));
 
-		const amountStr = formData.get('amount') as string;
+		const amountStr = formData.get("amount") as string;
 		const errors: Record<string, string> = {};
 
 		let amountInCents: number;
 		try {
 			amountInCents = parseCurrency(amountStr);
 			if (amountInCents <= 0) {
-				errors.amount = 'Amount must be greater than zero';
+				errors.amount = "Amount must be greater than zero";
 			}
-		} catch (e) {
-			errors.amount = 'Invalid amount format';
+		} catch (_e) {
+			errors.amount = "Invalid amount format";
 			amountInCents = 0;
 		}
 
 		if (Object.keys(errors).length > 0) {
-			return fail(400, { error: 'Please fix errors', errors });
+			return fail(400, { error: "Please fix errors", errors });
 		}
 
 		const goal = await db.query.goals.findFirst({
-			where: eq(goals.slug, params.slug)
+			where: eq(goals.slug, params.slug),
 		});
 
 		if (!goal || goal.deletedAt) {
-			return fail(404, { error: 'Goal not found' });
+			return fail(404, { error: "Goal not found" });
 		}
 
-		validateUserAccess(goal, locals.user, 'Goal');
+		validateUserAccess(goal, locals.user, "Goal");
 
 		if (goal.currentAllocation < amountInCents) {
 			errors.amount = `Insufficient allocation. Only £${(goal.currentAllocation / 100).toFixed(2)} available`;
-			return fail(400, { error: 'Please fix errors', errors });
+			return fail(400, { error: "Please fix errors", errors });
 		}
 
 		await db.insert(goalAllocations).values({
 			goalId: goal.id,
 			accountId: null,
 			amount: -amountInCents,
-			type: 'USER_WITHDRAW',
+			type: "USER_WITHDRAW",
 			allocationDate: new Date(),
-			createdAt: new Date()
+			createdAt: new Date(),
 		});
 
-		await db.update(goals)
-			.set({ currentAllocation: goal.currentAllocation - amountInCents, updatedAt: new Date() })
+		await db
+			.update(goals)
+			.set({
+				currentAllocation: goal.currentAllocation - amountInCents,
+				updatedAt: new Date(),
+			})
 			.where(eq(goals.id, goal.id));
 
-		devLog('goalsDetailWithdraw', 'Withdrawal processed', { goalId: goal.id, amount: amountInCents });
+		devLog("goalsDetailWithdraw", "Withdrawal processed", {
+			goalId: goal.id,
+			amount: amountInCents,
+		});
 
 		redirect(303, `/goals/${params.slug}`);
 	},
 
 	archiveGoal: async ({ request, locals, params }) => {
 		if (!locals.user) {
-			logError('goalsDetailArchive', 'Authentication required');
-			return fail(401, { error: 'Authentication required' });
+			logError("goalsDetailArchive", "Authentication required");
+			return fail(401, { error: "Authentication required" });
 		}
 
 		const formData = await request.formData();
-		logFormData('goalsDetailArchive', Object.fromEntries(formData));
+		logFormData("goalsDetailArchive", Object.fromEntries(formData));
 
-		const confirmed = formData.get('confirmed') === 'true';
+		const confirmed = formData.get("confirmed") === "true";
 		if (!confirmed) {
-			return fail(400, { error: 'Please confirm the archive action' });
+			return fail(400, { error: "Please confirm the archive action" });
 		}
 
 		const goal = await db.query.goals.findFirst({
-			where: eq(goals.slug, params.slug)
+			where: eq(goals.slug, params.slug),
 		});
 
 		if (!goal || goal.deletedAt) {
-			return fail(404, { error: 'Goal not found' });
+			return fail(404, { error: "Goal not found" });
 		}
 
-		validateUserAccess(goal, locals.user, 'Goal');
+		validateUserAccess(goal, locals.user, "Goal");
 
 		try {
 			await db.insert(goalAllocations).values({
 				goalId: goal.id,
 				accountId: null,
 				amount: -goal.currentAllocation,
-				type: 'GOAL_DELETED',
+				type: "GOAL_DELETED",
 				allocationDate: new Date(),
-				createdAt: new Date()
+				createdAt: new Date(),
 			});
 
-			await db.update(goals)
+			await db
+				.update(goals)
 				.set({ deletedAt: new Date() })
 				.where(eq(goals.id, goal.id));
 
-			devLog('goalsDetailArchive', 'Goal archived', { slug: params.slug });
+			devLog("goalsDetailArchive", "Goal archived", { slug: params.slug });
 
-			redirect(303, '/goals');
+			redirect(303, "/goals");
 		} catch (err) {
-			logError('goalsDetailArchive', 'Failed to archive goal', err);
-			return fail(500, { error: 'Failed to archive goal' });
+			logError("goalsDetailArchive", "Failed to archive goal", err);
+			return fail(500, { error: "Failed to archive goal" });
 		}
-	}
+	},
 };

@@ -1,10 +1,17 @@
-const DEFAULT_SENSITIVE_FIELDS = ['password', 'totpSecret', 'backupCodes', 'token', 'secret', 'apiKey'] as const;
+const DEFAULT_SENSITIVE_FIELDS = [
+	"password",
+	"totpSecret",
+	"backupCodes",
+	"token",
+	"secret",
+	"apiKey",
+] as const;
 
 export function maskSensitiveData(
 	data: unknown,
-	sensitiveFields: readonly string[] = DEFAULT_SENSITIVE_FIELDS
+	sensitiveFields: readonly string[] = DEFAULT_SENSITIVE_FIELDS,
 ): unknown {
-	if (!data || typeof data !== 'object') {
+	if (!data || typeof data !== "object") {
 		return data;
 	}
 
@@ -15,11 +22,13 @@ export function maskSensitiveData(
 	const masked: Record<string, unknown> = {};
 	for (const [key, value] of Object.entries(data)) {
 		const lowerKey = key.toLowerCase();
-		const isSensitive = sensitiveFields.some((field) => lowerKey.includes(field.toLowerCase()));
+		const isSensitive = sensitiveFields.some((field) =>
+			lowerKey.includes(field.toLowerCase()),
+		);
 
 		if (isSensitive) {
-			masked[key] = '[REDACTED]';
-		} else if (typeof value === 'object' && value !== null) {
+			masked[key] = "[REDACTED]";
+		} else if (typeof value === "object" && value !== null) {
 			masked[key] = maskSensitiveData(value, sensitiveFields);
 		} else {
 			masked[key] = value;

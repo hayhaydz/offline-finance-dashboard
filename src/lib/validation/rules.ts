@@ -5,25 +5,32 @@
  * Each function returns a ValidationRule that can be used with FormField components.
  */
 
-import type { ValidationRule } from './types';
+import type { ValidationRule } from "./types";
 
 /**
  * Valid account types enum values
  */
-const ACCOUNT_TYPES = ['current', 'savings', 'investment', 'credit-card', 'loan', 'mortgage'] as const;
-export type AccountType = typeof ACCOUNT_TYPES[number];
+const ACCOUNT_TYPES = [
+	"current",
+	"savings",
+	"investment",
+	"credit-card",
+	"loan",
+	"mortgage",
+] as const;
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
 /**
  * Valid tax wrapper enum values
  */
-const TAX_WRAPPERS = ['none', 'isa', 'lisa'] as const;
-export type TaxWrapper = typeof TAX_WRAPPERS[number];
+const TAX_WRAPPERS = ["none", "isa", "lisa"] as const;
+export type TaxWrapper = (typeof TAX_WRAPPERS)[number];
 
 /**
  * Valid liquidity options enum values
  */
-const LIQUIDITY_OPTIONS = ['instant', 'delayed', 'locked'] as const;
-export type Liquidity = typeof LIQUIDITY_OPTIONS[number];
+const LIQUIDITY_OPTIONS = ["instant", "delayed", "locked"] as const;
+export type Liquidity = (typeof LIQUIDITY_OPTIONS)[number];
 
 /**
  * Creates a rule that requires a non-empty value
@@ -34,7 +41,7 @@ export type Liquidity = typeof LIQUIDITY_OPTIONS[number];
 export function required(message?: string): ValidationRule {
 	return {
 		validate: (value: string) => value.trim().length > 0,
-		message: message || 'This field is required'
+		message: message || "This field is required",
 	};
 }
 
@@ -48,7 +55,7 @@ export function required(message?: string): ValidationRule {
 export function minLength(min: number, message?: string): ValidationRule {
 	return {
 		validate: (value: string) => value.length >= min,
-		message: message || `Must be at least ${min} characters`
+		message: message || `Must be at least ${min} characters`,
 	};
 }
 
@@ -62,7 +69,7 @@ export function minLength(min: number, message?: string): ValidationRule {
 export function maxLength(max: number, message?: string): ValidationRule {
 	return {
 		validate: (value: string) => value.length <= max,
-		message: message || `Must be no more than ${max} characters`
+		message: message || `Must be no more than ${max} characters`,
 	};
 }
 
@@ -76,7 +83,7 @@ export function maxLength(max: number, message?: string): ValidationRule {
 export function pattern(regex: RegExp, message: string): ValidationRule {
 	return {
 		validate: (value: string) => regex.test(value),
-		message
+		message,
 	};
 }
 
@@ -90,7 +97,7 @@ export function email(message?: string): ValidationRule {
 	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 	return {
 		validate: (value: string) => !value || emailRegex.test(value),
-		message: message || 'Invalid email address'
+		message: message || "Invalid email address",
 	};
 }
 
@@ -110,7 +117,7 @@ export function matches(fieldName: string, message?: string): ValidationRule {
 			const otherValue = formData[fieldName];
 			return _value === otherValue;
 		},
-		message: message || `Must match ${fieldName}`
+		message: message || `Must match ${fieldName}`,
 	};
 }
 
@@ -123,7 +130,7 @@ export function matches(fieldName: string, message?: string): ValidationRule {
 export function numeric(message?: string): ValidationRule {
 	return {
 		validate: (value: string) => /^\d*$/.test(value),
-		message: message || 'Must contain only numbers'
+		message: message || "Must contain only numbers",
 	};
 }
 
@@ -137,7 +144,7 @@ export function numeric(message?: string): ValidationRule {
 export function exactLength(length: number, message?: string): ValidationRule {
 	return {
 		validate: (value: string) => value.length === length,
-		message: message || `Must be exactly ${length} characters`
+		message: message || `Must be exactly ${length} characters`,
 	};
 }
 
@@ -160,7 +167,9 @@ export function totpOrBackupCode(message?: string): ValidationRule {
 			const isBackupCode = /^[0-9A-Fa-f]{8}$/.test(value);
 			return isTOTP || isBackupCode;
 		},
-		message: message || 'Enter a 6-digit authenticator code OR an 8-character backup code'
+		message:
+			message ||
+			"Enter a 6-digit authenticator code OR an 8-character backup code",
 	};
 }
 
@@ -173,7 +182,7 @@ export function totpOrBackupCode(message?: string): ValidationRule {
 export function hasUppercase(message?: string): ValidationRule {
 	return {
 		validate: (value: string) => /[A-Z]/.test(value),
-		message: message || 'Must contain at least one uppercase letter (A-Z)'
+		message: message || "Must contain at least one uppercase letter (A-Z)",
 	};
 }
 
@@ -186,7 +195,7 @@ export function hasUppercase(message?: string): ValidationRule {
 export function hasLowercase(message?: string): ValidationRule {
 	return {
 		validate: (value: string) => /[a-z]/.test(value),
-		message: message || 'Must contain at least one lowercase letter (a-z)'
+		message: message || "Must contain at least one lowercase letter (a-z)",
 	};
 }
 
@@ -199,7 +208,7 @@ export function hasLowercase(message?: string): ValidationRule {
 export function hasNumber(message?: string): ValidationRule {
 	return {
 		validate: (value: string) => /[0-9]/.test(value),
-		message: message || 'Must contain at least one number (0-9)'
+		message: message || "Must contain at least one number (0-9)",
 	};
 }
 
@@ -213,8 +222,10 @@ export function hasNumber(message?: string): ValidationRule {
  */
 export function hasSpecial(message?: string): ValidationRule {
 	return {
-		validate: (value: string) => /[!@#$%^&*()_+\-=\[\]{}|;:',.<>?\/`~]/.test(value),
-		message: message || 'Must contain at least one special character (!@#$%^&* etc.)'
+		validate: (value: string) =>
+			/[!@#$%^&*()_+\-=[\]{}|;:',.<>?/`~]/.test(value),
+		message:
+			message || "Must contain at least one special character (!@#$%^&* etc.)",
 	};
 }
 
@@ -232,7 +243,7 @@ export function strongPassword(min = 12): ValidationRule[] {
 		hasUppercase(),
 		hasLowercase(),
 		hasNumber(),
-		hasSpecial()
+		hasSpecial(),
 	];
 }
 
@@ -246,11 +257,14 @@ export function strongPassword(min = 12): ValidationRule[] {
  * @param message - Custom error message (default: "Select a valid option")
  * @returns Validation rule
  */
-function oneOf<T extends string>(allowedValues: readonly T[], message?: string): ValidationRule {
+function oneOf<T extends string>(
+	allowedValues: readonly T[],
+	message?: string,
+): ValidationRule {
 	const allowedSet = new Set(allowedValues);
 	return {
 		validate: (value: string) => allowedSet.has(value as T),
-		message: message || 'Select a valid option'
+		message: message || "Select a valid option",
 	};
 }
 
@@ -272,7 +286,7 @@ function oneOf<T extends string>(allowedValues: readonly T[], message?: string):
  * rule.validate('Savings')  // => false (case-sensitive)
  */
 export function accountType(message?: string): ValidationRule {
-	return oneOf(ACCOUNT_TYPES, message || 'Select a valid account type');
+	return oneOf(ACCOUNT_TYPES, message || "Select a valid account type");
 }
 
 /**
@@ -294,7 +308,7 @@ export function accountType(message?: string): ValidationRule {
  * rule.validate('ISA')  // => false (case-sensitive)
  */
 export function taxWrapper(message?: string): ValidationRule {
-	return oneOf(TAX_WRAPPERS, message || 'Select a valid tax wrapper');
+	return oneOf(TAX_WRAPPERS, message || "Select a valid tax wrapper");
 }
 
 /**
@@ -324,7 +338,7 @@ export function liquidity(message?: string): ValidationRule {
 			// Check against allowed values
 			return LIQUIDITY_OPTIONS.includes(value as Liquidity);
 		},
-		message: message || 'Select a valid liquidity option'
+		message: message || "Select a valid liquidity option",
 	};
 }
 
@@ -360,7 +374,9 @@ export function notFutureDate(message?: string): ValidationRule {
 			}
 
 			// Create Date at midnight UTC to avoid timezone issues
-			const inputDate = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00.000Z`);
+			const inputDate = new Date(
+				`${match[1]}-${match[2]}-${match[3]}T00:00:00.000Z`,
+			);
 
 			// Get today at midnight UTC
 			const today = new Date();
@@ -369,7 +385,7 @@ export function notFutureDate(message?: string): ValidationRule {
 			// Check if input date is in the future
 			return inputDate <= today;
 		},
-		message: message || 'Date cannot be in the future'
+		message: message || "Date cannot be in the future",
 	};
 }
 
@@ -408,6 +424,6 @@ export function monetary(message?: string): ValidationRule {
 			const match = /^\d+(\.\d{0,2})?$/.test(value.trim());
 			return match;
 		},
-		message: message || 'Enter amount like 123.45 or 123'
+		message: message || "Enter amount like 123.45 or 123",
 	};
 }

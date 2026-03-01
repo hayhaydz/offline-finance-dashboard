@@ -3,7 +3,7 @@ export const FIELD_LIMITS = {
 	ACCOUNT_NAME: 100,
 	INSTITUTION_NAME: 100,
 	GOAL_NAME: 100,
-	BALANCE_NOTES: 500
+	BALANCE_NOTES: 500,
 } as const;
 
 // Display truncation limits for table cells and UI labels
@@ -11,9 +11,9 @@ export const DISPLAY_LIMITS = {
 	ACCOUNT_NAME: 35,
 	INSTITUTION_NAME: 25,
 	GOAL_NAME: 35,
-	BALANCE_NOTES: 80
+	BALANCE_NOTES: 80,
 } as const;
 
 export function truncateDisplay(text: string, max: number): string {
-	return text.length > max ? text.slice(0, max) + '…' : text;
+	return text.length > max ? `${text.slice(0, max)}…` : text;
 }

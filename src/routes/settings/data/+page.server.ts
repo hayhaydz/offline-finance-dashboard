@@ -1,19 +1,19 @@
-import { redirect } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
-import { devLog, logError } from '$lib/utils/logger';
+import { redirect } from "@sveltejs/kit";
+import { devLog, logError } from "$lib/utils/logger";
+import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
-		logError('settings-data', 'Authentication required');
-		redirect(302, '/login');
+		logError("settings-data", "Authentication required");
+		redirect(302, "/login");
 	}
 
-	devLog('settings-data', 'Data settings loaded', {
+	devLog("settings-data", "Data settings loaded", {
 		username: locals.user.username,
-		userId: locals.user.id
+		userId: locals.user.id,
 	});
 
 	return {
-		user: locals.user
+		user: locals.user,
 	};
 };

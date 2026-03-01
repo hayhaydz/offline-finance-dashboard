@@ -1,45 +1,44 @@
-import { fail, redirect } from '@sveltejs/kit';
-import type { Actions, PageServerLoad } from './$types';
-import { db } from '$lib/db/client';
-import { goals } from '$lib/db/schema';
-import { devLog, logError, logFormData } from '$lib/utils/logger';
-import { eq } from 'drizzle-orm';
-import { parseCurrency } from '$lib/utils/currency';
-import { nanoid } from 'nanoid';
+import { fail, redirect } from "@sveltejs/kit";
+import { nanoid } from "nanoid";
+import { db } from "$lib/db/client";
+import { goals } from "$lib/db/schema";
+import { parseCurrency } from "$lib/utils/currency";
+import { devLog, logError, logFormData } from "$lib/utils/logger";
+import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
-		logError('goals-create', 'Authentication required');
-		redirect(302, '/login');
+		logError("goals-create", "Authentication required");
+		redirect(302, "/login");
 	}
 
 	return {
-		user: locals.user
+		user: locals.user,
 	};
 };
 
 export const actions: Actions = {
 	default: async ({ request, locals }) => {
 		if (!locals.user) {
-			logError('goals-create', 'Authentication required');
-			return fail(401, { error: 'Authentication required' });
+			logError("goals-create", "Authentication required");
+			return fail(401, { error: "Authentication required" });
 		}
 
 		const formData = await request.formData();
-		logFormData('goals-create', Object.fromEntries(formData));
+		logFormData("goals-create", Object.fromEntries(formData));
 
-		const name = formData.get('name') as string;
-		const targetAmountStr = formData.get('target_amount') as string;
-		const isEmergencyFundStr = formData.get('is_emergency_fund') as string;
-		const targetDateStr = formData.get('target_date') as string;
+		const name = formData.get("name") as string;
+		const targetAmountStr = formData.get("target_amount") as string;
+		const isEmergencyFundStr = formData.get("is_emergency_fund") as string;
+		const targetDateStr = formData.get("target_date") as string;
 
 		// Server-side validation
 		const errors: Record<string, string> = {};
 
 		if (!name || name.trim().length === 0) {
-			errors.name = 'Goal name is required';
+			errors.name = "Goal name is required";
 		} else if (name.trim().length > 100) {
-			errors.name = 'Goal name must be 100 characters or less';
+			errors.name = "Goal name must be 100 characters or less";
 		}
 
 		// Parse and validate target amount
@@ -47,24 +46,26 @@ export const actions: Actions = {
 		try {
 			targetAmountInCents = parseCurrency(targetAmountStr);
 			if (targetAmountInCents <= 0) {
-				errors.target_amount = 'Target amount must be greater than zero';
+				errors.target_amount = "Target amount must be greater than zero";
 			}
-		} catch (e) {
-			errors.target_amount = 'Invalid amount format. Enter amount like 10000.00 or 10000';
+		} catch (_e) {
+			errors.target_amount =
+				"Invalid amount format. Enter amount like 10000.00 or 10000";
 			targetAmountInCents = 0;
 		}
 
 		// Parse isEmergencyFund
-		const isEmergencyFund = isEmergencyFundStr === 'true' || isEmergencyFundStr === '1';
+		const isEmergencyFund =
+			isEmergencyFundStr === "true" || isEmergencyFundStr === "1";
 
 		// Parse target date (optional)
-		let targetDate: Date | undefined = undefined;
-		if (targetDateStr && targetDateStr.trim()) {
+		let targetDate: Date | undefined;
+		if (targetDateStr?.trim()) {
 			const parsed = new Date(targetDateStr);
-			if (isNaN(parsed.getTime())) {
-				errors.target_date = 'Invalid date format';
+			if (Number.isNaN(parsed.getTime())) {
+				errors.target_date = "Invalid date format";
 			} else if (parsed < new Date()) {
-				errors.target_date = 'Target date cannot be in the past';
+				errors.target_date = "Target date cannot be in the past";
 			} else {
 				targetDate = parsed;
 			}
@@ -72,22 +73,22 @@ export const actions: Actions = {
 
 		if (Object.keys(errors).length > 0) {
 			return fail(400, {
-				error: 'Please fix errors below',
+				error: "Please fix errors below",
 				errors,
 				data: {
-					name: name || '',
-					targetAmount: targetAmountStr || '',
+					name: name || "",
+					targetAmount: targetAmountStr || "",
 					isEmergencyFund: String(isEmergencyFund),
-					targetDate: targetDateStr || ''
-				}
+					targetDate: targetDateStr || "",
+				},
 			});
 		}
 
-		devLog('goals-create', 'Validation passed', {
+		devLog("goals-create", "Validation passed", {
 			name: name.trim(),
 			targetAmountInCents,
 			isEmergencyFund,
-			targetDate: targetDate?.toISOString()
+			targetDate: targetDate?.toISOString(),
 		});
 
 		// Generate unique slug
@@ -103,17 +104,17 @@ export const actions: Actions = {
 				targetAmountInCents: targetAmountInCents,
 				isEmergencyFund: isEmergencyFund,
 				targetDate: targetDate,
-				currentAllocation: 0 // NEW: Start with zero allocation
+				currentAllocation: 0, // NEW: Start with zero allocation
 			})
 			.returning();
 
-		devLog('goals-create', 'Goal created', {
+		devLog("goals-create", "Goal created", {
 			goalId: newGoal.id,
 			slug,
-			name: newGoal.name
+			name: newGoal.name,
 		});
 
 		// Redirect to goals list
-		redirect(303, '/goals');
-	}
+		redirect(303, "/goals");
+	},
 };

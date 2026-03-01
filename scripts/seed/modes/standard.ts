@@ -1,9 +1,9 @@
-import { eq } from 'drizzle-orm';
-import * as schema from '../../../src/lib/db/schema.js';
-import { loadFixture, slug, daysAgo, formatGBP } from '../lib/helpers.js';
-import { wipeUserData } from '../lib/wipe.js';
-import { createSnapshot } from '../lib/snapshot.js';
-import type { DB } from '../lib/db.js';
+import { eq } from "drizzle-orm";
+import * as schema from "../../../src/lib/db/schema.js";
+import type { DB } from "../lib/db.js";
+import { daysAgo, formatGBP, loadFixture, slug } from "../lib/helpers.js";
+import { createSnapshot } from "../lib/snapshot.js";
+import { wipeUserData } from "../lib/wipe.js";
 
 interface BalanceEntry {
 	balanceInCents: number;
@@ -14,10 +14,10 @@ interface BalanceEntry {
 interface AccountFixture {
 	name: string;
 	institution: string | null;
-	type: (typeof schema.accounts.$inferInsert)['type'];
-	taxWrapper: (typeof schema.accounts.$inferInsert)['taxWrapper'];
-	category: 'asset' | 'liability';
-	liquidity: (typeof schema.accounts.$inferInsert)['liquidity'];
+	type: (typeof schema.accounts.$inferInsert)["type"];
+	taxWrapper: (typeof schema.accounts.$inferInsert)["taxWrapper"];
+	category: "asset" | "liability";
+	liquidity: (typeof schema.accounts.$inferInsert)["liquidity"];
 	excludedFromNetWorth: boolean;
 	closedAt: string | null;
 	balances: BalanceEntry[];
@@ -43,16 +43,16 @@ interface SnapshotFixture {
 }
 
 export async function seedStandard(db: DB, userId: number): Promise<void> {
-	console.log('\n🌱 [standard] Starting seed...');
+	console.log("\n🌱 [standard] Starting seed...");
 	await wipeUserData(db, userId);
 
-	const accounts = loadFixture<AccountFixture[]>('standard/accounts.json');
-	const goals = loadFixture<GoalFixture[]>('standard/goals.json');
-	const snapshots = loadFixture<SnapshotFixture[]>('standard/snapshots.json');
+	const accounts = loadFixture<AccountFixture[]>("standard/accounts.json");
+	const goals = loadFixture<GoalFixture[]>("standard/goals.json");
+	const snapshots = loadFixture<SnapshotFixture[]>("standard/snapshots.json");
 
 	// --- Accounts ---
-	console.log('\n📊 Creating accounts...');
-	const accountByName = new Map<string, (typeof schema.accounts.$inferSelect)>();
+	console.log("\n📊 Creating accounts...");
+	const accountByName = new Map<string, typeof schema.accounts.$inferSelect>();
 
 	for (const a of accounts) {
 		const now = new Date();
@@ -70,7 +70,7 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 				excludedFromNetWorth: a.excludedFromNetWorth,
 				closedAt: a.closedAt ? new Date(a.closedAt) : null,
 				createdAt: now,
-				updatedAt: now
+				updatedAt: now,
 			})
 			.returning();
 
@@ -82,16 +82,16 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 				asOfDate: daysAgo(b.daysAgo),
 				notes: b.notes,
 				createdAt: new Date(),
-				updatedAt: new Date()
+				updatedAt: new Date(),
 			});
 		}
 
 		accountByName.set(a.name, account);
-		console.log(`  ✓ ${a.name} (${a.institution ?? '-'})`);
+		console.log(`  ✓ ${a.name} (${a.institution ?? "-"})`);
 	}
 
 	// --- Goals ---
-	console.log('\n🎯 Creating goals...');
+	console.log("\n🎯 Creating goals...");
 
 	for (let i = 0; i < goals.length; i++) {
 		const g = goals[i];
@@ -108,13 +108,15 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 				sortOrder: i,
 				deletedAt: g.deletedAt ? new Date(g.deletedAt) : null,
 				createdAt: new Date(),
-				updatedAt: new Date()
+				updatedAt: new Date(),
 			})
 			.returning();
 
 		let total = 0;
 		for (const alloc of g.allocations) {
-			const account = alloc.accountName ? accountByName.get(alloc.accountName) : null;
+			const account = alloc.accountName
+				? accountByName.get(alloc.accountName)
+				: null;
 			const now = new Date();
 			await db.insert(schema.goalAllocations).values({
 				goalId: goal.id,
@@ -122,19 +124,22 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 				amount: alloc.amount,
 				type: alloc.type,
 				allocationDate: now,
-				createdAt: now
+				createdAt: now,
 			});
 			total += alloc.amount;
 		}
 
-		await db.update(schema.goals).set({ currentAllocation: total }).where(eq(schema.goals.id, goal.id));
+		await db
+			.update(schema.goals)
+			.set({ currentAllocation: total })
+			.where(eq(schema.goals.id, goal.id));
 
 		const pct = Math.round((total / g.targetAmountInCents) * 100);
 		console.log(`  ✓ ${g.name} (${pct}%)`);
 	}
 
 	// --- Snapshots ---
-	console.log('\n📸 Creating snapshots...');
+	console.log("\n📸 Creating snapshots...");
 
 	for (const snap of snapshots) {
 		await createSnapshot(db, userId, snap.date, snap.multiplier, snap.notes);
@@ -143,11 +148,15 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 
 	const netWorth = formatGBP(
 		accounts
-			.flatMap((a) => a.balances.filter((b) => b.daysAgo === 0).map((b) => b.balanceInCents))
-			.reduce((s, c) => s + c, 0)
+			.flatMap((a) =>
+				a.balances.filter((b) => b.daysAgo === 0).map((b) => b.balanceInCents),
+			)
+			.reduce((s, c) => s + c, 0),
 	);
 
-	console.log('\n✅ [standard] Seed complete!');
-	console.log(`   ${accounts.length} accounts | ${goals.length} goals | ${snapshots.length} snapshots`);
+	console.log("\n✅ [standard] Seed complete!");
+	console.log(
+		`   ${accounts.length} accounts | ${goals.length} goals | ${snapshots.length} snapshots`,
+	);
 	console.log(`   Net worth (latest balances): ${netWorth}`);
 }

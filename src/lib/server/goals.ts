@@ -1,19 +1,21 @@
-import { and, eq, inArray, isNull } from 'drizzle-orm';
-import { sql } from 'drizzle-orm';
-import { db } from '$lib/db/client';
-import { goals, accounts, goalAllocations } from '$lib/db/schema';
-import { withUserFilter } from '$lib/auth/row-security';
-import { devLog } from '$lib/utils/logger';
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { withUserFilter } from "$lib/auth/row-security";
+import { db } from "$lib/db/client";
+import { accounts, goalAllocations, goals } from "$lib/db/schema";
+import { devLog } from "$lib/utils/logger";
 
 async function getOpenAssetAccountsWithLatestBalances(userId: number) {
 	const userAccounts = await db.query.accounts.findMany({
-		where: and(withUserFilter(userId, accounts), eq(accounts.category, 'asset')),
+		where: and(
+			withUserFilter(userId, accounts),
+			eq(accounts.category, "asset"),
+		),
 		with: {
 			balances: {
 				orderBy: (balances, { desc }) => desc(balances.asOfDate),
-				limit: 1
-			}
-		}
+				limit: 1,
+			},
+		},
 	});
 
 	return userAccounts.filter((account) => !account.closedAt);
@@ -45,19 +47,22 @@ export async function calculateReadyToAssign(params: {
 
 	// Calculate total allocated (sum of all goal current_allocation)
 	const userGoals = await db.query.goals.findMany({
-		where: and(withUserFilter(userId, goals), isNull(goals.deletedAt))
+		where: and(withUserFilter(userId, goals), isNull(goals.deletedAt)),
 	});
 
-	const totalAllocated = userGoals.reduce((sum, goal) => sum + goal.currentAllocation, 0);
+	const totalAllocated = userGoals.reduce(
+		(sum, goal) => sum + goal.currentAllocation,
+		0,
+	);
 
 	// Ready to Assign = Total Assets - Total Allocated
 	const readyToAssign = totalAssets - totalAllocated;
 
-	devLog('readyToAssign', 'Calculated Ready to Assign', {
+	devLog("readyToAssign", "Calculated Ready to Assign", {
 		userId,
 		totalAssets,
 		totalAllocated,
-		readyToAssign
+		readyToAssign,
 	});
 
 	return { readyToAssign, totalAssets, totalAllocated };
@@ -73,7 +78,13 @@ export async function calculateReadyToAssign(params: {
  */
 export async function calculatePerAccountUnallocated(params: {
 	userId: number;
-}): Promise<Array<(Awaited<ReturnType<typeof getOpenAssetAccountsWithLatestBalances>>[number]) & { unallocated: number }>> {
+}): Promise<
+	Array<
+		Awaited<
+			ReturnType<typeof getOpenAssetAccountsWithLatestBalances>
+		>[number] & { unallocated: number }
+	>
+> {
 	const { userId } = params;
 
 	const openAccounts = await getOpenAssetAccountsWithLatestBalances(userId);
@@ -87,7 +98,7 @@ export async function calculatePerAccountUnallocated(params: {
 	const allocationSums = await db
 		.select({
 			accountId: goalAllocations.accountId,
-			sum: sql<number>`coalesce(sum(abs(${goalAllocations.amount})), 0)`
+			sum: sql<number>`coalesce(sum(abs(${goalAllocations.amount})), 0)`,
 		})
 		.from(goalAllocations)
 		.where(inArray(goalAllocations.accountId, accountIds))
@@ -105,17 +116,17 @@ export async function calculatePerAccountUnallocated(params: {
 		const totalAllocatedFromAccount = allocatedByAccountId.get(account.id) ?? 0;
 		const unallocated = Math.max(0, accountBalance - totalAllocatedFromAccount);
 
-		devLog('perAccountUnallocated', 'Calculated for account', {
+		devLog("perAccountUnallocated", "Calculated for account", {
 			accountId: account.id,
 			accountName: account.name,
 			accountBalance,
 			totalAllocatedFromAccount,
-			unallocated
+			unallocated,
 		});
 
 		return {
 			...account,
-			unallocated
+			unallocated,
 		};
 	});
 

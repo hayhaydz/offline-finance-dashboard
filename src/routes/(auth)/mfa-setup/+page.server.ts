@@ -1,33 +1,35 @@
-import { redirect, fail, error } from '@sveltejs/kit';
-import { db } from '$lib/db/client';
-import { users, backupCodes, sessions } from '$lib/db/schema';
-import crypto from 'crypto';
+import crypto from "node:crypto";
+import { error, fail, redirect } from "@sveltejs/kit";
+import { eq } from "drizzle-orm";
 import {
-	verifyTOTP,
+	decryptTOTPSecret,
+	generateBackupCodes,
 	generateOTPAuthURL,
 	generateQRCode,
-	generateBackupCodes,
-	decryptTOTPSecret
-} from '$lib/auth/mfa';
-import { hashPassword } from '$lib/auth/password';
-import { devLog, logError, logFormData } from '$lib/utils/logger';
-import { HOME_ROUTE, LOGIN_ROUTE, REGISTER_ROUTE } from '$lib/constants/routes';
-import { eq } from 'drizzle-orm';
+	verifyTOTP,
+} from "$lib/auth/mfa";
+import { hashPassword } from "$lib/auth/password";
+import { HOME_ROUTE, LOGIN_ROUTE, REGISTER_ROUTE } from "$lib/constants/routes";
+import { db } from "$lib/db/client";
+import { backupCodes, sessions, users } from "$lib/db/schema";
+import { devLog, logError, logFormData } from "$lib/utils/logger";
 
 export async function load({ cookies, locals }) {
-	devLog('mfaSetup', 'Loading MFA setup page');
+	devLog("mfaSetup", "Loading MFA setup page");
 
 	// Check if we just finished setup (to skip redirection)
-	const justFinished = cookies.get('mfa-just-finished') === 'true';
+	const justFinished = cookies.get("mfa-just-finished") === "true";
 
 	if (justFinished) {
 		// Consume the cookie
-		cookies.delete('mfa-just-finished', { path: '/mfa-setup' });
+		cookies.delete("mfa-just-finished", { path: "/mfa-setup" });
 
 		if (locals.user) {
-			devLog('mfaSetup', 'MFA setup just completed', { username: locals.user.username });
+			devLog("mfaSetup", "MFA setup just completed", {
+				username: locals.user.username,
+			});
 			return {
-				username: locals.user.username
+				username: locals.user.username,
 			};
 		}
 	}
@@ -38,103 +40,122 @@ export async function load({ cookies, locals }) {
 	}
 
 	// Get setup token from cookie set by registration page
-	const mfaSetupToken = cookies.get('mfa-setup-token');
+	const mfaSetupToken = cookies.get("mfa-setup-token");
 
 	if (!mfaSetupToken) {
-		logError('mfaSetup', 'No MFA setup token found');
+		logError("mfaSetup", "No MFA setup token found");
 		throw redirect(302, REGISTER_ROUTE);
 	}
 
 	const user = await db.query.users.findFirst({
-		where: eq(users.mfaSetupToken, mfaSetupToken)
+		where: eq(users.mfaSetupToken, mfaSetupToken),
 	});
 
 	if (!user) {
-		logError('mfaSetup', 'User not found for MFA setup token');
-		cookies.delete('mfa-setup-token', { path: '/' });
+		logError("mfaSetup", "User not found for MFA setup token");
+		cookies.delete("mfa-setup-token", { path: "/" });
 		throw redirect(302, REGISTER_ROUTE);
 	}
 
 	// Check if MFA is already set up (backup codes exist)
 	const existingCodes = await db.query.backupCodes.findMany({
-		where: eq(backupCodes.userId, user.id)
+		where: eq(backupCodes.userId, user.id),
 	});
 
 	if (existingCodes.length > 0) {
-		devLog('mfaSetup', 'MFA already set up', { username: user.username });
+		devLog("mfaSetup", "MFA already set up", { username: user.username });
 		// MFA already set up, redirect to login (since not logged in here)
-		cookies.delete('mfa-setup-token', { path: '/' });
+		cookies.delete("mfa-setup-token", { path: "/" });
 		throw redirect(302, LOGIN_ROUTE);
 	}
 
 	// Decrypt TOTP secret before generating QR code
 	const systemKey = process.env.ENCRYPTION_KEY;
 	if (!systemKey) {
-		logError('mfaSetup', 'Server configuration error - missing ENCRYPTION_KEY');
-		throw error(500, 'Server configuration error');
+		logError("mfaSetup", "Server configuration error - missing ENCRYPTION_KEY");
+		throw error(500, "Server configuration error");
 	}
 
-	const totpSecretPlaintext = decryptTOTPSecret(user.totpSecret, user.totpSecretIV, systemKey);
+	const totpSecretPlaintext = decryptTOTPSecret(
+		user.totpSecret,
+		user.totpSecretIV,
+		systemKey,
+	);
 
 	// Generate QR code using decrypted secret
 	const otpauthURL = generateOTPAuthURL(totpSecretPlaintext, user.username);
 	const qrCodeUrl = await generateQRCode(otpauthURL);
 
-	devLog('mfaSetup', 'QR code generated', { username: user.username });
+	devLog("mfaSetup", "QR code generated", { username: user.username });
 
 	return {
 		qrCodeUrl,
-		username: user.username
+		username: user.username,
 	};
 }
 
 export const actions = {
 	default: async ({ request, cookies }) => {
 		const formData = await request.formData();
-		logFormData('mfaSetup', Object.fromEntries(formData));
+		logFormData("mfaSetup", Object.fromEntries(formData));
 
-		const totpCode = formData.get('totpCode') as string;
+		const totpCode = formData.get("totpCode") as string;
 
 		if (!totpCode) {
-			devLog('mfaSetup', 'Validation failed - missing TOTP code');
-			return fail(400, { error: 'Authentication code is required' });
+			devLog("mfaSetup", "Validation failed - missing TOTP code");
+			return fail(400, { error: "Authentication code is required" });
 		}
 
 		// Get setup token from cookie
-		const mfaSetupToken = cookies.get('mfa-setup-token');
+		const mfaSetupToken = cookies.get("mfa-setup-token");
 		if (!mfaSetupToken) {
-			logError('mfaSetup', 'Session expired - no MFA setup token');
-			return fail(400, { error: 'Session expired. Please start registration again.' });
+			logError("mfaSetup", "Session expired - no MFA setup token");
+			return fail(400, {
+				error: "Session expired. Please start registration again.",
+			});
 		}
 
 		const user = await db.query.users.findFirst({
-			where: eq(users.mfaSetupToken, mfaSetupToken)
+			where: eq(users.mfaSetupToken, mfaSetupToken),
 		});
 
 		if (!user) {
-			logError('mfaSetup', 'User not found for MFA setup');
-			cookies.delete('mfa-setup-token', { path: '/' });
-			return fail(400, { error: 'User not found. Please register again.' });
+			logError("mfaSetup", "User not found for MFA setup");
+			cookies.delete("mfa-setup-token", { path: "/" });
+			return fail(400, { error: "User not found. Please register again." });
 		}
 
 		// Decrypt TOTP secret before verifying
 		const systemKey = process.env.ENCRYPTION_KEY;
 		if (!systemKey) {
-			logError('mfaSetup', 'Server configuration error - missing ENCRYPTION_KEY');
-			return fail(500, { error: 'Server configuration error' });
+			logError(
+				"mfaSetup",
+				"Server configuration error - missing ENCRYPTION_KEY",
+			);
+			return fail(500, { error: "Server configuration error" });
 		}
 
-		const totpSecretPlaintext = decryptTOTPSecret(user.totpSecret, user.totpSecretIV, systemKey);
+		const totpSecretPlaintext = decryptTOTPSecret(
+			user.totpSecret,
+			user.totpSecretIV,
+			systemKey,
+		);
 
 		// Verify TOTP code using decrypted secret
 		const isValid = await verifyTOTP(totpCode, totpSecretPlaintext);
 
 		if (!isValid) {
-			logError('mfaSetup', 'TOTP verification failed', { username: user.username });
-			return fail(400, { error: 'Invalid authentication code. Please try again.' });
+			logError("mfaSetup", "TOTP verification failed", {
+				username: user.username,
+			});
+			return fail(400, {
+				error: "Invalid authentication code. Please try again.",
+			});
 		}
 
-		devLog('mfaSetup', 'TOTP verification successful', { username: user.username });
+		devLog("mfaSetup", "TOTP verification successful", {
+			username: user.username,
+		});
 
 		// Generate and store backup codes
 		const newBackupCodes = generateBackupCodes();
@@ -144,58 +165,59 @@ export const actions = {
 				userId: user.id,
 				code: hashedCode,
 				used: false,
-				createdAt: new Date()
+				createdAt: new Date(),
 			});
 		}
 
-		devLog('mfaSetup', 'Backup codes generated', {
+		devLog("mfaSetup", "Backup codes generated", {
 			username: user.username,
-			codeCount: newBackupCodes.length
+			codeCount: newBackupCodes.length,
 		});
 
 		// Mark the setup token as used in database
-		await db.update(users)
+		await db
+			.update(users)
 			.set({ mfaSetupToken: null, updatedAt: new Date() })
 			.where(eq(users.id, user.id));
 
 		// Clear the setup cookie
-		cookies.delete('mfa-setup-token', { path: '/' });
+		cookies.delete("mfa-setup-token", { path: "/" });
 
 		// Create session and log user in (auto-login after MFA setup)
-		const sessionToken = crypto.randomBytes(32).toString('hex');
+		const sessionToken = crypto.randomBytes(32).toString("hex");
 
 		await db.insert(sessions).values({
 			token: sessionToken,
 			userId: user.id,
 			createdAt: new Date(),
-			lastActivity: new Date()
+			lastActivity: new Date(),
 		});
 
 		// Set HTTP-only cookie with session token
-		cookies.set('session', sessionToken, {
-			path: '/',
+		cookies.set("session", sessionToken, {
+			path: "/",
 			httpOnly: true,
-			sameSite: 'strict',
-			secure: process.env.APP_ENV === 'production',
-			maxAge: 60 * 60 * 24 // 24 hours
+			sameSite: "strict",
+			secure: process.env.APP_ENV === "production",
+			maxAge: 60 * 60 * 24, // 24 hours
 		});
 
-		devLog('mfaSetup', 'MFA setup completed, user logged in', {
+		devLog("mfaSetup", "MFA setup completed, user logged in", {
 			username: user.username,
-			userId: user.id
+			userId: user.id,
 		});
 
 		// Set a temporary cookie to signal the load function that we just finished setup
-		cookies.set('mfa-just-finished', 'true', {
-			path: '/mfa-setup',
+		cookies.set("mfa-just-finished", "true", {
+			path: "/mfa-setup",
 			httpOnly: true,
-			maxAge: 10 // 10 seconds is plenty for the re-run
+			maxAge: 10, // 10 seconds is plenty for the re-run
 		});
 
 		// Return backup codes to client to show them one last time
 		return {
 			success: true,
-			backupCodes: newBackupCodes
+			backupCodes: newBackupCodes,
 		};
-	}
+	},
 };

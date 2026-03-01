@@ -1,20 +1,23 @@
-import { redirect, fail } from '@sveltejs/kit';
-import type { PageServerLoad, Actions } from './$types';
-import { db } from '$lib/db/client';
-import { accounts, goals } from '$lib/db/schema';
-import { withUserFilter } from '$lib/auth/row-security';
-import { and, inArray, isNull, sql, type SQL, asc } from 'drizzle-orm';
-import { devLog, isVerboseDebug, logError } from '$lib/utils/logger';
-import { getStaleness } from '$lib/utils/staleness';
-import { calculateAssetsAndLiabilities } from '$lib/server/finance';
+import { fail, redirect } from "@sveltejs/kit";
+import { asc } from "drizzle-orm";
+import { withUserFilter } from "$lib/auth/row-security";
+import { db } from "$lib/db/client";
+import { accounts, goals } from "$lib/db/schema";
+import { updateTypeExclusions } from "$lib/server/exclusions";
+import { calculateAssetsAndLiabilities } from "$lib/server/finance";
+import { devLog, isVerboseDebug, logError } from "$lib/utils/logger";
+import { getStaleness } from "$lib/utils/staleness";
+import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
-		devLog('homePage', 'Unauthenticated access, redirecting to login');
-		redirect(302, '/login');
+		devLog("homePage", "Unauthenticated access, redirecting to login");
+		redirect(302, "/login");
 	}
 
-	devLog('homePage', 'Loading net worth data for user', { userId: locals.user.id });
+	devLog("homePage", "Loading net worth data for user", {
+		userId: locals.user.id,
+	});
 
 	// Fetch all user accounts with their latest balance
 	const userAccounts = await db.query.accounts.findMany({
@@ -22,12 +25,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 		with: {
 			balances: {
 				orderBy: (balances, { desc }) => desc(balances.asOfDate),
-				limit: 1
-			}
-		}
+				limit: 1,
+			},
+		},
 	});
 
-	devLog('homePage', 'Fetched user accounts', { accountCount: userAccounts.length });
+	devLog("homePage", "Fetched user accounts", {
+		accountCount: userAccounts.length,
+	});
 
 	// Fetch goals for homepage preview
 	const userGoals = await db.query.goals.findMany({
@@ -37,9 +42,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 			allocations: {
 				columns: {
 					accountId: true,
-					amount: true
-				}
-			}
+					amount: true,
+				},
+			},
 		},
 		columns: {
 			id: true,
@@ -50,24 +55,24 @@ export const load: PageServerLoad = async ({ locals }) => {
 			targetDate: true,
 			isEmergencyFund: true,
 			deletedAt: true,
-			updatedAt: true
-		}
+			updatedAt: true,
+		},
 	});
 
 	// Filter out soft-deleted goals
-	const activeGoals = userGoals.filter(g => !g.deletedAt);
+	const activeGoals = userGoals.filter((g) => !g.deletedAt);
 
-	devLog('homePage', 'Fetched user goals', { goalCount: activeGoals.length });
+	devLog("homePage", "Fetched user goals", { goalCount: activeGoals.length });
 
 	// Calculate net worth totals
 	// Filter included accounts: not excluded AND not closed
 	const includedAccounts = userAccounts.filter(
-		(a) => !a.excludedFromNetWorth && !a.closedAt
+		(a) => !a.excludedFromNetWorth && !a.closedAt,
 	);
 
 	// Filter excluded accounts: excluded AND not closed
 	const excludedAccounts = userAccounts.filter(
-		(a) => a.excludedFromNetWorth && !a.closedAt
+		(a) => a.excludedFromNetWorth && !a.closedAt,
 	);
 
 	const includedTotals = calculateAssetsAndLiabilities(includedAccounts);
@@ -89,9 +94,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 		newestDate = new Date(Math.max(...dates));
 	}
 
-	devLog('homePage', 'Calculated date range', {
+	devLog("homePage", "Calculated date range", {
 		oldest: oldestDate.toISOString(),
-		newest: newestDate.toISOString()
+		newest: newestDate.toISOString(),
 	});
 
 	// Check for stale data (30+ days old)
@@ -107,7 +112,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const hasStaleData = staleAccounts.length > 0;
 
 	if (hasStaleData) {
-		devLog('homePage', 'Found stale accounts', { staleCount: staleAccounts.length });
+		devLog("homePage", "Found stale accounts", {
+			staleCount: staleAccounts.length,
+		});
 	}
 
 	// Count excluded TYPES (not individual accounts)
@@ -124,23 +131,23 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const excludedTypes = new Set(
 		Array.from(typeMap.entries())
 			.filter(([, { total, excluded }]) => total > 0 && excluded === total)
-			.map(([type]) => type)
+			.map(([type]) => type),
 	);
 	const exclusionCount = excludedTypes.size;
 
-	devLog('homePage', 'Exclusion count calculated', {
+	devLog("homePage", "Exclusion count calculated", {
 		excludedTypes: Array.from(excludedTypes),
-		exclusionCount
+		exclusionCount,
 	});
 
-	devLog('homePage', 'Net worth calculation complete', {
+	devLog("homePage", "Net worth calculation complete", {
 		netWorth,
 		totalAssets,
 		totalLiabilities,
 		excludedAssets,
 		excludedLiabilities,
 		hasStaleData,
-		exclusionCount
+		exclusionCount,
 	});
 
 	// Calculate staleness based on newest balance date
@@ -150,7 +157,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		user: {
 			id: locals.user.id,
 			username: locals.user.username,
-			createdAt: locals.user.createdAt
+			createdAt: locals.user.createdAt,
 		},
 		netWorth,
 		totalAssets,
@@ -159,21 +166,21 @@ export const load: PageServerLoad = async ({ locals }) => {
 		excludedLiabilities,
 		dateRange: {
 			oldest: oldestDate,
-			newest: newestDate
+			newest: newestDate,
 		},
 		hasStaleData,
 		exclusionCount,
 		accounts: userAccounts,
 		goals: activeGoals,
-		staleness
+		staleness,
 	};
 };
 
 export const actions: Actions = {
 	updateExclusions: async ({ request, locals }) => {
 		if (!locals.user) {
-			logError('updateExclusions', 'Authentication required');
-			return fail(401, { error: 'Authentication required' });
+			logError("updateExclusions", "Authentication required");
+			return fail(401, { error: "Authentication required" });
 		}
 
 		const formData = await request.formData();
@@ -182,113 +189,98 @@ export const actions: Actions = {
 		const typeUpdates: Map<string, boolean> = new Map();
 
 		for (const [key, value] of formData.entries()) {
-			if (key.startsWith('type_')) {
-				const accountType = key.replace('type_', '');
-				const excluded = value === '1';
+			if (key.startsWith("type_")) {
+				const accountType = key.replace("type_", "");
+				const excluded = value === "1";
 				typeUpdates.set(accountType, excluded);
 			}
 		}
 
 		if (typeUpdates.size === 0) {
-			devLog('updateExclusions', 'No valid type updates in form data');
-			return fail(400, { error: 'No account types selected' });
+			devLog("updateExclusions", "No valid type updates in form data");
+			return fail(400, { error: "No account types selected" });
 		}
 
-		devLog('updateExclusions', 'Processing type-level exclusion updates', {
+		devLog("updateExclusions", "Processing type-level exclusion updates", {
 			userId: locals.user.id,
 			typeCount: typeUpdates.size,
-			typeUpdates: Array.from(typeUpdates.entries()).map(([type, excluded]) => ({ type, excluded }))
+			typeUpdates: Array.from(typeUpdates.entries()).map(
+				([type, excluded]) => ({ type, excluded }),
+			),
 		});
 
-			if (isVerboseDebug()) {
-				const beforeUpdate = await db.query.accounts.findMany({
-					where: withUserFilter(locals.user.id, accounts),
-					columns: { id: true, type: true, excludedFromNetWorth: true }
-				});
-				devLog('updateExclusions', 'Database state BEFORE update', {
-					accountsExcludedByType: beforeUpdate.reduce((acc, a) => {
+		if (isVerboseDebug()) {
+			const beforeUpdate = await db.query.accounts.findMany({
+				where: withUserFilter(locals.user.id, accounts),
+				columns: { id: true, type: true, excludedFromNetWorth: true },
+			});
+			devLog("updateExclusions", "Database state BEFORE update", {
+				accountsExcludedByType: beforeUpdate.reduce(
+					(acc, a) => {
 						if (a.excludedFromNetWorth) {
 							acc[a.type] = (acc[a.type] || 0) + 1;
 						}
 						return acc;
-					}, {} as Record<string, number>),
-					totalExcludedTypes: new Set(beforeUpdate.filter(a => a.excludedFromNetWorth).map(a => a.type)).size
-				});
-			}
+					},
+					{} as Record<string, number>,
+				),
+				totalExcludedTypes: new Set(
+					beforeUpdate.filter((a) => a.excludedFromNetWorth).map((a) => a.type),
+				).size,
+			});
+		}
 
 		try {
-			// Fetch user's open (non-closed) accounts to get their IDs by type
-			// Closed accounts must be excluded to avoid the prevent_edit_closed_account trigger
-			const userAccounts = await db.query.accounts.findMany({
-				where: and(withUserFilter(locals.user.id, accounts), isNull(accounts.closedAt)),
-				columns: { id: true, type: true }
+			const result = await updateTypeExclusions({
+				userId: locals.user.id,
+				typeUpdates,
 			});
 
-			// Group account IDs by type
-			const accountsByType = new Map<string, number[]>();
-			for (const account of userAccounts) {
-				if (!accountsByType.has(account.type)) {
-					accountsByType.set(account.type, []);
-				}
-				accountsByType.get(account.type)!.push(account.id);
+			if (result.affectedRows === 0) {
+				devLog(
+					"updateExclusions",
+					"No matching open accounts found for selected types",
+					{
+						userId: locals.user.id,
+						typesRequested: Array.from(typeUpdates.keys()),
+					},
+				);
+				return { success: result.message };
 			}
 
-			// Build CASE statement for bulk update by type
-			const sqlChunks: SQL[] = [];
-			const ids: number[] = [];
-
-			sqlChunks.push(sql` (case`);
-				for (const [type, excluded] of typeUpdates.entries()) {
-					const typeAccountIds = accountsByType.get(type) ?? [];
-					for (const accountId of typeAccountIds) {
-						sqlChunks.push(sql` when ${accounts.id} = ${accountId} then ${excluded ? 1 : 0}`);
-						ids.push(accountId);
-					}
-				}
-				sqlChunks.push(sql` end)`);
-
-				if (ids.length === 0) {
-					devLog('updateExclusions', 'No matching open accounts found for selected types', {
-						userId: locals.user.id,
-						typesRequested: Array.from(typeUpdates.keys())
-					});
-					return { success: 'No matching open accounts to update' };
-				}
-
-				const finalSql: SQL = sql.join(sqlChunks, sql.raw(' '));
-
-			// Perform bulk update with row-level security
-			await db
-				.update(accounts)
-				.set({ excludedFromNetWorth: finalSql })
-				.where(and(withUserFilter(locals.user.id, accounts), inArray(accounts.id, ids)));
-
-			devLog('updateExclusions', 'Type-based bulk update successful', {
+			devLog("updateExclusions", "Type-based bulk update successful", {
 				userId: locals.user.id,
-				affectedRows: ids.length,
-				typesUpdated: Array.from(typeUpdates.keys())
+				affectedRows: result.affectedRows,
+				typesUpdated: Array.from(typeUpdates.keys()),
 			});
 
-				if (isVerboseDebug()) {
-					const afterUpdate = await db.query.accounts.findMany({
-						where: withUserFilter(locals.user.id, accounts),
-						columns: { id: true, type: true, excludedFromNetWorth: true }
-					});
-					devLog('updateExclusions', 'Database state AFTER update', {
-						accountsExcludedByType: afterUpdate.reduce((acc, a) => {
+			if (isVerboseDebug()) {
+				const afterUpdate = await db.query.accounts.findMany({
+					where: withUserFilter(locals.user.id, accounts),
+					columns: { id: true, type: true, excludedFromNetWorth: true },
+				});
+				devLog("updateExclusions", "Database state AFTER update", {
+					accountsExcludedByType: afterUpdate.reduce(
+						(acc, a) => {
 							if (a.excludedFromNetWorth) {
 								acc[a.type] = (acc[a.type] || 0) + 1;
 							}
 							return acc;
-						}, {} as Record<string, number>),
-						totalExcludedTypes: new Set(afterUpdate.filter(a => a.excludedFromNetWorth).map(a => a.type)).size
-					});
-				}
+						},
+						{} as Record<string, number>,
+					),
+					totalExcludedTypes: new Set(
+						afterUpdate
+							.filter((a) => a.excludedFromNetWorth)
+							.map((a) => a.type),
+					).size,
+				});
+			}
 
-			return { success: 'Exclusions updated successfully' };
+			return { success: result.message };
 		} catch (error) {
-			logError('updateExclusions', 'Database error during bulk update', error);
-			return fail(500, { error: 'Failed to update exclusions' });
+			logError("updateExclusions", "Database error during bulk update", error);
+			return fail(500, { error: "Failed to update exclusions" });
 		}
-	}
+	},
 };

@@ -1,7 +1,7 @@
-import { eq, and, isNull, desc } from 'drizzle-orm';
-import * as schema from '../../../src/lib/db/schema.js';
-import { slug } from './helpers.js';
-import type { DB } from './db.js';
+import { and, desc, eq, isNull } from "drizzle-orm";
+import * as schema from "../../../src/lib/db/schema.js";
+import type { DB } from "./db.js";
+import { slug } from "./helpers.js";
 
 export interface SnapshotOptions {
 	/** Override goalsBreakdown to empty array */
@@ -18,20 +18,20 @@ export async function createSnapshot(
 	date: string,
 	multiplier: number,
 	notes: string | null,
-	opts: SnapshotOptions = {}
+	opts: SnapshotOptions = {},
 ): Promise<void> {
 	const allAccounts = await db.query.accounts.findMany({
 		where: eq(schema.accounts.userId, userId),
 		with: {
 			balances: {
 				orderBy: [desc(schema.accountBalances.asOfDate)],
-				limit: 1
-			}
-		}
+				limit: 1,
+			},
+		},
 	});
 
 	const allGoals = await db.query.goals.findMany({
-		where: and(eq(schema.goals.userId, userId), isNull(schema.goals.deletedAt))
+		where: and(eq(schema.goals.userId, userId), isNull(schema.goals.deletedAt)),
 	});
 
 	const openAccounts = allAccounts.filter((a) => !a.closedAt);
@@ -39,16 +39,18 @@ export async function createSnapshot(
 
 	const accountsWithBalance = openAccounts.map((a) => ({
 		...a,
-		adjustedBalance: Math.round((a.balances[0]?.balanceInCents || 0) * multiplier)
+		adjustedBalance: Math.round(
+			(a.balances[0]?.balanceInCents || 0) * multiplier,
+		),
 	}));
 
 	// Preserve existing behaviour: totals include all open accounts (including excluded ones)
 	const totalAssets = accountsWithBalance
-		.filter((a) => a.category === 'asset')
+		.filter((a) => a.category === "asset")
 		.reduce((sum, a) => sum + a.adjustedBalance, 0);
 
 	const totalLiabilities = accountsWithBalance
-		.filter((a) => a.category === 'liability')
+		.filter((a) => a.category === "liability")
 		.reduce((sum, a) => sum + a.adjustedBalance, 0);
 
 	let netWorth = totalAssets + totalLiabilities;
@@ -60,10 +62,13 @@ export async function createSnapshot(
 		? []
 		: allGoals.map((g) => ({
 				...g,
-				adjustedAllocation: Math.round(g.currentAllocation * multiplier)
+				adjustedAllocation: Math.round(g.currentAllocation * multiplier),
 			}));
 
-	const totalAllocated = goalsForBreakdown.reduce((sum, g) => sum + g.adjustedAllocation, 0);
+	const totalAllocated = goalsForBreakdown.reduce(
+		(sum, g) => sum + g.adjustedAllocation,
+		0,
+	);
 
 	await db.insert(schema.snapshots).values({
 		slug: slug(),
@@ -80,17 +85,17 @@ export async function createSnapshot(
 				accountSlug: a.slug,
 				name: a.name,
 				type: a.type,
-				category: a.category as 'asset' | 'liability',
+				category: a.category as "asset" | "liability",
 				balanceInCents: a.adjustedBalance,
-				includedInTotal: !a.excludedFromNetWorth && !forceExclude.has(a.slug)
+				includedInTotal: !a.excludedFromNetWorth && !forceExclude.has(a.slug),
 			})),
 			totalByType: accountsWithBalance.reduce(
 				(acc, a) => {
 					acc[a.type] = (acc[a.type] || 0) + a.adjustedBalance;
 					return acc;
 				},
-				{} as Record<string, number>
-			)
+				{} as Record<string, number>,
+			),
 		},
 		goalsBreakdown: {
 			goals: goalsForBreakdown.map((g) => ({
@@ -99,10 +104,10 @@ export async function createSnapshot(
 				name: g.name,
 				targetAmountInCents: g.targetAmountInCents,
 				currentAllocation: g.adjustedAllocation,
-				isEmergencyFund: g.isEmergencyFund
+				isEmergencyFund: g.isEmergencyFund,
 			})),
-			totalAllocated
+			totalAllocated,
 		},
-		notes
+		notes,
 	});
 }

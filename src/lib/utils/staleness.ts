@@ -7,7 +7,7 @@
  */
 
 export interface StalenessInfo {
-	color: 'green' | 'amber' | 'red';
+	color: "green" | "amber" | "red";
 	label: string; // e.g., "Updated today", "Updated 3 days ago"
 	cssClass: string; // Tailwind class for the dot
 }
@@ -22,41 +22,41 @@ export function getStaleness(lastUpdated: Date): StalenessInfo {
 
 	if (diffDays === 0) {
 		return {
-			color: 'green',
-			label: 'Updated today',
-			cssClass: 'text-green-700'
+			color: "green",
+			label: "Updated today",
+			cssClass: "text-green-700",
 		};
 	}
 
 	if (diffDays === 1) {
 		return {
-			color: 'green',
-			label: 'Updated yesterday',
-			cssClass: 'text-green-700'
+			color: "green",
+			label: "Updated yesterday",
+			cssClass: "text-green-700",
 		};
 	}
 
 	if (diffDays <= 7) {
 		return {
-			color: 'green',
+			color: "green",
 			label: `Updated ${diffDays} days ago`,
-			cssClass: 'text-green-700'
+			cssClass: "text-green-700",
 		};
 	}
 
 	if (diffDays <= 30) {
 		return {
-			color: 'amber',
+			color: "amber",
 			label: `Updated ${diffDays} days ago`,
-			cssClass: 'text-amber-600'
+			cssClass: "text-amber-600",
 		};
 	}
 
 	// 30+ days
 	return {
-		color: 'red',
+		color: "red",
 		label: `Updated ${diffDays} days ago`,
-		cssClass: 'text-red-700'
+		cssClass: "text-red-700",
 	};
 }
 

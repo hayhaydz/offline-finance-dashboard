@@ -1,10 +1,10 @@
-import { db } from '$lib/db/client';
-import { accounts, accountBalances } from '$lib/db/schema';
-import { parseCurrency } from '$lib/utils/currency';
-import { devLog } from '$lib/utils/logger';
-import { eq, and, gte, lt } from 'drizzle-orm';
-import { nanoid } from 'nanoid';
-import type { Account } from '$lib/db/schema';
+import { and, eq, gte, lt } from "drizzle-orm";
+import { nanoid } from "nanoid";
+import { db } from "$lib/db/client";
+import type { Account } from "$lib/db/schema";
+import { accountBalances, accounts } from "$lib/db/schema";
+import { parseCurrency } from "$lib/utils/currency";
+import { devLog } from "$lib/utils/logger";
 
 export interface BalanceEntryInput {
 	accountId: number;
@@ -14,14 +14,14 @@ export interface BalanceEntryInput {
 }
 
 export interface BalanceEntryResult {
-	type: 'success';
+	type: "success";
 	success: string;
 	balanceSlug: string;
 	balanceInCents: number;
 }
 
 export interface BalanceConflictResult {
-	type: 'conflict';
+	type: "conflict";
 	error: string;
 	existingBalanceId: number;
 	existingBalance: number;
@@ -29,7 +29,9 @@ export interface BalanceConflictResult {
 	proposedBalance: number;
 }
 
-export type BalanceEntryResultOrConflict = BalanceEntryResult | BalanceConflictResult;
+export type BalanceEntryResultOrConflict =
+	| BalanceEntryResult
+	| BalanceConflictResult;
 
 /**
  * Shared function to add a balance entry to an account.
@@ -41,7 +43,7 @@ export type BalanceEntryResultOrConflict = BalanceEntryResult | BalanceConflictR
  */
 export async function addBalanceEntry(
 	input: BalanceEntryInput,
-	account: Account
+	account: Account,
 ): Promise<BalanceEntryResultOrConflict> {
 	const { accountId, balanceStr, asOfDate, notes } = input;
 
@@ -50,18 +52,18 @@ export async function addBalanceEntry(
 	try {
 		balanceInCents = parseCurrency(balanceStr);
 	} catch (e) {
-		devLog('addBalanceEntry', 'parseCurrency validation failed', {
+		devLog("addBalanceEntry", "parseCurrency validation failed", {
 			input: balanceStr,
 			accountId,
-			error: e instanceof Error ? e.message : String(e)
+			error: e instanceof Error ? e.message : String(e),
 		});
-		throw new Error('Invalid balance format. Enter amount like 123.45 or 123');
+		throw new Error("Invalid balance format. Enter amount like 123.45 or 123");
 	}
 
-	devLog('addBalanceEntry', 'Checking for existing balance entry', {
+	devLog("addBalanceEntry", "Checking for existing balance entry", {
 		accountId,
 		asOfDate: asOfDate.toISOString(),
-		asOfTimestamp: asOfDate.getTime()
+		asOfTimestamp: asOfDate.getTime(),
 	});
 
 	// Calculate day range for comparison (more reliable than exact Date equality)
@@ -70,11 +72,11 @@ export async function addBalanceEntry(
 	const endOfDay = new Date(startOfDay);
 	endOfDay.setUTCHours(23, 59, 59, 999);
 
-	devLog('addBalanceEntry', 'Date range for conflict check', {
+	devLog("addBalanceEntry", "Date range for conflict check", {
 		startOfDay: startOfDay.toISOString(),
 		startTimestamp: startOfDay.getTime(),
 		endOfDay: endOfDay.toISOString(),
-		endTimestamp: endOfDay.getTime()
+		endTimestamp: endOfDay.getTime(),
 	});
 
 	// Check for existing entry for this account and date (using range query)
@@ -82,35 +84,35 @@ export async function addBalanceEntry(
 		where: and(
 			eq(accountBalances.accountId, accountId),
 			gte(accountBalances.asOfDate, startOfDay),
-			lt(accountBalances.asOfDate, new Date(endOfDay.getTime() + 1)) // Start of next day
-		)
+			lt(accountBalances.asOfDate, new Date(endOfDay.getTime() + 1)), // Start of next day
+		),
 	});
 
-	devLog('addBalanceEntry', 'Existing entry check result', {
+	devLog("addBalanceEntry", "Existing entry check result", {
 		accountId,
 		found: !!existing,
 		existingId: existing?.id,
 		existingSlug: existing?.slug,
 		existingAsOfDate: existing?.asOfDate.toISOString(),
-		existingTimestamp: existing?.asOfDate.getTime()
+		existingTimestamp: existing?.asOfDate.getTime(),
 	});
 
 	if (existing) {
-		devLog('addBalanceEntry', 'Conflict detected - existing entry for date', {
+		devLog("addBalanceEntry", "Conflict detected - existing entry for date", {
 			accountId,
 			existingBalanceId: existing.id,
 			existingBalanceSlug: existing.slug,
 			existingBalance: existing.balanceInCents,
 			proposedBalance: balanceInCents,
-			asOfDate: asOfDate.toISOString()
+			asOfDate: asOfDate.toISOString(),
 		});
 		return {
-			type: 'conflict',
-			error: `A balance entry already exists for ${asOfDate.toISOString().split('T')[0]}. [Edit the existing entry](/accounts/${account.slug}/balances/${existing.slug}/edit) or choose a different date.`,
+			type: "conflict",
+			error: `A balance entry already exists for ${asOfDate.toISOString().split("T")[0]}. [Edit the existing entry](/accounts/${account.slug}/balances/${existing.slug}/edit) or choose a different date.`,
 			existingBalanceId: existing.id,
 			existingBalance: existing.balanceInCents,
 			existingSlug: existing.slug,
-			proposedBalance: balanceInCents
+			proposedBalance: balanceInCents,
 		};
 	}
 
@@ -121,7 +123,7 @@ export async function addBalanceEntry(
 		slug: balanceSlug,
 		balanceInCents,
 		asOfDate,
-		notes: notes?.trim() || null
+		notes: notes?.trim() || null,
 	});
 
 	// Update account's updatedAt timestamp
@@ -130,17 +132,17 @@ export async function addBalanceEntry(
 		.set({ updatedAt: new Date() })
 		.where(eq(accounts.id, accountId));
 
-	devLog('addBalanceEntry', 'Balance entry created successfully', {
+	devLog("addBalanceEntry", "Balance entry created successfully", {
 		accountId,
 		balanceSlug,
 		balanceInCents,
-		asOfDate: asOfDate.toISOString()
+		asOfDate: asOfDate.toISOString(),
 	});
 
 	return {
-		type: 'success',
-		success: 'Balance entry added',
+		type: "success",
+		success: "Balance entry added",
 		balanceSlug,
-		balanceInCents
+		balanceInCents,
 	};
 }

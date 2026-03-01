@@ -1,33 +1,36 @@
-import { redirect } from '@sveltejs/kit';
-import { db } from '$lib/db/client';
-import { sessions } from '$lib/db/schema';
-import { devLog, logError } from '$lib/utils/logger';
-import { eq } from 'drizzle-orm';
+import { redirect } from "@sveltejs/kit";
+import { eq } from "drizzle-orm";
+import { db } from "$lib/db/client";
+import { sessions } from "$lib/db/schema";
+import { devLog, logError } from "$lib/utils/logger";
 
 export const actions = {
 	default: async ({ cookies, locals }) => {
 		try {
-			const username = locals.user?.username || 'unknown';
-			devLog('logout', 'User logging out', { username, userId: locals.user?.id });
+			const username = locals.user?.username || "unknown";
+			devLog("logout", "User logging out", {
+				username,
+				userId: locals.user?.id,
+			});
 
 			// Get session token from cookie
-			const sessionToken = cookies.get('session');
+			const sessionToken = cookies.get("session");
 
 			if (sessionToken) {
 				// Delete session from database
 				await db.delete(sessions).where(eq(sessions.token, sessionToken));
-				devLog('logout', 'Session deleted from database', { username });
+				devLog("logout", "Session deleted from database", { username });
 			}
 
 			// Clear session cookie
-			cookies.delete('session', { path: '/' });
+			cookies.delete("session", { path: "/" });
 
-			devLog('logout', 'Logout successful', { username });
+			devLog("logout", "Logout successful", { username });
 		} catch (error) {
-			logError('logout', 'Unexpected error during logout', error);
+			logError("logout", "Unexpected error during logout", error);
 		}
 
 		// Redirect to login
-		throw redirect(302, '/login');
-	}
+		throw redirect(302, "/login");
+	},
 };

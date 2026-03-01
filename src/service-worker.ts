@@ -1,18 +1,15 @@
 /// <reference types="@sveltejs/kit" />
 /// <reference types="@sveltejs/adapter-static" />
 
-import { build, files, version } from '$service-worker';
+import { build, files, version } from "$service-worker";
 
 // Create a unique cache name for this deployment
 const CACHE = `cache-${version}`;
 
-const ASSETS = [
-	...build,
-	...files
-];
+const ASSETS = [...build, ...files];
 
 // The service worker installation event
-self.addEventListener('install', (event) => {
+self.addEventListener("install", (event) => {
 	// Create a new cache and add all files to it
 	async function addFilesToCache() {
 		const cache = await caches.open(CACHE);
@@ -23,7 +20,7 @@ self.addEventListener('install', (event) => {
 });
 
 // The service worker activation event
-self.addEventListener('activate', (event) => {
+self.addEventListener("activate", (event) => {
 	// Remove previous cached versions
 	async function deleteOldCaches() {
 		for (const key of await caches.keys()) {
@@ -35,20 +32,20 @@ self.addEventListener('activate', (event) => {
 });
 
 // The service worker fetch event
-self.addEventListener('fetch', (event) => {
+self.addEventListener("fetch", (event) => {
 	// Ignore GET requests for non-GET requests
-	if (event.request.method !== 'GET') return;
+	if (event.request.method !== "GET") return;
 
 	async function respond() {
 		const url = new URL(event.request.url);
 
 		// Ignore non-http schemes (chrome-extension, ws, etc.)
-		if (!url.protocol.startsWith('http')) {
+		if (!url.protocol.startsWith("http")) {
 			return fetch(event.request);
 		}
 
 		// Ignore Vite HMQ websocket
-		if (url.protocol === 'ws:' || url.protocol === 'wss:') {
+		if (url.protocol === "ws:" || url.protocol === "wss:") {
 			return fetch(event.request);
 		}
 
@@ -76,9 +73,9 @@ self.addEventListener('fetch', (event) => {
 			if (cached) return cached;
 
 			// Otherwise return a basic offline response
-			return new Response('Offline', {
+			return new Response("Offline", {
 				status: 503,
-				statusText: 'Service Unavailable'
+				statusText: "Service Unavailable",
 			});
 		}
 	}

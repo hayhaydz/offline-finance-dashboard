@@ -16,11 +16,11 @@
  * Uses en-GB locale with GBP currency (default going forward).
  * In the future, this could be made configurable per user for multi-currency support.
  */
-const currencyFormatter = new Intl.NumberFormat('en-GB', {
-	style: 'currency',
-	currency: 'GBP',
+const currencyFormatter = new Intl.NumberFormat("en-GB", {
+	style: "currency",
+	currency: "GBP",
 	minimumFractionDigits: 2,
-	maximumFractionDigits: 2
+	maximumFractionDigits: 2,
 });
 
 /**
@@ -60,8 +60,8 @@ export function parseCurrency(input: string): number {
 	const trimmed = input.trim();
 
 	// Handle empty string
-	if (trimmed === '') {
-		throw new Error('Currency amount cannot be empty');
+	if (trimmed === "") {
+		throw new Error("Currency amount cannot be empty");
 	}
 
 	// Match: digits with optional decimal and 0-2 pence digits
@@ -70,13 +70,13 @@ export function parseCurrency(input: string): number {
 	const match = trimmed.match(/^(\d+)\.?(\d{0,2})?$/);
 
 	if (!match) {
-		throw new Error('Invalid currency format. Enter amount like 123.45 or 123');
+		throw new Error("Invalid currency format. Enter amount like 123.45 or 123");
 	}
 
 	const pounds = parseInt(match[1], 10);
-	const pence = match[2] ? parseInt(match[2].padEnd(2, '0'), 10) : 0;
+	const pence = match[2] ? parseInt(match[2].padEnd(2, "0"), 10) : 0;
 
-	return (pounds * 100) + pence;
+	return pounds * 100 + pence;
 }
 
 /**
@@ -92,27 +92,27 @@ export function parseCurrency(input: string): number {
  * formatDateForRange(new Date(2026, 1, 15)) // => "15 Feb 2026"
  */
 export function formatDateForRange(date: Date): string {
-	return date.toLocaleDateString('en-GB', {
-		day: 'numeric',
-		month: 'short',
-		year: 'numeric'
+	return date.toLocaleDateString("en-GB", {
+		day: "numeric",
+		month: "short",
+		year: "numeric",
 	});
 }
 
 /**
  * Format an account type for display
- * 
+ *
  * @param type - The account type string from database (e.g., "credit-card")
  * @returns Human-readable label (e.g., "Credit Card")
  */
 export function formatAccountType(type: string): string {
 	const labels: Record<string, string> = {
-		current: 'Current',
-		savings: 'Savings',
-		investment: 'Investments',
-		'credit-card': 'Credit Card',
-		loan: 'Personal Loan',
-		mortgage: 'Mortgage'
+		current: "Current",
+		savings: "Savings",
+		investment: "Investments",
+		"credit-card": "Credit Card",
+		loan: "Personal Loan",
+		mortgage: "Mortgage",
 	};
 	return labels[type] || type;
 }
@@ -124,11 +124,11 @@ export function formatAccountType(type: string): string {
  * @returns Formatted date string or "-" if null
  */
 export function formatDate(date: Date | null | undefined): string {
-	if (!date) return '-';
-	return date.toLocaleDateString('en-GB', {
-		day: 'numeric',
-		month: 'short',
-		year: 'numeric'
+	if (!date) return "-";
+	return date.toLocaleDateString("en-GB", {
+		day: "numeric",
+		month: "short",
+		year: "numeric",
 	});
 }
 
@@ -145,11 +145,11 @@ export function formatDate(date: Date | null | undefined): string {
  * formatDateShorthand(new Date(2025, 11, 1))  // => "2025-12-01"
  */
 export function formatDateShorthand(date: Date | null | undefined): string {
-	if (!date) return '-';
+	if (!date) return "-";
 
 	const year = date.getFullYear();
-	const month = String(date.getMonth() + 1).padStart(2, '0');
-	const day = String(date.getDate()).padStart(2, '0');
+	const month = String(date.getMonth() + 1).padStart(2, "0");
+	const day = String(date.getDate()).padStart(2, "0");
 
 	return `${year}-${month}-${day}`;
 }
@@ -187,8 +187,8 @@ export function formatDateRange(oldest: Date, newest: Date): string {
 
 	// Same year: "as of 1 Jan - 15 Feb 2026"
 	if (oldest.getFullYear() === newest.getFullYear()) {
-		const oldestParts = oldestFormatted.split(' ');
-		const newestParts = newestFormatted.split(' ');
+		const oldestParts = oldestFormatted.split(" ");
+		const newestParts = newestFormatted.split(" ");
 
 		// oldestParts: ["1", "Jan", "2026"]
 		// newestParts: ["15", "Feb", "2026"]
@@ -226,11 +226,11 @@ export function formatCurrencyShorthand(amountInPence: number): string {
 
 	// No pence: remove .00 suffix (check if pounds is a whole number)
 	if (pounds % 1 === 0) {
-		const formatter = new Intl.NumberFormat('en-GB', {
-			style: 'currency',
-			currency: 'GBP',
+		const formatter = new Intl.NumberFormat("en-GB", {
+			style: "currency",
+			currency: "GBP",
 			minimumFractionDigits: 0,
-			maximumFractionDigits: 0
+			maximumFractionDigits: 0,
 		});
 		return formatter.format(pounds);
 	}

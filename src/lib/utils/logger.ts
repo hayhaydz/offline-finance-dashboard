@@ -7,21 +7,21 @@
  * File logging with daily rotation for persistent debugging and auditing.
  */
 
-import winston from 'winston';
-import DailyRotateFile from 'winston-daily-rotate-file';
-import { existsSync, mkdirSync } from 'node:fs';
-import { join } from 'node:path';
-import { maskSensitiveData } from '$lib/utils/log-sanitize';
+import { existsSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+import winston from "winston";
+import DailyRotateFile from "winston-daily-rotate-file";
+import { maskSensitiveData } from "$lib/utils/log-sanitize";
 
 /**
  * Check if the application is running in development mode
  */
 export function isDevelopment(): boolean {
-	return process.env.APP_ENV === 'development';
+	return process.env.APP_ENV === "development";
 }
 
 export function isVerboseDebug(): boolean {
-	return isDevelopment() && process.env.VERBOSE_DEBUG_LOGS === 'true';
+	return isDevelopment() && process.env.VERBOSE_DEBUG_LOGS === "true";
 }
 
 /**
@@ -35,7 +35,7 @@ function getTimestamp(): string {
  * Ensure logs directory exists
  */
 function ensureLogsDirectory(): void {
-	const logsDir = join(process.cwd(), 'logs');
+	const logsDir = join(process.cwd(), "logs");
 	if (!existsSync(logsDir)) {
 		mkdirSync(logsDir, { recursive: true });
 	}
@@ -50,29 +50,29 @@ ensureLogsDirectory();
  * Create Winston logger with daily rotating file transports
  */
 const logger = winston.createLogger({
-	level: isDevelopment() ? 'debug' : 'info',
+	level: isDevelopment() ? "debug" : "info",
 	format: winston.format.combine(
-		winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+		winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
 		winston.format.errors({ stack: true }),
-		winston.format.json()
+		winston.format.json(),
 	),
 	transports: [
 		// Application log - all levels
 		new DailyRotateFile({
-			filename: join(process.cwd(), 'logs', 'application-%DATE%.log'),
-			datePattern: 'YYYY-MM-DD',
-			maxSize: '20m',
-			maxFiles: '30d',
-			level: 'debug'
+			filename: join(process.cwd(), "logs", "application-%DATE%.log"),
+			datePattern: "YYYY-MM-DD",
+			maxSize: "20m",
+			maxFiles: "30d",
+			level: "debug",
 		}),
 		// Error log - error level only
 		new DailyRotateFile({
-			filename: join(process.cwd(), 'logs', 'error-%DATE%.log'),
-			datePattern: 'YYYY-MM-DD',
-			maxSize: '20m',
-			maxFiles: '30d',
-			level: 'error'
-		})
+			filename: join(process.cwd(), "logs", "error-%DATE%.log"),
+			datePattern: "YYYY-MM-DD",
+			maxSize: "20m",
+			maxFiles: "30d",
+			level: "error",
+		}),
 	],
 	// Add console transport in development only
 	...(isDevelopment()
@@ -86,18 +86,22 @@ const logger = winston.createLogger({
 								msg += ` ${JSON.stringify(meta, null, 2)}`;
 							}
 							return msg;
-						})
-					)
-				})
+						}),
+					),
+				}),
 			]
-		: [])
+		: []),
 });
 
 /**
  * Development-only logging
  * Only outputs in development mode, silently ignored in production
  */
-export function devLog(category: string, message: string, data?: unknown): void {
+export function devLog(
+	category: string,
+	message: string,
+	data?: unknown,
+): void {
 	if (!isDevelopment()) {
 		return;
 	}
@@ -111,7 +115,7 @@ export function devLog(category: string, message: string, data?: unknown): void 
 			timestamp,
 			category,
 			message,
-			data: maskedData
+			data: maskedData,
 		});
 		console.log(`${prefix}`);
 		console.log(`  Timestamp: ${timestamp}`);
@@ -120,7 +124,7 @@ export function devLog(category: string, message: string, data?: unknown): void 
 		logger.debug(prefix, {
 			timestamp,
 			category,
-			message
+			message,
 		});
 		console.log(`${prefix} (${timestamp})`);
 	}
@@ -130,7 +134,11 @@ export function devLog(category: string, message: string, data?: unknown): void 
  * Error logging (works in all environments)
  * In production, only logs category and message (no sensitive data)
  */
-export function logError(category: string, message: string, error?: unknown): void {
+export function logError(
+	category: string,
+	message: string,
+	error?: unknown,
+): void {
 	const timestamp = getTimestamp();
 	const prefix = `[ERROR] [${category}] ${message}`;
 
@@ -140,7 +148,7 @@ export function logError(category: string, message: string, error?: unknown): vo
 				timestamp,
 				category,
 				message,
-				error: error instanceof Error ? error.stack : error
+				error: error instanceof Error ? error.stack : error,
 			});
 			console.error(`${prefix}`);
 			console.error(`  Timestamp: ${timestamp}`);
@@ -149,7 +157,7 @@ export function logError(category: string, message: string, error?: unknown): vo
 			logger.error(prefix, {
 				timestamp,
 				category,
-				message
+				message,
 			});
 			console.error(`${prefix} (${timestamp})`);
 		}
@@ -158,7 +166,7 @@ export function logError(category: string, message: string, error?: unknown): vo
 		logger.error(prefix, {
 			timestamp,
 			category,
-			message
+			message,
 		});
 		console.error(`${prefix} (${timestamp})`);
 	}
@@ -179,7 +187,7 @@ export function logFormData(category: string, formData: unknown): void {
 	logger.debug(`[DEV] [${category}] Form Data`, {
 		timestamp,
 		category,
-		formData: maskedData
+		formData: maskedData,
 	});
 
 	console.log(`[DEV] [${category}] Form Data`);
@@ -204,9 +212,9 @@ export function logRequest(category: string, request: Request): void {
 		method: request.method,
 		url: request.url,
 		headers: {
-			'content-type': request.headers.get('content-type'),
-			'user-agent': request.headers.get('user-agent')
-		}
+			"content-type": request.headers.get("content-type"),
+			"user-agent": request.headers.get("user-agent"),
+		},
 	});
 
 	console.log(`[DEV] [${category}] Request`);
@@ -214,8 +222,8 @@ export function logRequest(category: string, request: Request): void {
 	console.log(`  Method: ${request.method}`);
 	console.log(`  URL: ${request.url}`);
 	console.log(`  Headers:`, {
-		'content-type': request.headers.get('content-type'),
-		'user-agent': request.headers.get('user-agent')
+		"content-type": request.headers.get("content-type"),
+		"user-agent": request.headers.get("user-agent"),
 	});
 }
 

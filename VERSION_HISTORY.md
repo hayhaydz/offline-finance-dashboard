@@ -1,3 +1,23 @@
+## [2026-03-01 19:18] — Biome Lint Rollout + Svelte Check Recovery
+
+**Summary:** Added Biome-based linting workflow, fixed lint/style issues across the codebase, and resolved a Svelte runtime/type regression in the exclusions modal so `npm run lint` is fully green (`svelte-check` + `biome check`).
+
+**Files:**
+- `package.json` — added `lint:biome` and `lint:biome:fix` scripts; `lint` now runs `check` + Biome
+- `package-lock.json` — dependency lock update for Biome install
+- `biome.jsonc` — new Biome configuration (includes, linter/formatter rules, overrides)
+- `src/lib/components/ExclusionsModal.svelte` — restored template-linked handler names; added typed `enhance` submit handler import + wiring
+
+**Validation:**
+- `npm run check` → 0 errors / 0 warnings
+- `npm run lint:biome` → clean
+- `npm run lint` → clean
+
+**Commit:**
+`chore: add Biome linting and fix ExclusionsModal lint regression`
+
+---
+
 ## [2026-03-01 18:45] — Stability, DRY/Perf Refactors, Index Migration, and Homepage Goal Ordering Alignment
 
 **Summary:** Executed the audit remediation plan. Standardized post-login destination to `/`, fixed contract drift in auth tests, hardened invalid pagination handling, added exclusion-update no-op guard, removed N+1 query pattern in goals allocation calculations, deduplicated logging sanitization, added shared financial rollup utility, and added query-performance indexes with migration coverage tests. Homepage (`/`) goals now follows strict manual `sortOrder` (same behavior as `/goals`).

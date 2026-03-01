@@ -1,8 +1,8 @@
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
-import { db as defaultDb } from './client';
-import { sql } from 'drizzle-orm';
-import { logError } from '$lib/utils/logger';
-import path from 'path';
+import path from "node:path";
+import { sql } from "drizzle-orm";
+import { migrate } from "drizzle-orm/better-sqlite3/migrator";
+import { logError } from "$lib/utils/logger";
+import { db as defaultDb } from "./client";
 
 /**
  * Programmatically runs migrations against the provided or default database connection.
@@ -11,10 +11,10 @@ export async function runMigrations(db = defaultDb) {
 	// console.log('🔄 Running migrations...');
 
 	try {
-		const migrationsPath = path.resolve('src/lib/db/migrations');
+		const migrationsPath = path.resolve("src/lib/db/migrations");
 
 		await migrate(db, {
-			migrationsFolder: migrationsPath
+			migrationsFolder: migrationsPath,
 		});
 
 		await ensureGoalAllocationTrigger(db);
@@ -25,7 +25,7 @@ export async function runMigrations(db = defaultDb) {
 		// Ensure system_metadata is initialized if it's empty
 		await ensureSystemMetadata(db);
 	} catch (error) {
-		logError('database', 'Migration failed', error);
+		logError("database", "Migration failed", error);
 		throw error;
 	}
 }
@@ -34,9 +34,9 @@ export async function runMigrations(db = defaultDb) {
  * Ensures system_metadata table has basic info.
  */
 async function ensureSystemMetadata(db = defaultDb) {
-	const appEnv = process.env.APP_ENV || 'development';
+	const appEnv = process.env.APP_ENV || "development";
 	const encryptionKey = process.env.ENCRYPTION_KEY;
-	const encryptionStatus = encryptionKey ? 'sqlcipher' : 'none';
+	const encryptionStatus = encryptionKey ? "sqlcipher" : "none";
 
 	try {
 		// Check if empty
@@ -52,7 +52,7 @@ async function ensureSystemMetadata(db = defaultDb) {
 					('created_in_env', ${appEnv})
 			`);
 		}
-	} catch (error) {
+	} catch (_error) {
 		// Table might not exist yet
 	}
 }

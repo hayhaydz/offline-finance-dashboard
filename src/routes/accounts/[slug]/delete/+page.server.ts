@@ -1,33 +1,40 @@
-import { redirect, error, fail } from '@sveltejs/kit';
-import type { Actions, PageServerLoad } from './$types';
-import { db } from '$lib/db/client';
-import { accounts } from '$lib/db/schema';
-import { validateUserAccess } from '$lib/auth/row-security';
-import { devLog, logError } from '$lib/utils/logger';
-import { eq } from 'drizzle-orm';
+import { error, fail, redirect } from "@sveltejs/kit";
+import { eq } from "drizzle-orm";
+import { validateUserAccess } from "$lib/auth/row-security";
+import { db } from "$lib/db/client";
+import { accounts } from "$lib/db/schema";
+import { devLog, logError } from "$lib/utils/logger";
+import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
-		redirect(302, '/login');
+		redirect(302, "/login");
 	}
 
 	const accountSlug = params.slug;
-	devLog('closeAccount', 'Loading account for close', { accountSlug });
+	devLog("closeAccount", "Loading account for close", { accountSlug });
 
 	// Get account and validate ownership using slug
 	const account = await db.query.accounts.findFirst({
-		where: eq(accounts.slug, accountSlug)
+		where: eq(accounts.slug, accountSlug),
 	});
 
 	if (!account) {
-		logError('closeAccount', 'Account not found', { accountSlug, userId: locals.user.id });
-		error(404, 'Account not found');
+		logError("closeAccount", "Account not found", {
+			accountSlug,
+			userId: locals.user.id,
+		});
+		error(404, "Account not found");
 	}
 
-	validateUserAccess(account, locals.user, 'Account');
+	validateUserAccess(account, locals.user, "Account");
 
 	if (account.closedAt) {
-		logError('closeAccount', 'Attempt to visit close page for already-closed account', { accountSlug });
+		logError(
+			"closeAccount",
+			"Attempt to visit close page for already-closed account",
+			{ accountSlug },
+		);
 		redirect(303, `/accounts/${account.slug}`);
 	}
 
@@ -35,8 +42,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		account,
 		breadcrumbOverrides: [
 			{ segmentIndex: 1, label: account.name, skipLink: false }, // Replace account slug with account name
-			{ segmentIndex: 2, label: `Close Account`, skipLink: false } // Replace 'delete' with 'Close Account'
-		]
+			{ segmentIndex: 2, label: `Close Account`, skipLink: false }, // Replace 'delete' with 'Close Account'
+		],
 	};
 };
 
@@ -49,27 +56,27 @@ export const actions: Actions = {
 	 */
 	closeAccount: async ({ locals, params }) => {
 		if (!locals.user) {
-			logError('closeAccount', 'Authentication required');
-			return fail(401, { error: 'Authentication required' });
+			logError("closeAccount", "Authentication required");
+			return fail(401, { error: "Authentication required" });
 		}
 
 		const accountSlug = params.slug;
 
 		// Validate ownership using slug
 		const account = await db.query.accounts.findFirst({
-			where: eq(accounts.slug, accountSlug)
+			where: eq(accounts.slug, accountSlug),
 		});
 
 		if (!account) {
-			logError('closeAccount', 'Account not found', { accountSlug });
-			return fail(404, { error: 'Account not found' });
+			logError("closeAccount", "Account not found", { accountSlug });
+			return fail(404, { error: "Account not found" });
 		}
 
-		validateUserAccess(account, locals.user, 'Account');
+		validateUserAccess(account, locals.user, "Account");
 
-		devLog('closeAccount', 'Closing account', {
+		devLog("closeAccount", "Closing account", {
 			accountSlug,
-			accountId: account.id
+			accountId: account.id,
 		});
 
 		// Soft-delete by setting closedAt timestamp
@@ -78,18 +85,18 @@ export const actions: Actions = {
 			.update(accounts)
 			.set({
 				closedAt,
-				updatedAt: new Date()
+				updatedAt: new Date(),
 			})
 			.where(eq(accounts.id, account.id));
 
-		devLog('closeAccount', 'Account closed successfully (soft-delete)', {
+		devLog("closeAccount", "Account closed successfully (soft-delete)", {
 			accountId: account.id,
 			accountSlug,
-			closedAt: closedAt.toISOString()
+			closedAt: closedAt.toISOString(),
 		});
 
 		// Redirect to accounts list
-		devLog('closeAccount', 'Redirecting to accounts list', { accountSlug });
-		redirect(303, '/accounts');
-	}
+		devLog("closeAccount", "Redirecting to accounts list", { accountSlug });
+		redirect(303, "/accounts");
+	},
 };

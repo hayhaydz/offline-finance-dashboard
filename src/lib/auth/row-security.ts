@@ -1,6 +1,6 @@
-import { eq, and, SQL } from 'drizzle-orm';
-import type { User } from '$lib/db/schema';
-import type { AnySQLiteTable } from 'drizzle-orm/sqlite-core';
+import { and, eq, type SQL } from "drizzle-orm";
+import type { AnySQLiteTable } from "drizzle-orm/sqlite-core";
+import type { User } from "$lib/db/schema";
 
 /**
  * Adds user_id filter to a database query to enforce row-level security.
@@ -12,9 +12,9 @@ import type { AnySQLiteTable } from 'drizzle-orm/sqlite-core';
  */
 export function withUserFilter(
 	userId: number,
-	table: AnySQLiteTable & { userId: any }
+	table: AnySQLiteTable & { userId: unknown },
 ): SQL {
-	return eq(table.userId, userId);
+	return eq(table.userId as never, userId);
 }
 
 /**
@@ -43,14 +43,16 @@ export function withUserFilter(
 export function validateUserAccess<T extends { userId: number }>(
 	resource: T | null | undefined,
 	user: User,
-	resourceType: string = 'Resource'
+	resourceType: string = "Resource",
 ): asserts resource is T {
 	if (!resource) {
 		throw new Error(`${resourceType} not found`);
 	}
 
 	if (resource.userId !== user.id) {
-		throw new Error(`You do not have permission to access this ${resourceType.toLowerCase()}`);
+		throw new Error(
+			`You do not have permission to access this ${resourceType.toLowerCase()}`,
+		);
 	}
 }
 
@@ -75,7 +77,7 @@ export function validateUserAccess<T extends { userId: number }>(
  */
 export function checkUserAccess<T extends { userId: number }>(
 	resource: T | null | undefined,
-	user: User
+	user: User,
 ): resource is T {
 	if (!resource) {
 		return false;
@@ -105,12 +107,12 @@ export function checkUserAccess<T extends { userId: number }>(
 export function validateAllUserAccess<T extends { userId: number }>(
 	resources: T[],
 	user: User,
-	resourceType: string = 'Resource'
+	resourceType: string = "Resource",
 ): void {
 	for (const resource of resources) {
 		if (resource.userId !== user.id) {
 			throw new Error(
-				`You do not have permission to access one or more ${resourceType.toLowerCase()}`
+				`You do not have permission to access one or more ${resourceType.toLowerCase()}`,
 			);
 		}
 	}
@@ -127,9 +129,9 @@ export function validateAllUserAccess<T extends { userId: number }>(
  */
 export function andWithUserFilter(
 	userId: number,
-	table: AnySQLiteTable & { userId: any },
+	table: AnySQLiteTable & { userId: unknown },
 	...conditions: SQL[]
 ): SQL {
-	const userFilter = eq(table.userId, userId);
+	const userFilter = eq(table.userId as never, userId);
 	return and(userFilter, ...conditions) ?? userFilter;
 }

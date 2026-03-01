@@ -1,8 +1,7 @@
-import { redirect } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
-import { logError } from '$lib/utils/logger';
+import { redirect } from "@sveltejs/kit";
+import type { PageServerLoad } from "./$types";
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async () => {
 	// Redirect to profile as the default settings page
-	redirect(302, '/settings/profile');
+	redirect(302, "/settings/profile");
 };

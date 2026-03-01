@@ -10,8 +10,8 @@
  */
 import { setupDb } from "./seed/lib/db.js";
 import { ensureAdminUser } from "./seed/lib/user.js";
-import { seedStandard } from "./seed/modes/standard.js";
 import { seedEdge } from "./seed/modes/edge.js";
+import { seedStandard } from "./seed/modes/standard.js";
 import { seedStress } from "./seed/modes/stress.js";
 
 const mode =

@@ -1,4 +1,4 @@
-import type { User, Session } from '$lib/db/schema';
+import type { User, Session } from "$lib/db/schema";
 
 declare global {
 	namespace App {
@@ -8,5 +8,3 @@ declare global {
 		}
 	}
 }
-
-export {};

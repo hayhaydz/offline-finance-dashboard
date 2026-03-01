@@ -1,9 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { load } from '../../src/routes/goals/+page.server';
-import { db } from '$lib/db/client';
-import { calculateReadyToAssign } from '$lib/server/goals';
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { db } from "$lib/db/client";
+import { calculateReadyToAssign } from "$lib/server/goals";
+import { load } from "../../src/routes/goals/+page.server";
 
-vi.mock('$lib/db/client', () => {
+vi.mock("$lib/db/client", () => {
 	const where = vi.fn().mockResolvedValue([{ total: 0 }]);
 	const from = vi.fn().mockReturnValue({ where });
 	const select = vi.fn().mockReturnValue({ from });
@@ -13,40 +13,40 @@ vi.mock('$lib/db/client', () => {
 			select,
 			query: {
 				goals: {
-					findMany: vi.fn().mockResolvedValue([])
-				}
-			}
-		}
+					findMany: vi.fn().mockResolvedValue([]),
+				},
+			},
+		},
 	};
 });
 
-vi.mock('$lib/server/goals', () => ({
+vi.mock("$lib/server/goals", () => ({
 	calculateReadyToAssign: vi.fn().mockResolvedValue({
 		readyToAssign: 0,
 		totalAssets: 0,
-		totalAllocated: 0
-	})
+		totalAllocated: 0,
+	}),
 }));
 
-vi.mock('$lib/utils/staleness', () => ({
-	getMostRecentDate: vi.fn(() => new Date('2026-01-01T00:00:00.000Z')),
-	getStaleness: vi.fn(() => ({ level: 'fresh', text: 'fresh' }))
+vi.mock("$lib/utils/staleness", () => ({
+	getMostRecentDate: vi.fn(() => new Date("2026-01-01T00:00:00.000Z")),
+	getStaleness: vi.fn(() => ({ level: "fresh", text: "fresh" })),
 }));
 
-describe('Goals Page Load Pagination Guards', () => {
+describe("Goals Page Load Pagination Guards", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 	});
 
-	it('defaults to first page when page query is invalid', async () => {
+	it("defaults to first page when page query is invalid", async () => {
 		const locals = {
 			user: {
 				id: 1,
-				username: 'tester',
-				createdAt: new Date('2026-01-01T00:00:00.000Z')
-			}
+				username: "tester",
+				createdAt: new Date("2026-01-01T00:00:00.000Z"),
+			},
 		};
-		const url = new URL('http://localhost/goals?page=abc');
+		const url = new URL("http://localhost/goals?page=abc");
 
 		const result = await (load as any)({ locals, url });
 
@@ -55,8 +55,8 @@ describe('Goals Page Load Pagination Guards', () => {
 		expect(db.query.goals.findMany).toHaveBeenCalledWith(
 			expect.objectContaining({
 				offset: 0,
-				limit: 10
-			})
+				limit: 10,
+			}),
 		);
 		expect(calculateReadyToAssign).toHaveBeenCalledWith({ userId: 1 });
 	});

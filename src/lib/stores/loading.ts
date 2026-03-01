@@ -5,19 +5,19 @@
  * Use this singleton to show/hide loading indicators.
  */
 
-import { writable } from 'svelte/store';
+import { writable } from "svelte/store";
 
 function createLoadingStore() {
-	const { subscribe, set, update } = writable({
+	const { subscribe, update } = writable({
 		isLoading: false,
-		message: ''
+		message: "",
 	});
 
 	return {
 		subscribe,
-		start: (message = '') => update(() => ({ isLoading: true, message })),
-		stop: () => update(() => ({ isLoading: false, message: '' })),
-		toggle: () => update((s) => ({ ...s, isLoading: !s.isLoading }))
+		start: (message = "") => update(() => ({ isLoading: true, message })),
+		stop: () => update(() => ({ isLoading: false, message: "" })),
+		toggle: () => update((s) => ({ ...s, isLoading: !s.isLoading })),
 	};
 }
 

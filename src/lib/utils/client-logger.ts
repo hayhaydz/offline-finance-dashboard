@@ -7,7 +7,7 @@
  * In development mode, provides detailed logging with pretty-printed data.
  * In production mode, suppresses dev logs and sanitizes error logs.
  */
-import { maskSensitiveData } from '$lib/utils/log-sanitize';
+import { maskSensitiveData } from "$lib/utils/log-sanitize";
 
 /**
  * Check if the application is running in development mode
@@ -27,20 +27,24 @@ function getTimestamp(): string {
  * Development-only logging
  * Only outputs in development mode, silently ignored in production
  */
-export function devLogClient(category: string, message: string, data?: unknown): void {
+export function devLogClient(
+	category: string,
+	message: string,
+	data?: unknown,
+): void {
 	if (!isDevelopmentClient()) {
 		return;
 	}
 
 	const timestamp = getTimestamp();
 	const prefix = `%c[DEV] [${category}] ${message}`;
-	const style = 'color: #0066cc; font-weight: bold;';
+	const style = "color: #0066cc; font-weight: bold;";
 
 	if (data !== undefined) {
 		const maskedData = maskSensitiveData(data);
 		console.log(prefix, style);
 		console.log(`  Timestamp: ${timestamp}`);
-		console.log('  Data:', maskedData);
+		console.log("  Data:", maskedData);
 	} else {
 		console.log(`${prefix} (${timestamp})`, style);
 	}
@@ -50,16 +54,20 @@ export function devLogClient(category: string, message: string, data?: unknown):
  * Error logging (works in all environments)
  * In production, only logs category and message (no data)
  */
-export function logErrorClient(category: string, message: string, error?: unknown): void {
+export function logErrorClient(
+	category: string,
+	message: string,
+	error?: unknown,
+): void {
 	const timestamp = getTimestamp();
 	const prefix = `%c[ERROR] [${category}] ${message}`;
-	const style = 'color: #cc0000; font-weight: bold;';
+	const style = "color: #cc0000; font-weight: bold;";
 
 	if (isDevelopmentClient()) {
 		if (error !== undefined) {
 			console.error(prefix, style);
 			console.error(`  Timestamp: ${timestamp}`);
-			console.error('  Error:', error);
+			console.error("  Error:", error);
 		} else {
 			console.error(`${prefix} (${timestamp})`, style);
 		}
@@ -81,24 +89,33 @@ export function logFormDataClient(category: string, formData: unknown): void {
 	const timestamp = getTimestamp();
 	const maskedData = maskSensitiveData(formData);
 
-	console.log(`%c[DEV] [${category}] Form Data`, 'color: #0066cc; font-weight: bold;');
+	console.log(
+		`%c[DEV] [${category}] Form Data`,
+		"color: #0066cc; font-weight: bold;",
+	);
 	console.log(`  Timestamp: ${timestamp}`);
-	console.log('  Data:', maskedData);
+	console.log("  Data:", maskedData);
 }
 
 /**
  * Validation state logging for debugging form validation
  * Only logs in development mode
  */
-export function logValidationState(category: string, state: Record<string, unknown>): void {
+export function logValidationState(
+	category: string,
+	state: Record<string, unknown>,
+): void {
 	if (!isDevelopmentClient()) {
 		return;
 	}
 
 	const timestamp = getTimestamp();
-	console.log(`%c[DEV] [${category}] Validation State`, 'color: #0066cc; font-weight: bold;');
+	console.log(
+		`%c[DEV] [${category}] Validation State`,
+		"color: #0066cc; font-weight: bold;",
+	);
 	console.log(`  Timestamp: ${timestamp}`);
-	console.log('  State:', state);
+	console.log("  State:", state);
 }
 
 /**
@@ -108,18 +125,21 @@ export function logValidationState(category: string, state: Record<string, unkno
 export function logComponentLifecycle(
 	category: string,
 	component: string,
-	action: 'mount' | 'unmount' | 'update',
-	data?: unknown
+	action: "mount" | "unmount" | "update",
+	data?: unknown,
 ): void {
 	if (!isDevelopmentClient()) {
 		return;
 	}
 
 	const timestamp = getTimestamp();
-	console.log(`%c[DEV] [${category}] Component ${action}: ${component}`, 'color: #0066cc; font-weight: bold;');
+	console.log(
+		`%c[DEV] [${category}] Component ${action}: ${component}`,
+		"color: #0066cc; font-weight: bold;",
+	);
 	console.log(`  Timestamp: ${timestamp}`);
 	if (data !== undefined) {
-		console.log('  Data:', data);
+		console.log("  Data:", data);
 	}
 }
 
@@ -127,16 +147,23 @@ export function logComponentLifecycle(
  * Form submission logging
  * Only logs in development mode
  */
-export function logFormSubmit(category: string, formName: string, data?: unknown): void {
+export function logFormSubmit(
+	category: string,
+	formName: string,
+	data?: unknown,
+): void {
 	if (!isDevelopmentClient()) {
 		return;
 	}
 
 	const timestamp = getTimestamp();
-	console.log(`%c[DEV] [${category}] Form Submit: ${formName}`, 'color: #0066cc; font-weight: bold;');
+	console.log(
+		`%c[DEV] [${category}] Form Submit: ${formName}`,
+		"color: #0066cc; font-weight: bold;",
+	);
 	console.log(`  Timestamp: ${timestamp}`);
 	if (data !== undefined) {
 		const maskedData = maskSensitiveData(data);
-		console.log('  Data:', maskedData);
+		console.log("  Data:", maskedData);
 	}
 }

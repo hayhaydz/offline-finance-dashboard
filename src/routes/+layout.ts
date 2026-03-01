@@ -1,7 +1,4 @@
 // Root layout - loads for all pages
-import '../app.css';
-import Navigation from '$lib/components/navigation.svelte';
+import "../app.css";
 
 export const ssr = true;
-
-

@@ -10,7 +10,7 @@
  * - Invalid: "abc", "12.345", "123.", ".45"
  */
 
-import type { ValidationRule } from './types';
+import type { ValidationRule } from "./types";
 
 /**
  * Regular expression for monetary format validation
@@ -42,7 +42,7 @@ export function parseMonetary(input: string): number {
 
 	// Empty string is not valid for parseMonetary (use monetaryOptional for that)
 	if (!trimmed) {
-		throw new Error('Empty value cannot be parsed as monetary');
+		throw new Error("Empty value cannot be parsed as monetary");
 	}
 
 	// Match against regex
@@ -59,11 +59,11 @@ export function parseMonetary(input: string): number {
 	let cents = 0;
 	if (centsStr) {
 		// Pad to 2 digits: "4" -> "40", "45" -> "45"
-		cents = parseInt(centsStr.padEnd(2, '0'), 10);
+		cents = parseInt(centsStr.padEnd(2, "0"), 10);
 	}
 
 	// Calculate total cents
-	return (dollars * 100) + cents;
+	return dollars * 100 + cents;
 }
 
 /**
@@ -84,7 +84,9 @@ export function parseMonetary(input: string): number {
  * rule.validate("abc")    // => false
  * rule.value              // => 12345 (after successful validation)
  */
-export function monetary(message?: string): ValidationRule & { value?: number } {
+export function monetary(
+	message?: string,
+): ValidationRule & { value?: number } {
 	const rule: ValidationRule & { value?: number } = {
 		validate: (value: string) => {
 			try {
@@ -95,7 +97,7 @@ export function monetary(message?: string): ValidationRule & { value?: number } 
 				return false;
 			}
 		},
-		message: message || 'Enter a valid amount (e.g., 123.45)'
+		message: message || "Enter a valid amount (e.g., 123.45)",
 	};
 
 	return rule;
@@ -119,7 +121,9 @@ export function monetary(message?: string): ValidationRule & { value?: number } 
  * rule.validate("abc")    // => false
  * rule.value              // => undefined (if empty) or 12345 (if valid)
  */
-export function monetaryOptional(message?: string): ValidationRule & { value?: number | undefined } {
+export function monetaryOptional(
+	message?: string,
+): ValidationRule & { value?: number | undefined } {
 	const rule: ValidationRule & { value?: number | undefined } = {
 		validate: (value: string) => {
 			// Empty string is valid for optional field
@@ -137,7 +141,7 @@ export function monetaryOptional(message?: string): ValidationRule & { value?: n
 				return false;
 			}
 		},
-		message: message || 'Must be empty or a valid amount (e.g., 123.45)'
+		message: message || "Must be empty or a valid amount (e.g., 123.45)",
 	};
 
 	return rule;
