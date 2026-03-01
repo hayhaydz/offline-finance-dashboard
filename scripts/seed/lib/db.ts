@@ -41,6 +41,44 @@ export function setupDb() {
 	}
 
 	const db = drizzle(sqlite, { schema });
+
+	// Apply DB-level triggers (idempotent)
+	sqlite.exec(`
+		CREATE TRIGGER IF NOT EXISTS prevent_allocation_on_archived_goal
+		BEFORE INSERT ON goal_allocations
+		BEGIN
+			SELECT RAISE(ABORT, 'Cannot allocate to an archived goal')
+			WHERE (SELECT deleted_at FROM goals WHERE id = NEW.goal_id) IS NOT NULL;
+		END
+	`);
+
+	sqlite.exec(`
+		CREATE TRIGGER IF NOT EXISTS prevent_balance_insert_on_closed_account
+		BEFORE INSERT ON account_balances
+		BEGIN
+			SELECT RAISE(ABORT, 'Cannot add balance to a closed account')
+			WHERE (SELECT closed_at FROM accounts WHERE id = NEW.account_id) IS NOT NULL;
+		END
+	`);
+
+	sqlite.exec(`
+		CREATE TRIGGER IF NOT EXISTS prevent_balance_update_on_closed_account
+		BEFORE UPDATE ON account_balances
+		BEGIN
+			SELECT RAISE(ABORT, 'Cannot edit balance of a closed account')
+			WHERE (SELECT closed_at FROM accounts WHERE id = NEW.account_id) IS NOT NULL;
+		END
+	`);
+
+	sqlite.exec(`
+		CREATE TRIGGER IF NOT EXISTS prevent_edit_closed_account
+		BEFORE UPDATE ON accounts
+		WHEN OLD.closed_at IS NOT NULL AND NEW.closed_at IS NOT NULL
+		BEGIN
+			SELECT RAISE(ABORT, 'Cannot edit a closed account');
+		END
+	`);
+
 	return { db, appEnv };
 }
 

@@ -4,23 +4,38 @@ import { db } from '$lib/db/client';
 import { goals } from '$lib/db/schema';
 import { withUserFilter, validateUserAccess } from '$lib/auth/row-security';
 import { devLog, logError, logFormData } from '$lib/utils/logger';
-import { eq, and, isNull, desc, asc, lt, gt } from 'drizzle-orm';
+import { eq, and, isNull, desc, asc, lt, gt, count } from 'drizzle-orm';
 import { calculateReadyToAssign } from '$lib/server/goals';
 import { getStaleness, getMostRecentDate } from '$lib/utils/staleness';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
 		devLog('goals', 'Unauthenticated user, redirecting to login');
 		redirect(302, '/login');
 	}
 
+	const PAGE_SIZE = 10;
+	const pageParam = url.searchParams.get('page');
+	const page = Math.max(0, pageParam ? parseInt(pageParam) - 1 : 0);
+
+	// Total count for pagination
+	const [{ total }] = await db
+		.select({ total: count() })
+		.from(goals)
+		.where(and(eq(goals.userId, locals.user.id), isNull(goals.deletedAt)));
+
+	const totalPages = Math.ceil(total / PAGE_SIZE);
+	const safePage = Math.min(page, Math.max(0, totalPages - 1));
+
 	// Query user's active goals with row-level security
 	const userGoals = await db.query.goals.findMany({
 		where: and(withUserFilter(locals.user.id, goals), isNull(goals.deletedAt)),
-		orderBy: (goals, { asc }) => asc(goals.sortOrder)
+		orderBy: (goals, { asc }) => asc(goals.sortOrder),
+		limit: PAGE_SIZE,
+		offset: safePage * PAGE_SIZE
 	});
 
-	devLog('goals', 'Loaded user goals', { count: userGoals.length });
+	devLog('goals', 'Loaded user goals', { count: userGoals.length, page: safePage, totalPages });
 
 	// Calculate Ready to Assign (unallocated assets)
 	const { readyToAssign, totalAssets, totalAllocated } = await calculateReadyToAssign({
@@ -34,6 +49,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	return {
 		goals: userGoals,
+		page: safePage,
+		totalPages,
 		readyToAssign,
 		totalAssets,
 		totalAllocated,

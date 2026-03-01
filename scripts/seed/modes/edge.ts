@@ -135,7 +135,7 @@ export async function seedEdge(db: DB, userId: number): Promise<void> {
 				targetDate: g.targetDate ? new Date(g.targetDate) : null,
 				isEmergencyFund: g.isEmergencyFund,
 				sortOrder: i,
-				deletedAt: g.deletedAt ? new Date(g.deletedAt) : null,
+				deletedAt: null, // set after allocations are inserted
 				createdAt: now,
 				updatedAt: now
 			})
@@ -158,7 +158,10 @@ export async function seedEdge(db: DB, userId: number): Promise<void> {
 
 		await db
 			.update(schema.goals)
-			.set({ currentAllocation: total })
+			.set({
+				currentAllocation: total,
+				...(g.deletedAt ? { deletedAt: new Date(g.deletedAt) } : {})
+			})
 			.where(eq(schema.goals.id, goal.id));
 
 		const isArchived = !!g.deletedAt;

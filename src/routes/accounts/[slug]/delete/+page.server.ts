@@ -26,6 +26,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	validateUserAccess(account, locals.user, 'Account');
 
+	if (account.closedAt) {
+		logError('closeAccount', 'Attempt to visit close page for already-closed account', { accountSlug });
+		redirect(303, `/accounts/${account.slug}`);
+	}
+
 	return {
 		account,
 		breadcrumbOverrides: [

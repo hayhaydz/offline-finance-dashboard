@@ -24,6 +24,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	validateUserAccess(account, locals.user, 'Account');
 
+	if (account.closedAt) {
+		logError('deleteBalance', 'Attempt to delete balance on closed account', { accountSlug });
+		redirect(303, `/accounts/${account.slug}`);
+	}
+
 	const balance = await db.query.accountBalances.findFirst({
 		where: eq(accountBalances.slug, balanceSlug)
 	});
@@ -65,6 +70,10 @@ export const actions: Actions = {
 		}
 
 		validateUserAccess(account, locals.user, 'Account');
+
+		if (account.closedAt) {
+			return fail(403, { error: 'Cannot delete balance of a closed account.' });
+		}
 
 		const balance = await db.query.accountBalances.findFirst({
 			where: eq(accountBalances.slug, balanceSlug)

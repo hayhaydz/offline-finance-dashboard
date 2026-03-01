@@ -84,7 +84,7 @@ export const goalAllocations = sqliteTable('goal_allocations', {
 	goalId: integer('goal_id').notNull().references(() => goals.id),
 	accountId: integer('account_id').references(() => accounts.id), // Nullable for returns to Ready to Assign pool
 	amount: integer('amount').notNull(), // Signed: + for adds, - for withdrawals
-	type: text('type').notNull(), // 'USER_ADD', 'USER_WITHDRAW', 'GOAL_DELETED', 'SYSTEM_CORRECTION'
+	type: text('type').notNull(), // 'USER_ADD', 'USER_WITHDRAW', 'GOAL_DELETED'
 	allocationDate: integer('allocation_date', { mode: 'timestamp' }).notNull(),
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
 });

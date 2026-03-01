@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Navigation from '$lib/components/navigation.svelte';
 	import { page } from '$app/state';
+	import { afterNavigate } from '$app/navigation';
 	import type { Snippet } from 'svelte';
 
 	const user = $derived(page.data.user ?? null);
@@ -17,6 +18,12 @@
 	);
 
 	let { children } = $props<{ children: Snippet }>();
+
+	let scrollContainer = $state<HTMLElement | null>(null);
+
+	afterNavigate(() => {
+		scrollContainer?.scrollTo({ top: 0 });
+	});
 </script>
 
 <div class="border border-black max-w-4xl mx-auto w-full">
@@ -33,7 +40,7 @@
 
 	<Navigation {user} {environment} breadcrumbOverrides={breadcrumbOverrides} />
 
-	<div class="scrollable-content">
+	<div class="scrollable-content" bind:this={scrollContainer}>
 		{@render children()}
 	</div>
 </div>

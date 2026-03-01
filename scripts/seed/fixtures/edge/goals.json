@@ -34,8 +34,8 @@
       { "accountName": null,                  "amount": -20000, "type": "GOAL_DELETED",      "daysAgo": 95  },
       { "accountName": null,                  "amount": -20000, "type": "GOAL_DELETED",      "daysAgo": 85  },
       { "accountName": null,                  "amount": -20000, "type": "GOAL_DELETED",      "daysAgo": 75  },
-      { "accountName": "Stocks & Shares ISA", "amount": 10000,  "type": "SYSTEM_CORRECTION", "daysAgo": 65  },
-      { "accountName": null,                  "amount": 10000,  "type": "SYSTEM_CORRECTION", "daysAgo": 30  }
+      { "accountName": "Stocks & Shares ISA", "amount": 10000,  "type": "USER_ADD",      "daysAgo": 65  },
+      { "accountName": null,                  "amount": -10000, "type": "USER_WITHDRAW", "daysAgo": 30  }
     ]
   },
   {
@@ -55,8 +55,8 @@
     "targetDate": "2027-01-01",
     "deletedAt": null,
     "allocations": [
-      { "accountName": "Main Current", "amount": 900000, "type": "USER_ADD",          "daysAgo": 60 },
-      { "accountName": null,           "amount": 20000,  "type": "SYSTEM_CORRECTION", "daysAgo": 30 }
+      { "accountName": "Main Current", "amount": 900000, "type": "USER_ADD",      "daysAgo": 60 },
+      { "accountName": null,           "amount": -20000, "type": "USER_WITHDRAW", "daysAgo": 30 }
     ]
   },
   {

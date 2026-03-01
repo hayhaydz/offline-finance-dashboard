@@ -1,6 +1,7 @@
 <script lang="ts">
 	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
 	import GoalCard from '$lib/components/GoalCard.svelte';
+	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import { formatCurrency, formatCurrencyShorthand, formatAccountType, formatDateShorthand } from '$lib/utils/currency';
 
 	let { data } = $props();
@@ -53,6 +54,19 @@
 
 	const assetGroups = $derived(accountsByType.filter(g => g.category === 'asset'));
 	const liabilityGroups = $derived(accountsByType.filter(g => g.category === 'liability'));
+	const activeAccountCount = $derived(data.accounts.filter(a => !a.closedAt).length);
+
+	// Accounts hard cap (8 combined rows)
+	const ACCOUNTS_CAP = 8;
+	const cappedAssetGroups = $derived(assetGroups.slice(0, ACCOUNTS_CAP));
+	const cappedLiabilityGroups = $derived(liabilityGroups.slice(0, Math.max(0, ACCOUNTS_CAP - assetGroups.length)));
+	const hiddenAccountGroupsCount = $derived(Math.max(0, (assetGroups.length + liabilityGroups.length) - ACCOUNTS_CAP));
+
+	// Goals client-side pagination
+	const GOALS_PER_PAGE = 5;
+	let goalPage = $state(0);
+	const goalTotalPages = $derived(Math.ceil((goals?.length ?? 0) / GOALS_PER_PAGE));
+	const pagedGoals = $derived(goals?.slice(goalPage * GOALS_PER_PAGE, (goalPage + 1) * GOALS_PER_PAGE) ?? []);
 </script>
 
 {#if !user}
@@ -98,27 +112,12 @@
 		accounts={data.accounts}
 	/>
 
-	<!-- GOALS PREVIEW -->
-	{#if goals && goals.length > 0}
-		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-			<div class="flex items-center gap-2">
-				<span>GOALS</span>
-				<span class="text-xs text-gray-500 font-normal">{data.staleness.label}</span>
-			</div>
-			<a href="/goals" class="bracket-link text-xs">View All</a>
-		</div>
-		<div>
-			{#each goals as goal}
-				<div class="p-2 border-b border-black last:border-0 mb-2 last:mb-0">
-					<GoalCard {goal} />
-				</div>
-			{/each}
-		</div>
-	{/if}
-
 	<!-- ACCOUNTS BY TYPE -->
-	<div class="font-bold flex justify-between bg-gray-100 border-t border-b border-black p-2">
-		<span>ACCOUNTS BY TYPE</span>
+	<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
+		<div class="flex items-center gap-2">
+			<span>ACCOUNTS ({activeAccountCount})</span>
+			<span class="text-xs font-bold text-gray-500">{data.staleness.label}</span>
+		</div>
 		<a href="/accounts" class="bracket-link text-xs">[View All]</a>
 	</div>
 	<div class="p-0">
@@ -136,7 +135,7 @@
 					<tr class="bg-gray-50">
 						<td colspan="4" class="pl-1 text-xs font-bold text-gray-500 uppercase tracking-wider border-y border-gray-200 py-2">Assets</td>
 					</tr>
-					{#each assetGroups as group}
+					{#each cappedAssetGroups as group}
 						<tr class:line-through={group.excluded} class:text-gray-500={group.excluded}>
 							<td class="text-center tabular-nums border-r border-gray-200 text-gray-400 text-xs py-2">
 								{group.count}
@@ -159,7 +158,7 @@
 					<tr class="bg-gray-50">
 						<td colspan="4" class="pl-1 text-xs font-bold text-gray-500 uppercase tracking-wider border-y border-gray-200 py-2">Liabilities</td>
 					</tr>
-					{#each liabilityGroups as group}
+					{#each cappedLiabilityGroups as group}
 						<tr class:line-through={group.excluded} class:text-gray-500={group.excluded}>
 							<td class="text-center tabular-nums border-r border-gray-200 text-gray-400 text-xs py-2">
 								{group.count}
@@ -180,5 +179,29 @@
 				{/if}
 			</tbody>
 		</table>
+		{#if hiddenAccountGroupsCount > 0}
+			<div class="border-t border-black p-2 text-xs text-gray-500">
+				... and {hiddenAccountGroupsCount} more — <a href="/accounts" class="bracket-link">[View All]</a>
+			</div>
+		{/if}
 	</div>
+
+	<!-- GOALS PREVIEW -->
+	{#if goals && goals.length > 0}
+		<div class="font-bold flex justify-between bg-gray-100 border-y border-black p-2">
+			<div class="flex items-center gap-2">
+				<span>GOALS ({goals.length})</span>
+				<span class="text-xs font-bold text-gray-500">{data.staleness.label}</span>
+			</div>
+			<a href="/goals" class="bracket-link text-xs">View All</a>
+		</div>
+		<div>
+			{#each pagedGoals as goal}
+				<div class="p-2 border-b border-black last:border-0 mb-2 last:mb-0">
+					<GoalCard {goal} />
+				</div>
+			{/each}
+		</div>
+		<PaginationClient bind:page={goalPage} totalPages={goalTotalPages} />
+	{/if}
 {/if}

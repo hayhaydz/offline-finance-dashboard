@@ -2,6 +2,7 @@
 	import { formatCurrency } from '$lib/utils/currency';
 	import { getStaleness } from '$lib/utils/staleness';
 	import GoalRow from '$lib/components/GoalRow.svelte';
+	import Pagination from '$lib/components/Pagination.svelte';
 	import type { Goal } from '$lib/db/schema';
 
 	let { data } = $props();
@@ -189,4 +190,9 @@
 			</div>
 		{/if}
 	{/if}
+	<Pagination
+		currentPage={data.page}
+		totalPages={data.totalPages}
+		buildHref={(p) => `/goals?page=${p}`}
+	/>
 </div>

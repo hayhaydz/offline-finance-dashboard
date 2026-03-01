@@ -3,9 +3,11 @@ import type { PageServerLoad } from './$types';
 import { db } from '$lib/db/client';
 import { snapshots } from '$lib/db/schema';
 import { withUserFilter } from '$lib/auth/row-security';
-import { desc } from 'drizzle-orm';
+import { desc, count, eq, and } from 'drizzle-orm';
 import { devLog, logError } from '$lib/utils/logger';
 import { getStaleness, getMostRecentDate } from '$lib/utils/staleness';
+
+const PAGE_SIZE = 25;
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
@@ -19,30 +21,29 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		userId: locals.user.id
 	});
 
-	// Pagination from URL params
-	const offsetParam = url.searchParams.get('offset');
-	const limitParam = url.searchParams.get('limit');
-	const offset = offsetParam ? parseInt(offsetParam) : 0;
-	const limit = limitParam ? parseInt(limitParam) : 25;
+	const pageParam = url.searchParams.get('page');
+	const page = Math.max(0, pageParam ? parseInt(pageParam) - 1 : 0);
+	const offset = page * PAGE_SIZE;
 
-	// Fetch snapshots with pagination (fetch one extra to check if more exist)
-	const allSnapshots = await db.query.snapshots.findMany({
+	// Total count for pagination
+	const [{ total }] = await db
+		.select({ total: count() })
+		.from(snapshots)
+		.where(eq(snapshots.userId, locals.user.id));
+
+	const totalPages = Math.ceil(total / PAGE_SIZE);
+	const safePage = Math.min(page, Math.max(0, totalPages - 1));
+	const safeOffset = safePage * PAGE_SIZE;
+
+	const snapshotsList = await db.query.snapshots.findMany({
 		where: withUserFilter(locals.user.id, snapshots),
 		orderBy: [desc(snapshots.snapshotDate)],
-		limit: limit + 1,
-		offset
+		limit: PAGE_SIZE,
+		offset: safeOffset
 	});
 
-	const hasMore = allSnapshots.length > limit;
-	const snapshotsList = hasMore ? allSnapshots.slice(0, limit) : allSnapshots;
+	devLog('snapshots', 'Snapshots loaded', { count: snapshotsList.length, page: safePage, totalPages });
 
-	devLog('snapshots', 'Snapshots loaded', {
-		count: snapshotsList.length,
-		hasMore,
-		offset
-	});
-
-	// Calculate staleness based on most recent snapshot date
 	const snapshotDates = snapshotsList.map((s) => new Date(s.snapshotDate));
 	const mostRecentSnapshotDate = getMostRecentDate(snapshotDates);
 	const staleness = getStaleness(mostRecentSnapshotDate);
@@ -50,9 +51,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	return {
 		user: locals.user,
 		snapshots: snapshotsList,
-		hasMore,
-		offset,
-		limit,
+		page: safePage,
+		totalPages,
 		staleness
 	};
 };

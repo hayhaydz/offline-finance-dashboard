@@ -4,7 +4,7 @@ import { db } from '$lib/db/client';
 import { goals, goalAllocations, accounts } from '$lib/db/schema';
 import { validateUserAccess } from '$lib/auth/row-security';
 import { devLog, logError, logFormData } from '$lib/utils/logger';
-import { eq, desc, sql } from 'drizzle-orm';
+import { eq, desc, sql, count } from 'drizzle-orm';
 import { calculatePerAccountUnallocated, calculateReadyToAssign } from '$lib/server/goals';
 import { parseCurrency } from '$lib/utils/currency';
 import type { Account } from '$lib/db/schema';
@@ -14,7 +14,7 @@ type AccountWithUnallocated = Account & {
 	balances: Array<{ balanceInCents: number }>;
 };
 
-export const load: PageServerLoad = async ({ params, locals }) => {
+export const load: PageServerLoad = async ({ params, locals, url }) => {
 	if (!locals.user) {
 		logError('goalsDetail', 'Authentication required');
 		redirect(302, '/login');
@@ -32,10 +32,25 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	validateUserAccess(goal, locals.user, 'Goal');
 
+	const ALLOC_PAGE_SIZE = 20;
+	const allocPageParam = url.searchParams.get('allocPage');
+	const allocPage = Math.max(0, allocPageParam ? parseInt(allocPageParam) - 1 : 0);
+
+	// Total allocation count for pagination
+	const [{ total: allocTotal }] = await db
+		.select({ total: count() })
+		.from(goalAllocations)
+		.where(eq(goalAllocations.goalId, goal.id));
+
+	const allocTotalPages = Math.ceil(allocTotal / ALLOC_PAGE_SIZE);
+	const safeAllocPage = Math.min(allocPage, Math.max(0, allocTotalPages - 1));
+
 	// Fetch allocation history for this goal
 	const allocationHistory = await db.query.goalAllocations.findMany({
 		where: eq(goalAllocations.goalId, goal.id),
 		orderBy: desc(goalAllocations.createdAt),
+		limit: ALLOC_PAGE_SIZE,
+		offset: safeAllocPage * ALLOC_PAGE_SIZE,
 		with: {
 			account: true
 		}
@@ -60,6 +75,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	return {
 		goal,
 		allocationHistory,
+		allocPage: safeAllocPage,
+		allocTotalPages,
 		accounts: accountsWithUnallocated,
 		totalAssets,
 		readyToAssign,

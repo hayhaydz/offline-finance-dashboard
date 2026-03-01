@@ -3,6 +3,7 @@
 	import { formatCurrency, formatDateShorthand } from '$lib/utils/currency';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
+	import Pagination from '$lib/components/Pagination.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -40,11 +41,7 @@
 	}
 
 	// Calculate new offset for "Load more"
-	function loadMoreUrl(): string {
-		const currentOffset = new URLSearchParams(window.location.search).get('offset') || '0';
-		const newOffset = parseInt(currentOffset) + 50;
-		return `?offset=${newOffset}`;
-	}
+	// REMOVED — replaced by Pagination component
 
 	// Clear success messages after 10 seconds, errors persist until manually dismissed
 	$effect(() => {
@@ -72,11 +69,18 @@
 <!-- ACCOUNT INFO HEADER -->
 <div class="border-b border-black p-2">
 	<div class="flex justify-between items-center mb-2">
-		<h2 class="text-base font-bold m-0">{data.account.name}</h2>
+		<h2 class="text-base font-bold m-0">
+			{data.account.name}
+			{#if data.account.closedAt}
+				<span class="text-xs font-normal text-gray-500 ml-1">[CLOSED]</span>
+			{/if}
+		</h2>
+		{#if !data.account.closedAt}
 		<div class="flex gap-2">
 			<a href="/accounts/{data.account.slug}/edit" class="bracket-link text-xs">Edit</a>
 			<a href="/accounts/{data.account.slug}/delete" class="bracket-link text-xs text-red-700">Close</a>
 		</div>
+		{/if}
 	</div>
 	<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
 		<div>Type:</div>
@@ -114,6 +118,7 @@
 	</div>
 {/if}
 
+{#if !data.account.closedAt}
 <button
 	type="button"
 	class="w-full font-bold flex justify-between bg-gray-100 border-b border-black p-2 hover:bg-gray-200 transition-colors cursor-pointer"
@@ -197,6 +202,7 @@
 		</div>
 	</div>
 </div>
+{/if}
 
 <!-- BALANCE HISTORY TABLE -->
 <div>
@@ -234,6 +240,7 @@
 						</td>
 						<td class="pl-2 text-sm py-2 text-gray-600">{balance.notes || '-'}</td>
 						<td class="text-right pr-1 text-sm py-2">
+							{#if !data.account.closedAt}
 							<a
 								href="/accounts/{data.account.slug}/balances/{balance.slug}/edit"
 								class="bracket-link text-xs"
@@ -242,17 +249,18 @@
 								href="/accounts/{data.account.slug}/balances/{balance.slug}/delete"
 								class="bracket-link text-xs text-red-700"
 							>Delete</a>
+							{/if}
 						</td>
 					</tr>
 				{/each}
 			</tbody>
 		</table>
 
-		{#if data.hasMore}
-			<div class="mt-2">
-				<a href={loadMoreUrl()} class="bracket-link text-sm">Load older entries</a>
-			</div>
-		{/if}
+		<Pagination
+			currentPage={data.page}
+			totalPages={data.totalPages}
+			buildHref={(p) => `?page=${p}`}
+		/>
 	{/if}
 </div>
 

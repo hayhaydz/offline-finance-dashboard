@@ -241,12 +241,12 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 
 		if (isSpecial) richGoalId = goal.id;
 
-		// Give first goal 200 allocations (all 4 types + null accountId)
+		// Give first goal 200 allocations (all 3 types + null accountId)
 		if (isSpecial) {
-			const types = ['USER_ADD', 'USER_WITHDRAW', 'GOAL_DELETED', 'SYSTEM_CORRECTION'] as const;
+			const types = ['USER_ADD', 'USER_WITHDRAW', 'GOAL_DELETED'] as const;
 			let runningTotal = 0;
 			for (let j = 0; j < 200; j++) {
-				const type = types[j % 4];
+				const type = types[j % 3];
 				const isNegative = type === 'USER_WITHDRAW' || type === 'GOAL_DELETED';
 				const amount = isNegative ? -1000 : j % 10 === 0 ? 500000 : 5000;
 				const accountId = j % 10 === 0 ? null : (createdAccountIds[j % createdAccountIds.length] ?? null);

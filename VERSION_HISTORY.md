@@ -1,3 +1,28 @@
+## [2026-03-01 16:43] — Pagination: Standard Components + All Routes
+
+**Summary:** Created two reusable pagination components (`Pagination.svelte` for URL-driven routes, `PaginationClient.svelte` for client-side). Migrated all paginated routes — snapshots, account balances, goals index, goal allocation history — from offset/hasMore patterns to `?page=N` (and `?allocPage=N`). Homepage goals uses client-side `$state` (5/page, resets on refresh). Homepage accounts by type is hard-capped at 8 rows with overflow notice. Also fixed a pre-existing corruption in `balances/delete/+page.server.ts` from a prior session.
+
+**Files:**
+- `src/lib/components/Pagination.svelte` — new, URL-driven with prev/next/page numbers, left-aligned, `border-t border-black`
+- `src/lib/components/PaginationClient.svelte` — new, onclick-based, same visual
+- `src/routes/snapshots/+page.server.ts` — `?page=N`, total count query, 25/page
+- `src/routes/snapshots/+page.svelte` — `<Pagination>` replaces old prev/next links
+- `src/routes/accounts/[slug]/+page.server.ts` — `?page=N`, total count query, 20/page; restored missing `balanceStr` line
+- `src/routes/accounts/[slug]/+page.svelte` — `<Pagination>` replaces `loadMoreUrl()` JS fn
+- `src/routes/goals/+page.server.ts` — `?page=N`, total count query, 10/page
+- `src/routes/goals/+page.svelte` — `<Pagination>` added
+- `src/routes/goals/[slug]/+page.server.ts` — `?allocPage=N`, total count query, 20/page
+- `src/routes/goals/[slug]/+page.svelte` — `<Pagination>` added
+- `src/routes/+page.svelte` — `<PaginationClient>` for goals (5/page), hard cap 8 for accounts with overflow notice
+- `src/routes/accounts/[slug]/balances/[balanceSlug]/delete/+page.server.ts` — fixed corruption from prior session
+
+**Commit:**
+```
+feat: standardised pagination across all routes
+```
+
+---
+
 ## [2026-03-01 15:20] — Seed System Overhaul: Modular Architecture + Three Modes
 
 **Summary:** Refactored the monolithic 571-line `scripts/seed.ts` into a modular system with shared lib helpers, JSON fixtures, and three named modes. `standard` reproduces the original dataset identically. `edge` exercises every UI conditional, schema field variant, and pagination boundary. `stress` generates absurd volumes (50 accounts, 70 goals, 204 snapshots, 500+ balance entries) using generator functions.

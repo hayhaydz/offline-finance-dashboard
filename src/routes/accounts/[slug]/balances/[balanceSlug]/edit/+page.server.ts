@@ -29,6 +29,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	validateUserAccess(account, locals.user, 'Account');
 
+	if (account.closedAt) {
+		logError('editBalance', 'Attempt to edit balance on closed account', { accountSlug });
+		redirect(303, `/accounts/${account.slug}`);
+	}
+
 	// Get balance entry and verify it belongs to this account using slug
 	const balance = await db.query.accountBalances.findFirst({
 		where: eq(accountBalances.slug, balanceSlug)
@@ -95,6 +100,11 @@ export const actions: Actions = {
 		}
 
 		validateUserAccess(account, locals.user, 'Account');
+
+		if (account.closedAt) {
+			logError('editBalance', 'Attempt to edit balance on closed account', { accountSlug });
+			return fail(403, { error: 'Cannot edit balance of a closed account.' });
+		}
 
 		// Verify balance belongs to this account using slug
 		const existingBalance = await db.query.accountBalances.findFirst({

@@ -2,6 +2,7 @@
   import { formatCurrency, formatDateShorthand } from "$lib/utils/currency";
   import { getStaleness } from "$lib/utils/staleness";
   import GoalDetailCard from "$lib/components/GoalDetailCard.svelte";
+  import Pagination from "$lib/components/Pagination.svelte";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
@@ -82,4 +83,9 @@
       </tbody>
     </table>
   {/if}
+  <Pagination
+    currentPage={data.allocPage}
+    totalPages={data.allocTotalPages}
+    buildHref={(p) => `?allocPage=${p}`}
+  />
 </div>

@@ -35,6 +35,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	validateUserAccess(account, locals.user, 'Account');
 
+	if (account.closedAt) {
+		logError('editAccount', 'Attempt to visit edit page for closed account', { accountSlug });
+		redirect(303, `/accounts/${account.slug}`);
+	}
+
 	return {
 		account,
 		breadcrumbOverrides: [
@@ -71,8 +76,12 @@ export const actions: Actions = {
 
 		validateUserAccess(account, locals.user, 'Account');
 
+		if (account.closedAt) {
+			logError('editAccount', 'Attempt to edit closed account', { accountSlug });
+			return fail(403, { error: 'Cannot edit a closed account.' });
+		}
+
 		const formData = await request.formData();
-		logFormData('editAccount', Object.fromEntries(formData));
 		const name = formData.get('name') as string;
 		const type = formData.get('type') as string;
 		const taxWrapper = formData.get('taxWrapper') as string;

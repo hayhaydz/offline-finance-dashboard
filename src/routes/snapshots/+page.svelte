@@ -1,25 +1,17 @@
 <script lang="ts">
 	import { formatCurrencyShorthand } from '$lib/utils/currency';
+	import Pagination from '$lib/components/Pagination.svelte';
 
 	let { data } = $props();
 
-	// Calculate trends for each snapshot (query-time calculation)
 	const snapshotsWithTrends = $derived.by(() => {
 		return data.snapshots.map((snapshot, index) => {
-			// Last snapshot has no previous to compare
 			if (index === data.snapshots.length - 1) {
 				return { ...snapshot, trends: null };
 			}
-
 			const previous = data.snapshots[index + 1];
 			const netWorthChange = snapshot.netWorthInCents - previous.netWorthInCents;
-
-			return {
-				...snapshot,
-				trends: {
-					netWorthChange
-				}
-			};
+			return { ...snapshot, trends: { netWorthChange } };
 		});
 	});
 
@@ -89,14 +81,8 @@
 	{/if}
 </div>
 
-<!-- Pagination -->
-{#if data.offset > 0 || data.hasMore}
-	<div class="p-2 flex justify-center gap-4">
-		{#if data.offset > 0}
-			<a href="/snapshots?offset={Math.max(0, data.offset - data.limit)}&limit={data.limit}" class="bracket-link text-xs">[Previous]</a>
-		{/if}
-		{#if data.hasMore}
-			<a href="/snapshots?offset={data.offset + data.limit}&limit={data.limit}" class="bracket-link text-xs">[Next]</a>
-		{/if}
-	</div>
-{/if}
+<Pagination
+	currentPage={data.page}
+	totalPages={data.totalPages}
+	buildHref={(p) => `/snapshots?page=${p}`}
+/>

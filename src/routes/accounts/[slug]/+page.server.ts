@@ -5,7 +5,7 @@ import { accounts, accountBalances } from '$lib/db/schema';
 import { validateUserAccess } from '$lib/auth/row-security';
 import { addBalanceEntry } from '$lib/utils/balances';
 import { devLog, logError } from '$lib/utils/logger';
-import { eq, desc } from 'drizzle-orm';
+import { eq, desc, count } from 'drizzle-orm';
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
 	if (!locals.user) {
@@ -13,8 +13,10 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	}
 
 	const accountSlug = params.slug;
-	const offsetParam = url.searchParams.get('offset');
-	const offset = offsetParam ? parseInt(offsetParam) : 0;
+	const pageParam = url.searchParams.get('page');
+	const page = Math.max(0, pageParam ? parseInt(pageParam) - 1 : 0);
+	const PAGE_SIZE = 20;
+	const offset = page * PAGE_SIZE;
 
 	// Get account with ownership validation using slug
 	const account = await db.query.accounts.findFirst({
@@ -28,33 +30,45 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
 	validateUserAccess(account, locals.user, 'Account');
 
-	// Get balance history (50 entries, newest first) using account.id
+	// Total balance count for pagination
+	const [{ total }] = await db
+		.select({ total: count() })
+		.from(accountBalances)
+		.where(eq(accountBalances.accountId, account.id));
+
+	const totalPages = Math.ceil(total / PAGE_SIZE);
+	const safePage = Math.min(page, Math.max(0, totalPages - 1));
+	const safeOffset = safePage * PAGE_SIZE;
+
+	// Get balance history (newest first) using account.id
 	const balances = await db.query.accountBalances.findMany({
 		where: eq(accountBalances.accountId, account.id),
 		orderBy: desc(accountBalances.asOfDate),
-		limit: 50,
-		offset
+		limit: PAGE_SIZE + 1, // fetch one extra to check change from next page
+		offset: safeOffset
 	});
 
 	// Calculate "change from previous" for display
-	const balancesWithChange = balances.map((balance, index) => {
-		const previous = balances[index + 1]; // Next item is chronologically older
+	const balancesPage = balances.slice(0, PAGE_SIZE);
+	const balancesWithChange = balancesPage.map((balance, index) => {
+		const previous = balancesPage[index + 1];
 		return {
 			...balance,
 			changeFromPrevious: previous ? balance.balanceInCents - previous.balanceInCents : null
 		};
 	});
 
-	// Get current balance (most recent entry)
-	const currentBalance = balances.length > 0 ? balances[0].balanceInCents : 0;
+	// Get current balance (most recent entry across all pages)
+	const currentBalance = safePage === 0 && balancesPage.length > 0 ? balancesPage[0].balanceInCents : 0;
 
 	return {
 		account,
 		balances: balancesWithChange,
 		currentBalance,
-		hasMore: balances.length === 50, // If we got 50, there might be more
+		page: safePage,
+		totalPages,
 		breadcrumbOverrides: [
-			{ segmentIndex: 1, label: account.name, skipLink: false } // Replace account slug (segment 1) with account name
+			{ segmentIndex: 1, label: account.name, skipLink: false }
 		]
 	};
 };
@@ -82,6 +96,11 @@ export const actions: Actions = {
 		}
 
 		validateUserAccess(account, locals.user, 'Account');
+
+		if (account.closedAt) {
+			logError('addBalance', 'Attempt to add balance to closed account', { accountSlug });
+			return fail(403, { error: 'Cannot add balance entries to a closed account.' });
+		}
 
 		const formData = await request.formData();
 		const balanceStr = formData.get('balance') as string;
