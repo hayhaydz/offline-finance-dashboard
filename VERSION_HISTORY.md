@@ -1,3 +1,19 @@
+## [2026-03-01 21:10] — Withdraw UI Matches Add Flow
+
+**Summary:** Replaced `/goals/[slug]/withdraw` with the same accordion-per-account terminal UI as the locked add flow, and updated the server action to accept the shared `rows_json` payload (with legacy fallback) so withdrawals honor per-account amounts and update allocations atomically just like adds.
+
+**Files:**
+- `src/routes/goals/[slug]/withdraw/+page.svelte` — replicated add-style accordion with label-above inputs, terminal slider, quick buttons, and preview breakdown/total
+- `src/routes/goals/[slug]/withdraw/+page.server.ts` — batch payload parsing, per-account validation against allocations, merged duplicates, and transactionized `USER_WITHDRAW` inserts
+
+**Validation:**
+- `npm run check` → clean
+- `npm run lint:biome` → clean
+- `npm run test:run` → 84 tests passed
+
+**Commit:**
+`chore: align withdraw page UI with goals add flow`
+
 ## [2026-03-01 20:54] — Goals Flow Refinement + Withdrawal Reallocation Fix
 
 **Summary:** Finalized goals add/withdraw UX refinements after locked mockup implementation. Add flow now starts all account accordions at `£0` and excluded-by-default (auto-included only when amount > 0), moved include behavior to amount-driven logic, added `£0` quick action, updated preview ordering/content, and aligned terminal slider styling. Withdraw preview copy and milestone logic were refined to trigger only on real emergency milestones (`1mo/3mo/6mo/12mo`) and use clearer wording. Fixed backend allocation accounting bug so withdrawals correctly redistribute back to source accounts, restoring accurate per-account available values on goal add. Database reset and standard seed were run to restore a clean baseline dataset.

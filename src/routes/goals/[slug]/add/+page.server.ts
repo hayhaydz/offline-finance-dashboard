@@ -203,19 +203,22 @@ export const actions: Actions = {
 
 		db.transaction((tx) => {
 			for (const row of mergedRows) {
-				tx.insert(goalAllocations).values({
-					goalId: goal.id,
-					accountId: row.accountId,
-					amount: row.amountInCents,
-					type: "USER_ADD",
-					allocationDate: new Date(),
-					createdAt: new Date(),
-				});
+				tx.insert(goalAllocations)
+					.values({
+						goalId: goal.id,
+						accountId: row.accountId,
+						amount: row.amountInCents,
+						type: "USER_ADD",
+						allocationDate: new Date(),
+						createdAt: new Date(),
+					})
+					.run();
 			}
 
 			tx.update(goals)
 				.set({ currentAllocation: newAllocation, updatedAt: new Date() })
-				.where(eq(goals.id, goal.id));
+				.where(eq(goals.id, goal.id))
+				.run();
 		});
 
 		devLog("goalsAdd", "Allocation batch added", {
