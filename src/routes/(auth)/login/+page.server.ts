@@ -5,6 +5,7 @@ import { verifyPassword } from '$lib/auth/password';
 import { verifyTOTP, decryptTOTPSecret, verifyBackupCode } from '$lib/auth/mfa';
 import { checkRateLimit, recordFailedAttempt, recordSuccessfulAttempt } from '$lib/security/rate-limiter';
 import { devLog, logError, logFormData } from '$lib/utils/logger';
+import { HOME_ROUTE } from '$lib/constants/routes';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 
@@ -56,8 +57,8 @@ export async function load({ cookies }) {
 			sessionMaxAge: '30 days'
 		});
 
-		// Redirect to home page
-		throw redirect(302, '/');
+			// Redirect to home page
+			throw redirect(302, HOME_ROUTE);
 	}
 
 	// Return auto-login status for UI indicator
@@ -210,7 +211,7 @@ export const actions = {
 			usedBackupCode: !!usedBackupCodeId
 		});
 
-		// Redirect to home page
-		throw redirect(302, '/');
-	}
-};
+			// Redirect to home page
+			throw redirect(302, HOME_ROUTE);
+		}
+	};

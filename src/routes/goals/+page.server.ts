@@ -3,7 +3,7 @@ import type { Actions, PageServerLoad } from './$types';
 import { db } from '$lib/db/client';
 import { goals } from '$lib/db/schema';
 import { withUserFilter, validateUserAccess } from '$lib/auth/row-security';
-import { devLog, logError, logFormData } from '$lib/utils/logger';
+import { devLog, isVerboseDebug, logError, logFormData } from '$lib/utils/logger';
 import { eq, and, isNull, desc, asc, lt, gt, count } from 'drizzle-orm';
 import { calculateReadyToAssign } from '$lib/server/goals';
 import { getStaleness, getMostRecentDate } from '$lib/utils/staleness';
@@ -16,7 +16,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	const PAGE_SIZE = 10;
 	const pageParam = url.searchParams.get('page');
-	const page = Math.max(0, pageParam ? parseInt(pageParam) - 1 : 0);
+	const parsedPage = pageParam ? Number.parseInt(pageParam, 10) : 1;
+	const validPage = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+	const page = validPage - 1;
 
 	// Total count for pagination
 	const [{ total }] = await db
@@ -119,7 +121,9 @@ export const actions: Actions = {
 
 	// Move goal up in sort order (swap with goal above)
 	moveUp: async ({ request, locals }) => {
-		devLog('moveUp', '=== ACTION START ===', { url: request.url, method: request.method });
+			if (isVerboseDebug()) {
+				devLog('moveUp', '=== ACTION START ===', { url: request.url, method: request.method });
+			}
 
 		if (!locals.user) {
 			logError('moveUp', 'Authentication required');
@@ -127,19 +131,25 @@ export const actions: Actions = {
 		}
 
 		const formData = await request.formData();
-		devLog('moveUp', 'Raw form entries', {
-			entries: Array.from(formData.entries())
-		});
+			if (isVerboseDebug()) {
+				devLog('moveUp', 'Raw form entries', {
+					entries: Array.from(formData.entries())
+				});
+			}
 
 		const slug = formData.get('slug')?.toString();
 		if (!slug) {
-			devLog('moveUp', 'Missing slug in form data - available keys', {
-				keys: Array.from(formData.keys())
-			});
-			return fail(400, { error: 'Goal slug is required' });
-		}
+				if (isVerboseDebug()) {
+					devLog('moveUp', 'Missing slug in form data - available keys', {
+						keys: Array.from(formData.keys())
+					});
+				}
+				return fail(400, { error: 'Goal slug is required' });
+			}
 
-		devLog('moveUp', 'Slug extracted', { slug });
+			if (isVerboseDebug()) {
+				devLog('moveUp', 'Slug extracted', { slug });
+			}
 
 		try {
 			// Get current goal
@@ -152,11 +162,13 @@ export const actions: Actions = {
 				return fail(404, { error: 'Goal not found' });
 			}
 
-			devLog('moveUp', 'Current goal', {
-				slug,
-				sortOrder: currentGoal.sortOrder,
-				name: currentGoal.name
-			});
+				if (isVerboseDebug()) {
+					devLog('moveUp', 'Current goal', {
+						slug,
+						sortOrder: currentGoal.sortOrder,
+						name: currentGoal.name
+					});
+				}
 
 			// Validate user owns the goal
 			try {
@@ -172,10 +184,12 @@ export const actions: Actions = {
 				orderBy: asc(goals.sortOrder)
 			});
 
-			devLog('moveUp', 'All goals for context', {
-				count: allGoals.length,
-				goals: allGoals.map(g => ({ slug: g.slug, sortOrder: g.sortOrder, name: g.name }))
-			});
+				if (isVerboseDebug()) {
+					devLog('moveUp', 'All goals for context', {
+						count: allGoals.length,
+						goals: allGoals.map(g => ({ slug: g.slug, sortOrder: g.sortOrder, name: g.name }))
+					});
+				}
 
 			// Find goal above (lower sortOrder)
 			const goalAbove = await db.query.goals.findFirst({
@@ -190,10 +204,12 @@ export const actions: Actions = {
 			if (!goalAbove) {
 				devLog('moveUp', 'No goal found above (at top position)', { slug, currentSortOrder: currentGoal.sortOrder });
 			} else {
-				devLog('moveUp', 'Found goal above to swap with', {
-					current: { slug, sortOrder: currentGoal.sortOrder, name: currentGoal.name },
-					above: { slug: goalAbove.slug, sortOrder: goalAbove.sortOrder, name: goalAbove.name }
-				});
+					if (isVerboseDebug()) {
+						devLog('moveUp', 'Found goal above to swap with', {
+							current: { slug, sortOrder: currentGoal.sortOrder, name: currentGoal.name },
+							above: { slug: goalAbove.slug, sortOrder: goalAbove.sortOrder, name: goalAbove.name }
+						});
+					}
 
 				// Swap sortOrder values
 				const temp = currentGoal.sortOrder;

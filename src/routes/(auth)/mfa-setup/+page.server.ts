@@ -11,6 +11,7 @@ import {
 } from '$lib/auth/mfa';
 import { hashPassword } from '$lib/auth/password';
 import { devLog, logError, logFormData } from '$lib/utils/logger';
+import { HOME_ROUTE, LOGIN_ROUTE, REGISTER_ROUTE } from '$lib/constants/routes';
 import { eq } from 'drizzle-orm';
 
 export async function load({ cookies, locals }) {
@@ -33,7 +34,7 @@ export async function load({ cookies, locals }) {
 
 	// If already logged in and not just finished setup, go to dashboard
 	if (locals.user) {
-		throw redirect(302, '/accounts');
+		throw redirect(302, HOME_ROUTE);
 	}
 
 	// Get setup token from cookie set by registration page
@@ -41,7 +42,7 @@ export async function load({ cookies, locals }) {
 
 	if (!mfaSetupToken) {
 		logError('mfaSetup', 'No MFA setup token found');
-		throw redirect(302, '/register');
+		throw redirect(302, REGISTER_ROUTE);
 	}
 
 	const user = await db.query.users.findFirst({
@@ -51,7 +52,7 @@ export async function load({ cookies, locals }) {
 	if (!user) {
 		logError('mfaSetup', 'User not found for MFA setup token');
 		cookies.delete('mfa-setup-token', { path: '/' });
-		throw redirect(302, '/register');
+		throw redirect(302, REGISTER_ROUTE);
 	}
 
 	// Check if MFA is already set up (backup codes exist)
@@ -63,7 +64,7 @@ export async function load({ cookies, locals }) {
 		devLog('mfaSetup', 'MFA already set up', { username: user.username });
 		// MFA already set up, redirect to login (since not logged in here)
 		cookies.delete('mfa-setup-token', { path: '/' });
-		throw redirect(302, '/login');
+		throw redirect(302, LOGIN_ROUTE);
 	}
 
 	// Decrypt TOTP secret before generating QR code

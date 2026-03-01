@@ -20,7 +20,9 @@ export const sessions = sqliteTable('sessions', {
 	userId: integer('user_id').notNull().references(() => users.id),
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 	lastActivity: integer('last_activity', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
-});
+}, (table) => ({
+	userActivityIdx: index('idx_sessions_user_last_activity').on(table.userId, table.lastActivity)
+}));
 
 export const backupCodes = sqliteTable('backup_codes', {
 	id: integer('id').primaryKey({ autoIncrement: true }),
@@ -51,7 +53,14 @@ export const accounts = sqliteTable('accounts', {
 	closedAt: integer('closed_at', { mode: 'timestamp' }), // Soft-delete - NULL means open
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
-});
+}, (table) => ({
+	userClosedIdx: index('idx_accounts_user_closed').on(table.userId, table.closedAt),
+	userExcludedClosedIdx: index('idx_accounts_user_excluded_closed').on(
+		table.userId,
+		table.excludedFromNetWorth,
+		table.closedAt
+	)
+}));
 
 export const accountBalances = sqliteTable('account_balances', {
 	id: integer('id').primaryKey({ autoIncrement: true }),
@@ -62,7 +71,9 @@ export const accountBalances = sqliteTable('account_balances', {
 	notes: text('notes'),
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
-});
+}, (table) => ({
+	accountAsOfDateIdx: index('idx_account_balances_account_asof').on(table.accountId, table.asOfDate)
+}));
 
 export const goals = sqliteTable('goals', {
 	id: integer('id').primaryKey({ autoIncrement: true }),
@@ -77,7 +88,9 @@ export const goals = sqliteTable('goals', {
 	deletedAt: integer('deleted_at', { mode: 'timestamp' }), // Soft delete support
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`),
 	updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
-});
+}, (table) => ({
+	userDeletedSortIdx: index('idx_goals_user_deleted_sort').on(table.userId, table.deletedAt, table.sortOrder)
+}));
 
 export const goalAllocations = sqliteTable('goal_allocations', {
 	id: integer('id').primaryKey({ autoIncrement: true }),
@@ -87,7 +100,10 @@ export const goalAllocations = sqliteTable('goal_allocations', {
 	type: text('type').notNull(), // 'USER_ADD', 'USER_WITHDRAW', 'GOAL_DELETED'
 	allocationDate: integer('allocation_date', { mode: 'timestamp' }).notNull(),
 	createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`CURRENT_TIMESTAMP`)
-});
+}, (table) => ({
+	goalIdx: index('idx_goal_allocations_goal').on(table.goalId),
+	accountIdx: index('idx_goal_allocations_account').on(table.accountId)
+}));
 
 export const systemMetadata = sqliteTable('system_metadata', {
 	key: text('key').primaryKey(),

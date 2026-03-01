@@ -2,6 +2,7 @@ import type { Handle, HandleServerError } from '@sveltejs/kit';
 import { redirect, error } from '@sveltejs/kit';
 import { db } from '$lib/db/client';
 import { sessions, users } from '$lib/db/schema';
+import { HOME_ROUTE, LOGIN_ROUTE } from '$lib/constants/routes';
 import { logError } from '$lib/utils/logger';
 import { eq } from 'drizzle-orm';
 
@@ -45,7 +46,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	if (!sessionToken) {
 		if (isProtectedRoute) {
-			throw redirect(302, '/login');
+			throw redirect(302, LOGIN_ROUTE);
 		}
 		return resolve(event);
 	}
@@ -61,7 +62,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	if (!session) {
 		event.cookies.delete('session', { path: '/' });
 		if (isProtectedRoute) {
-			throw redirect(302, '/login');
+			throw redirect(302, LOGIN_ROUTE);
 		}
 		return resolve(event);
 	}
@@ -72,14 +73,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 		await db.delete(sessions).where(eq(sessions.token, sessionToken));
 		event.cookies.delete('session', { path: '/' });
 		if (isProtectedRoute) {
-			throw redirect(302, '/login');
+			throw redirect(302, LOGIN_ROUTE);
 		}
 		return resolve(event);
 	}
 
 	// If logged in and trying to access auth routes (except mfa-setup which might be needed)
 	if (isAuthRoute && !pathname.startsWith('/mfa-setup')) {
-		throw redirect(302, '/accounts');
+		throw redirect(302, HOME_ROUTE);
 	}
 
 	// Session valid - update last activity

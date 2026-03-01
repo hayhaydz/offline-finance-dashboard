@@ -3,9 +3,10 @@ import type { PageServerLoad, Actions } from './$types';
 import { db } from '$lib/db/client';
 import { accounts, goals } from '$lib/db/schema';
 import { withUserFilter } from '$lib/auth/row-security';
-import { desc, and, inArray, isNull, sql, type SQL, asc } from 'drizzle-orm';
-import { devLog, logError } from '$lib/utils/logger';
+import { and, inArray, isNull, sql, type SQL, asc } from 'drizzle-orm';
+import { devLog, isVerboseDebug, logError } from '$lib/utils/logger';
 import { getStaleness } from '$lib/utils/staleness';
+import { calculateAssetsAndLiabilities } from '$lib/server/finance';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
@@ -31,7 +32,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// Fetch goals for homepage preview
 	const userGoals = await db.query.goals.findMany({
 		where: withUserFilter(locals.user.id, goals),
-		orderBy: [desc(goals.isEmergencyFund), asc(goals.sortOrder)],
+		orderBy: [asc(goals.sortOrder)],
 		with: {
 			allocations: {
 				columns: {
@@ -69,43 +70,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 		(a) => a.excludedFromNetWorth && !a.closedAt
 	);
 
-	// Calculate totals from included accounts
-	// If an asset account has a negative balance it is effectively a liability,
-	// so we split each asset balance on sign: positive → assets, negative → liabilities.
-	// Liability account balances are always negative (debt) and go straight to totalLiabilities.
-	let totalAssets = 0;
-	let totalLiabilities = 0;
-	for (const a of includedAccounts) {
-		const balance = a.balances[0]?.balanceInCents ?? 0;
-		if (a.category === 'asset') {
-			if (balance >= 0) {
-				totalAssets += balance;
-			} else {
-				totalLiabilities += balance; // negative, so adds to debt
-			}
-		} else {
-			totalLiabilities += balance;
-		}
-	}
-
-	// Calculate excluded amounts (same sign-split logic for consistency)
-	let excludedAssets = 0;
-	let excludedLiabilities = 0;
-	for (const a of excludedAccounts) {
-		const balance = a.balances[0]?.balanceInCents ?? 0;
-		if (a.category === 'asset') {
-			if (balance >= 0) {
-				excludedAssets += balance;
-			} else {
-				excludedLiabilities += balance;
-			}
-		} else {
-			excludedLiabilities += balance;
-		}
-	}
-
-	// Net worth = assets + liabilities (liabilities stored as negative values)
-	const netWorth = totalAssets + totalLiabilities;
+	const includedTotals = calculateAssetsAndLiabilities(includedAccounts);
+	const excludedTotals = calculateAssetsAndLiabilities(excludedAccounts);
+	const totalAssets = includedTotals.totalAssets;
+	const totalLiabilities = includedTotals.totalLiabilities;
+	const excludedAssets = excludedTotals.totalAssets;
+	const excludedLiabilities = excludedTotals.totalLiabilities;
+	const netWorth = includedTotals.netWorth;
 
 	// Determine date range: find oldest and newest asOfDate across all balances
 	const allBalances = userAccounts.flatMap((a) => a.balances);
@@ -229,20 +200,21 @@ export const actions: Actions = {
 			typeUpdates: Array.from(typeUpdates.entries()).map(([type, excluded]) => ({ type, excluded }))
 		});
 
-		// Log current state BEFORE update
-		const beforeUpdate = await db.query.accounts.findMany({
-			where: withUserFilter(locals.user.id, accounts),
-			columns: { id: true, type: true, excludedFromNetWorth: true }
-		});
-		devLog('updateExclusions', 'Database state BEFORE update', {
-			accountsExcludedByType: beforeUpdate.reduce((acc, a) => {
-				if (a.excludedFromNetWorth) {
-					acc[a.type] = (acc[a.type] || 0) + 1;
-				}
-				return acc;
-			}, {} as Record<string, number>),
-			totalExcludedTypes: new Set(beforeUpdate.filter(a => a.excludedFromNetWorth).map(a => a.type)).size
-		});
+			if (isVerboseDebug()) {
+				const beforeUpdate = await db.query.accounts.findMany({
+					where: withUserFilter(locals.user.id, accounts),
+					columns: { id: true, type: true, excludedFromNetWorth: true }
+				});
+				devLog('updateExclusions', 'Database state BEFORE update', {
+					accountsExcludedByType: beforeUpdate.reduce((acc, a) => {
+						if (a.excludedFromNetWorth) {
+							acc[a.type] = (acc[a.type] || 0) + 1;
+						}
+						return acc;
+					}, {} as Record<string, number>),
+					totalExcludedTypes: new Set(beforeUpdate.filter(a => a.excludedFromNetWorth).map(a => a.type)).size
+				});
+			}
 
 		try {
 			// Fetch user's open (non-closed) accounts to get their IDs by type
@@ -266,16 +238,24 @@ export const actions: Actions = {
 			const ids: number[] = [];
 
 			sqlChunks.push(sql` (case`);
-			for (const [type, excluded] of typeUpdates.entries()) {
-				const typeAccountIds = accountsByType.get(type) ?? [];
-				for (const accountId of typeAccountIds) {
-					sqlChunks.push(sql` when ${accounts.id} = ${accountId} then ${excluded ? 1 : 0}`);
-					ids.push(accountId);
+				for (const [type, excluded] of typeUpdates.entries()) {
+					const typeAccountIds = accountsByType.get(type) ?? [];
+					for (const accountId of typeAccountIds) {
+						sqlChunks.push(sql` when ${accounts.id} = ${accountId} then ${excluded ? 1 : 0}`);
+						ids.push(accountId);
+					}
 				}
-			}
-			sqlChunks.push(sql` end)`);
+				sqlChunks.push(sql` end)`);
 
-			const finalSql: SQL = sql.join(sqlChunks, sql.raw(' '));
+				if (ids.length === 0) {
+					devLog('updateExclusions', 'No matching open accounts found for selected types', {
+						userId: locals.user.id,
+						typesRequested: Array.from(typeUpdates.keys())
+					});
+					return { success: 'No matching open accounts to update' };
+				}
+
+				const finalSql: SQL = sql.join(sqlChunks, sql.raw(' '));
 
 			// Perform bulk update with row-level security
 			await db
@@ -289,20 +269,21 @@ export const actions: Actions = {
 				typesUpdated: Array.from(typeUpdates.keys())
 			});
 
-			// Log state AFTER update to verify
-			const afterUpdate = await db.query.accounts.findMany({
-				where: withUserFilter(locals.user.id, accounts),
-				columns: { id: true, type: true, excludedFromNetWorth: true }
-			});
-			devLog('updateExclusions', 'Database state AFTER update', {
-				accountsExcludedByType: afterUpdate.reduce((acc, a) => {
-					if (a.excludedFromNetWorth) {
-						acc[a.type] = (acc[a.type] || 0) + 1;
-					}
-					return acc;
-				}, {} as Record<string, number>),
-				totalExcludedTypes: new Set(afterUpdate.filter(a => a.excludedFromNetWorth).map(a => a.type)).size
-			});
+				if (isVerboseDebug()) {
+					const afterUpdate = await db.query.accounts.findMany({
+						where: withUserFilter(locals.user.id, accounts),
+						columns: { id: true, type: true, excludedFromNetWorth: true }
+					});
+					devLog('updateExclusions', 'Database state AFTER update', {
+						accountsExcludedByType: afterUpdate.reduce((acc, a) => {
+							if (a.excludedFromNetWorth) {
+								acc[a.type] = (acc[a.type] || 0) + 1;
+							}
+							return acc;
+						}, {} as Record<string, number>),
+						totalExcludedTypes: new Set(afterUpdate.filter(a => a.excludedFromNetWorth).map(a => a.type)).size
+					});
+				}
 
 			return { success: 'Exclusions updated successfully' };
 		} catch (error) {

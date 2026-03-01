@@ -90,17 +90,17 @@ describe('Login Action Integration', () => {
 		});
 
 		// Execute action
-		try {
-			await (actions.default as any)({ request, cookies: mockCookies });
-			expect.fail('Action should have thrown a redirect');
-		} catch (e: any) {
-			if (e.status === 302) {
-				expect(e.location).toBe('/accounts');
-				expect(mockCookies.set).toHaveBeenCalledWith('session', expect.any(String), expect.any(Object));
-				expect(rateLimiter.recordSuccessfulAttempt).toHaveBeenCalledWith('testuser');
-			} else {
-				throw e;
-			}
+			try {
+				await (actions.default as any)({ request, cookies: mockCookies });
+				expect.fail('Action should have thrown a redirect');
+			} catch (e: any) {
+				if (e.status === 302) {
+					expect(e.location).toBe('/');
+					expect(mockCookies.set).toHaveBeenCalledWith('session', expect.any(String), expect.any(Object));
+					expect(rateLimiter.recordSuccessfulAttempt).toHaveBeenCalledWith('testuser');
+				} else {
+					throw e;
+				}
 		}
 	});
 
@@ -136,16 +136,16 @@ describe('Login Action Integration', () => {
 		});
 
 		// Execute action
-		try {
-			await (actions.default as any)({ request, cookies: mockCookies });
-			expect.fail('Action should have thrown a redirect');
-		} catch (e: any) {
-			if (e.status === 302) {
-				expect(e.location).toBe('/accounts');
-				// Should have invalidated the backup code
-				expect(db.update).toHaveBeenCalled();
-			} else {
-				throw e;
+			try {
+				await (actions.default as any)({ request, cookies: mockCookies });
+				expect.fail('Action should have thrown a redirect');
+			} catch (e: any) {
+				if (e.status === 302) {
+					expect(e.location).toBe('/');
+					// Should have invalidated the backup code
+					expect(db.update).toHaveBeenCalled();
+				} else {
+					throw e;
 			}
 		}
 	});

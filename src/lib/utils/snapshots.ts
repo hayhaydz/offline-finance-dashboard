@@ -2,6 +2,7 @@ import { db } from '$lib/db/client';
 import { accounts, accountBalances, goals, snapshots } from '$lib/db/schema';
 import { eq, and, isNull, desc } from 'drizzle-orm';
 import { devLog } from '$lib/utils/logger';
+import { calculateAssetsAndLiabilities } from '$lib/server/finance';
 import type { Snapshot } from '$lib/db/schema';
 
 /**
@@ -35,21 +36,7 @@ export async function calculateSnapshotData(userId: number) {
 
 	// Calculate totals (only include accounts not excluded from net worth)
 	const includedAccounts = allAccounts.filter(a => !a.excludedFromNetWorth);
-	// Calculate totals — asset accounts with negative balance reclassify as liabilities
-	let totalAssets = 0;
-	let totalLiabilities = 0;
-	for (const a of includedAccounts) {
-		const bal = a.balances[0]?.balanceInCents || 0;
-		if (a.category === 'liability') {
-			totalLiabilities += bal;
-		} else if (bal >= 0) {
-			totalAssets += bal;
-		} else {
-			totalLiabilities += bal;
-		}
-	}
-
-	const netWorth = totalAssets + totalLiabilities;
+	const { totalAssets, totalLiabilities, netWorth } = calculateAssetsAndLiabilities(includedAccounts);
 	const totalAllocated = allGoals.reduce((sum, g) => sum + g.currentAllocation, 0);
 
 	// Build accounts breakdown JSON

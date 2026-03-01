@@ -7,11 +7,7 @@
  * In development mode, provides detailed logging with pretty-printed data.
  * In production mode, suppresses dev logs and sanitizes error logs.
  */
-
-/**
- * Sensitive field names that should be masked in logs
- */
-const SENSITIVE_FIELDS = ['password', 'totpSecret', 'backupCodes', 'token', 'secret', 'apiKey'];
+import { maskSensitiveData } from '$lib/utils/log-sanitize';
 
 /**
  * Check if the application is running in development mode
@@ -28,39 +24,10 @@ function getTimestamp(): string {
 }
 
 /**
- * Mask sensitive fields in an object
- */
-function maskSensitiveData(data: any): any {
-	if (!data || typeof data !== 'object') {
-		return data;
-	}
-
-	if (Array.isArray(data)) {
-		return data.map((item) => maskSensitiveData(item));
-	}
-
-	const masked: Record<string, any> = {};
-	for (const [key, value] of Object.entries(data)) {
-		const lowerKey = key.toLowerCase();
-		const isSensitive = SENSITIVE_FIELDS.some((field) => lowerKey.includes(field.toLowerCase()));
-
-		if (isSensitive) {
-			masked[key] = '[REDACTED]';
-		} else if (typeof value === 'object' && value !== null) {
-			masked[key] = maskSensitiveData(value);
-		} else {
-			masked[key] = value;
-		}
-	}
-
-	return masked;
-}
-
-/**
  * Development-only logging
  * Only outputs in development mode, silently ignored in production
  */
-export function devLogClient(category: string, message: string, data?: any): void {
+export function devLogClient(category: string, message: string, data?: unknown): void {
 	if (!isDevelopmentClient()) {
 		return;
 	}
@@ -83,7 +50,7 @@ export function devLogClient(category: string, message: string, data?: any): voi
  * Error logging (works in all environments)
  * In production, only logs category and message (no data)
  */
-export function logErrorClient(category: string, message: string, error?: any): void {
+export function logErrorClient(category: string, message: string, error?: unknown): void {
 	const timestamp = getTimestamp();
 	const prefix = `%c[ERROR] [${category}] ${message}`;
 	const style = 'color: #cc0000; font-weight: bold;';
@@ -106,7 +73,7 @@ export function logErrorClient(category: string, message: string, error?: any): 
  * Form data logging with automatic sensitive field masking
  * Only logs in development mode
  */
-export function logFormDataClient(category: string, formData: Record<string, any>): void {
+export function logFormDataClient(category: string, formData: unknown): void {
 	if (!isDevelopmentClient()) {
 		return;
 	}
@@ -123,7 +90,7 @@ export function logFormDataClient(category: string, formData: Record<string, any
  * Validation state logging for debugging form validation
  * Only logs in development mode
  */
-export function logValidationState(category: string, state: Record<string, any>): void {
+export function logValidationState(category: string, state: Record<string, unknown>): void {
 	if (!isDevelopmentClient()) {
 		return;
 	}
@@ -138,7 +105,12 @@ export function logValidationState(category: string, state: Record<string, any>)
  * Component lifecycle logging
  * Only logs in development mode
  */
-export function logComponentLifecycle(category: string, component: string, action: 'mount' | 'unmount' | 'update', data?: any): void {
+export function logComponentLifecycle(
+	category: string,
+	component: string,
+	action: 'mount' | 'unmount' | 'update',
+	data?: unknown
+): void {
 	if (!isDevelopmentClient()) {
 		return;
 	}
@@ -155,7 +127,7 @@ export function logComponentLifecycle(category: string, component: string, actio
  * Form submission logging
  * Only logs in development mode
  */
-export function logFormSubmit(category: string, formName: string, data?: any): void {
+export function logFormSubmit(category: string, formName: string, data?: unknown): void {
 	if (!isDevelopmentClient()) {
 		return;
 	}

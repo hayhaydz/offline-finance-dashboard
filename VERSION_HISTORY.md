@@ -1,3 +1,39 @@
+## [2026-03-01 18:45] — Stability, DRY/Perf Refactors, Index Migration, and Homepage Goal Ordering Alignment
+
+**Summary:** Executed the audit remediation plan. Standardized post-login destination to `/`, fixed contract drift in auth tests, hardened invalid pagination handling, added exclusion-update no-op guard, removed N+1 query pattern in goals allocation calculations, deduplicated logging sanitization, added shared financial rollup utility, and added query-performance indexes with migration coverage tests. Homepage (`/`) goals now follows strict manual `sortOrder` (same behavior as `/goals`).
+
+**Files:**
+- `src/hooks.server.ts` — auth route redirect alignment to `/`
+- `src/routes/(auth)/login/+page.server.ts` — canonical post-login redirect constant usage
+- `src/routes/(auth)/mfa-setup/+page.server.ts` — redirect consistency updates
+- `src/routes/(auth)/dev-login/+page.server.ts` — redirect + seed command guidance update
+- `tests/integration/login.test.ts` — redirect expectation aligned to `/`
+- `src/routes/goals/+page.server.ts` — safe page parsing for invalid `?page=`; verbose debug log gating
+- `src/routes/+page.server.ts` — no-op guard for empty exclusion targets; verbose debug log gating; homepage goals ordered strictly by `sortOrder`
+- `src/lib/server/goals.ts` — shared open-asset loader + grouped allocation query (N+1 removed)
+- `src/lib/server/finance.ts` — shared net-worth rollup helper (new)
+- `src/lib/utils/snapshots.ts` — rollup logic migrated to shared helper
+- `src/lib/utils/log-sanitize.ts` — shared sensitive field masking utility (new)
+- `src/lib/utils/logger.ts` — sanitizer reuse + `isVerboseDebug()` toggle
+- `src/lib/utils/client-logger.ts` — sanitizer reuse
+- `src/lib/constants/routes.ts` — shared route constants (new)
+- `src/lib/components/ProgressBarVariants copy.svelte` — removed redundant copy
+- `README.md` — `seed:standard` command correction
+- `src/lib/db/schema.ts` — added hot-path index definitions
+- `src/lib/db/migrations/0001_query_performance_indexes.sql` — index migration (new)
+- `src/lib/db/migrations/meta/_journal.json` — migration journal update
+- `tests/integration/database.test.ts` — index existence assertions
+- `tests/integration/goals-page.test.ts` — invalid pagination regression test (new)
+- `docs/codebase-audit-report-2026-03-01.md` — audit report (new)
+- `docs/codebase-improvement-plan-2026-03-01.md` — execution plan/status (new)
+
+**Commit:**
+```
+chore: execute codebase audit remediation plan (stability, DRY, performance)
+```
+
+---
+
 ## [2026-03-01 17:51] — Stress Seed Bug Fixes, UI Hardening & UGC Truncation
 
 **Summary:** Stress seed revealed multiple issues with net worth calculations, exclusions modal, table layout, and overflowing user-generated content. Fixed sign-split accounting (negative asset balances reclassify as liabilities) across homepage, `/accounts`, and snapshots. Hardened all tables with horizontal scroll and JS-enforced character truncation. Applied truncation to every UGC rendering site across the app.

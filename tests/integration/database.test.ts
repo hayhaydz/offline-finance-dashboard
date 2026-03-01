@@ -72,6 +72,30 @@ describe('Database Integration & Migrations', () => {
 		expect(envRow?.[1]).toBe('test');
 	});
 
+	it('should create query performance indexes from migrations', async () => {
+		const { testDb } = await setupTestDb();
+
+		const result = await testDb.values(
+			sql`SELECT name FROM sqlite_master WHERE type='index' AND name NOT LIKE 'sqlite_%'`
+		);
+
+		const indexNames = result.map(row => row[0] as string);
+
+		const expectedIndexes = [
+			'idx_sessions_user_last_activity',
+			'idx_accounts_user_closed',
+			'idx_accounts_user_excluded_closed',
+			'idx_account_balances_account_asof',
+			'idx_goals_user_deleted_sort',
+			'idx_goal_allocations_goal',
+			'idx_goal_allocations_account'
+		];
+
+		for (const idx of expectedIndexes) {
+			expect(indexNames).toContain(idx);
+		}
+	});
+
 	it('should support basic CRUD operations using ORM', async () => {
 		const { testDb } = await setupTestDb();
 

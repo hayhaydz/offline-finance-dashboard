@@ -11,17 +11,17 @@ import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-
-/**
- * Sensitive field names that should be masked in logs
- */
-const SENSITIVE_FIELDS = ['password', 'totpSecret', 'backupCodes', 'token', 'secret', 'apiKey'];
+import { maskSensitiveData } from '$lib/utils/log-sanitize';
 
 /**
  * Check if the application is running in development mode
  */
 export function isDevelopment(): boolean {
 	return process.env.APP_ENV === 'development';
+}
+
+export function isVerboseDebug(): boolean {
+	return isDevelopment() && process.env.VERBOSE_DEBUG_LOGS === 'true';
 }
 
 /**
@@ -39,35 +39,6 @@ function ensureLogsDirectory(): void {
 	if (!existsSync(logsDir)) {
 		mkdirSync(logsDir, { recursive: true });
 	}
-}
-
-/**
- * Mask sensitive fields in an object
- */
-function maskSensitiveData(data: any): any {
-	if (!data || typeof data !== 'object') {
-		return data;
-	}
-
-	if (Array.isArray(data)) {
-		return data.map((item) => maskSensitiveData(item));
-	}
-
-	const masked: Record<string, any> = {};
-	for (const [key, value] of Object.entries(data)) {
-		const lowerKey = key.toLowerCase();
-		const isSensitive = SENSITIVE_FIELDS.some((field) => lowerKey.includes(field.toLowerCase()));
-
-		if (isSensitive) {
-			masked[key] = '[REDACTED]';
-		} else if (typeof value === 'object' && value !== null) {
-			masked[key] = maskSensitiveData(value);
-		} else {
-			masked[key] = value;
-		}
-	}
-
-	return masked;
 }
 
 /**
@@ -126,7 +97,7 @@ const logger = winston.createLogger({
  * Development-only logging
  * Only outputs in development mode, silently ignored in production
  */
-export function devLog(category: string, message: string, data?: any): void {
+export function devLog(category: string, message: string, data?: unknown): void {
 	if (!isDevelopment()) {
 		return;
 	}
@@ -159,7 +130,7 @@ export function devLog(category: string, message: string, data?: any): void {
  * Error logging (works in all environments)
  * In production, only logs category and message (no sensitive data)
  */
-export function logError(category: string, message: string, error?: any): void {
+export function logError(category: string, message: string, error?: unknown): void {
 	const timestamp = getTimestamp();
 	const prefix = `[ERROR] [${category}] ${message}`;
 
@@ -197,7 +168,7 @@ export function logError(category: string, message: string, error?: any): void {
  * Form data logging with automatic sensitive field masking
  * Only logs in development mode
  */
-export function logFormData(category: string, formData: Record<string, any>): void {
+export function logFormData(category: string, formData: unknown): void {
 	if (!isDevelopment()) {
 		return;
 	}

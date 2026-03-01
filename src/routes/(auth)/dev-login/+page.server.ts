@@ -2,6 +2,7 @@ import { redirect, error } from '@sveltejs/kit';
 import { db } from '$lib/db/client';
 import { users, sessions } from '$lib/db/schema';
 import { devLog, logError } from '$lib/utils/logger';
+import { HOME_ROUTE } from '$lib/constants/routes';
 import { eq } from 'drizzle-orm';
 import crypto from 'crypto';
 
@@ -23,7 +24,7 @@ export async function load({ cookies }) {
 
 	if (!adminUser) {
 		logError('devLogin', 'Admin user not found');
-		throw error(500, 'Admin user not found. Run npm run db:seed first.');
+		throw error(500, 'Admin user not found. Run npm run seed:standard first.');
 	}
 
 	// Create a session for the admin user
@@ -51,6 +52,6 @@ export async function load({ cookies }) {
 		sessionMaxAge: '30 days'
 	});
 
-	// Redirect to the accounts page
-	throw redirect(302, '/accounts');
+	// Redirect to the homepage
+	throw redirect(302, HOME_ROUTE);
 }

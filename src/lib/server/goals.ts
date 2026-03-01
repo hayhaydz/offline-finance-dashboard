@@ -1,10 +1,23 @@
-import { and, eq, isNull } from 'drizzle-orm';
+import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { db } from '$lib/db/client';
 import { goals, accounts, goalAllocations } from '$lib/db/schema';
 import { withUserFilter } from '$lib/auth/row-security';
 import { devLog } from '$lib/utils/logger';
-import type { Account } from '$lib/db/schema';
+
+async function getOpenAssetAccountsWithLatestBalances(userId: number) {
+	const userAccounts = await db.query.accounts.findMany({
+		where: and(withUserFilter(userId, accounts), eq(accounts.category, 'asset')),
+		with: {
+			balances: {
+				orderBy: (balances, { desc }) => desc(balances.asOfDate),
+				limit: 1
+			}
+		}
+	});
+
+	return userAccounts.filter((account) => !account.closedAt);
+}
 
 /**
  * Calculate Ready to Assign (unallocated assets)
@@ -23,19 +36,7 @@ export async function calculateReadyToAssign(params: {
 }> {
 	const { userId } = params;
 
-	// Fetch user's asset accounts with latest balances
-	const userAccounts = await db.query.accounts.findMany({
-		where: and(withUserFilter(userId, accounts), eq(accounts.category, 'asset')),
-		with: {
-			balances: {
-				orderBy: (balances, { desc }) => desc(balances.asOfDate),
-				limit: 1
-			}
-		}
-	});
-
-	// Filter to open asset accounts
-	const openAccounts = userAccounts.filter((a) => !a.closedAt);
+	const openAccounts = await getOpenAssetAccountsWithLatestBalances(userId);
 
 	// Calculate total assets
 	const totalAssets = openAccounts.reduce((sum, account) => {
@@ -72,50 +73,51 @@ export async function calculateReadyToAssign(params: {
  */
 export async function calculatePerAccountUnallocated(params: {
 	userId: number;
-}): Promise<Array<Account & { unallocated: number }>> {
+}): Promise<Array<(Awaited<ReturnType<typeof getOpenAssetAccountsWithLatestBalances>>[number]) & { unallocated: number }>> {
 	const { userId } = params;
 
-	// Fetch user's asset accounts with latest balances
-	const userAccounts = await db.query.accounts.findMany({
-		where: and(withUserFilter(userId, accounts), eq(accounts.category, 'asset')),
-		with: {
-			balances: {
-				orderBy: (balances, { desc }) => desc(balances.asOfDate),
-				limit: 1
-			}
+	const openAccounts = await getOpenAssetAccountsWithLatestBalances(userId);
+	const accountIds = openAccounts.map((account) => account.id);
+
+	if (accountIds.length === 0) {
+		return [];
+	}
+
+	// Sum all allocations for all accounts in one query (avoids N+1 round trips)
+	const allocationSums = await db
+		.select({
+			accountId: goalAllocations.accountId,
+			sum: sql<number>`coalesce(sum(abs(${goalAllocations.amount})), 0)`
+		})
+		.from(goalAllocations)
+		.where(inArray(goalAllocations.accountId, accountIds))
+		.groupBy(goalAllocations.accountId);
+
+	const allocatedByAccountId = new Map<number, number>();
+	for (const row of allocationSums) {
+		if (row.accountId !== null) {
+			allocatedByAccountId.set(row.accountId, row.sum ?? 0);
 		}
+	}
+
+	const accountsWithUnallocated = openAccounts.map((account) => {
+		const accountBalance = account.balances[0]?.balanceInCents || 0;
+		const totalAllocatedFromAccount = allocatedByAccountId.get(account.id) ?? 0;
+		const unallocated = Math.max(0, accountBalance - totalAllocatedFromAccount);
+
+		devLog('perAccountUnallocated', 'Calculated for account', {
+			accountId: account.id,
+			accountName: account.name,
+			accountBalance,
+			totalAllocatedFromAccount,
+			unallocated
+		});
+
+		return {
+			...account,
+			unallocated
+		};
 	});
-
-	// Filter to open accounts and calculate unallocated per account
-	const accountsWithUnallocated = await Promise.all(
-		userAccounts
-			.filter((account) => !account.closedAt)
-			.map(async (account) => {
-				const accountBalance = account.balances[0]?.balanceInCents || 0;
-
-				// Sum all allocations from this account (absolute values since ledger has signed amounts)
-				const allocations = await db
-					.select({ sum: sql<number>`sum(abs(${goalAllocations.amount}))` })
-					.from(goalAllocations)
-					.where(eq(goalAllocations.accountId, account.id));
-
-				const totalAllocatedFromAccount = allocations[0]?.sum || 0;
-				const unallocated = Math.max(0, accountBalance - totalAllocatedFromAccount);
-
-				devLog('perAccountUnallocated', 'Calculated for account', {
-					accountId: account.id,
-					accountName: account.name,
-					accountBalance,
-					totalAllocatedFromAccount,
-					unallocated
-				});
-
-				return {
-					...account,
-					unallocated
-				};
-			})
-	);
 
 	return accountsWithUnallocated.filter((a) => a.unallocated > 0);
 }

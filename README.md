@@ -32,7 +32,7 @@ npm install
 npm run db:push
 
 # 3. Seed test data (Creates 'admin' / 'password')
-npm run db:seed
+npm run seed:standard
 
 # 4. Start Dev Server
 npm run dev
