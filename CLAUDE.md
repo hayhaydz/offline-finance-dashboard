@@ -1,7 +1,7 @@
 ## 🛠️ OPS & GIT
 - **GIT:** MANUAL ONLY. No `git add/commit/push`. (Enforced by settings.json).
 - **SAVE POINTS:** Update `VERSION_HISTORY.md` (newest first) instead of committing.
-- **VERIFICATION:** Grep/Read files to verify changes BEFORE claiming completion.
+- **VERIFICATION:** Grep/Read files to verify changes BEFORE claiming completion. Keep to 1 line commits messages
 - **LOCKS:** `package.json` and `kit.csp` are READ-ONLY. Approval required.
 - **FILES:** Docs -> `docs/[topic]/`. Plans -> `.planning/`.
 
