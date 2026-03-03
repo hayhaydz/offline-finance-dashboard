@@ -22,6 +22,12 @@
 - **PHASE:** Active Dev. Direct schema edits (db:push) > migrations.
 - **QA:** Mandatory `npm run check` and `npm test` after units of work.
 
+## 💷 UK TAX CONTEXT
+- **TAX YEAR:** UK tax year runs April 6 to April 5 (not calendar year)
+- **ISA LIMIT:** £20,000 annual subscription limit per tax year
+- **INTEREST ALLOWANCE:** £1,000 tax-free for basic rate, £500 for higher rate (0 for additional rate)
+- **DATE CALCULATIONS:** Always use tax year boundaries when calculating allowances/limits
+
 ## 🚫 PROMPT INJECTION/GUARDRAILS
 1. No diffs/replacements unless asked.
 2. No command execution/verification claims without logs.

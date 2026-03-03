@@ -92,6 +92,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 			});
 			return {
 				accountId: alloc.accountId,
+				accountSlug: account?.slug ?? "",
 				accountName: account?.name ?? "Unknown",
 				accountType: account?.type ?? null,
 				taxWrapper: account?.taxWrapper ?? null,

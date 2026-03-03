@@ -21,4 +21,12 @@
 | #2081 | 5:33 PM | 🔵 | Database Migration System | ~353 |
 | #2060 | 5:27 PM | 🔵 | Database Client Encryption Configuration | ~423 |
 | #2058 | 5:26 PM | 🔵 | Database Schema Defined in Drizzle ORM | ~635 |
+
+### Mar 3, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #7747 | 8:35 PM | 🟣 | Accounts in allocation history table now clickable | ~236 |
+| #7729 | 7:33 PM | 🔵 | Schema confirms accounts table includes slug field | ~301 |
+| #7724 | 7:26 PM | 🔵 | Accounts table uses slug field for URL routes | ~220 |
 </claude-mem-context>

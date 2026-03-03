@@ -34,9 +34,9 @@
   function formatLiquidity(liquidity: string | null): string {
     if (!liquidity) return "";
     const liquidityMap: Record<string, string> = {
-      instant: "⚡ Instant",
-      delayed: "⏳ Delayed",
-      locked: "🔒 Locked",
+      instant: "Instant",
+      delayed: "Delayed",
+      locked: "Locked",
     };
     return liquidityMap[liquidity] ?? liquidity;
   }
@@ -101,7 +101,7 @@
         {#each data.accountAllocations as alloc}
           <tr class="border-b border-gray-200 last:border-0">
             <td class="pl-2 text-sm py-2">
-              <a href="/accounts/{alloc.accountId}" class="bracket-link">
+              <a href="/accounts/{alloc.accountSlug}" class="bracket-link">
                 {truncateDisplay(alloc.accountName, DISPLAY_LIMITS.ACCOUNT_NAME)}
               </a>
             </td>
@@ -135,7 +135,7 @@
   </div>
 {:else if data.goal.currentAllocation > 0}
   <div class="border-t border-black p-2 text-xs text-gray-600">
-    ⚠️ Allocation data missing — goal shows {formatCurrency(data.goal.currentAllocation)} but no source accounts found
+    Allocation data missing — goal shows {formatCurrency(data.goal.currentAllocation)} but no source accounts found
   </div>
 {/if}
 
@@ -189,20 +189,20 @@
       <div class="text-xs font-bold text-gray-600 mb-2">LIQUIDITY</div>
       <div class="space-y-1 text-xs">
         <div class="flex justify-between">
-          <span class="text-gray-600">⚡ Instant:</span>
+          <span class="text-gray-600">Instant:</span>
           <span>{data.liquidityBreakdown.instantPercent}%</span>
         </div>
         <div class="flex justify-between">
-          <span class="text-gray-600">⏳ Delayed:</span>
+          <span class="text-gray-600">Delayed:</span>
           <span>{data.liquidityBreakdown.delayedPercent}%</span>
         </div>
         <div class="flex justify-between">
-          <span class="text-gray-600">🔒 Locked:</span>
+          <span class="text-gray-600">Locked:</span>
           <span>{data.liquidityBreakdown.lockedPercent}%</span>
         </div>
         {#if data.liquidityBreakdown.hasLiquidityWarning}
           <div class="mt-2 p-1 bg-amber-100 border border-amber-400 text-amber-800">
-            ⚠️ {data.liquidityBreakdown.warningMessage}
+            {data.liquidityBreakdown.warningMessage}
           </div>
         {/if}
       </div>
@@ -216,7 +216,9 @@
           <span class="text-gray-600">Last add:</span>
           <span>
             {data.contributionStats.daysSinceLastContribution !== null
-              ? formatDays(data.contributionStats.daysSinceLastContribution) + " ago"
+              ? (data.contributionStats.daysSinceLastContribution === 0
+                  ? "Today"
+                  : formatDays(data.contributionStats.daysSinceLastContribution) + " ago")
               : "-"}
           </span>
         </div>
@@ -227,10 +229,6 @@
         <div class="flex justify-between">
           <span class="text-gray-600">Total withdraws:</span>
           <span>{data.contributionStats.totalWithdrawals}</span>
-        </div>
-        <div class="flex justify-between">
-          <span class="text-gray-600">Net added:</span>
-          <span>{formatCurrency(data.contributionStats.netContributedInCents)}</span>
         </div>
       </div>
     </div>
@@ -286,7 +284,9 @@
             </td>
             <td class="text-right pr-1 text-sm py-2">
               {#if allocation.account}
-                <span>{truncateDisplay(allocation.account.name, DISPLAY_LIMITS.ACCOUNT_NAME)}</span>
+                <a href="/accounts/{allocation.account.slug}" class="bracket-link">
+                  {truncateDisplay(allocation.account.name, DISPLAY_LIMITS.ACCOUNT_NAME)}
+                </a>
               {:else}
                 <span class="text-gray-500">-</span>
               {/if}

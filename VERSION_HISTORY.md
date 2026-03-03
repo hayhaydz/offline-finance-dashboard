@@ -1,3 +1,46 @@
+## [2026-03-03 19:45] — Goal Detail UI Fixes + Brainstorm: Transaction System Design
+
+**Summary:** Fixed UI bugs on goal detail page (clickable account links, "Today ago" fix, slug URLs). Added UK tax context to CLAUDE.md. Conducted brainstorming session for future transaction system covering interest tracking, ISA allowance, maturity dates, and deferred features (budgeting, salary calculator, D3 reports).
+
+**UI Fixes:**
+- Allocation history table: accounts now clickable with `bracket-link` style, using `account.slug`
+- SOURCE ACCOUNTS table: fixed to use `accountSlug` instead of numeric `accountId`
+- CONTRIBUTIONS section: "Today ago" → "Today" (no suffix for same-day), removed "Net added" row
+
+**UK Tax Context (CLAUDE.md):**
+- Tax year: April 6 to April 5
+- ISA allowance: £20,000/year
+- Interest tax-free allowance: £1,000 (basic), £500 (higher rate)
+
+**Brainstorming - Transaction System Design:**
+- New `accountTransactions` table with types: deposit, withdrawal, interest, dividend, value_change, transfer_in, transfer_out
+- New `interestRates` table for rate history and future rate changes
+- ISA allowance derived from deposit transactions on ISA accounts
+- Interest tracking: actual earned + projected based on current rate
+- Maturity dates on accounts for fixed terms/bonds
+
+**Files (UI Fixes):**
+- `src/routes/goals/[slug]/+page.svelte` — clickable accounts, "Today" fix, removed net added
+- `src/routes/goals/[slug]/+page.server.ts` — added `accountSlug` to accountAllocations
+- `CLAUDE.md` — added 💷 UK TAX CONTEXT section
+
+**Files (Design Docs):**
+- `docs/idea/2026-03-03-brainstorm-overview.md` — session summary
+- `docs/idea/transaction-system-interest-tracking.md` — core feature spec
+- `docs/idea/deferred-budget-spending-visualisation.md` — future: budgeting
+- `docs/idea/deferred-salary-tax-calculator.md` — future: take-home pay calc
+- `docs/idea/deferred-manual-d3-reports.md` — future: custom reports
+- `docs/idea/deferred-custom-data-store.md` — future: per-account KV store
+- `docs/plans/2026-03-03-transaction-system-design.md` — implementation design
+
+**Validation:**
+- `npm run check` → 0 errors / 0 warnings
+
+**Commit:**
+`fix: goal detail UI fixes and add transaction system design docs`
+
+---
+
 ## [2026-03-03 18:29] — Goal Detail: Complete Metrics Section
 
 **Summary:** Added a comprehensive 3-column METRICS section to goal detail page showing PACE (days remaining, required/actual monthly, projected completion), LIQUIDITY (instant/delayed/locked % with warnings), and CONTRIBUTIONS (last add, totals, net). Three pure calculation functions with 16 total tests.
