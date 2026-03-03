@@ -3,6 +3,7 @@ import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import type { Account } from "$lib/db/schema";
 import { accountBalances, accounts } from "$lib/db/schema";
+import { reduceAllocationsForNegativeBalance } from "$lib/server/goals";
 import { parseCurrency } from "$lib/utils/currency";
 import { devLog } from "$lib/utils/logger";
 
@@ -13,11 +14,18 @@ export interface BalanceEntryInput {
 	notes?: string | null;
 }
 
+export interface AllocationReduction {
+	goalId: number;
+	goalName: string;
+	reductionAmount: number;
+}
+
 export interface BalanceEntryResult {
 	type: "success";
 	success: string;
 	balanceSlug: string;
 	balanceInCents: number;
+	allocationsReduced?: AllocationReduction[];
 }
 
 export interface BalanceConflictResult {
@@ -132,6 +140,24 @@ export async function addBalanceEntry(
 		.set({ updatedAt: new Date() })
 		.where(eq(accounts.id, accountId));
 
+	// Check if we need to reduce allocations (balance went negative relative to allocations)
+	const allocationsReduced = await reduceAllocationsForNegativeBalance({
+		accountId,
+		newBalanceInCents: balanceInCents,
+	});
+
+	if (allocationsReduced.length > 0) {
+		devLog(
+			"addBalanceEntry",
+			"Allocations auto-reduced due to negative balance",
+			{
+				accountId,
+				balanceInCents,
+				reductions: allocationsReduced,
+			},
+		);
+	}
+
 	devLog("addBalanceEntry", "Balance entry created successfully", {
 		accountId,
 		balanceSlug,
@@ -141,8 +167,13 @@ export async function addBalanceEntry(
 
 	return {
 		type: "success",
-		success: "Balance entry added",
+		success:
+			allocationsReduced.length > 0
+				? `Balance entry added. ${allocationsReduced.length} goal(s) reduced.`
+				: "Balance entry added",
 		balanceSlug,
 		balanceInCents,
+		allocationsReduced:
+			allocationsReduced.length > 0 ? allocationsReduced : undefined,
 	};
 }

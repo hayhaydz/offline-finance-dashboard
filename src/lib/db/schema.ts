@@ -180,7 +180,7 @@ export const goalAllocations = sqliteTable(
 			.references(() => goals.id),
 		accountId: integer("account_id").references(() => accounts.id), // Nullable for returns to Ready to Assign pool
 		amount: integer("amount").notNull(), // Signed: + for adds, - for withdrawals
-		type: text("type").notNull(), // 'USER_ADD', 'USER_WITHDRAW', 'GOAL_DELETED'
+		type: text("type").notNull(), // 'USER_ADD', 'USER_WITHDRAW', 'GOAL_DELETED', 'AUTO_REDUCE_NEGATIVE_BALANCE'
 		allocationDate: integer("allocation_date", { mode: "timestamp" }).notNull(),
 		createdAt: integer("created_at", { mode: "timestamp" })
 			.notNull()

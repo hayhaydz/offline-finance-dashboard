@@ -51,7 +51,7 @@ body {
 
 /* Base table styles for terminal aesthetic */
 table {
-	@apply w-full border-collapse my-1 text-sm;
+	@apply w-full border-collapse m-0 text-sm;
 }
 
 th {

@@ -1,3 +1,87 @@
+## [2026-03-03 18:29] — Goal Detail: Complete Metrics Section
+
+**Summary:** Added a comprehensive 3-column METRICS section to goal detail page showing PACE (days remaining, required/actual monthly, projected completion), LIQUIDITY (instant/delayed/locked % with warnings), and CONTRIBUTIONS (last add, totals, net). Three pure calculation functions with 16 total tests.
+
+**Files:**
+- `src/lib/server/goals.ts` — added `calculatePaceMetrics`, `calculateLiquidityBreakdown`, `calculateContributionStats` functions with interfaces
+- `src/routes/goals/[slug]/+page.server.ts` — integrated metrics calculations, added unpaginated allocation history fetch
+- `src/routes/goals/[slug]/+page.svelte` — added METRICS section with 3-column grid, formatDays/getOnTrackClass helpers
+- `tests/unit/goals-metrics.test.ts` — 16 tests for all three metric functions
+
+**PACE column:**
+- Days left (until target date)
+- Amount remaining to goal
+- Required/month to hit target
+- Actual/month average savings rate
+- Projected completion date (color-coded: green=on track, amber=behind)
+
+**LIQUIDITY column:**
+- Instant/Delayed/Locked percentages
+- Warning when goal is urgent (≤30 days) but funds are locked
+
+**CONTRIBUTIONS column:**
+- Days since last contribution
+- Total adds/withdraws count
+- Net contributed amount
+
+**Validation:**
+- `npm run check` → 0 errors / 0 warnings
+- `npm run lint:biome` → clean
+- `npm run test:run` → 16 new tests pass (94 total, 6 pre-existing timeouts unrelated)
+
+**Commit:**
+`feat: add comprehensive metrics section to goal detail page`
+
+---
+
+## [2026-03-03 17:45] — Goal Detail: Account Allocation Breakdown
+
+**Summary:** Added a "Source Accounts" section to the goal detail page showing which accounts fund each goal, with allocation amounts, percentages, account types, tax wrappers (ISA/LISA), and liquidity status.
+
+**Files:**
+- `src/routes/goals/[slug]/+page.server.ts` — added `accountAllocations` data fetching with account details (type, taxWrapper, liquidity)
+- `src/routes/goals/[slug]/+page.svelte` — new SOURCE ACCOUNTS table with linked account names, amounts, percentages, type/tax/access columns; added display for `AUTO_REDUCE_NEGATIVE_BALANCE` allocation type
+
+**Columns displayed:**
+- Account name (linked to account detail)
+- Amount allocated
+- Percentage of total goal
+- Account type (Current/Savings/Investment/etc.)
+- Tax wrapper (ISA/LISA highlighted in amber)
+- Liquidity (⚡Instant / ⏳Delayed / 🔒Locked)
+
+**Validation:**
+- `npm run check` → 0 errors / 0 warnings
+
+**Commit:**
+`feat: add account allocation breakdown to goal detail page`
+
+---
+
+## [2026-03-03 17:30] — Auto-Reduce Goal Allocations on Negative Balance
+
+**Summary:** When an account balance entry would make the account negative relative to its goal allocations, the system now automatically and proportionally reduces those allocations. This prevents the data integrity issue where goals show money allocated that doesn't exist in source accounts.
+
+**Files:**
+- `src/lib/server/goals.ts` — added `getAccountGoalAllocations()` and `reduceAllocationsForNegativeBalance()` functions for proportional reduction logic
+- `src/lib/utils/balances.ts` — integrated auto-reduction call after balance entry insertion, extended return type with `allocationsReduced` info
+- `src/lib/db/schema.ts` — documented new allocation type `AUTO_REDUCE_NEGATIVE_BALANCE`
+
+**Behavior:**
+- After inserting a balance, check if `balanceInCents < totalAllocatedFromAccount`
+- If so, reduce all goal allocations from this account proportionally
+- Create negative allocation records with type `AUTO_REDUCE_NEGATIVE_BALANCE`
+- Update each affected goal's `currentAllocation`
+- Return reduction details in success response
+
+**Validation:**
+- `npm run check` → 0 errors / 0 warnings
+
+**Commit:**
+`feat: auto-reduce goal allocations when account balance goes negative`
+
+---
+
 ## [2026-03-01 21:10] — Withdraw UI Matches Add Flow
 
 **Summary:** Replaced `/goals/[slug]/withdraw` with the same accordion-per-account terminal UI as the locked add flow, and updated the server action to accept the shared `rows_json` payload (with legacy fallback) so withdrawals honor per-account amounts and update allocations atomically just like adds.

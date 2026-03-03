@@ -5,6 +5,9 @@ import { db } from "$lib/db/client";
 import type { Account } from "$lib/db/schema";
 import { accounts, goalAllocations, goals } from "$lib/db/schema";
 import {
+	calculateContributionStats,
+	calculateLiquidityBreakdown,
+	calculatePaceMetrics,
 	calculatePerAccountUnallocated,
 	calculateReadyToAssign,
 	distributeWithdrawalAcrossAccounts,
@@ -64,6 +67,41 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		},
 	});
 
+	// Fetch ALL allocation history for metrics calculation (not paginated)
+	const allAllocationHistory = await db.query.goalAllocations.findMany({
+		where: eq(goalAllocations.goalId, goal.id),
+		orderBy: desc(goalAllocations.createdAt),
+	});
+
+	// Fetch account allocation breakdown for this goal (with account details)
+	const accountAllocationsRaw = await getGoalAccountNetAllocations({
+		goalId: goal.id,
+	});
+
+	// Enrich with account details
+	const accountAllocations = await Promise.all(
+		accountAllocationsRaw.map(async (alloc) => {
+			const account = await db.query.accounts.findFirst({
+				where: eq(accounts.id, alloc.accountId),
+				with: {
+					balances: {
+						orderBy: (balances, { desc }) => desc(balances.asOfDate),
+						limit: 1,
+					},
+				},
+			});
+			return {
+				accountId: alloc.accountId,
+				accountName: account?.name ?? "Unknown",
+				accountType: account?.type ?? null,
+				taxWrapper: account?.taxWrapper ?? null,
+				liquidity: account?.liquidity ?? null,
+				netAllocated: alloc.netAllocated,
+				currentBalance: account?.balances[0]?.balanceInCents ?? 0,
+			};
+		}),
+	);
+
 	// Fetch user's asset accounts with unallocated balances (for add money form)
 	const accountsWithUnallocated = (await calculatePerAccountUnallocated({
 		userId: locals.user.id,
@@ -73,6 +111,32 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const { readyToAssign, totalAssets } = await calculateReadyToAssign({
 		userId: locals.user.id,
 	});
+
+	// Calculate contribution stats
+	const contributionStats = calculateContributionStats(
+		allAllocationHistory.map((a) => ({
+			amount: a.amount,
+			createdAt: a.createdAt,
+			type: a.type,
+		})),
+	);
+
+	// Calculate pace metrics
+	const paceMetrics = calculatePaceMetrics({
+		targetAmountInCents: goal.targetAmountInCents,
+		currentAllocationInCents: goal.currentAllocation,
+		targetDate: goal.targetDate,
+		firstContributionDate: contributionStats.firstContributionDate,
+	});
+
+	// Calculate liquidity breakdown
+	const liquidityBreakdown = calculateLiquidityBreakdown(
+		accountAllocations.map((a) => ({
+			netAllocated: a.netAllocated,
+			liquidity: a.liquidity,
+		})),
+		goal.targetDate,
+	);
 
 	devLog("goalsDetail", "Loaded goal detail page", {
 		goalId: goal.id,
@@ -85,6 +149,10 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		allocationHistory,
 		allocPage: safeAllocPage,
 		allocTotalPages,
+		accountAllocations,
+		paceMetrics,
+		liquidityBreakdown,
+		contributionStats,
 		accounts: accountsWithUnallocated,
 		totalAssets,
 		readyToAssign,

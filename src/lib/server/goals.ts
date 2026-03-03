@@ -4,6 +4,287 @@ import { db } from "$lib/db/client";
 import { accounts, goalAllocations, goals } from "$lib/db/schema";
 import { devLog } from "$lib/utils/logger";
 
+// Type for account allocation with liquidity info
+export interface AccountAllocationWithLiquidity {
+	netAllocated: number;
+	liquidity: string | null;
+}
+
+export interface LiquidityBreakdown {
+	instantPercent: number;
+	delayedPercent: number;
+	lockedPercent: number;
+	totalAllocatedInCents: number;
+	hasLiquidityWarning: boolean;
+	warningMessage: string | null;
+}
+
+// Days threshold for "urgent" goal (locked funds warning)
+const URGENT_DAYS_THRESHOLD = 30;
+
+/**
+ * Calculate liquidity breakdown for goal allocations.
+ * Warns if goal is urgent but funds are locked/delayed.
+ */
+export function calculateLiquidityBreakdown(
+	accountAllocations: AccountAllocationWithLiquidity[],
+	targetDate: Date | null = null,
+): LiquidityBreakdown {
+	const totalAllocatedInCents = accountAllocations.reduce(
+		(sum, a) => sum + a.netAllocated,
+		0,
+	);
+
+	if (totalAllocatedInCents === 0 || accountAllocations.length === 0) {
+		return {
+			instantPercent: 0,
+			delayedPercent: 0,
+			lockedPercent: 0,
+			totalAllocatedInCents: 0,
+			hasLiquidityWarning: false,
+			warningMessage: null,
+		};
+	}
+
+	// Sum by liquidity type (treat null as instant)
+	let instantTotal = 0;
+	let delayedTotal = 0;
+	let lockedTotal = 0;
+
+	for (const alloc of accountAllocations) {
+		const liquidity = alloc.liquidity ?? "instant";
+		if (liquidity === "instant") {
+			instantTotal += alloc.netAllocated;
+		} else if (liquidity === "delayed") {
+			delayedTotal += alloc.netAllocated;
+		} else if (liquidity === "locked") {
+			lockedTotal += alloc.netAllocated;
+		}
+	}
+
+	const instantPercent = Math.round(
+		(instantTotal / totalAllocatedInCents) * 100,
+	);
+	const delayedPercent = Math.round(
+		(delayedTotal / totalAllocatedInCents) * 100,
+	);
+	const lockedPercent = Math.round((lockedTotal / totalAllocatedInCents) * 100);
+
+	// Check for liquidity warning
+	let hasLiquidityWarning = false;
+	let warningMessage: string | null = null;
+
+	if (targetDate) {
+		const now = new Date();
+		const daysUntilTarget = Math.ceil(
+			(new Date(targetDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+		);
+
+		if (daysUntilTarget <= URGENT_DAYS_THRESHOLD && daysUntilTarget > 0) {
+			if (lockedPercent > 0) {
+				hasLiquidityWarning = true;
+				warningMessage = `${lockedPercent}% of funds are locked but target date is only ${daysUntilTarget} days away`;
+			} else if (delayedPercent > 50) {
+				hasLiquidityWarning = true;
+				warningMessage = `${delayedPercent}% of funds have delayed access - may not be available by target date`;
+			}
+		}
+	}
+
+	return {
+		instantPercent,
+		delayedPercent,
+		lockedPercent,
+		totalAllocatedInCents,
+		hasLiquidityWarning,
+		warningMessage,
+	};
+}
+
+// Type for pace metrics result
+export interface PaceMetrics {
+	daysRemaining: number | null;
+	amountRemainingInCents: number;
+	requiredMonthlyInCents: number | null;
+	actualMonthlyAvgInCents: number;
+	projectedCompletionDate: Date | null;
+	onTrack: boolean | null; // true if projected <= target
+}
+
+// Type for allocation history entry (minimal for calculations)
+export interface AllocationHistoryEntry {
+	amount: number;
+	createdAt: Date;
+	type: string;
+}
+
+export interface ContributionStats {
+	daysSinceLastContribution: number | null;
+	totalContributions: number;
+	totalWithdrawals: number;
+	netContributedInCents: number;
+	firstContributionDate: Date | null;
+	lastContributionDate: Date | null;
+}
+
+/**
+ * Calculate contribution statistics from allocation history.
+ */
+export function calculateContributionStats(
+	allocationHistory: AllocationHistoryEntry[],
+): ContributionStats {
+	if (allocationHistory.length === 0) {
+		return {
+			daysSinceLastContribution: null,
+			totalContributions: 0,
+			totalWithdrawals: 0,
+			netContributedInCents: 0,
+			firstContributionDate: null,
+			lastContributionDate: null,
+		};
+	}
+
+	// Sort by date ascending
+	const sorted = [...allocationHistory].sort(
+		(a, b) => a.createdAt.getTime() - b.createdAt.getTime(),
+	);
+
+	let totalContributions = 0;
+	let totalWithdrawals = 0;
+	let netContributedInCents = 0;
+	let firstContributionDate: Date | null = null;
+	let lastContributionDate: Date | null = null;
+
+	for (const entry of sorted) {
+		if (entry.type === "USER_ADD" && entry.amount > 0) {
+			totalContributions++;
+			netContributedInCents += entry.amount;
+
+			if (!firstContributionDate) {
+				firstContributionDate = entry.createdAt;
+			}
+			lastContributionDate = entry.createdAt;
+		} else if (
+			entry.type === "USER_WITHDRAW" ||
+			entry.type === "AUTO_REDUCE_NEGATIVE_BALANCE" ||
+			entry.amount < 0
+		) {
+			totalWithdrawals++;
+			netContributedInCents += entry.amount; // amount is already negative
+		}
+	}
+
+	// Calculate days since last contribution
+	let daysSinceLastContribution: number | null = null;
+	if (lastContributionDate) {
+		const now = new Date();
+		now.setHours(0, 0, 0, 0);
+		const last = new Date(lastContributionDate);
+		last.setHours(0, 0, 0, 0);
+		daysSinceLastContribution = Math.floor(
+			(now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24),
+		);
+	}
+
+	return {
+		daysSinceLastContribution,
+		totalContributions,
+		totalWithdrawals,
+		netContributedInCents,
+		firstContributionDate,
+		lastContributionDate,
+	};
+}
+
+/**
+ * Calculate pace metrics for a goal.
+ * Determines if the user is on track to meet their target date.
+ */
+export function calculatePaceMetrics(params: {
+	targetAmountInCents: number;
+	currentAllocationInCents: number;
+	targetDate: Date | null;
+	firstContributionDate?: Date | null;
+}): PaceMetrics {
+	const {
+		targetAmountInCents,
+		currentAllocationInCents,
+		targetDate,
+		firstContributionDate,
+	} = params;
+
+	const amountRemainingInCents = Math.max(
+		0,
+		targetAmountInCents - currentAllocationInCents,
+	);
+
+	// Calculate days remaining
+	let daysRemaining: number | null = null;
+	let requiredMonthlyInCents: number | null = null;
+
+	if (targetDate) {
+		const now = new Date();
+		now.setHours(0, 0, 0, 0);
+		const target = new Date(targetDate);
+		target.setHours(0, 0, 0, 0);
+
+		const diffMs = target.getTime() - now.getTime();
+		daysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+
+		// Required monthly = remaining / months remaining
+		if (daysRemaining > 0) {
+			const monthsRemaining = daysRemaining / 30;
+			requiredMonthlyInCents = Math.ceil(
+				amountRemainingInCents / monthsRemaining,
+			);
+		} else {
+			requiredMonthlyInCents = amountRemainingInCents; // Already past due
+		}
+	}
+
+	// Calculate actual monthly average
+	let actualMonthlyAvgInCents = 0;
+	let projectedCompletionDate: Date | null = null;
+
+	if (firstContributionDate && currentAllocationInCents > 0) {
+		const now = new Date();
+		const first = new Date(firstContributionDate);
+		const monthsSinceFirst = Math.max(
+			1,
+			(now.getTime() - first.getTime()) / (30 * 24 * 60 * 60 * 1000),
+		);
+		actualMonthlyAvgInCents = Math.round(
+			currentAllocationInCents / monthsSinceFirst,
+		);
+
+		// Project completion date
+		if (actualMonthlyAvgInCents > 0 && amountRemainingInCents > 0) {
+			const monthsUntilComplete =
+				amountRemainingInCents / actualMonthlyAvgInCents;
+			projectedCompletionDate = new Date(
+				now.getTime() + monthsUntilComplete * 30 * 24 * 60 * 60 * 1000,
+			);
+		} else if (amountRemainingInCents === 0) {
+			projectedCompletionDate = now; // Already complete
+		}
+	}
+
+	// Determine if on track
+	let onTrack: boolean | null = null;
+	if (targetDate && projectedCompletionDate) {
+		onTrack = projectedCompletionDate <= targetDate;
+	}
+
+	return {
+		daysRemaining,
+		amountRemainingInCents,
+		requiredMonthlyInCents,
+		actualMonthlyAvgInCents,
+		projectedCompletionDate,
+		onTrack,
+	};
+}
+
 async function getOpenAssetAccountsWithLatestBalances(userId: number) {
 	const userAccounts = await db.query.accounts.findMany({
 		where: and(
@@ -160,6 +441,169 @@ export async function getGoalAccountNetAllocations(params: {
 			netAllocated: row.netAllocated ?? 0,
 		}))
 		.filter((row) => row.netAllocated > 0);
+}
+
+/**
+ * Get all allocations FROM a specific account, grouped by goal.
+ * Used for auto-reducing allocations when account balance goes negative.
+ */
+export async function getAccountGoalAllocations(params: {
+	accountId: number;
+}): Promise<Array<{ goalId: number; netAllocated: number }>> {
+	const rows = await db
+		.select({
+			goalId: goalAllocations.goalId,
+			netAllocated: sql<number>`coalesce(sum(${goalAllocations.amount}), 0)`,
+		})
+		.from(goalAllocations)
+		.where(eq(goalAllocations.accountId, params.accountId))
+		.groupBy(goalAllocations.goalId);
+
+	return rows
+		.filter((row) => row.netAllocated > 0)
+		.map((row) => ({
+			goalId: row.goalId,
+			netAllocated: row.netAllocated ?? 0,
+		}));
+}
+
+/**
+ * Reduce goal allocations proportionally when account balance goes negative.
+ * Creates negative allocation records and updates goal currentAllocation.
+ */
+export async function reduceAllocationsForNegativeBalance(params: {
+	accountId: number;
+	newBalanceInCents: number;
+}): Promise<
+	Array<{ goalId: number; goalName: string; reductionAmount: number }>
+> {
+	const { accountId, newBalanceInCents } = params;
+
+	// Get all allocations from this account
+	const allocations = await getAccountGoalAllocations({ accountId });
+
+	if (allocations.length === 0) {
+		return [];
+	}
+
+	const totalAllocated = allocations.reduce(
+		(sum, a) => sum + a.netAllocated,
+		0,
+	);
+
+	// Calculate new max allocation (0 if balance is negative)
+	const maxAllocatable = Math.max(0, newBalanceInCents);
+
+	// If we have more allocated than the account can support
+	if (totalAllocated <= maxAllocatable) {
+		return []; // No reduction needed
+	}
+
+	const reductionNeeded = totalAllocated - maxAllocatable;
+
+	devLog("reduceAllocations", "Reducing allocations due to negative balance", {
+		accountId,
+		newBalance: newBalanceInCents,
+		totalAllocated,
+		maxAllocatable,
+		reductionNeeded,
+		goalsAffected: allocations.length,
+	});
+
+	// Calculate proportional reductions
+	const reductions: Array<{ goalId: number; reductionAmount: number }> = [];
+	let assigned = 0;
+
+	// Sort by allocation amount descending (reduce larger allocations first for cleaner cents distribution)
+	const sortedAllocations = [...allocations].sort(
+		(a, b) => b.netAllocated - a.netAllocated,
+	);
+
+	for (let i = 0; i < sortedAllocations.length; i++) {
+		const allocation = sortedAllocations[i];
+		const proportion = allocation.netAllocated / totalAllocated;
+		let reduction = Math.round(proportion * reductionNeeded);
+
+		// For the last item, assign remainder to ensure exact total
+		if (i === sortedAllocations.length - 1) {
+			reduction = reductionNeeded - assigned;
+		}
+
+		// Don't reduce more than the allocation
+		reduction = Math.min(reduction, allocation.netAllocated);
+
+		if (reduction > 0) {
+			reductions.push({
+				goalId: allocation.goalId,
+				reductionAmount: reduction,
+			});
+			assigned += reduction;
+		}
+	}
+
+	// Pre-fetch goal data needed for the transaction (names, current allocations)
+	const goalIds = reductions.map((r) => r.goalId);
+	const goalsData = await db
+		.select({
+			id: goals.id,
+			name: goals.name,
+			currentAllocation: goals.currentAllocation,
+		})
+		.from(goals)
+		.where(inArray(goals.id, goalIds));
+
+	const goalMap = new Map(goalsData.map((g) => [g.id, g]));
+
+	const results: Array<{
+		goalId: number;
+		goalName: string;
+		reductionAmount: number;
+	}> = [];
+
+	// Apply reductions in a sync transaction (better-sqlite3 requires sync callback)
+	db.transaction((tx) => {
+		for (const reduction of reductions) {
+			const goal = goalMap.get(reduction.goalId);
+			if (!goal) continue;
+
+			// Create negative allocation record
+			tx.insert(goalAllocations)
+				.values({
+					goalId: reduction.goalId,
+					accountId,
+					amount: -reduction.reductionAmount,
+					type: "AUTO_REDUCE_NEGATIVE_BALANCE",
+					allocationDate: new Date(),
+					createdAt: new Date(),
+				})
+				.run();
+
+			// Update goal's currentAllocation
+			const newAllocation = Math.max(
+				0,
+				goal.currentAllocation - reduction.reductionAmount,
+			);
+			tx.update(goals)
+				.set({ currentAllocation: newAllocation, updatedAt: new Date() })
+				.where(eq(goals.id, reduction.goalId))
+				.run();
+
+			results.push({
+				goalId: reduction.goalId,
+				goalName: goal.name,
+				reductionAmount: reduction.reductionAmount,
+			});
+
+			devLog("reduceAllocations", "Reduced goal allocation", {
+				goalId: reduction.goalId,
+				goalName: goal.name,
+				reductionAmount: reduction.reductionAmount,
+				newGoalAllocation: newAllocation,
+			});
+		}
+	});
+
+	return results;
 }
 
 export function distributeWithdrawalAcrossAccounts(params: {
