@@ -42,6 +42,25 @@ interface SnapshotFixture {
 	notes: string | null;
 }
 
+interface TransactionFixture {
+	accountName: string;
+	transactions: Array<{
+		type: (typeof schema.accountTransactions.$inferInsert)["type"];
+		amount: number;
+		daysAgo: number;
+		description: string | null;
+	}>;
+}
+
+interface InterestRateFixture {
+	accountName: string;
+	rates: Array<{
+		rate: number;
+		daysAgo: number;
+		description: string | null;
+	}>;
+}
+
 export async function seedStandard(db: DB, userId: number): Promise<void> {
 	console.log("\n🌱 [standard] Starting seed...");
 	await wipeUserData(db, userId);
@@ -49,6 +68,8 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 	const accounts = loadFixture<AccountFixture[]>("standard/accounts.json");
 	const goals = loadFixture<GoalFixture[]>("standard/goals.json");
 	const snapshots = loadFixture<SnapshotFixture[]>("standard/snapshots.json");
+	const transactions = loadFixture<TransactionFixture[]>("standard/transactions.json");
+	const interestRates = loadFixture<InterestRateFixture[]>("standard/interest_rates.json");
 
 	// --- Accounts ---
 	console.log("\n📊 Creating accounts...");
@@ -138,6 +159,57 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 		console.log(`  ✓ ${g.name} (${pct}%)`);
 	}
 
+	// --- Transactions ---
+	console.log("\n💸 Creating transactions...");
+	let totalTransactions = 0;
+
+	for (const t of transactions) {
+		const account = accountByName.get(t.accountName);
+		if (!account) {
+			console.log(`  ⚠ Account "${t.accountName}" not found, skipping transactions`);
+			continue;
+		}
+
+		for (const tx of t.transactions) {
+			await db.insert(schema.accountTransactions).values({
+				slug: slug(),
+				accountId: account.id,
+				type: tx.type,
+				amount: tx.amount,
+				description: tx.description,
+				transactionDate: daysAgo(tx.daysAgo),
+				createdAt: new Date(),
+			});
+			totalTransactions++;
+		}
+
+		console.log(`  ✓ ${t.accountName} (${t.transactions.length} transactions)`);
+	}
+
+	// --- Interest Rates ---
+	console.log("\n📈 Creating interest rates...");
+	let totalRates = 0;
+
+	for (const r of interestRates) {
+		const account = accountByName.get(r.accountName);
+		if (!account) {
+			console.log(`  ⚠ Account "${r.accountName}" not found, skipping rates`);
+			continue;
+		}
+
+		for (const rate of r.rates) {
+			await db.insert(schema.interestRates).values({
+				accountId: account.id,
+				rate: rate.rate,
+				effectiveFrom: daysAgo(rate.daysAgo),
+				createdAt: new Date(),
+			});
+			totalRates++;
+		}
+
+		console.log(`  ✓ ${r.accountName} (${r.rates.length} rates)`);
+	}
+
 	// --- Snapshots ---
 	console.log("\n📸 Creating snapshots...");
 
@@ -156,7 +228,7 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 
 	console.log("\n✅ [standard] Seed complete!");
 	console.log(
-		`   ${accounts.length} accounts | ${goals.length} goals | ${snapshots.length} snapshots`,
+		`   ${accounts.length} accounts | ${goals.length} goals | ${totalTransactions} transactions | ${totalRates} rates | ${snapshots.length} snapshots`,
 	);
 	console.log(`   Net worth (latest balances): ${netWorth}`);
 }

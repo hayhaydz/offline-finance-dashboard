@@ -1,0 +1,73 @@
+[
+  {
+    "accountName": "Emergency Fund",
+    "transactions": [
+      { "type": "deposit", "amount": 1500000, "daysAgo": 365, "description": "Initial emergency fund deposit" },
+      { "type": "interest", "amount": 3125, "daysAgo": 335, "description": "Monthly interest" },
+      { "type": "interest", "amount": 3156, "daysAgo": 305, "description": "Monthly interest" },
+      { "type": "interest", "amount": 3187, "daysAgo": 275, "description": "Monthly interest" },
+      { "type": "deposit", "amount": 100000, "daysAgo": 180, "description": "Monthly contribution" },
+      { "type": "interest", "amount": 3438, "daysAgo": 150, "description": "Monthly interest" },
+      { "type": "interest", "amount": 3469, "daysAgo": 120, "description": "Monthly interest" },
+      { "type": "interest", "amount": 3500, "daysAgo": 90, "description": "Monthly interest" },
+      { "type": "interest", "amount": 3531, "daysAgo": 60, "description": "Monthly interest" },
+      { "type": "interest", "amount": 3563, "daysAgo": 30, "description": "Monthly interest" },
+      { "type": "interest", "amount": 2828, "daysAgo": 0, "description": "Current month interest" }
+    ]
+  },
+  {
+    "accountName": "ISA Saver",
+    "transactions": [
+      { "type": "deposit", "amount": 820000, "daysAgo": 365, "description": "ISA opening deposit (tax year 2025/26)" },
+      { "type": "interest", "amount": 1708, "daysAgo": 335, "description": "Monthly interest" },
+      { "type": "interest", "amount": 1714, "daysAgo": 305, "description": "Monthly interest" },
+      { "type": "deposit", "amount": 100000, "daysAgo": 270, "description": "ISA contribution" },
+      { "type": "interest", "amount": 1929, "daysAgo": 275, "description": "Monthly interest" },
+      { "type": "interest", "amount": 1935, "daysAgo": 245, "description": "Monthly interest" },
+      { "type": "interest", "amount": 1942, "daysAgo": 215, "description": "Monthly interest" },
+      { "type": "deposit", "amount": 50000, "daysAgo": 180, "description": "ISA contribution" },
+      { "type": "interest", "amount": 2048, "daysAgo": 185, "description": "Monthly interest" },
+      { "type": "interest", "amount": 2054, "daysAgo": 155, "description": "Monthly interest" },
+      { "type": "interest", "amount": 2060, "daysAgo": 125, "description": "Monthly interest" },
+      { "type": "deposit", "amount": 50000, "daysAgo": 90, "description": "ISA contribution" },
+      { "type": "interest", "amount": 2375, "daysAgo": 95, "description": "Monthly interest" },
+      { "type": "interest", "amount": 2381, "daysAgo": 65, "description": "Monthly interest" },
+      { "type": "interest", "amount": 2388, "daysAgo": 35, "description": "Monthly interest" },
+      { "type": "interest", "amount": 2394, "daysAgo": 5, "description": "Monthly interest" }
+    ]
+  },
+  {
+    "accountName": "Stocks & Shares ISA",
+    "transactions": [
+      { "type": "deposit", "amount": 2500000, "daysAgo": 365, "description": "Initial investment" },
+      { "type": "value_change", "amount": 125000, "daysAgo": 270, "description": "Market growth Q1" },
+      { "type": "dividend", "amount": 3750, "daysAgo": 180, "description": "Dividend reinvested" },
+      { "type": "value_change", "amount": 146250, "daysAgo": 90, "description": "Market growth Q2" },
+      { "type": "value_change", "amount": 150000, "daysAgo": 0, "description": "Market growth Q3" }
+    ]
+  },
+  {
+    "accountName": "Main Current",
+    "transactions": [
+      { "type": "deposit", "amount": 350000, "daysAgo": 60, "description": "Salary" },
+      { "type": "withdrawal", "amount": -45000, "daysAgo": 58, "description": "Rent payment" },
+      { "type": "withdrawal", "amount": -15000, "daysAgo": 55, "description": "Groceries" },
+      { "type": "deposit", "amount": 350000, "daysAgo": 30, "description": "Salary" },
+      { "type": "withdrawal", "amount": -45000, "daysAgo": 28, "description": "Rent payment" },
+      { "type": "transfer_out", "amount": -50000, "daysAgo": 25, "description": "Transfer to Bills Current" },
+      { "type": "withdrawal", "amount": -12000, "daysAgo": 20, "description": "Groceries" },
+      { "type": "withdrawal", "amount": -8000, "daysAgo": 15, "description": "Utilities" },
+      { "type": "deposit", "amount": 350000, "daysAgo": 0, "description": "Salary" }
+    ]
+  },
+  {
+    "accountName": "Bills Current",
+    "transactions": [
+      { "type": "transfer_in", "amount": 50000, "daysAgo": 25, "description": "Transfer from Main Current" },
+      { "type": "withdrawal", "amount": -8500, "daysAgo": 20, "description": "Council tax" },
+      { "type": "withdrawal", "amount": -12000, "daysAgo": 18, "description": "Energy bill" },
+      { "type": "withdrawal", "amount": -3500, "daysAgo": 15, "description": "Water bill" },
+      { "type": "withdrawal", "amount": -4500, "daysAgo": 10, "description": "Internet" }
+    ]
+  }
+]

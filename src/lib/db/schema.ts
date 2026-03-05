@@ -92,6 +92,7 @@ export const accounts = sqliteTable(
 			.notNull()
 			.default(false),
 		closedAt: integer("closed_at", { mode: "timestamp" }), // Soft-delete - NULL means open
+		maturityDate: integer("maturity_date", { mode: "timestamp" }), // For fixed terms/bonds
 		createdAt: integer("created_at", { mode: "timestamp" })
 			.notNull()
 			.default(sql`CURRENT_TIMESTAMP`),
@@ -134,6 +135,63 @@ export const accountBalances = sqliteTable(
 		accountAsOfDateIdx: index("idx_account_balances_account_asof").on(
 			table.accountId,
 			table.asOfDate,
+		),
+	}),
+);
+
+export const accountTransactions = sqliteTable(
+	"account_transactions",
+	{
+		id: integer("id").primaryKey({ autoIncrement: true }),
+		slug: text("slug").notNull().unique(),
+		accountId: integer("account_id")
+			.notNull()
+			.references(() => accounts.id),
+		type: text("type", {
+			enum: [
+				"deposit",
+				"withdrawal",
+				"interest",
+				"dividend",
+				"value_change",
+				"transfer_in",
+				"transfer_out",
+			],
+		}).notNull(),
+		amount: integer("amount").notNull(), // Signed cents: + for additions, - for deductions
+		category: text("category"), // Nullable, for future budgeting
+		description: text("description"),
+		transactionDate: integer("transaction_date", { mode: "timestamp" }).notNull(),
+		createdAt: integer("created_at", { mode: "timestamp" })
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+	},
+	(table) => ({
+		accountDateIdx: index("idx_account_transactions_account_date").on(
+			table.accountId,
+			table.transactionDate,
+		),
+		typeIdx: index("idx_account_transactions_type").on(table.type),
+	}),
+);
+
+export const interestRates = sqliteTable(
+	"interest_rates",
+	{
+		id: integer("id").primaryKey({ autoIncrement: true }),
+		accountId: integer("account_id")
+			.notNull()
+			.references(() => accounts.id),
+		rate: integer("rate").notNull(), // Basis points (e.g., 450 = 4.50%)
+		effectiveFrom: integer("effective_from", { mode: "timestamp" }).notNull(),
+		createdAt: integer("created_at", { mode: "timestamp" })
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+	},
+	(table) => ({
+		accountEffectiveIdx: index("idx_interest_rates_account_effective").on(
+			table.accountId,
+			table.effectiveFrom,
 		),
 	}),
 );
@@ -280,6 +338,8 @@ export const backupCodesRelations = relations(backupCodes, ({ one }) => ({
 
 export const accountsRelations = relations(accounts, ({ many }) => ({
 	balances: many(accountBalances),
+	transactions: many(accountTransactions),
+	interestRates: many(interestRates),
 }));
 
 export const goalsRelations = relations(goals, ({ one, many }) => ({
@@ -314,6 +374,23 @@ export const accountBalancesRelations = relations(
 	}),
 );
 
+export const accountTransactionsRelations = relations(
+	accountTransactions,
+	({ one }) => ({
+		account: one(accounts, {
+			fields: [accountTransactions.accountId],
+			references: [accounts.id],
+		}),
+	}),
+);
+
+export const interestRatesRelations = relations(interestRates, ({ one }) => ({
+	account: one(accounts, {
+		fields: [interestRates.accountId],
+		references: [accounts.id],
+	}),
+}));
+
 export const snapshotsRelations = relations(snapshots, ({ one }) => ({
 	user: one(users, {
 		fields: [snapshots.userId],
@@ -326,6 +403,8 @@ export type Session = typeof sessions.$inferSelect;
 export type BackupCode = typeof backupCodes.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
 export type AccountBalance = typeof accountBalances.$inferSelect;
+export type AccountTransaction = typeof accountTransactions.$inferSelect;
+export type InterestRate = typeof interestRates.$inferSelect;
 export type Goal = typeof goals.$inferSelect;
 export type GoalAllocation = typeof goalAllocations.$inferSelect;
 export type Snapshot = typeof snapshots.$inferSelect;

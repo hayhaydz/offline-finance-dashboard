@@ -1,0 +1,23 @@
+[
+  {
+    "accountName": "Emergency Fund",
+    "rates": [
+      { "rate": 425, "daysAgo": 365, "description": "Initial rate 4.25% AER" },
+      { "rate": 450, "daysAgo": 180, "description": "Rate increase to 4.50% AER" }
+    ]
+  },
+  {
+    "accountName": "ISA Saver",
+    "rates": [
+      { "rate": 400, "daysAgo": 365, "description": "Initial rate 4.00% AER" },
+      { "rate": 425, "daysAgo": 200, "description": "Rate increase to 4.25% AER" },
+      { "rate": 450, "daysAgo": 60, "description": "Rate increase to 4.50% AER" }
+    ]
+  },
+  {
+    "accountName": "Stocks & Shares ISA",
+    "rates": [
+      { "rate": 0, "daysAgo": 365, "description": "Investment account - no fixed rate" }
+    ]
+  }
+]
