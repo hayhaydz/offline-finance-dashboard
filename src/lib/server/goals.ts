@@ -2,6 +2,7 @@ import { and, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, goalAllocations, goals } from "$lib/db/schema";
+import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
 import { devLog } from "$lib/utils/logger";
 
 // Type for account allocation with liquidity info
@@ -291,15 +292,14 @@ async function getOpenAssetAccountsWithLatestBalances(userId: number) {
 			withUserFilter(userId, accounts),
 			eq(accounts.category, "asset"),
 		),
-		with: {
-			balances: {
-				orderBy: (balances, { desc }) => desc(balances.asOfDate),
-				limit: 1,
-			},
-		},
 	});
+	const openAccounts = userAccounts.filter((account) => !account.closedAt);
+	const balances = await getCurrentBalancesForAccounts(openAccounts.map((a) => a.id));
 
-	return userAccounts.filter((account) => !account.closedAt);
+	return openAccounts.map((account) => ({
+		...account,
+		balances: [{ balanceInCents: balances.get(account.id) ?? 0 }],
+	}));
 }
 
 /**

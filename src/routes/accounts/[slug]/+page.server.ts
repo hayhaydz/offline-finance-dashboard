@@ -1,22 +1,65 @@
 import { error, fail, redirect } from "@sveltejs/kit";
-import { count, desc, eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
-import { accountBalances, accountTransactions, accounts, interestRates } from "$lib/db/schema";
+import { accountTransactions, accounts, interestRates } from "$lib/db/schema";
 import {
 	createInterestRate,
 	deleteInterestRate,
 	getCurrentRate,
+	getInterestRateById,
 	parseRateToBasisPoints,
 } from "$lib/server/interestRates";
 import {
+	ISA_ALLOWANCE_IN_CENTS,
+	getAccountInterestEarned,
+	getActualInterestEarned,
+	getISAAllowanceUsed,
+	getProjectedInterest,
+	getTaxFreeStatus,
+	getUkTaxYearBounds,
+} from "$lib/server/calculations";
+import {
+	getCurrentBalanceForAccount,
+	getMonthlyBalanceHistory,
+} from "$lib/server/derivedBalances";
+import {
 	createTransaction,
 	deleteTransaction,
+	getTransactionBySlug,
 	type TransactionType,
 } from "$lib/server/transactions";
-import { addBalanceEntry } from "$lib/utils/balances";
 import { devLog, logError } from "$lib/utils/logger";
 import type { Actions, PageServerLoad } from "./$types";
+
+function formatTaxYearStartParam(date: Date): string {
+	const year = date.getUTCFullYear();
+	const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+	const day = String(date.getUTCDate()).padStart(2, "0");
+	return `${year}-${month}-${day}`;
+}
+
+function getTaxYearEndFromStart(taxYearStart: Date): Date {
+	return new Date(
+		Date.UTC(
+			taxYearStart.getUTCFullYear() + 1,
+			3,
+			5,
+			23,
+			59,
+			59,
+			999,
+		),
+	);
+}
+
+function parseTaxYearStart(value: string | null): Date | null {
+	if (!value) return null;
+	const parsed = new Date(`${value}T00:00:00.000Z`);
+	if (Number.isNaN(parsed.getTime())) return null;
+	if (parsed.getUTCMonth() !== 3 || parsed.getUTCDate() !== 6) return null;
+	return parsed;
+}
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
 	if (!locals.user) {
@@ -24,10 +67,6 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	}
 
 	const accountSlug = params.slug;
-	const pageParam = url.searchParams.get("page");
-	const page = Math.max(0, pageParam ? parseInt(pageParam, 10) - 1 : 0);
-	const PAGE_SIZE = 20;
-	const _offset = page * PAGE_SIZE;
 
 	// Get account with ownership validation using slug
 	const account = await db.query.accounts.findFirst({
@@ -44,41 +83,11 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
 	validateUserAccess(account, locals.user, "Account");
 
-	// Total balance count for pagination
-	const [{ total }] = await db
-		.select({ total: count() })
-		.from(accountBalances)
-		.where(eq(accountBalances.accountId, account.id));
-
-	const totalPages = Math.ceil(total / PAGE_SIZE);
-	const safePage = Math.min(page, Math.max(0, totalPages - 1));
-	const safeOffset = safePage * PAGE_SIZE;
-
-	// Get balance history (newest first) using account.id
-	const balances = await db.query.accountBalances.findMany({
-		where: eq(accountBalances.accountId, account.id),
-		orderBy: desc(accountBalances.asOfDate),
-		limit: PAGE_SIZE + 1, // fetch one extra to check change from next page
-		offset: safeOffset,
-	});
-
-	// Calculate "change from previous" for display
-	const balancesPage = balances.slice(0, PAGE_SIZE);
-	const balancesWithChange = balancesPage.map((balance, index) => {
-		const previous = balancesPage[index + 1];
-		return {
-			...balance,
-			changeFromPrevious: previous
-				? balance.balanceInCents - previous.balanceInCents
-				: null,
-		};
-	});
-
-	// Get current balance (most recent entry across all pages)
-	const currentBalance =
-		safePage === 0 && balancesPage.length > 0
-			? balancesPage[0].balanceInCents
-			: 0;
+	// Derive balances from transactions (source of truth).
+	const [currentBalance, monthlyBalances] = await Promise.all([
+		getCurrentBalanceForAccount(account.id),
+		getMonthlyBalanceHistory(account.id, 24),
+	]);
 
 	// Get recent transactions for this account
 	const transactions = await db.query.accountTransactions.findMany({
@@ -96,16 +105,63 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
 	// Get current effective rate
 	const currentRate = await getCurrentRate(account.id);
+	const currentTaxYear = getUkTaxYearBounds(new Date());
+	const selectedTaxYearStart =
+		parseTaxYearStart(url.searchParams.get("taxYearStart")) ??
+		currentTaxYear.start;
+	const taxYear = {
+		start: selectedTaxYearStart,
+		end: getTaxYearEndFromStart(selectedTaxYearStart),
+	};
+	const taxYearOptions = Array.from({ length: 5 }, (_, i) => {
+		const start = new Date(
+			Date.UTC(currentTaxYear.start.getUTCFullYear() - i, 3, 6, 0, 0, 0, 0),
+		);
+		const end = getTaxYearEndFromStart(start);
+		const label = `${start.getUTCFullYear()}/${String(end.getUTCFullYear()).slice(-2)}`;
+		return {
+			value: formatTaxYearStartParam(start),
+			label,
+		};
+	});
+
+	const [isaAllowanceUsed, actualInterestAllAccounts, accountActualInterest, projectedInterest] =
+		await Promise.all([
+			getISAAllowanceUsed(locals.user.id, taxYear.start, taxYear.end),
+			getActualInterestEarned(locals.user.id, taxYear.start, taxYear.end),
+			getAccountInterestEarned(account.id, taxYear.start, taxYear.end),
+			getProjectedInterest(account.id, taxYear.end),
+		]);
+	const taxBand = "basic" as const;
+	const taxFreeStatus = getTaxFreeStatus(actualInterestAllAccounts, taxBand);
+	const totalExpectedInterest = accountActualInterest + projectedInterest;
 
 	return {
 		account,
-		balances: balancesWithChange,
+		monthlyBalances: monthlyBalances.toReversed(),
 		currentBalance,
 		transactions,
 		rates,
 		currentRate,
-		page: safePage,
-		totalPages,
+		interestSummary:
+			account.type === "savings" || account.type === "investment"
+				? {
+						taxYearStart: taxYear.start,
+						taxYearEnd: taxYear.end,
+						actualInterest: accountActualInterest,
+						projectedInterest,
+						totalExpectedInterest,
+						taxBand,
+						taxFreeStatus,
+						isaAllowance: {
+							limit: ISA_ALLOWANCE_IN_CENTS,
+							used: isaAllowanceUsed,
+							remaining: Math.max(0, ISA_ALLOWANCE_IN_CENTS - isaAllowanceUsed),
+						},
+						selectedTaxYearStart: formatTaxYearStartParam(taxYear.start),
+						taxYearOptions,
+					}
+				: null,
 		breadcrumbOverrides: [
 			{ segmentIndex: 1, label: account.name, skipLink: false },
 		],
@@ -113,89 +169,6 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 };
 
 export const actions: Actions = {
-	/**
-	 * Add a new balance entry to an account
-	 */
-	addBalance: async ({ request, locals, params }) => {
-		if (!locals.user) {
-			logError("addBalance", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
-
-		const accountSlug = params.slug;
-
-		// Validate ownership first using slug
-		const account = await db.query.accounts.findFirst({
-			where: eq(accounts.slug, accountSlug),
-		});
-
-		if (!account) {
-			logError("addBalance", "Account not found", {
-				accountSlug,
-				userId: locals.user.id,
-			});
-			return fail(404, { error: "Account not found" });
-		}
-
-		validateUserAccess(account, locals.user, "Account");
-
-		if (account.closedAt) {
-			logError("addBalance", "Attempt to add balance to closed account", {
-				accountSlug,
-			});
-			return fail(403, {
-				error: "Cannot add balance entries to a closed account.",
-			});
-		}
-
-		const formData = await request.formData();
-		const balanceStr = formData.get("balance") as string;
-		const asOfDateStr = formData.get("asOfDate") as string; // YYYY-MM-DD format
-		const notes = formData.get("notes") as string | null;
-
-		// Validate notes length
-		if (notes && notes.trim().length > 500) {
-			return fail(400, { error: "Notes must be 500 characters or less" });
-		}
-
-		// Parse date (midnight UTC to avoid timezone issues)
-		const asOfDate = new Date(`${asOfDateStr}T00:00:00.000Z`);
-
-		// Check for future date (block it)
-		const today = new Date();
-		today.setUTCHours(0, 0, 0, 0);
-		today.setUTCMilliseconds(0);
-		if (asOfDate > today) {
-			devLog("addBalance", "Future date blocked", {
-				asOfDate: asOfDateStr,
-				accountSlug,
-			});
-			return fail(400, { error: "Cannot enter balances for future dates" });
-		}
-
-		// Use shared balance entry function
-		const result = await addBalanceEntry(
-			{ accountId: account.id, balanceStr, asOfDate, notes },
-			account,
-		);
-
-		if (result.type === "conflict") {
-			return fail(409, {
-				error: result.error,
-				existingBalanceId: result.existingBalanceId,
-				existingBalance: result.existingBalance,
-				proposedBalance: result.proposedBalance,
-			});
-		}
-
-		devLog("addBalance", "Balance entry created successfully", {
-			accountSlug,
-			balanceSlug: result.balanceSlug,
-			balanceInCents: result.balanceInCents,
-		});
-		return { success: result.success };
-	},
-
 	/**
 	 * Add a new transaction to an account
 	 */
@@ -244,10 +217,16 @@ export const actions: Actions = {
 		}
 
 		// Parse amount (handle both decimal and integer input)
-		const amount = Math.round(parseFloat(amountStr) * 100);
-		if (Number.isNaN(amount)) {
+		const parsedAmount = Math.round(parseFloat(amountStr) * 100);
+		if (Number.isNaN(parsedAmount) || parsedAmount === 0) {
 			return fail(400, { error: "Invalid amount" });
 		}
+		const amount =
+			type === "withdrawal" || type === "transfer_out"
+				? -Math.abs(parsedAmount)
+				: type === "value_change"
+					? parsedAmount
+					: Math.abs(parsedAmount);
 
 		// Parse date
 		const transactionDate = new Date(`${transactionDateStr}T00:00:00.000Z`);
@@ -320,6 +299,15 @@ export const actions: Actions = {
 		}
 
 		try {
+			const transaction = await getTransactionBySlug(transactionSlug);
+			if (
+				!transaction ||
+				transaction.accountId !== account.id ||
+				transaction.account.userId !== locals.user.id
+			) {
+				return fail(404, { error: "Transaction not found" });
+			}
+
 			await deleteTransaction(transactionSlug);
 
 			devLog("deleteTransaction", "Transaction deleted successfully", {
@@ -437,6 +425,15 @@ export const actions: Actions = {
 		}
 
 		try {
+			const rate = await getInterestRateById(rateId);
+			if (
+				!rate ||
+				rate.accountId !== account.id ||
+				rate.account.userId !== locals.user.id
+			) {
+				return fail(404, { error: "Interest rate not found" });
+			}
+
 			await deleteInterestRate(rateId);
 
 			devLog("deleteInterestRate", "Interest rate deleted successfully", {

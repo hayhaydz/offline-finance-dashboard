@@ -28,7 +28,7 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 	console.log("\n📊 Creating 50 stress accounts...");
 
 	const createdAccountIds: number[] = [];
-	let stressPaginationAccountId = 0; // account that will get 500 balance entries
+	let stressPaginationAccountId = 0; // account that will get 500 transaction entries
 
 	// 30 normal accounts (5 per type)
 	for (let t = 0; t < ACCOUNT_TYPES.length; t++) {
@@ -141,75 +141,83 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 
 	console.log(`  ✓ 50 accounts created`);
 
-	// ─── Account Balances ─────────────────────────────────────────────────────
+	// ─── Account Transactions ──────────────────────────────────────────────────
 
-	console.log("\n📈 Creating stress balance entries...");
+	console.log("\n📈 Creating stress transaction entries...");
 
 	// 500 entries on the pagination account
 	for (let i = 0; i < 500; i++) {
-		await db.insert(schema.accountBalances).values({
+		const transactionDate = daysAgo(500 - i);
+		await db.insert(schema.accountTransactions).values({
 			slug: slug(),
 			accountId: stressPaginationAccountId,
-			balanceInCents: 100000 + i * 200,
-			asOfDate: daysAgo(500 - i),
-			notes: i % 50 === 0 ? "x".repeat(1000) : null,
-			createdAt: new Date(),
-			updatedAt: new Date(),
+			type: "value_change",
+			amount: 100000 + i * 200,
+			category: null,
+			description: i % 50 === 0 ? "x".repeat(1000) : null,
+			transactionDate,
+			createdAt: transactionDate,
 		});
 	}
 
-	// Extreme balance values on first 6 normal accounts
-	const extremeBalances = [
+	// Extreme value transactions on first 6 normal accounts
+	const extremeTransactions = [
 		{
-			balanceInCents: 99_999_999_900,
-			notes: "£999,999,999 — 9-digit shorthand",
+			amount: 99_999_999_900,
+			description: "£999,999,999 - 9-digit shorthand",
 		},
-		{ balanceInCents: 100_000_000_000, notes: "£1,000,000,000 — 1B boundary" },
+		{ amount: 100_000_000_000, description: "£1,000,000,000 - 1B boundary" },
 		{
-			balanceInCents: -50_000_000_000,
-			notes: "£-500,000,000 — negative 9-digit",
+			amount: -50_000_000_000,
+			description: "£-500,000,000 - negative 9-digit",
 		},
-		{ balanceInCents: 1, notes: "£0.01 — 1-penny precision" },
-		{ balanceInCents: -1, notes: "£-0.01 — negative 1-penny" },
-		{ balanceInCents: 0, notes: "£0 — exact zero" },
+		{ amount: 1, description: "£0.01 - 1-penny precision" },
+		{ amount: -1, description: "£-0.01 - negative 1-penny" },
+		{ amount: 0, description: "£0 - exact zero" },
 	];
-	for (let i = 0; i < extremeBalances.length; i++) {
+	for (let i = 0; i < extremeTransactions.length; i++) {
 		const accountId = createdAccountIds[i + 5] ?? createdAccountIds[i]; // skip pagination account
-		await db.insert(schema.accountBalances).values({
+		const transactionDate = daysAgo(0);
+		await db.insert(schema.accountTransactions).values({
 			slug: slug(),
 			accountId,
-			balanceInCents: extremeBalances[i].balanceInCents,
-			asOfDate: daysAgo(0),
-			notes: extremeBalances[i].notes,
-			createdAt: new Date(),
-			updatedAt: new Date(),
+			type: "value_change",
+			amount: extremeTransactions[i].amount,
+			category: null,
+			description: extremeTransactions[i].description,
+			transactionDate,
+			createdAt: transactionDate,
 		});
 	}
 
-	// MAX_SAFE_INTEGER / JS edge values
+	// MAX_SAFE_INTEGER / JS edge value transactions
 	const edgeAccountId = createdAccountIds[12] ?? createdAccountIds[0];
 	for (const val of [MAX_SAFE, -MAX_SAFE, 2_147_483_647]) {
-		await db.insert(schema.accountBalances).values({
+		const transactionDate = daysAgo(randomBetween(1, 30));
+		await db.insert(schema.accountTransactions).values({
 			slug: slug(),
 			accountId: edgeAccountId,
-			balanceInCents: val,
-			asOfDate: daysAgo(randomBetween(1, 30)),
-			notes: `Edge value: ${val}`,
-			createdAt: new Date(),
-			updatedAt: new Date(),
+			type: "value_change",
+			amount: val,
+			category: null,
+			description: `Edge value: ${val}`,
+			transactionDate,
+			createdAt: transactionDate,
 		});
 	}
 
 	// 10 null-notes entries
 	for (let i = 0; i < 10; i++) {
-		await db.insert(schema.accountBalances).values({
+		const transactionDate = daysAgo(randomBetween(10, 200));
+		await db.insert(schema.accountTransactions).values({
 			slug: slug(),
 			accountId: createdAccountIds[i % createdAccountIds.length],
-			balanceInCents: randomBetween(10000, 500000),
-			asOfDate: daysAgo(randomBetween(10, 200)),
-			notes: null,
-			createdAt: new Date(),
-			updatedAt: new Date(),
+			type: "value_change",
+			amount: randomBetween(10000, 500000),
+			category: null,
+			description: null,
+			transactionDate,
+			createdAt: transactionDate,
 		});
 	}
 
@@ -410,6 +418,6 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 		`   50 accounts | 70 goals (50+20 archived) | ${snapshotCount} snapshots`,
 	);
 	console.log(
-		`   ~${500 + 6 + 3 + 10} special balance entries + pagination account`,
+		`   ~${500 + 6 + 3 + 10} special transaction entries + pagination account`,
 	);
 }

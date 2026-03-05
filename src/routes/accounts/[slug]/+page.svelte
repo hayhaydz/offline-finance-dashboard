@@ -3,7 +3,6 @@
 	import { formatCurrency, formatDateShorthand } from '$lib/utils/currency';
 	import { invalidateAll } from '$app/navigation';
 	import type { PageData, ActionData } from './$types';
-	import Pagination from '$lib/components/Pagination.svelte';
 	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 	import type { TransactionType } from '$lib/server/transactions';
 
@@ -14,7 +13,6 @@
 	let submitMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 
 	// Accordion state
-	let addBalanceOpen = $state(false);
 	let addTransactionOpen = $state(false);
 	let addRateOpen = $state(false);
 
@@ -72,9 +70,6 @@
 		return classes[type] || 'bg-gray-100 text-gray-800';
 	}
 
-	// Calculate new offset for "Load more"
-	// REMOVED — replaced by Pagination component
-
 	// Clear success messages after 10 seconds, errors persist until manually dismissed
 	$effect(() => {
 		if (submitMessage) {
@@ -96,6 +91,10 @@
 			}
 		}
 	});
+
+	const ratesChronological = $derived(
+		[...data.rates].sort((a, b) => new Date(a.effectiveFrom).getTime() - new Date(b.effectiveFrom).getTime())
+	);
 </script>
 
 <!-- ACCOUNT INFO HEADER -->
@@ -130,7 +129,6 @@
 	</div>
 </div>
 
-<!-- ADD BALANCE FORM -->
 {#if submitMessage}
 	<div class="p-2 border-b border-black text-sm flex justify-between items-start {submitMessage.type === 'error' ? 'bg-red-100' : 'bg-green-100'}">
 		<div class="flex-1">
@@ -152,157 +150,40 @@
 	</div>
 {/if}
 
-{#if !data.account.closedAt}
-<button
-	type="button"
-	class="w-full font-bold flex justify-between bg-gray-100 border-b border-black p-2 hover:bg-gray-200 transition-colors cursor-pointer"
-	onclick={() => addBalanceOpen = !addBalanceOpen}
->
-	<span>ADD BALANCE ENTRY</span>
-	<span>{addBalanceOpen ? '[-]' : '[+]'}</span>
-</button>
-
-<div class="grid transition-[grid-template-rows] duration-300 ease-in-out border-b border-black overflow-hidden" style="grid-template-rows: {addBalanceOpen ? '1fr' : '0fr'};">
-	<div class="min-h-0">
-		<div class="p-2">
-			<form
-				method="POST"
-				action="?/addBalance"
-				use:enhance={() => {
-					return async ({ formElement, result }) => {
-						if (result.type === 'success') {
-							// Show success message
-							submitMessage = { type: 'success', text: (result.data as { success?: string }).success || 'Balance entry added' };
-							// Clear the form after successful submission
-							formElement.reset();
-						} else if (result.type === 'failure' && result.data) {
-							// Show error message
-							const errorData = result.data as { error?: string };
-							if (errorData.error) {
-								submitMessage = { type: 'error', text: errorData.error };
-							}
-						}
-						// Invalidate all page data to refresh the balance list
-						await invalidateAll();
-					};
-				}}
-				class="flex flex-col gap-2"
-			>
-				<div class="grid grid-cols-2 gap-4">
-					<div>
-						<label for="balance" class="block text-sm font-bold mb-1">Balance</label>
-						<input
-							type="text"
-							id="balance"
-							name="balance"
-							placeholder="123.45"
-							required
-							class="w-full border border-black px-2 py-1 text-sm font-mono"
-						/>
-					</div>
-					<div>
-						<label for="asOfDate" class="block text-sm font-bold mb-1">As-of Date</label>
-						<input
-							type="date"
-							id="asOfDate"
-							name="asOfDate"
-							value={today}
-							max={today}
-							required
-							class="w-full border border-black px-2 py-1 text-sm"
-						/>
-					</div>
-				</div>
-				<div>
-					<label for="notes" class="block text-sm font-bold mb-1">Notes (optional)</label>
-					<textarea
-						id="notes"
-						name="notes"
-						rows="2"
-						class="w-full border border-black px-2 py-1 text-sm font-mono"
-					></textarea>
-				</div>
-        <div>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            class="bracket-link text-sm"
-            class:opacity-50={isSubmitting}
-          >
-            {isSubmitting ? 'Adding...' : 'Add Balance'}
-          </button>
-        </div>
-			</form>
-		</div>
-	</div>
-</div>
-{/if}
-
-<!-- BALANCE HISTORY TABLE -->
+<!-- MONTHLY BALANCE SUMMARY -->
 <div>
-	{#if data.balances.length === 0}
-		<p class="text-gray-600 text-xs p-2">No balance history yet. Add your first entry above.</p>
+	<div class="bg-gray-100 p-2 font-bold border-t-2 border-black">MONTHLY BALANCE SUMMARY (Derived from Transactions)</div>
+	{#if data.monthlyBalances.length === 0}
+		<p class="text-gray-600 text-xs p-2">No transactions yet. Monthly balance summary will appear automatically.</p>
 	{:else}
 		<div class="overflow-x-auto">
-		<table class="w-full table-fixed min-w-[600px]">
+		<table class="w-full table-fixed min-w-[480px]">
 			<thead>
 				<tr>
-					<th class="pl-2 text-left whitespace-nowrap w-[12%]">Date</th>
-					<th class="text-right pr-1 whitespace-nowrap w-[18%]">Balance</th>
-					<th class="text-right pr-1 whitespace-nowrap w-[18%]">Change</th>
-					<th class="pl-2 text-left">Notes</th>
-					<th class="text-right pr-1 whitespace-nowrap w-[16%]">Actions</th>
+					<th class="pl-2 text-left whitespace-nowrap w-[30%]">Month</th>
+					<th class="text-right pr-1 whitespace-nowrap w-[35%]">Closing Balance</th>
+					<th class="text-right pr-1 whitespace-nowrap w-[35%]">Net Change</th>
 				</tr>
 			</thead>
 			<tbody>
-				{#each data.balances as balance}
+				{#each data.monthlyBalances as balance}
 					<tr class="border-b border-gray-200 last:border-b-0 align-top">
-						<td class="pl-2 text-sm py-2 whitespace-nowrap">{formatDate(balance.asOfDate)}</td>
+						<td class="pl-2 text-sm py-2 whitespace-nowrap">{balance.monthKey}</td>
 						<td class="text-right pr-1 text-sm tabular-nums py-2 whitespace-nowrap">
-							<span class={balance.balanceInCents >= 0 ? 'text-green-700' : 'text-red-700'}>
-								{formatCurrency(balance.balanceInCents)}
+							<span class={balance.closingBalance >= 0 ? 'text-green-700' : 'text-red-700'}>
+								{formatCurrency(balance.closingBalance)}
 							</span>
 						</td>
 						<td class="text-right pr-1 text-sm tabular-nums py-2 whitespace-nowrap">
-							{#if balance.changeFromPrevious !== null}
-								<span
-									class={balance.changeFromPrevious >= 0
-										? 'text-green-700'
-										: 'text-red-700'}
-								>
-									{balance.changeFromPrevious >= 0 ? '+' : ''}
-									{formatCurrency(balance.changeFromPrevious)}
-								</span>
-							{:else}
-								<span class="text-gray-500">-</span>
-							{/if}
-						</td>
-						<td class="pl-2 text-sm py-2 text-gray-600 break-words">
-							{truncateDisplay(balance.notes || '-', DISPLAY_LIMITS.BALANCE_NOTES)}
-						</td>
-						<td class="text-right pr-1 text-sm py-2 whitespace-nowrap">
-							{#if !data.account.closedAt}
-							<a
-								href="/accounts/{data.account.slug}/balances/{balance.slug}/edit"
-								class="bracket-link text-xs"
-							>Edit</a>
-							<a
-								href="/accounts/{data.account.slug}/balances/{balance.slug}/delete"
-								class="bracket-link text-xs text-red-700"
-							>Delete</a>
-							{/if}
+							<span class={balance.monthlyNetChange >= 0 ? 'text-green-700' : 'text-red-700'}>
+								{balance.monthlyNetChange >= 0 ? '+' : ''}{formatCurrency(balance.monthlyNetChange)}
+							</span>
 						</td>
 					</tr>
 				{/each}
 			</tbody>
 		</table>
 		</div>
-
-		<Pagination
-			currentPage={data.page}
-			totalPages={data.totalPages}
-			buildHref={(p) => `?page=${p}`}
-		/>
 	{/if}
 </div>
 
@@ -381,6 +262,7 @@
 							id="transactionDate"
 							name="transactionDate"
 							value={today}
+							max={today}
 							required
 							class="w-full border border-black px-2 py-1 text-sm"
 						/>
@@ -505,6 +387,59 @@
 			</button>
 		{/if}
 	</div>
+
+	{#if data.interestSummary}
+		<div class="border-b border-black p-2 bg-green-50">
+			<div class="flex items-center justify-between gap-2 mb-2">
+				<div class="font-bold text-sm">INTEREST THIS TAX YEAR ({formatDate(data.interestSummary.taxYearStart)} to {formatDate(data.interestSummary.taxYearEnd)})</div>
+				<form method="GET" class="flex items-center gap-1">
+					<select
+						name="taxYearStart"
+						class="border border-black px-1 py-0.5 text-xs bg-white"
+						value={data.interestSummary.selectedTaxYearStart}
+						onchange={(e) => (e.currentTarget.form as HTMLFormElement).submit()}
+					>
+						{#each data.interestSummary.taxYearOptions as option}
+							<option value={option.value}>
+								{option.label}
+							</option>
+						{/each}
+					</select>
+				</form>
+			</div>
+			<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+				<div>Actual earned:</div>
+				<div class="text-right tabular-nums">{formatCurrency(data.interestSummary.actualInterest)}</div>
+				<div>Projected:</div>
+				<div class="text-right tabular-nums">{formatCurrency(data.interestSummary.projectedInterest)}</div>
+				<div>Total expected:</div>
+				<div class="text-right tabular-nums font-bold">{formatCurrency(data.interestSummary.totalExpectedInterest)}</div>
+				<div>Tax-free remaining ({data.interestSummary.taxBand}):</div>
+				<div class="text-right tabular-nums {data.interestSummary.taxFreeStatus.overAllowance ? 'text-red-700 font-bold' : 'text-green-700'}">
+					{#if data.interestSummary.taxFreeStatus.overAllowance}
+						Over by {formatCurrency(data.interestSummary.taxFreeStatus.taxableAmount)}
+					{:else}
+						{formatCurrency(data.interestSummary.taxFreeStatus.remaining)}
+					{/if}
+				</div>
+			</div>
+
+			{#if data.account.taxWrapper === 'isa' || data.account.taxWrapper === 'lisa'}
+				<div class="mt-3 border-t border-black/20 pt-2">
+					<div class="flex justify-between text-xs mb-1">
+						<span>ISA allowance used</span>
+						<span class="tabular-nums">{formatCurrency(data.interestSummary.isaAllowance.used)} / {formatCurrency(data.interestSummary.isaAllowance.limit)}</span>
+					</div>
+					<div class="h-2 border border-black bg-white">
+						<div
+							class="h-full bg-green-700"
+							style={`width: ${Math.min(100, (data.interestSummary.isaAllowance.used / data.interestSummary.isaAllowance.limit) * 100)}%`}
+						></div>
+					</div>
+				</div>
+			{/if}
+		</div>
+	{/if}
 
 	{#if addRateOpen && !data.account.closedAt}
 		<div class="border-b border-black p-2 bg-gray-50">
@@ -634,6 +569,23 @@
 					{/each}
 				</tbody>
 			</table>
+		</div>
+
+		<div class="border-t border-black p-2 bg-gray-50">
+			<div class="text-xs font-bold mb-2">RATE HISTORY TIMELINE</div>
+			<div class="space-y-2">
+				{#each ratesChronological as rate}
+					<div class="flex items-start gap-2">
+						<div class="pt-1">
+							<span class="inline-block w-2 h-2 rounded-full border border-black {new Date(rate.effectiveFrom) <= new Date() && rate.rate === data.currentRate ? 'bg-green-700' : 'bg-white'}"></span>
+						</div>
+						<div class="text-xs">
+							<div class="tabular-nums font-bold">{(rate.rate / 100).toFixed(2)}%</div>
+							<div class="text-gray-600">{formatDate(rate.effectiveFrom)}</div>
+						</div>
+					</div>
+				{/each}
+			</div>
 		</div>
 	{/if}
 </div>

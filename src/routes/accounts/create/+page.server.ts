@@ -1,7 +1,7 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
-import { accountBalances, accounts } from "$lib/db/schema";
+import { accountTransactions, accounts } from "$lib/db/schema";
 import { parseCurrency } from "$lib/utils/currency";
 import { devLog, logError, logFormData } from "$lib/utils/logger";
 import type { Actions, PageServerLoad } from "./$types";
@@ -162,23 +162,25 @@ export const actions: Actions = {
 				slug: accountSlug,
 			});
 
-			// If initial balance provided, insert into account_balances with slug
+			// If initial balance provided, create an opening deposit transaction.
 			if (balanceInCents !== null) {
-				const balanceSlug = nanoid(16);
 				// Use midnight UTC for consistent date comparison
 				const todayMidnight = new Date();
 				todayMidnight.setUTCHours(0, 0, 0, 0);
-				await db.insert(accountBalances).values({
+				await db.insert(accountTransactions).values({
 					accountId: newAccount.id,
-					slug: balanceSlug,
-					balanceInCents,
-					asOfDate: todayMidnight,
-					notes: null,
+					slug: nanoid(21),
+					type: "deposit",
+					amount: balanceInCents,
+					description: "Opening balance",
+					category: null,
+					transactionDate: todayMidnight,
+					createdAt: new Date(),
 				});
-				devLog("createAccount", "Balance added", {
+				devLog("createAccount", "Opening transaction added", {
 					accountId: newAccount.id,
-					balanceInCents,
-					asOfDate: todayMidnight.toISOString(),
+					amountInCents: balanceInCents,
+					transactionDate: todayMidnight.toISOString(),
 				});
 			}
 

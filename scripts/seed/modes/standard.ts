@@ -5,12 +5,6 @@ import { daysAgo, formatGBP, loadFixture, slug } from "../lib/helpers.js";
 import { createSnapshot } from "../lib/snapshot.js";
 import { wipeUserData } from "../lib/wipe.js";
 
-interface BalanceEntry {
-	balanceInCents: number;
-	daysAgo: number;
-	notes: string | null;
-}
-
 interface AccountFixture {
 	name: string;
 	institution: string | null;
@@ -20,7 +14,11 @@ interface AccountFixture {
 	liquidity: (typeof schema.accounts.$inferInsert)["liquidity"];
 	excludedFromNetWorth: boolean;
 	closedAt: string | null;
-	balances: BalanceEntry[];
+	balances: Array<{
+		balanceInCents: number;
+		daysAgo: number;
+		notes: string | null;
+	}>;
 }
 
 interface GoalFixture {
@@ -94,18 +92,6 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 				updatedAt: now,
 			})
 			.returning();
-
-		for (const b of a.balances) {
-			await db.insert(schema.accountBalances).values({
-				slug: slug(),
-				accountId: account.id,
-				balanceInCents: b.balanceInCents,
-				asOfDate: daysAgo(b.daysAgo),
-				notes: b.notes,
-				createdAt: new Date(),
-				updatedAt: new Date(),
-			});
-		}
 
 		accountByName.set(a.name, account);
 		console.log(`  ✓ ${a.name} (${a.institution ?? "-"})`);
@@ -218,13 +204,10 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 		console.log(`  ✓ ${snap.date}`);
 	}
 
-	const netWorth = formatGBP(
-		accounts
-			.flatMap((a) =>
-				a.balances.filter((b) => b.daysAgo === 0).map((b) => b.balanceInCents),
-			)
-			.reduce((s, c) => s + c, 0),
-	);
+	const allTransactions = await db.query.accountTransactions.findMany({
+		columns: { amount: true },
+	});
+	const netWorth = formatGBP(allTransactions.reduce((sum, tx) => sum + tx.amount, 0));
 
 	console.log("\n✅ [standard] Seed complete!");
 	console.log(

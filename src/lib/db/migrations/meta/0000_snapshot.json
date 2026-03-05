@@ -1,11 +1,11 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "62e668b8-95ed-4a6a-9dc3-ab31da1eea9b",
+  "id": "a8e51a1a-4403-490c-a09e-06e7a92391c1",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "account_balances": {
-      "name": "account_balances",
+    "account_transactions": {
+      "name": "account_transactions",
       "columns": {
         "id": {
           "name": "id",
@@ -28,25 +28,39 @@
           "notNull": true,
           "autoincrement": false
         },
-        "balance_in_cents": {
-          "name": "balance_in_cents",
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "amount": {
+          "name": "amount",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "as_of_date": {
-          "name": "as_of_date",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "notes": {
-          "name": "notes",
+        "category": {
+          "name": "category",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
+          "autoincrement": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "transaction_date": {
+          "name": "transaction_date",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
           "autoincrement": false
         },
         "created_at": {
@@ -56,29 +70,36 @@
           "notNull": true,
           "autoincrement": false,
           "default": "CURRENT_TIMESTAMP"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": "CURRENT_TIMESTAMP"
         }
       },
       "indexes": {
-        "account_balances_slug_unique": {
-          "name": "account_balances_slug_unique",
+        "account_transactions_slug_unique": {
+          "name": "account_transactions_slug_unique",
           "columns": [
             "slug"
           ],
           "isUnique": true
+        },
+        "idx_account_transactions_account_date": {
+          "name": "idx_account_transactions_account_date",
+          "columns": [
+            "account_id",
+            "transaction_date"
+          ],
+          "isUnique": false
+        },
+        "idx_account_transactions_type": {
+          "name": "idx_account_transactions_type",
+          "columns": [
+            "type"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {
-        "account_balances_account_id_accounts_id_fk": {
-          "name": "account_balances_account_id_accounts_id_fk",
-          "tableFrom": "account_balances",
+        "account_transactions_account_id_accounts_id_fk": {
+          "name": "account_transactions_account_id_accounts_id_fk",
+          "tableFrom": "account_transactions",
           "tableTo": "accounts",
           "columnsFrom": [
             "account_id"
@@ -176,6 +197,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "maturity_date": {
+          "name": "maturity_date",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "integer",
@@ -200,6 +228,23 @@
             "slug"
           ],
           "isUnique": true
+        },
+        "idx_accounts_user_closed": {
+          "name": "idx_accounts_user_closed",
+          "columns": [
+            "user_id",
+            "closed_at"
+          ],
+          "isUnique": false
+        },
+        "idx_accounts_user_excluded_closed": {
+          "name": "idx_accounts_user_excluded_closed",
+          "columns": [
+            "user_id",
+            "excluded_from_net_worth",
+            "closed_at"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {
@@ -336,7 +381,22 @@
           "default": "CURRENT_TIMESTAMP"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_goal_allocations_goal": {
+          "name": "idx_goal_allocations_goal",
+          "columns": [
+            "goal_id"
+          ],
+          "isUnique": false
+        },
+        "idx_goal_allocations_account": {
+          "name": "idx_goal_allocations_account",
+          "columns": [
+            "account_id"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "goal_allocations_goal_id_goals_id_fk": {
           "name": "goal_allocations_goal_id_goals_id_fk",
@@ -469,6 +529,15 @@
             "slug"
           ],
           "isUnique": true
+        },
+        "idx_goals_user_deleted_sort": {
+          "name": "idx_goals_user_deleted_sort",
+          "columns": [
+            "user_id",
+            "deleted_at",
+            "sort_order"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {
@@ -478,6 +547,75 @@
           "tableTo": "users",
           "columnsFrom": [
             "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "interest_rates": {
+      "name": "interest_rates",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "account_id": {
+          "name": "account_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "rate": {
+          "name": "rate",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "effective_from": {
+          "name": "effective_from",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "idx_interest_rates_account_effective": {
+          "name": "idx_interest_rates_account_effective",
+          "columns": [
+            "account_id",
+            "effective_from"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "interest_rates_account_id_accounts_id_fk": {
+          "name": "interest_rates_account_id_accounts_id_fk",
+          "tableFrom": "interest_rates",
+          "tableTo": "accounts",
+          "columnsFrom": [
+            "account_id"
           ],
           "columnsTo": [
             "id"
@@ -578,12 +716,153 @@
             "token"
           ],
           "isUnique": true
+        },
+        "idx_sessions_user_last_activity": {
+          "name": "idx_sessions_user_last_activity",
+          "columns": [
+            "user_id",
+            "last_activity"
+          ],
+          "isUnique": false
         }
       },
       "foreignKeys": {
         "sessions_user_id_users_id_fk": {
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "snapshots": {
+      "name": "snapshots",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "snapshot_date": {
+          "name": "snapshot_date",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "net_worth_in_cents": {
+          "name": "net_worth_in_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "total_assets_in_cents": {
+          "name": "total_assets_in_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "total_liabilities_in_cents": {
+          "name": "total_liabilities_in_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "total_allocated_in_cents": {
+          "name": "total_allocated_in_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "accounts_breakdown": {
+          "name": "accounts_breakdown",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "goals_breakdown": {
+          "name": "goals_breakdown",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "snapshots_slug_unique": {
+          "name": "snapshots_slug_unique",
+          "columns": [
+            "slug"
+          ],
+          "isUnique": true
+        },
+        "idx_snapshots_user_date": {
+          "name": "idx_snapshots_user_date",
+          "columns": [
+            "user_id",
+            "snapshot_date"
+          ],
+          "isUnique": false
+        },
+        "idx_snapshots_slug": {
+          "name": "idx_snapshots_slug",
+          "columns": [
+            "slug"
+          ],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "snapshots_user_id_users_id_fk": {
+          "name": "snapshots_user_id_users_id_fk",
+          "tableFrom": "snapshots",
           "tableTo": "users",
           "columnsFrom": [
             "user_id"

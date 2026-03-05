@@ -25,10 +25,9 @@
 		for (const account of data.accounts) {
 			if (account.closedAt) continue;
 
-			const latestBalance = account.balances[0];
-			if (!latestBalance || latestBalance.balanceInCents === 0) continue; // skip accounts with no balance entries or zero balance
-			const balance = latestBalance?.balanceInCents ?? 0;
-			const updatedAt = latestBalance?.asOfDate ?? null;
+			const balance = account.currentBalance ?? 0;
+			if (balance === 0) continue; // skip zero-balance accounts
+			const updatedAt = account.lastUpdated ?? null;
 
 			// Decide which section this account's balance belongs to
 			const displayCategory: 'asset' | 'liability' =
@@ -119,6 +118,34 @@
 		accounts={data.accounts}
 	/>
 
+	<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
+		<span>ISA ALLOWANCE TRACKER</span>
+		<span class="text-xs font-normal">
+			{formatDateShorthand(data.isaTracker.taxYearStart)} to {formatDateShorthand(data.isaTracker.taxYearEnd)}
+		</span>
+	</div>
+	<div class="border-b border-black p-2">
+		<div class="flex justify-between text-sm mb-1">
+			<span>Used</span>
+			<span class="tabular-nums">
+				{formatCurrencyShorthand(data.isaTracker.used)} / {formatCurrencyShorthand(data.isaTracker.limit)}
+			</span>
+		</div>
+		<div class="h-2 border border-black bg-white mb-2">
+			<div
+				class="h-full bg-green-700"
+				style={`width: ${Math.min(100, (data.isaTracker.used / data.isaTracker.limit) * 100)}%`}
+			></div>
+		</div>
+		<div class="text-xs {data.isaTracker.remaining > 0 ? 'text-green-700' : 'text-red-700 font-bold'}">
+			{#if data.isaTracker.remaining > 0}
+				{formatCurrency(data.isaTracker.remaining)} remaining this tax year
+			{:else}
+				Allowance fully used this tax year
+			{/if}
+		</div>
+	</div>
+
 	<!-- ACCOUNTS BY TYPE -->
 	<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 		<div class="flex items-center gap-2">
@@ -192,6 +219,41 @@
 			</div>
 		{/if}
 	</div>
+
+	{#if data.maturingSoon.length > 0}
+		<div class="font-bold flex justify-between bg-amber-50 border-y border-black p-2">
+			<span>MATURITY ALERTS ({data.maturingSoon.length})</span>
+			<a href="/accounts" class="bracket-link text-xs">Review Accounts</a>
+		</div>
+		<div class="p-0">
+			<table>
+				<thead>
+					<tr>
+						<th class="pl-2 text-left">Account</th>
+						<th class="pl-2 text-left">Type</th>
+						<th class="text-right pr-1">Maturity</th>
+						<th class="text-right pr-1">In</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each data.maturingSoon as account}
+						<tr class="border-b border-gray-200 last:border-b-0">
+							<td class="pl-2 py-2">
+								<a href="/accounts/{account.slug}" class="bracket-link">
+									{account.name}
+								</a>
+							</td>
+							<td class="pl-2 py-2">{formatAccountType(account.type)}</td>
+							<td class="text-right pr-1 tabular-nums py-2">{formatDateShorthand(account.maturityDate)}</td>
+							<td class="text-right pr-1 tabular-nums py-2 text-amber-700 font-bold">
+								{account.daysToMaturity === 0 ? 'today' : `${account.daysToMaturity}d`}
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	{/if}
 
 	<!-- GOALS PREVIEW -->
 	{#if goals && goals.length > 0}

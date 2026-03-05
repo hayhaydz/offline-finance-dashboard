@@ -28,14 +28,14 @@ const queries = [
 		sql: "SELECT id, slug, sort_order FROM goals WHERE user_id = ? AND deleted_at IS NULL ORDER BY sort_order LIMIT 10 OFFSET 0",
 	},
 	{
-		name: "latest-balance-by-account",
-		sql: "SELECT id, as_of_date FROM account_balances WHERE account_id = ? ORDER BY as_of_date DESC LIMIT 1",
+		name: "latest-transaction-by-account",
+		sql: "SELECT id, transaction_date FROM account_transactions WHERE account_id = ? ORDER BY transaction_date DESC LIMIT 1",
 	},
 ];
 
 try {
 	for (const query of queries) {
-		const params = query.name === "latest-balance-by-account" ? [1] : [1];
+		const params = [1];
 		const plan = sqlite
 			.prepare(`EXPLAIN QUERY PLAN ${query.sql}`)
 			.all(...params);

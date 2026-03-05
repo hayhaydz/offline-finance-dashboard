@@ -26,14 +26,20 @@ export async function wipeUserData(db: DB, userId: number): Promise<void> {
 		columns: { id: true },
 	});
 	if (accounts.length) {
-		await db.delete(schema.accountBalances).where(
+		await db.delete(schema.accountTransactions).where(
 			inArray(
-				schema.accountBalances.accountId,
+				schema.accountTransactions.accountId,
+				accounts.map((a) => a.id),
+			),
+		);
+		await db.delete(schema.interestRates).where(
+			inArray(
+				schema.interestRates.accountId,
 				accounts.map((a) => a.id),
 			),
 		);
 	}
 	await db.delete(schema.accounts).where(eq(schema.accounts.userId, userId));
 
-	console.log("  ✓ Wiped accounts, balances, goals, allocations, snapshots");
+	console.log("  ✓ Wiped accounts, transactions, rates, goals, allocations, snapshots");
 }

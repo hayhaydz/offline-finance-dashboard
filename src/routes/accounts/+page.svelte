@@ -1,13 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/state';
-	import { enhance } from '$app/forms';
 	import { formatCurrency, formatAccountType as commonFormatAccountType, formatDateShorthand as commonFormatDateShorthand } from '$lib/utils/currency';
-	import { invalidateAll } from '$app/navigation';
 	import AccountFiltersModal from '$lib/components/AccountFiltersModal.svelte';
 	import AccountSortModal from '$lib/components/AccountSortModal.svelte';
 	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 
-	let { data, form } = $props();
+	let { data } = $props();
 
 	// Modal state
 	let filterModalOpen = $state(false);
@@ -40,25 +38,6 @@
 
 	// Sort state (client-side only)
 	let sortBy = $state<'name' | 'type' | 'institution' | 'balance' | 'updated' | ''>('');
-
-	// Quick-add balance form state
-	let quickAddOpen = $state(false);
-	let quickAddAccountId = $state('');
-	let quickAddBalance = $state('');
-	let quickAddNotes = $state('');
-	let quickAddMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
-
-	// Clear success messages after 10 seconds, errors persist until manually dismissed
-	$effect(() => {
-		if (quickAddMessage) {
-			const timeout = setTimeout(() => {
-				if (quickAddMessage?.type === 'success') {
-					quickAddMessage = null;
-				}
-			}, 10000);
-			return () => clearTimeout(timeout);
-		}
-	});
 
 	// Helper function to format date
 	function formatDate(date: Date | null): string {
@@ -145,6 +124,9 @@
 	const liabilityAccounts = $derived(
 		data.accounts.filter((a) => a.category === 'liability' || (a.category === 'asset' && (a.currentBalance ?? 0) < 0)).length
 	);
+	const maturingSoonAccounts = $derived(
+		data.accounts.filter((a) => !a.closedAt && a.daysToMaturity !== null && a.daysToMaturity >= 0 && a.daysToMaturity <= 90)
+	);
 
 	// Calculate net worth — asset accounts with negative balance reclassify as liabilities
 	const totalAssets = $derived.by(() => {
@@ -201,122 +183,9 @@
 		<span>Liability Accounts</span>
 		<span>{liabilityAccounts}</span>
 	</div>
-</div>
-
-<!-- QUICK BALANCE ENTRY SECTION -->
-<button 
-	type="button"
-	class="w-full font-bold flex justify-between bg-gray-100 border-b border-black p-2 hover:bg-gray-200 transition-colors cursor-pointer"
-	onclick={() => quickAddOpen = !quickAddOpen}
->
-	<span>QUICK BALANCE ENTRY</span>
-	<span>{quickAddOpen ? '[-]' : '[+]'}</span>
-</button>
-
-<div class="grid transition-[grid-template-rows] duration-300 ease-in-out border-b border-black overflow-hidden" style="grid-template-rows: {quickAddOpen ? '1fr' : '0fr'};">
-	<div class="min-h-0">
-		<div class="p-2">
-			{#if data.accounts.length === 0}
-				<p class="text-gray-600 text-xs">Create an account first to add a balance.</p>
-			{:else}
-				{#if form?.success}
-					<div class="mb-2 p-2 border border-black text-sm bg-green-100">
-						{form.success}
-					</div>
-				{/if}
-				{#if quickAddMessage}
-					<div class="mb-2 p-2 border border-black text-sm flex justify-between items-start {quickAddMessage.type === 'error' ? 'bg-red-100' : 'bg-green-100'}">
-						<div class="flex-1">
-							{@html quickAddMessage.text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="bracket-link text-xs">$1</a>')}
-						</div>
-						<button
-							type="button"
-							onclick={() => quickAddMessage = null}
-							class="ml-2 text-xs bracket-link"
-						>
-							[Dismiss]
-						</button>
-					</div>
-				{/if}
-				<form method="POST" action="?/quickAdd" use:enhance={() => {
-					return async ({ formElement, result }) => {
-						if (result.type === 'success') {
-							// Show success message
-							quickAddMessage = { type: 'success', text: (result.data as { success?: string }).success || 'Balance entry added' };
-							// Clear form fields
-							quickAddBalance = '';
-							quickAddNotes = '';
-							formElement.reset();
-						} else if (result.type === 'failure' && result.data) {
-							// Show error message
-							const errorData = result.data as { error?: string };
-							if (errorData.error) {
-								quickAddMessage = { type: 'error', text: errorData.error };
-							}
-						}
-						// Invalidate all page data to refresh accounts and balances
-						await invalidateAll();
-					};
-				}}>
-					<input type="hidden" name="accountId" bind:value={quickAddAccountId} />
-
-					<div class="mb-1">
-						<label for="account" class="font-bold text-xs block mb-1">Account</label>
-						<select
-							id="account"
-							name="account"
-							bind:value={quickAddAccountId}
-							class="border border-black p-1 w-full font-terminal text-sm focus:outline-none"
-							required
-						>
-							<option value="">Select account...</option>
-							{#each data.accounts.filter(a => !a.closedAt) as account}
-								<option value={account.id}>{account.name}</option>
-							{/each}
-						</select>
-					</div>
-
-					<div class="mb-1">
-						<label for="balance" class="font-bold text-xs block mb-1">Balance (today)</label>
-						<input
-							type="text"
-							id="balance"
-							name="balance"
-							bind:value={quickAddBalance}
-							placeholder="e.g., 1000.00"
-							inputmode="numeric"
-							class="border border-black p-1 w-full font-terminal text-sm focus:outline-none"
-							required
-						/>
-					</div>
-
-					<div class="mb-1">
-						<label for="notes" class="font-bold text-xs block mb-1">Notes (optional)</label>
-						<textarea
-							id="notes"
-							name="notes"
-							bind:value={quickAddNotes}
-							placeholder="Optional notes..."
-							rows="2"
-							class="border border-black p-1 w-full font-terminal text-sm focus:outline-none"
-						></textarea>
-					</div>
-
-					{#if form?.error}
-						<div class="bg-amber-100 border border-black p-2 mb-2 text-sm">
-							{@html form.error.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="bracket-link text-xs">$1</a>')}
-						</div>
-					{/if}
-
-					<button
-						type="submit"
-						class="bracket-link text-sm"
-					>
-						Add Balance
-					</button>
-				</form>
-			{/if}
-		</div>
+	<div class="flex justify-between my-1">
+		<span>Maturing Soon (90d)</span>
+		<span class={maturingSoonAccounts.length > 0 ? 'text-amber-700 font-bold' : ''}>{maturingSoonAccounts.length}</span>
 	</div>
 </div>
 
@@ -375,6 +244,7 @@
 					<th class="pl-2 text-left whitespace-nowrap">Type</th>
 					<th class="pl-2 text-left whitespace-nowrap">Institution</th>
 					<th class="text-right pr-1 whitespace-nowrap">Balance</th>
+					<th class="text-right pr-1 whitespace-nowrap">Maturity</th>
 					<th class="text-right pr-1 whitespace-nowrap">Last Updated</th>
 				</tr>
 			</thead>
@@ -398,6 +268,19 @@
 								</span>
 							{:else}
 								<span class="text-gray-600">-</span>
+							{/if}
+						</td>
+						<td class="text-right pr-1 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>
+							{#if account.daysToMaturity === null}
+								<span class="text-gray-600">-</span>
+							{:else if account.daysToMaturity < 0}
+								<span class="text-gray-500">Matured</span>
+							{:else if account.daysToMaturity === 0}
+								<span class="text-amber-700 font-bold">Today</span>
+							{:else}
+								<span class={account.daysToMaturity <= 90 ? 'text-amber-700 font-bold' : ''}>
+									{account.daysToMaturity}d
+								</span>
 							{/if}
 						</td>
 						<td class="text-right pr-1 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>{formatDate(account.lastUpdated)}</td>

@@ -1,7 +1,8 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import type { Snapshot } from "$lib/db/schema";
-import { accountBalances, accounts, goals, snapshots } from "$lib/db/schema";
+import { accounts, goals, snapshots } from "$lib/db/schema";
+import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
 import { calculateAssetsAndLiabilities } from "$lib/server/finance";
 import { devLog } from "$lib/utils/logger";
 
@@ -12,19 +13,14 @@ import { devLog } from "$lib/utils/logger";
 export async function calculateSnapshotData(userId: number) {
 	devLog("calculateSnapshotData", "Calculating snapshot data", { userId });
 
-	// Fetch all user accounts with latest balances
+	// Fetch all user accounts
 	const allAccounts = await db.query.accounts.findMany({
 		where: and(
 			eq(accounts.userId, userId),
 			isNull(accounts.closedAt), // Only open accounts
 		),
-		with: {
-			balances: {
-				orderBy: [desc(accountBalances.asOfDate)],
-				limit: 1,
-			},
-		},
 	});
+	const balanceMap = await getCurrentBalancesForAccounts(allAccounts.map((a) => a.id));
 
 	// Fetch all active goals
 	const allGoals = await db.query.goals.findMany({
@@ -32,7 +28,12 @@ export async function calculateSnapshotData(userId: number) {
 	});
 
 	// Calculate totals (only include accounts not excluded from net worth)
-	const includedAccounts = allAccounts.filter((a) => !a.excludedFromNetWorth);
+	const includedAccounts = allAccounts
+		.filter((a) => !a.excludedFromNetWorth)
+		.map((a) => ({
+			...a,
+			currentBalance: balanceMap.get(a.id) ?? 0,
+		}));
 	const { totalAssets, totalLiabilities, netWorth } =
 		calculateAssetsAndLiabilities(includedAccounts);
 	const totalAllocated = allGoals.reduce(
@@ -49,12 +50,12 @@ export async function calculateSnapshotData(userId: number) {
 			name: a.name,
 			type: a.type,
 			category: a.category as "asset" | "liability",
-			balanceInCents: a.balances[0]?.balanceInCents || 0,
+			balanceInCents: balanceMap.get(a.id) ?? 0,
 			includedInTotal: !a.excludedFromNetWorth,
 		})),
 		totalByType: allAccounts.reduce(
 			(acc, a) => {
-				acc[a.type] = (acc[a.type] || 0) + (a.balances[0]?.balanceInCents || 0);
+				acc[a.type] = (acc[a.type] || 0) + (balanceMap.get(a.id) ?? 0);
 				return acc;
 			},
 			{} as Record<string, number>,

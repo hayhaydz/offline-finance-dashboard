@@ -113,32 +113,6 @@ export const accounts = sqliteTable(
 	}),
 );
 
-export const accountBalances = sqliteTable(
-	"account_balances",
-	{
-		id: integer("id").primaryKey({ autoIncrement: true }),
-		slug: text("slug").notNull().unique(), // URL-safe identifier for user-facing routes
-		accountId: integer("account_id")
-			.notNull()
-			.references(() => accounts.id),
-		balanceInCents: integer("balance_in_cents").notNull(), // Stored as cents/pence (integer)
-		asOfDate: integer("as_of_date", { mode: "timestamp" }).notNull(),
-		notes: text("notes"),
-		createdAt: integer("created_at", { mode: "timestamp" })
-			.notNull()
-			.default(sql`CURRENT_TIMESTAMP`),
-		updatedAt: integer("updated_at", { mode: "timestamp" })
-			.notNull()
-			.default(sql`CURRENT_TIMESTAMP`),
-	},
-	(table) => ({
-		accountAsOfDateIdx: index("idx_account_balances_account_asof").on(
-			table.accountId,
-			table.asOfDate,
-		),
-	}),
-);
-
 export const accountTransactions = sqliteTable(
 	"account_transactions",
 	{
@@ -337,7 +311,6 @@ export const backupCodesRelations = relations(backupCodes, ({ one }) => ({
 }));
 
 export const accountsRelations = relations(accounts, ({ many }) => ({
-	balances: many(accountBalances),
 	transactions: many(accountTransactions),
 	interestRates: many(interestRates),
 }));
@@ -359,16 +332,6 @@ export const goalAllocationsRelations = relations(
 		}),
 		account: one(accounts, {
 			fields: [goalAllocations.accountId],
-			references: [accounts.id],
-		}),
-	}),
-);
-
-export const accountBalancesRelations = relations(
-	accountBalances,
-	({ one }) => ({
-		account: one(accounts, {
-			fields: [accountBalances.accountId],
 			references: [accounts.id],
 		}),
 	}),
@@ -402,7 +365,6 @@ export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type BackupCode = typeof backupCodes.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
-export type AccountBalance = typeof accountBalances.$inferSelect;
 export type AccountTransaction = typeof accountTransactions.$inferSelect;
 export type InterestRate = typeof interestRates.$inferSelect;
 export type Goal = typeof goals.$inferSelect;

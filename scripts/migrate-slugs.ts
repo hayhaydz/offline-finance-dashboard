@@ -3,7 +3,7 @@
  * Slug Migration Script for Existing Database Records
  * Usage: npm run migrate:slugs
  *
- * Generates unique nanoid slugs for existing accounts and accountBalances
+ * Generates unique nanoid slugs for existing accounts and accountTransactions
  * that don't have them yet. Handles collision detection and is idempotent.
  */
 import "dotenv/config";
@@ -147,62 +147,62 @@ async function migrateAccountSlugs() {
 	console.log(`✅ Migrated ${migrated} account(s) to slug-based URLs`);
 }
 
-async function migrateBalanceSlugs() {
-	devLog("migrate-slugs", "Starting balance slug migration...");
+async function migrateTransactionSlugs() {
+	devLog("migrate-slugs", "Starting transaction slug migration...");
 
-	// Fetch all balances without slugs (NULL values) using raw SQL
-	const balancesWithoutSlugs = await db
+	// Fetch all transactions without slugs (NULL values) using raw SQL
+	const transactionsWithoutSlugs = await db
 		.select({
-			id: schema.accountBalances.id,
-			slug: schema.accountBalances.slug,
+			id: schema.accountTransactions.id,
+			slug: schema.accountTransactions.slug,
 		})
-		.from(schema.accountBalances)
-		.where(isNull(schema.accountBalances.slug));
+		.from(schema.accountTransactions)
+		.where(isNull(schema.accountTransactions.slug));
 
 	devLog(
 		"migrate-slugs",
-		`Found ${balancesWithoutSlugs.length} balances without slugs`,
+		`Found ${transactionsWithoutSlugs.length} transactions without slugs`,
 	);
 
-	if (balancesWithoutSlugs.length === 0) {
-		console.log("✅ All balances already have slugs");
+	if (transactionsWithoutSlugs.length === 0) {
+		console.log("✅ All transactions already have slugs");
 		return;
 	}
 
 	// Get existing slugs for collision detection
-	const allBalances = await db.query.accountBalances.findMany();
+	const allTransactions = await db.query.accountTransactions.findMany();
 	const existingSlugs = new Set(
-		allBalances.map((b) => b.slug).filter((s): s is string => s !== null),
+		allTransactions.map((t) => t.slug).filter((s): s is string => s !== null),
 	);
 
 	let migrated = 0;
 
-	for (const balance of balancesWithoutSlugs) {
+	for (const transaction of transactionsWithoutSlugs) {
 		try {
 			const slug = generateUniqueSlug(existingSlugs);
 
 			await db
-				.update(schema.accountBalances)
+				.update(schema.accountTransactions)
 				.set({ slug })
-				.where(eq(schema.accountBalances.id, balance.id));
+				.where(eq(schema.accountTransactions.id, transaction.id));
 
 			existingSlugs.add(slug);
 			migrated++;
 
 			devLog(
 				"migrate-slugs",
-				`Migrated balance ID ${balance.id} -> slug: ${slug}`,
+				`Migrated transaction ID ${transaction.id} -> slug: ${slug}`,
 			);
 		} catch (error) {
 			logError(
 				"migrate-slugs",
-				`Failed to migrate balance ID ${balance.id}`,
+				`Failed to migrate transaction ID ${transaction.id}`,
 				error,
 			);
 		}
 	}
 
-	console.log(`✅ Migrated ${migrated} balance(s) to slug-based URLs`);
+	console.log(`✅ Migrated ${migrated} transaction(s) to slug-based URLs`);
 }
 
 async function main() {
@@ -213,7 +213,7 @@ async function main() {
 		await migrateAccountSlugs();
 		console.log("");
 
-		await migrateBalanceSlugs();
+		await migrateTransactionSlugs();
 		console.log("");
 
 		console.log("✅ Slug migration complete!");

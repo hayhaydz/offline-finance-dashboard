@@ -55,19 +55,10 @@ export function setupDb() {
 	`);
 
 	sqlite.exec(`
-		CREATE TRIGGER IF NOT EXISTS prevent_balance_insert_on_closed_account
-		BEFORE INSERT ON account_balances
+		CREATE TRIGGER IF NOT EXISTS prevent_transaction_insert_on_closed_account
+		BEFORE INSERT ON account_transactions
 		BEGIN
-			SELECT RAISE(ABORT, 'Cannot add balance to a closed account')
-			WHERE (SELECT closed_at FROM accounts WHERE id = NEW.account_id) IS NOT NULL;
-		END
-	`);
-
-	sqlite.exec(`
-		CREATE TRIGGER IF NOT EXISTS prevent_balance_update_on_closed_account
-		BEFORE UPDATE ON account_balances
-		BEGIN
-			SELECT RAISE(ABORT, 'Cannot edit balance of a closed account')
+			SELECT RAISE(ABORT, 'Cannot add transaction to a closed account')
 			WHERE (SELECT closed_at FROM accounts WHERE id = NEW.account_id) IS NOT NULL;
 		END
 	`);

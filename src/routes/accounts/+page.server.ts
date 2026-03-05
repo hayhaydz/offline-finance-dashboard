@@ -1,30 +1,34 @@
-import { fail, redirect } from "@sveltejs/kit";
-import { eq } from "drizzle-orm";
-import { validateUserAccess, withUserFilter } from "$lib/auth/row-security";
+import { redirect } from "@sveltejs/kit";
+import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts } from "$lib/db/schema";
-import { addBalanceEntry } from "$lib/utils/balances";
-import { devLog, logError, logFormData } from "$lib/utils/logger";
-import type { Actions, PageServerLoad } from "./$types";
+import {
+	getCurrentBalancesForAccounts,
+	getLatestTransactionDateForAccounts,
+} from "$lib/server/derivedBalances";
+import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
 		redirect(302, "/login");
 	}
 
-	// Query accounts with user filter and latest balances
+	// Query accounts with user filter
 	const userAccounts = await db.query.accounts.findMany({
 		where: withUserFilter(locals.user.id, accounts),
-		with: {
-			balances: {
-				orderBy: (balances, { desc }) => desc(balances.asOfDate),
-				limit: 1,
-			},
-		},
 		orderBy: (accounts, { desc }) => desc(accounts.createdAt),
 	});
+	const accountIds = userAccounts.map((a) => a.id);
+	const [currentBalances, latestTransactionDates] = await Promise.all([
+		getCurrentBalancesForAccounts(accountIds),
+		getLatestTransactionDateForAccounts(accountIds),
+	]);
 
 	// Transform data for display
+	const today = new Date();
+	today.setUTCHours(0, 0, 0, 0);
+	const millisecondsPerDay = 24 * 60 * 60 * 1000;
+
 	const accountsWithBalances = userAccounts.map((account) => ({
 		id: account.id,
 		slug: account.slug,
@@ -36,10 +40,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 		liquidity: account.liquidity,
 		closedAt: account.closedAt,
 		excludedFromNetWorth: account.excludedFromNetWorth,
+		maturityDate: account.maturityDate,
 		createdAt: account.createdAt,
 		updatedAt: account.updatedAt,
-		currentBalance: account.balances[0]?.balanceInCents || null,
-		lastUpdated: account.balances[0]?.asOfDate || null,
+		currentBalance: currentBalances.get(account.id) ?? 0,
+		lastUpdated: latestTransactionDates.get(account.id) ?? null,
+		daysToMaturity: account.maturityDate
+			? Math.ceil((account.maturityDate.getTime() - today.getTime()) / millisecondsPerDay)
+			: null,
 	}));
 
 	// Get unique institutions for filtering
@@ -56,65 +64,4 @@ export const load: PageServerLoad = async ({ locals }) => {
 			createdAt: locals.user.createdAt,
 		},
 	};
-};
-
-export const actions: Actions = {
-	quickAdd: async ({ request, locals }) => {
-		if (!locals.user) {
-			logError("quickAddBalance", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
-
-		const formData = await request.formData();
-		logFormData("quickAddBalance", Object.fromEntries(formData));
-		const accountIdStr = formData.get("accountId") as string;
-		const balanceStr = formData.get("balance") as string;
-		const notes = formData.get("notes") as string;
-
-		// Validate account ID
-		const accountId = parseInt(accountIdStr, 10);
-		if (Number.isNaN(accountId)) {
-			devLog("quickAddBalance", "Validation failed - invalid account ID", {
-				accountIdStr,
-			});
-			return fail(400, { error: "Invalid account selected" });
-		}
-
-		// Validate user owns the account
-		const account = await db.query.accounts.findFirst({
-			where: eq(accounts.id, accountId),
-		});
-
-		if (!account) {
-			logError("quickAddBalance", "Account not found", {
-				accountId,
-				userId: locals.user.id,
-			});
-			return fail(404, { error: "Account not found" });
-		}
-
-		validateUserAccess(account, locals.user, "Account");
-
-		// Set asOfDate to today (UTC timestamp) - quick-add always uses today
-		const today = new Date();
-		today.setUTCHours(0, 0, 0, 0);
-		today.setUTCMilliseconds(0);
-
-		// Use shared balance entry function
-		const result = await addBalanceEntry(
-			{ accountId, balanceStr, asOfDate: today, notes },
-			account,
-		);
-
-		if (result.type === "conflict") {
-			return fail(409, {
-				error: result.error,
-				existingBalanceId: result.existingBalanceId,
-				existingBalance: result.existingBalance,
-				proposedBalance: result.proposedBalance,
-			});
-		}
-
-		return { success: result.success };
-	},
 };

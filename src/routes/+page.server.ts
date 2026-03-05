@@ -3,6 +3,15 @@ import { asc } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, goals } from "$lib/db/schema";
+import {
+	ISA_ALLOWANCE_IN_CENTS,
+	getISAAllowanceUsed,
+	getUkTaxYearBounds,
+} from "$lib/server/calculations";
+import {
+	getCurrentBalancesForAccounts,
+	getLatestTransactionDateForAccounts,
+} from "$lib/server/derivedBalances";
 import { updateTypeExclusions } from "$lib/server/exclusions";
 import { calculateAssetsAndLiabilities } from "$lib/server/finance";
 import { devLog, isVerboseDebug, logError } from "$lib/utils/logger";
@@ -19,16 +28,20 @@ export const load: PageServerLoad = async ({ locals }) => {
 		userId: locals.user.id,
 	});
 
-	// Fetch all user accounts with their latest balance
+	// Fetch all user accounts
 	const userAccounts = await db.query.accounts.findMany({
 		where: withUserFilter(locals.user.id, accounts),
-		with: {
-			balances: {
-				orderBy: (balances, { desc }) => desc(balances.asOfDate),
-				limit: 1,
-			},
-		},
 	});
+	const accountIds = userAccounts.map((a) => a.id);
+	const [currentBalances, latestTransactionDates] = await Promise.all([
+		getCurrentBalancesForAccounts(accountIds),
+		getLatestTransactionDateForAccounts(accountIds),
+	]);
+	const accountsWithDerivedBalances = userAccounts.map((account) => ({
+		...account,
+		currentBalance: currentBalances.get(account.id) ?? 0,
+		lastUpdated: latestTransactionDates.get(account.id) ?? null,
+	}));
 
 	devLog("homePage", "Fetched user accounts", {
 		accountCount: userAccounts.length,
@@ -66,12 +79,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	// Calculate net worth totals
 	// Filter included accounts: not excluded AND not closed
-	const includedAccounts = userAccounts.filter(
+	const includedAccounts = accountsWithDerivedBalances.filter(
 		(a) => !a.excludedFromNetWorth && !a.closedAt,
 	);
 
 	// Filter excluded accounts: excluded AND not closed
-	const excludedAccounts = userAccounts.filter(
+	const excludedAccounts = accountsWithDerivedBalances.filter(
 		(a) => a.excludedFromNetWorth && !a.closedAt,
 	);
 
@@ -83,13 +96,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const excludedLiabilities = excludedTotals.totalLiabilities;
 	const netWorth = includedTotals.netWorth;
 
-	// Determine date range: find oldest and newest asOfDate across all balances
-	const allBalances = userAccounts.flatMap((a) => a.balances);
+	// Determine date range from transaction recency.
+	const allDates = accountsWithDerivedBalances
+		.map((a) => a.lastUpdated)
+		.filter((d): d is Date => Boolean(d));
 	let oldestDate = new Date();
 	let newestDate = new Date();
 
-	if (allBalances.length > 0) {
-		const dates = allBalances.map((b) => b.asOfDate.getTime());
+	if (allDates.length > 0) {
+		const dates = allDates.map((d) => d.getTime());
 		oldestDate = new Date(Math.min(...dates));
 		newestDate = new Date(Math.max(...dates));
 	}
@@ -104,10 +119,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 	thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 	thirtyDaysAgo.setUTCHours(0, 0, 0, 0);
 
-	const staleAccounts = includedAccounts.filter((a) => {
-		const latestBalance = a.balances[0];
-		return latestBalance && latestBalance.asOfDate < thirtyDaysAgo;
-	});
+	const staleAccounts = includedAccounts.filter(
+		(a) => a.lastUpdated && a.lastUpdated < thirtyDaysAgo,
+	);
 
 	const hasStaleData = staleAccounts.length > 0;
 
@@ -120,7 +134,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// Count excluded TYPES (not individual accounts)
 	// A type is "excluded" only when ALL open accounts of that type are excluded
 	// (matches the modal's all-or-nothing toggle logic; closed accounts are ignored)
-	const openAccounts = userAccounts.filter((a) => !a.closedAt);
+	const openAccounts = accountsWithDerivedBalances.filter((a) => !a.closedAt);
 	const typeMap = new Map<string, { total: number; excluded: number }>();
 	for (const a of openAccounts) {
 		const entry = typeMap.get(a.type) ?? { total: 0, excluded: 0 };
@@ -134,6 +148,49 @@ export const load: PageServerLoad = async ({ locals }) => {
 			.map(([type]) => type),
 	);
 	const exclusionCount = excludedTypes.size;
+
+	// Maturity alerts: open accounts maturing in the next 90 days
+	const today = new Date();
+	today.setUTCHours(0, 0, 0, 0);
+	const ninetyDaysAhead = new Date(today);
+	ninetyDaysAhead.setUTCDate(ninetyDaysAhead.getUTCDate() + 90);
+	const msPerDay = 24 * 60 * 60 * 1000;
+
+	const maturingSoon = accountsWithDerivedBalances
+		.filter(
+			(a) =>
+				!a.closedAt &&
+				a.maturityDate &&
+				a.maturityDate >= today &&
+				a.maturityDate <= ninetyDaysAhead,
+		)
+		.map((a) => ({
+			id: a.id,
+			slug: a.slug,
+			name: a.name,
+			type: a.type,
+			maturityDate: a.maturityDate as Date,
+			daysToMaturity: Math.ceil(
+				((a.maturityDate as Date).getTime() - today.getTime()) / msPerDay,
+			),
+			currentBalance: a.currentBalance ?? 0,
+		}))
+		.sort((a, b) => a.maturityDate.getTime() - b.maturityDate.getTime());
+
+	// ISA tracker for current UK tax year (6 Apr -> 5 Apr)
+	const taxYear = getUkTaxYearBounds(new Date());
+	const isaUsed = await getISAAllowanceUsed(
+		locals.user.id,
+		taxYear.start,
+		taxYear.end,
+	);
+	const isaTracker = {
+		limit: ISA_ALLOWANCE_IN_CENTS,
+		used: isaUsed,
+		remaining: Math.max(0, ISA_ALLOWANCE_IN_CENTS - isaUsed),
+		taxYearStart: taxYear.start,
+		taxYearEnd: taxYear.end,
+	};
 
 	devLog("homePage", "Exclusion count calculated", {
 		excludedTypes: Array.from(excludedTypes),
@@ -169,11 +226,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 			newest: newestDate,
 		},
 		hasStaleData,
-		exclusionCount,
-		accounts: userAccounts,
-		goals: activeGoals,
-		staleness,
-	};
+			exclusionCount,
+			accounts: accountsWithDerivedBalances,
+			maturingSoon,
+			isaTracker,
+			goals: activeGoals,
+			staleness,
+		};
 };
 
 export const actions: Actions = {

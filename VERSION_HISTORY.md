@@ -1,3 +1,31 @@
+## [2026-03-05 19:05] — Transaction-Only Model: Removed Persisted Balances + Fresh Migration Baseline
+
+**Summary:** Switched fully to transaction-derived balances and removed persisted `account_balances` usage from runtime code. Reset migrations to a fresh Drizzle-generated baseline, deleted `storage/dev.db`, rebuilt schema, and re-seeded standard data.
+
+**What Changed:**
+- Removed `accountBalances` schema exports/relations and balance CRUD routes/utilities.
+- Updated account/home/goals/snapshot flows to derive balances from `account_transactions` queries.
+- Updated seed modes (`standard`, `edge`, `stress`) to create transaction history instead of balance rows.
+- Updated scripts/tests that referenced balances (`db-doctor`, `query-plan`, `create-test-accounts`, `migrate-slugs`, integration DB tests).
+- Replaced old migration set with a single fresh generated migration:
+  - `src/lib/db/migrations/0000_daily_living_tribunal.sql`
+
+**Database Reset/Rebuild:**
+- Deleted `storage/dev.db`
+- Ran `npm run db:generate`
+- Ran `npm run db:push`
+- Ran `npm run seed:standard`
+
+**Validation:**
+- `npm run check` → 0 errors / 0 warnings
+- `npm test` → 107 passing
+- Confirmed no `accountBalances`/`account_balances` references remain in `src/`, `scripts/`, or `tests/`
+
+**Commit:**
+`refactor: remove persisted balances and regenerate migration baseline`
+
+---
+
 ## [2026-03-05 18:30] — Transaction System: Phases 1-3 Complete (Schema, CRUD, Interest Rates)
 
 **Summary:** Implemented transaction tracking and interest rate management system with full CRUD operations, database schema, and UI components. Phases 1-3 of 5-phase plan complete.

@@ -82,34 +82,38 @@ export async function seedEdge(db: DB, userId: number): Promise<void> {
 			})
 			.returning();
 
-		// Insert explicit balances
+		// Insert explicit transactions that define balance history
 		for (const b of a.balances) {
-			await db.insert(schema.accountBalances).values({
+			const transactionDate = daysAgo(b.daysAgo);
+			await db.insert(schema.accountTransactions).values({
 				slug: slug(),
 				accountId: account.id,
-				balanceInCents: b.balanceInCents,
-				asOfDate: daysAgo(b.daysAgo),
-				notes: b.notes,
-				createdAt: new Date(),
-				updatedAt: new Date(),
+				type: "value_change",
+				amount: b.balanceInCents,
+				category: null,
+				description: b.notes,
+				transactionDate,
+				createdAt: transactionDate,
 			});
 		}
 
-		// Generate additional balances if requested
+		// Generate additional transactions if requested
 		if (a.generateBalances) {
 			const { count, spanDays, baseAmount, variance } = a.generateBalances;
 			const stepDays = Math.floor(spanDays / count);
 			for (let i = 0; i < count; i++) {
 				const offset = spanDays - i * stepDays;
 				const amount = baseAmount + randomBetween(-variance, variance);
-				await db.insert(schema.accountBalances).values({
+				const transactionDate = daysAgo(offset + 1); // +1 to not collide with explicit daysAgo: 0
+				await db.insert(schema.accountTransactions).values({
 					slug: slug(),
 					accountId: account.id,
-					balanceInCents: amount,
-					asOfDate: daysAgo(offset + 1), // +1 to not collide with explicit daysAgo: 0
-					notes: null,
-					createdAt: new Date(),
-					updatedAt: new Date(),
+					type: "value_change",
+					amount,
+					category: null,
+					description: null,
+					transactionDate,
+					createdAt: transactionDate,
 				});
 			}
 		}
@@ -117,7 +121,7 @@ export async function seedEdge(db: DB, userId: number): Promise<void> {
 		accountByName.set(a.name, account);
 		const balanceTotal = a.balances.length + (a.generateBalances?.count ?? 0);
 		console.log(
-			`  ✓ ${a.name} (${a.institution ?? "-"}) — ${balanceTotal} balance entries` +
+			`  ✓ ${a.name} (${a.institution ?? "-"}) — ${balanceTotal} transaction entries` +
 				(a.closedAt ? " [CLOSED]" : "") +
 				(a.excludedFromNetWorth ? " [EXCLUDED]" : ""),
 		);

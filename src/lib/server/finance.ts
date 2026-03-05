@@ -1,6 +1,7 @@
 export interface AccountWithLatestBalance {
 	category: "asset" | "liability";
-	balances: Array<{ balanceInCents: number }>;
+	currentBalance?: number | null;
+	balances?: Array<{ balanceInCents: number }>;
 }
 
 export interface TotalsResult {
@@ -16,7 +17,8 @@ export function calculateAssetsAndLiabilities(
 	let totalLiabilities = 0;
 
 	for (const account of accounts) {
-		const balance = account.balances[0]?.balanceInCents ?? 0;
+		const balance =
+			account.currentBalance ?? account.balances?.[0]?.balanceInCents ?? 0;
 
 		if (account.category === "asset") {
 			if (balance >= 0) {

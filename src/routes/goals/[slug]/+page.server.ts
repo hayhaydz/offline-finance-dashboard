@@ -4,6 +4,7 @@ import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import type { Account } from "$lib/db/schema";
 import { accounts, goalAllocations, goals } from "$lib/db/schema";
+import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
 import {
 	calculateContributionStats,
 	calculateLiquidityBreakdown,
@@ -83,13 +84,10 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		accountAllocationsRaw.map(async (alloc) => {
 			const account = await db.query.accounts.findFirst({
 				where: eq(accounts.id, alloc.accountId),
-				with: {
-					balances: {
-						orderBy: (balances, { desc }) => desc(balances.asOfDate),
-						limit: 1,
-					},
-				},
 			});
+			const currentBalance = account
+				? await getCurrentBalanceForAccount(account.id)
+				: 0;
 			return {
 				accountId: alloc.accountId,
 				accountSlug: account?.slug ?? "",
@@ -98,7 +96,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 				taxWrapper: account?.taxWrapper ?? null,
 				liquidity: account?.liquidity ?? null,
 				netAllocated: alloc.netAllocated,
-				currentBalance: account?.balances[0]?.balanceInCents ?? 0,
+				currentBalance,
 			};
 		}),
 	);
@@ -208,12 +206,6 @@ export const actions: Actions = {
 
 		const account = await db.query.accounts.findFirst({
 			where: eq(accounts.id, parseInt(fromAccountId, 10)),
-			with: {
-				balances: {
-					orderBy: (balances, { desc }) => desc(balances.asOfDate),
-					limit: 1,
-				},
-			},
 		});
 
 		if (!account) {
@@ -229,7 +221,7 @@ export const actions: Actions = {
 			.where(eq(goalAllocations.accountId, account.id));
 
 		const totalAllocated = Math.max(0, accountAllocations[0]?.sum || 0);
-		const accountBalance = account.balances[0]?.balanceInCents || 0;
+		const accountBalance = await getCurrentBalanceForAccount(account.id);
 		const unallocated = accountBalance - totalAllocated;
 
 		if (unallocated < amountInCents) {

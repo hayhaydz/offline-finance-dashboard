@@ -9,7 +9,7 @@ vi.hoisted(() => {
 import { sql } from "drizzle-orm";
 import { createDb } from "$lib/db/client";
 import { runMigrations } from "$lib/db/migrate";
-import { accountBalances, accounts, users } from "$lib/db/schema";
+import { accountTransactions, accounts, users } from "$lib/db/schema";
 
 describe("Database Integration & Migrations", () => {
 	const createdFiles: string[] = [];
@@ -52,7 +52,11 @@ describe("Database Integration & Migrations", () => {
 			"backup_codes",
 			"login_attempts",
 			"accounts",
-			"account_balances",
+			"account_transactions",
+			"interest_rates",
+			"goals",
+			"goal_allocations",
+			"snapshots",
 			"system_metadata",
 			"__drizzle_migrations",
 		];
@@ -87,10 +91,12 @@ describe("Database Integration & Migrations", () => {
 			"idx_sessions_user_last_activity",
 			"idx_accounts_user_closed",
 			"idx_accounts_user_excluded_closed",
-			"idx_account_balances_account_asof",
+			"idx_account_transactions_account_date",
+			"idx_account_transactions_type",
 			"idx_goals_user_deleted_sort",
 			"idx_goal_allocations_goal",
 			"idx_goal_allocations_account",
+			"idx_interest_rates_account_effective",
 		];
 
 		for (const idx of expectedIndexes) {
@@ -130,18 +136,19 @@ describe("Database Integration & Migrations", () => {
 
 		expect(newAccount.id).toBeDefined();
 
-		// 3. Test Balances
-		const [newBalance] = await testDb
-			.insert(accountBalances)
+		// 3. Test Transactions
+		const [newTx] = await testDb
+			.insert(accountTransactions)
 			.values({
 				accountId: newAccount.id,
-				slug: `test-balance-slug-${Date.now()}`,
-				balanceInCents: 10000,
-				asOfDate: new Date(),
+				slug: `test-tx-slug-${Date.now()}`,
+				type: "deposit",
+				amount: 10000,
+				transactionDate: new Date(),
 			})
 			.returning();
 
-		expect(newBalance.id).toBeDefined();
+		expect(newTx.id).toBeDefined();
 
 		// 4. Verify relations/data
 		const userCount = await testDb

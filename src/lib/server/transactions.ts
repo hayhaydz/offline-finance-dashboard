@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
-import { accountTransactions, type Account } from "$lib/db/schema";
+import { accountTransactions, accounts, type Account } from "$lib/db/schema";
 import { devLog, logError } from "$lib/utils/logger";
 
 export type TransactionType = (typeof accountTransactions.$inferInsert)["type"];
@@ -63,7 +63,7 @@ export async function getTransactions(
 	userId: number,
 	filter: TransactionFilter = {},
 ) {
-	const conditions = [];
+	const conditions = [eq(accounts.userId, userId)];
 
 	if (filter.accountId) {
 		conditions.push(eq(accountTransactions.accountId, filter.accountId));
@@ -81,25 +81,28 @@ export async function getTransactions(
 		conditions.push(lte(accountTransactions.transactionDate, filter.toDate));
 	}
 
-	const query = db.query.accountTransactions.findMany({
-		where: conditions.length > 0 ? and(...conditions) : undefined,
-		orderBy: desc(accountTransactions.transactionDate),
-		limit: filter.limit ?? 50,
-		offset: filter.offset ?? 0,
-		with: {
+	const rows = await db
+		.select({
+			transaction: accountTransactions,
 			account: {
-				columns: {
-					id: true,
-					slug: true,
-					name: true,
-					type: true,
-					taxWrapper: true,
-				},
+				id: accounts.id,
+				slug: accounts.slug,
+				name: accounts.name,
+				type: accounts.type,
+				taxWrapper: accounts.taxWrapper,
 			},
-		},
-	});
+		})
+		.from(accountTransactions)
+		.innerJoin(accounts, eq(accountTransactions.accountId, accounts.id))
+		.where(and(...conditions))
+		.orderBy(desc(accountTransactions.transactionDate))
+		.limit(filter.limit ?? 50)
+		.offset(filter.offset ?? 0);
 
-	return query;
+	return rows.map((row) => ({
+		...row.transaction,
+		account: row.account,
+	}));
 }
 
 /**

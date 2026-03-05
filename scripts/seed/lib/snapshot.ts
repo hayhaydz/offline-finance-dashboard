@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import * as schema from "../../../src/lib/db/schema.js";
 import type { DB } from "./db.js";
 import { slug } from "./helpers.js";
@@ -22,13 +22,19 @@ export async function createSnapshot(
 ): Promise<void> {
 	const allAccounts = await db.query.accounts.findMany({
 		where: eq(schema.accounts.userId, userId),
-		with: {
-			balances: {
-				orderBy: [desc(schema.accountBalances.asOfDate)],
-				limit: 1,
-			},
-		},
 	});
+	const accountIds = allAccounts.map((a) => a.id);
+	const allTransactions = await db.query.accountTransactions.findMany({
+		columns: { accountId: true, amount: true },
+	});
+	const balanceByAccount = new Map<number, number>();
+	for (const id of accountIds) balanceByAccount.set(id, 0);
+	for (const tx of allTransactions) {
+		balanceByAccount.set(
+			tx.accountId,
+			(balanceByAccount.get(tx.accountId) ?? 0) + tx.amount,
+		);
+	}
 
 	const allGoals = await db.query.goals.findMany({
 		where: and(eq(schema.goals.userId, userId), isNull(schema.goals.deletedAt)),
@@ -40,7 +46,7 @@ export async function createSnapshot(
 	const accountsWithBalance = openAccounts.map((a) => ({
 		...a,
 		adjustedBalance: Math.round(
-			(a.balances[0]?.balanceInCents || 0) * multiplier,
+			(balanceByAccount.get(a.id) ?? 0) * multiplier,
 		),
 	}));
 
