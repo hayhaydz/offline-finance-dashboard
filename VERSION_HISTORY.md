@@ -1,3 +1,57 @@
+## [2026-03-05 18:30] — Transaction System: Phases 1-3 Complete (Schema, CRUD, Interest Rates)
+
+**Summary:** Implemented transaction tracking and interest rate management system with full CRUD operations, database schema, and UI components. Phases 1-3 of 5-phase plan complete.
+
+**Phase 1 - Schema & Seed:**
+- Added `account_transactions` table with transaction types (deposit, withdrawal, interest, dividend, value_change, transfer_in, transfer_out)
+- Added `interest_rates` table for historical and future rate tracking
+- Added `maturityDate` field to accounts table for fixed-term products
+- Created migration `0002_transaction_system.sql`
+- Added seed data: 46 transactions across 5 accounts, 6 interest rate entries
+
+**Phase 2 - Transaction CRUD:**
+- Created `src/lib/server/transactions.ts` with CRUD functions
+- `createTransaction()`, `getTransactions()`, `getTransactionBySlug()`, `updateTransaction()`, `deleteTransaction()`
+- `getTransactionSum()` for ISA allowance calculations
+- Added transaction actions to account detail page
+- Transaction list UI with type badges (green/red/blue/purple/gray/cyan/orange)
+
+**Phase 3 - Interest Rates:**
+- Created `src/lib/server/interestRates.ts` with rate management
+- `createInterestRate()`, `getCurrentRate()`, `getCurrentRatePercent()`, `getInterestRateHistory()`
+- Rate history display with status badges (CURRENT/FUTURE/Historical)
+- Add/delete rate forms
+- Only shown for savings/investment accounts
+
+**Files Created:**
+- `src/lib/server/transactions.ts` — transaction CRUD operations
+- `src/lib/server/interestRates.ts` — rate management functions
+- `src/lib/db/migrations/0002_transaction_system.sql` — database migration
+- `scripts/seed/fixtures/standard/transactions.json` — 46 sample transactions
+- `scripts/seed/fixtures/standard/interest_rates.json` — 6 sample rates
+
+**Files Modified:**
+- `src/lib/db/schema.ts` — added tables, maturityDate, relations, type exports
+- `src/lib/db/migrations/meta/_journal.json` — migration tracking
+- `src/routes/accounts/[slug]/+page.server.ts` — actions for transactions/rates, load functions
+- `src/routes/accounts/[slug]/+page.svelte` — UI sections for transactions and rates
+- `scripts/seed/modes/standard.ts` — seed data integration
+
+**Remaining (Phases 4-5):**
+- Phase 4: Derived calculations (ISA allowance, interest earned, projected interest, tax status)
+- Phase 5: UI polish (interest summary cards, ISA tracker widget, maturity countdown, dashboard alerts)
+
+**Design Reference:** `docs/plans/2026-03-03-transaction-system-design.md`
+
+**Validation:**
+- `npm run check` → 0 errors / 0 warnings
+- Tests → 82 passing
+
+**Commit:**
+`feat: implement transaction system and interest tracking (Phases 1-3)`
+
+---
+
 ## [2026-03-03 19:45] — Goal Detail UI Fixes + Brainstorm: Transaction System Design
 
 **Summary:** Fixed UI bugs on goal detail page (clickable account links, "Today ago" fix, slug URLs). Added UK tax context to CLAUDE.md. Conducted brainstorming session for future transaction system covering interest tracking, ISA allowance, maturity dates, and deferred features (budgeting, salary calculator, D3 reports).
