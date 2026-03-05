@@ -43,6 +43,7 @@ export async function ensureAdminUser(db: DB): Promise<number> {
 			totpSecret: secretToStore,
 			totpSecretIV: ivToStore,
 			passwordSalt,
+			taxBand: "basic",
 			createdAt: new Date(),
 			updatedAt: new Date(),
 		})

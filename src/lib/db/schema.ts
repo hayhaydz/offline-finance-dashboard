@@ -9,6 +9,9 @@ export const users = sqliteTable("users", {
 	totpSecretIV: text("totp_secret_iv").notNull(), // IV for TOTP secret encryption
 	passwordSalt: text("password_salt").notNull(), // Salt for user key derivation
 	mfaSetupToken: text("mfa_setup_token"), // Temporary token for MFA setup flow
+	taxBand: text("tax_band", { enum: ["basic", "higher", "additional"] })
+		.notNull()
+		.default("basic"), // UK Personal Savings Allowance tier
 	createdAt: integer("created_at", { mode: "timestamp" })
 		.notNull()
 		.default(sql`CURRENT_TIMESTAMP`),
@@ -81,7 +84,7 @@ export const accounts = sqliteTable(
 				"mortgage",
 			],
 		}).notNull(),
-		taxWrapper: text("tax_wrapper", { enum: ["none", "isa", "lisa"] })
+		taxWrapper: text("tax_wrapper", { enum: ["none", "isa", "lisa", "premium-bonds"] })
 			.notNull()
 			.default("none"),
 		category: text("category", { enum: ["asset", "liability"] }).notNull(),

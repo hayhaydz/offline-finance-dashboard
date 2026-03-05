@@ -147,9 +147,10 @@ export function formatDate(date: Date | null | undefined): string {
 export function formatDateShorthand(date: Date | null | undefined): string {
 	if (!date) return "-";
 
-	const year = date.getFullYear();
-	const month = String(date.getMonth() + 1).padStart(2, "0");
-	const day = String(date.getDate()).padStart(2, "0");
+	// Use UTC parts so date-only displays stay stable across user timezones.
+	const year = date.getUTCFullYear();
+	const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+	const day = String(date.getUTCDate()).padStart(2, "0");
 
 	return `${year}-${month}-${day}`;
 }

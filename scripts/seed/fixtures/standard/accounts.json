@@ -8,6 +8,8 @@
     "liquidity": "instant",
     "excludedFromNetWorth": false,
     "closedAt": null,
+    "maturityDate": null,
+    "maturityDate": null,
     "balances": [
       { "balanceInCents": 245000, "daysAgo": 90, "notes": "Monthly statement" },
       { "balanceInCents": 280000, "daysAgo": 60, "notes": "Salary credited" },
@@ -24,6 +26,7 @@
     "liquidity": "instant",
     "excludedFromNetWorth": false,
     "closedAt": null,
+    "maturityDate": null,
     "balances": [
       { "balanceInCents": 85000, "daysAgo": 60, "notes": "Monthly statement" },
       { "balanceInCents": 95000, "daysAgo": 30, "notes": "After direct debits" },
@@ -39,6 +42,7 @@
     "liquidity": "instant",
     "excludedFromNetWorth": false,
     "closedAt": null,
+    "maturityDate": null,
     "balances": [
       { "balanceInCents": 1500000, "daysAgo": 365, "notes": "Initial deposit" },
       { "balanceInCents": 1650000, "daysAgo": 180, "notes": "After contribution" },
@@ -55,6 +59,7 @@
     "liquidity": "instant",
     "excludedFromNetWorth": false,
     "closedAt": null,
+    "maturityDate": null,
     "balances": [
       { "balanceInCents": 820000, "daysAgo": 365, "notes": "ISA opening balance" },
       { "balanceInCents": 950000, "daysAgo": 270, "notes": "After contribution" },
@@ -72,6 +77,7 @@
     "liquidity": "delayed",
     "excludedFromNetWorth": false,
     "closedAt": null,
+    "maturityDate": null,
     "balances": [
       { "balanceInCents": 2500000, "daysAgo": 365, "notes": "Initial investment" },
       { "balanceInCents": 2750000, "daysAgo": 270, "notes": "Market growth" },
@@ -89,6 +95,7 @@
     "liquidity": null,
     "excludedFromNetWorth": false,
     "closedAt": null,
+    "maturityDate": null,
     "balances": [
       { "balanceInCents": -120000, "daysAgo": 90, "notes": "Monthly statement" },
       { "balanceInCents": -160000, "daysAgo": 60, "notes": "After purchases" },
@@ -105,6 +112,7 @@
     "liquidity": null,
     "excludedFromNetWorth": false,
     "closedAt": null,
+    "maturityDate": null,
     "balances": [
       { "balanceInCents": -80000, "daysAgo": 60, "notes": "Monthly statement" },
       { "balanceInCents": -65000, "daysAgo": 30, "notes": "After payment" },
@@ -120,12 +128,66 @@
     "liquidity": "locked",
     "excludedFromNetWorth": false,
     "closedAt": null,
+    "maturityDate": null,
+    "maturityDate": null,
     "balances": [
       { "balanceInCents": -1200000, "daysAgo": 365, "notes": "Loan start" },
       { "balanceInCents": -1180000, "daysAgo": 270, "notes": "After payment" },
       { "balanceInCents": -1160000, "daysAgo": 180, "notes": "After payment" },
       { "balanceInCents": -1140000, "daysAgo": 90, "notes": "After payment" },
       { "balanceInCents": -1120000, "daysAgo": 0, "notes": "Current balance (being paid down)" }
+    ]
+  },
+  {
+    "name": "1-Year Fixed Bond",
+    "institution": "NS&I",
+    "type": "savings",
+    "taxWrapper": "none",
+    "category": "asset",
+    "liquidity": "locked",
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "maturityDate": null,
+    "maturityDate": "2027-03-05",
+    "balances": [
+      { "balanceInCents": 5000000, "daysAgo": 365, "notes": "Bond opening - 5.0% fixed" },
+      { "balanceInCents": 5062500, "daysAgo": 0, "notes": "Interest accrued" }
+    ]
+  },
+  {
+    "name": "2-Year Fixed Rate Bond",
+    "institution": "Yorkshire BS",
+    "type": "savings",
+    "taxWrapper": "none",
+    "category": "asset",
+    "liquidity": "locked",
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "maturityDate": null,
+    "maturityDate": "2028-03-05",
+    "balances": [
+      { "balanceInCents": 3000000, "daysAgo": 365, "notes": "Bond opening - 4.75% fixed" },
+      { "balanceInCents": 3048750, "daysAgo": 180, "notes": "Interest accrued" },
+      { "balanceInCents": 3097500, "daysAgo": 0, "notes": "Current balance with interest" }
+    ]
+  },
+  {
+    "name": "5-Year Growth Bond",
+    "institution": "Santander",
+    "type": "investment",
+    "taxWrapper": "isa",
+    "category": "asset",
+    "liquidity": "locked",
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "maturityDate": null,
+    "maturityDate": "2031-03-05",
+    "balances": [
+      { "balanceInCents": 1500000, "daysAgo": 365, "notes": "ISA Bond opening - 4.25% fixed" },
+      { "balanceInCents": 1552500, "daysAgo": 270, "notes": "Interest accrued" },
+      { "balanceInCents": 1605000, "daysAgo": 180, "notes": "Interest accrued" },
+      { "balanceInCents": 1657500, "daysAgo": 90, "notes": "Interest accrued" },
+      { "balanceInCents": 1710000, "daysAgo": 0, "notes": "Current balance with interest" }
     ]
   }
 ]

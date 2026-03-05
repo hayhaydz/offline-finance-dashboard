@@ -19,5 +19,23 @@
     "rates": [
       { "rate": 0, "daysAgo": 365, "description": "Investment account - no fixed rate" }
     ]
+  },
+  {
+    "accountName": "1-Year Fixed Bond",
+    "rates": [
+      { "rate": 500, "daysAgo": 365, "description": "Fixed rate 5.00% AER until maturity" }
+    ]
+  },
+  {
+    "accountName": "2-Year Fixed Rate Bond",
+    "rates": [
+      { "rate": 475, "daysAgo": 365, "description": "Fixed rate 4.75% AER until maturity" }
+    ]
+  },
+  {
+    "accountName": "5-Year Growth Bond",
+    "rates": [
+      { "rate": 425, "daysAgo": 365, "description": "ISA Bond fixed rate 4.25% AER until maturity" }
+    ]
   }
 ]

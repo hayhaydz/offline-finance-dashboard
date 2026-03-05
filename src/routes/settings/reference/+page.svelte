@@ -126,4 +126,70 @@
 				</p>
 			</div>
 		</section>
+
+		<!-- TAX SETTINGS SECTION -->
+		<section>
+			<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
+				<span>TAX SETTINGS</span>
+			</div>
+
+			<div class="bg-gray-50 p-4">
+				<!-- Current value display -->
+				<div class="mb-4 pb-4 border-b border-gray-300">
+					<div class="flex justify-between my-1">
+						<span><strong>Current tax band:</strong></span>
+						<span class="font-mono">
+							{data.taxBand === 'basic' ? 'Basic Rate (£1,000 allowance)' :
+								data.taxBand === 'higher' ? 'Higher Rate (£500 allowance)' :
+								'Additional Rate (£0 allowance)'}
+						</span>
+					</div>
+				</div>
+
+				<!-- Help text -->
+				<div class="mb-4">
+					<h2 class="mt-0 mb-2">Personal Savings Allowance</h2>
+					<p class="text-sm mb-2">
+						Your tax band determines how much interest you can earn tax-free each year:
+					</p>
+					<ul class="text-sm mb-2 ml-4">
+						<li><strong>Basic rate:</strong> £1,000 tax-free interest per year</li>
+						<li><strong>Higher rate:</strong> £500 tax-free interest per year</li>
+						<li><strong>Additional rate:</strong> £0 tax-free interest</li>
+					</ul>
+					<p class="text-sm mb-0">
+						<strong>Note:</strong> ISA and LISA accounts are always tax-free and don't count
+						toward your Personal Savings Allowance.
+					</p>
+				</div>
+
+				<!-- Tax band form -->
+				<form method="POST" action="?/updateTaxBand" class="mb-4">
+					<div class="mb-4">
+						<label for="taxBand" class="block text-sm font-bold mb-2">
+							Select your tax band:
+						</label>
+						<select
+							id="taxBand"
+							name="taxBand"
+							class="w-full border border-black px-2 py-1 bg-white max-w-md"
+						>
+							<option value="basic" selected={data.taxBand === 'basic'}>
+								Basic Rate - £1,000 allowance
+							</option>
+							<option value="higher" selected={data.taxBand === 'higher'}>
+								Higher Rate - £500 allowance
+							</option>
+							<option value="additional" selected={data.taxBand === 'additional'}>
+								Additional Rate - £0 allowance
+							</option>
+						</select>
+					</div>
+
+					<button type="submit" class="bracket-link">
+						[Save Tax Band]
+					</button>
+				</form>
+			</div>
+		</section>
 </main>

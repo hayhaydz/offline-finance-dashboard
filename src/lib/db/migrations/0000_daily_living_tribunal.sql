@@ -136,6 +136,7 @@ CREATE TABLE `users` (
 	`totp_secret_iv` text NOT NULL,
 	`password_salt` text NOT NULL,
 	`mfa_setup_token` text,
+	`tax_band` text DEFAULT 'basic' NOT NULL,
 	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL
 );

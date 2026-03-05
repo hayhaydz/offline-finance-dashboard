@@ -144,6 +144,7 @@ export async function getAccountInterestEarned(
 
 /**
  * Projected interest from now until tax year end for one account.
+ * Accounts for fixed-term bonds that mature outside the current tax year.
  */
 export async function getProjectedInterest(
 	accountId: number,
@@ -152,17 +153,38 @@ export async function getProjectedInterest(
 	const now = new Date();
 	if (taxYearEnd <= now) return 0;
 
+	// Fetch maturity date to ensure we don't project interest for bonds
+	// that pay out in a future tax year.
+	const [account] = await db
+		.select({ maturityDate: accounts.maturityDate })
+		.from(accounts)
+		.where(eq(accounts.id, accountId));
+
+	if (account?.maturityDate) {
+		if (account.maturityDate > taxYearEnd) {
+			return 0; // Pays out in a future tax year
+		}
+		if (account.maturityDate <= now) {
+			return 0; // Already matured
+		}
+	}
+
 	const currentBalance = await getCurrentBalanceForAccount(accountId);
 	if (currentBalance <= 0) return 0;
 
 	const currentRate = await getCurrentRate(accountId);
 	if (currentRate === null) return 0;
 
+	// If it matures within this tax year, only project up until the maturity date
+	const toDate = account?.maturityDate && account.maturityDate <= taxYearEnd
+		? account.maturityDate
+		: taxYearEnd;
+
 	return calculateProjectedInterestInCents({
 		balanceInCents: currentBalance,
 		rateBasisPoints: currentRate,
 		fromDate: now,
-		toDate: taxYearEnd,
+		toDate,
 	});
 }
 

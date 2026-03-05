@@ -58,11 +58,12 @@
 		{ value: 'mortgage', label: 'Mortgage' }
 	];
 
-	// Tax wrapper options (3 values)
+	// Tax wrapper options (4 values)
 	const taxWrappers = [
 		{ value: 'none', label: 'None' },
 		{ value: 'isa', label: 'ISA' },
-		{ value: 'lisa', label: 'LISA' }
+		{ value: 'lisa', label: 'LISA' },
+		{ value: 'premium-bonds', label: 'Premium Bonds' }
 	];
 
 	// Tax wrapper only enabled for savings/investment

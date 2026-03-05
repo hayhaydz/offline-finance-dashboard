@@ -11,10 +11,8 @@ import {
 	parseRateToBasisPoints,
 } from "$lib/server/interestRates";
 import {
-	ISA_ALLOWANCE_IN_CENTS,
 	getAccountInterestEarned,
 	getActualInterestEarned,
-	getISAAllowanceUsed,
 	getProjectedInterest,
 	getTaxFreeStatus,
 	getUkTaxYearBounds,
@@ -125,9 +123,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		};
 	});
 
-	const [isaAllowanceUsed, actualInterestAllAccounts, accountActualInterest, projectedInterest] =
+	const [actualInterestAllAccounts, accountActualInterest, projectedInterest] =
 		await Promise.all([
-			getISAAllowanceUsed(locals.user.id, taxYear.start, taxYear.end),
 			getActualInterestEarned(locals.user.id, taxYear.start, taxYear.end),
 			getAccountInterestEarned(account.id, taxYear.start, taxYear.end),
 			getProjectedInterest(account.id, taxYear.end),
@@ -153,11 +150,6 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 						totalExpectedInterest,
 						taxBand,
 						taxFreeStatus,
-						isaAllowance: {
-							limit: ISA_ALLOWANCE_IN_CENTS,
-							used: isaAllowanceUsed,
-							remaining: Math.max(0, ISA_ALLOWANCE_IN_CENTS - isaAllowanceUsed),
-						},
 						selectedTaxYearStart: formatTaxYearStartParam(taxYear.start),
 						taxYearOptions,
 					}

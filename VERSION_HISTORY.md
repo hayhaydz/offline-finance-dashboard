@@ -1,3 +1,47 @@
+## [2026-03-05 21:45] — Accounts Interest Overhaul Plan Document
+
+**Summary:** Added a dedicated overhaul plan for replacing the current `/accounts` interest summary UX with a new traceable `/accounts/interest` breakdown page.
+
+**What Changed:**
+- Created planning document: `docs/2026-03-05-accounts-interest-overhaul-plan.md`
+- Defined a new route target: `/accounts/interest`
+- Specified canonical server data contract for actual vs projected interest breakdowns
+- Defined reconciliation requirements (transactions/account/month totals must match)
+- Documented fixed-term maturity projection rules and tax-year boundary rules
+- Added phased rollout and acceptance criteria for implementation
+
+**Commit:**
+`docs: add accounts interest overhaul plan`
+
+---
+
+## [2026-03-05] — Interest & Tax Allowance Features
+
+**Summary:** Added UK Personal Savings Allowance tracking with user tax band settings, interest rate projections, and ISA allowance widget. Refactored ISA allowance display into reusable component and consolidated it on homepage and accounts page.
+
+**What Changed:**
+- Added `tax_band` column to users table (enum: basic/higher/additional, default 'basic')
+- Added tax band settings UI to `/settings/reference` with Personal Savings Allowance info
+- Updated `/accounts` page server to fetch interest rates, calculate projections, and compute tax-free status
+- Added Interest Summary widget to accounts page showing actual/projected/tax-free remaining
+- Added ISA Allowance widget to accounts page (reusing extracted component)
+- Added Rate/Monthly/Yearly columns to accounts table for savings/investment accounts
+- Removed ISA allowance section from account detail page (unrelated context)
+- Created reusable `IsaAllowanceWidget` component used by homepage and accounts page
+
+**Database:**
+- `tax_band` column added to users table via schema update and migration
+
+**Testing:**
+- Added integration tests for interest summaries and tax-free status calculations
+- All 111 tests passing
+- TypeScript check passing (no errors in source code)
+
+**Commit:**
+`feat: interest rate projections and UK tax-free allowance tracking`
+
+---
+
 ## [2026-03-05 19:05] — Transaction-Only Model: Removed Persisted Balances + Fresh Migration Baseline
 
 **Summary:** Switched fully to transaction-derived balances and removed persisted `account_balances` usage from runtime code. Reset migrations to a fresh Drizzle-generated baseline, deleted `storage/dev.db`, rebuilt schema, and re-seeded standard data.

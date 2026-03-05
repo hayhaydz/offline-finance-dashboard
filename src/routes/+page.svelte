@@ -1,5 +1,6 @@
 <script lang="ts">
 	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
+	import IsaAllowanceWidget from '$lib/components/IsaAllowanceWidget.svelte';
 	import GoalCard from '$lib/components/GoalCard.svelte';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import { formatCurrency, formatCurrencyShorthand, formatAccountType, formatDateShorthand } from '$lib/utils/currency';
@@ -118,33 +119,7 @@
 		accounts={data.accounts}
 	/>
 
-	<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-		<span>ISA ALLOWANCE TRACKER</span>
-		<span class="text-xs font-normal">
-			{formatDateShorthand(data.isaTracker.taxYearStart)} to {formatDateShorthand(data.isaTracker.taxYearEnd)}
-		</span>
-	</div>
-	<div class="border-b border-black p-2">
-		<div class="flex justify-between text-sm mb-1">
-			<span>Used</span>
-			<span class="tabular-nums">
-				{formatCurrencyShorthand(data.isaTracker.used)} / {formatCurrencyShorthand(data.isaTracker.limit)}
-			</span>
-		</div>
-		<div class="h-2 border border-black bg-white mb-2">
-			<div
-				class="h-full bg-green-700"
-				style={`width: ${Math.min(100, (data.isaTracker.used / data.isaTracker.limit) * 100)}%`}
-			></div>
-		</div>
-		<div class="text-xs {data.isaTracker.remaining > 0 ? 'text-green-700' : 'text-red-700 font-bold'}">
-			{#if data.isaTracker.remaining > 0}
-				{formatCurrency(data.isaTracker.remaining)} remaining this tax year
-			{:else}
-				Allowance fully used this tax year
-			{/if}
-		</div>
-	</div>
+	<IsaAllowanceWidget data={data.isaTracker} />
 
 	<!-- ACCOUNTS BY TYPE -->
 	<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">

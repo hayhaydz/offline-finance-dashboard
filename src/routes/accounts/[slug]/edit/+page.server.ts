@@ -17,7 +17,7 @@ const VALID_ACCOUNT_TYPES = [
 ];
 
 // Valid tax wrapper values
-const VALID_TAX_WRAPPERS = ["none", "isa", "lisa"];
+const VALID_TAX_WRAPPERS = ["none", "isa", "lisa", "premium-bonds"];
 
 // Valid liquidity values
 const VALID_LIQUIDITY_VALUES = ["instant", "delayed", "locked"];
@@ -169,7 +169,7 @@ export const actions: Actions = {
 					| "credit-card"
 					| "loan"
 					| "mortgage",
-				taxWrapper: taxWrapper as "none" | "isa" | "lisa",
+				taxWrapper: taxWrapper as "none" | "isa" | "lisa" | "premium-bonds",
 				category: category as "asset" | "liability",
 				institution: institution?.trim() || null,
 				liquidity: liquidity as "instant" | "delayed" | "locked" | null,

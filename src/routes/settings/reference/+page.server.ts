@@ -1,7 +1,7 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { db } from "$lib/db/client";
-import { systemMetadata } from "$lib/db/schema";
+import { systemMetadata, users } from "$lib/db/schema";
 import { parseCurrency } from "$lib/utils/currency";
 import { devLog, logError, logFormData } from "$lib/utils/logger";
 import type { Actions, PageServerLoad } from "./$types";
@@ -36,8 +36,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 		}
 	}
 
+	// Fetch user's current tax band
+	const user = await db.query.users.findFirst({
+		where: eq(users.id, locals.user.id),
+		columns: { taxBand: true }
+	});
+
 	return {
 		monthlyExpensesInPence,
+		taxBand: user?.taxBand ?? 'basic',
 	};
 };
 
@@ -139,6 +146,45 @@ export const actions: Actions = {
 			return fail(500, {
 				error: "Failed to save monthly expenses. Please try again.",
 			});
+		}
+	},
+
+	/**
+	 * Update tax band action
+	 * Validates and updates user's UK Personal Savings Allowance tier
+	 */
+	updateTaxBand: async ({ request, locals }) => {
+		if (!locals.user) {
+			logError("settings-reference", "Authentication required for tax band update");
+			return fail(401, { error: "Authentication required" });
+		}
+
+		const formData = await request.formData();
+		logFormData("settings-reference", Object.fromEntries(formData));
+
+		const taxBand = formData.get("taxBand") as string;
+
+		// Validate
+		const validBands = ['basic', 'higher', 'additional'];
+		if (!validBands.includes(taxBand)) {
+			devLog("settings-reference", "Validation failed: invalid tax band", { taxBand });
+			return fail(400, { error: "Invalid tax band" });
+		}
+
+		try {
+			await db.update(users)
+				.set({ taxBand: taxBand as 'basic' | 'higher' | 'additional' })
+				.where(eq(users.id, locals.user.id));
+
+			devLog("settings-reference", "Tax band updated", {
+				userId: locals.user.id,
+				taxBand
+			});
+
+			return { success: true };
+		} catch (error) {
+			logError("settings-reference", "Failed to update tax band", error);
+			return fail(500, { error: "Failed to update tax band" });
 		}
 	},
 };

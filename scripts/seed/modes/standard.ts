@@ -14,6 +14,7 @@ interface AccountFixture {
 	liquidity: (typeof schema.accounts.$inferInsert)["liquidity"];
 	excludedFromNetWorth: boolean;
 	closedAt: string | null;
+	maturityDate: string | null;
 	balances: Array<{
 		balanceInCents: number;
 		daysAgo: number;
@@ -88,6 +89,7 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 				liquidity: a.liquidity,
 				excludedFromNetWorth: a.excludedFromNetWorth,
 				closedAt: a.closedAt ? new Date(a.closedAt) : null,
+				maturityDate: a.maturityDate ? new Date(a.maturityDate) : null,
 				createdAt: now,
 				updatedAt: now,
 			})

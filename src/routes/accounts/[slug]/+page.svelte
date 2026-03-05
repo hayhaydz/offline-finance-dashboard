@@ -91,10 +91,6 @@
 			}
 		}
 	});
-
-	const ratesChronological = $derived(
-		[...data.rates].sort((a, b) => new Date(a.effectiveFrom).getTime() - new Date(b.effectiveFrom).getTime())
-	);
 </script>
 
 <!-- ACCOUNT INFO HEADER -->
@@ -150,9 +146,188 @@
 	</div>
 {/if}
 
+<!-- INTEREST RATES SECTION -->
+{#if data.account.type === 'savings' || data.account.type === 'investment'}
+<div class="">
+	<div class="bg-gray-100 p-2 font-bold flex justify-between items-center">
+		<span>INTEREST RATES {#if data.currentRate !== null}<span class="font-normal text-sm ml-2">({(data.currentRate / 100).toFixed(2)}% current)</span>{/if}</span>
+		{#if !data.account.closedAt}
+			<button
+				type="button"
+				class="bracket-link text-xs"
+				onclick={() => addRateOpen = !addRateOpen}
+			>
+				{addRateOpen ? '[Cancel]' : '[Add Rate]'}
+			</button>
+		{/if}
+	</div>
+
+	{#if data.interestSummary}
+		<div class="border-b border-black p-2 bg-green-50">
+			<div class="flex items-center justify-between gap-2 mb-2">
+				<div class="font-bold text-sm">INTEREST THIS TAX YEAR ({formatDate(data.interestSummary.taxYearStart)} to {formatDate(data.interestSummary.taxYearEnd)})</div>
+				<form method="GET" class="flex items-center gap-1">
+					<select
+						name="taxYearStart"
+						class="border border-black px-1 py-0.5 text-xs bg-white"
+						value={data.interestSummary.selectedTaxYearStart}
+						onchange={(e) => (e.currentTarget.form as HTMLFormElement).submit()}
+					>
+						{#each data.interestSummary.taxYearOptions as option}
+							<option value={option.value}>
+								{option.label}
+							</option>
+						{/each}
+					</select>
+				</form>
+			</div>
+			<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+				<div>Actual earned:</div>
+				<div class="text-right tabular-nums">{formatCurrency(data.interestSummary.actualInterest)}</div>
+				<div>Projected:</div>
+				<div class="text-right tabular-nums">{formatCurrency(data.interestSummary.projectedInterest)}</div>
+				<div>Total expected:</div>
+				<div class="text-right tabular-nums font-bold">{formatCurrency(data.interestSummary.totalExpectedInterest)}</div>
+			</div>
+		</div>
+	{/if}
+
+	{#if addRateOpen && !data.account.closedAt}
+		<div class="border-b border-black p-2 bg-gray-50">
+			<form
+				method="POST"
+				action="?/addInterestRate"
+				use:enhance={() => {
+					return async ({ formElement, result }) => {
+						if (result.type === 'success') {
+							submitMessage = { type: 'success', text: 'Interest rate added successfully' };
+							formElement.reset();
+							addRateOpen = false;
+						} else if (result.type === 'failure' && result.data) {
+							const errorData = result.data as { error?: string };
+							if (errorData.error) {
+								submitMessage = { type: 'error', text: errorData.error };
+							}
+						}
+						await invalidateAll();
+					};
+				}}
+				class="flex flex-col gap-2"
+			>
+				<div class="grid grid-cols-2 gap-4">
+					<div>
+						<label for="rate" class="block text-sm font-bold mb-1">Rate (%)</label>
+						<input
+							type="text"
+							id="rate"
+							name="rate"
+							placeholder="4.50"
+							required
+							step="0.01"
+							min="0"
+							max="100"
+							class="w-full border border-black px-2 py-1 text-sm font-mono"
+						/>
+					</div>
+					<div>
+						<label for="effectiveFrom" class="block text-sm font-bold mb-1">Effective From</label>
+						<input
+							type="date"
+							id="effectiveFrom"
+							name="effectiveFrom"
+							value={today}
+							required
+							class="w-full border border-black px-2 py-1 text-sm"
+						/>
+					</div>
+				</div>
+				<div>
+					<button
+						type="submit"
+						disabled={isSubmitting}
+						class="bracket-link text-sm"
+						class:opacity-50={isSubmitting}
+					>
+						{isSubmitting ? 'Adding...' : 'Add Rate'}
+					</button>
+				</div>
+			</form>
+		</div>
+	{/if}
+
+	{#if data.rates.length === 0}
+		<p class="text-gray-600 text-xs p-2">No interest rates recorded yet.</p>
+	{:else}
+		<div class="overflow-x-auto">
+			<table class="w-full table-fixed min-w-[400px]">
+				<thead>
+					<tr>
+						<th class="pl-2 text-left whitespace-nowrap w-[30%]">Effective From</th>
+						<th class="text-right pr-1 whitespace-nowrap w-[25%]">Rate</th>
+						<th class="pl-2 text-left">Status</th>
+						<th class="text-right pr-2 whitespace-nowrap w-[15%]">Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each data.rates as rate}
+						{@const isCurrent = rate.rate === data.currentRate && new Date(rate.effectiveFrom) <= new Date()}
+						<tr class="border-b border-gray-200 last:border-b-0 align-top">
+							<td class="pl-2 text-sm py-2 whitespace-nowrap">{formatDate(rate.effectiveFrom)}</td>
+							<td class="text-right pr-1 text-sm tabular-nums py-2 whitespace-nowrap font-bold">
+								{(rate.rate / 100).toFixed(2)}%
+							</td>
+							<td class="pl-2 text-sm py-2">
+								{#if isCurrent}
+									<span class="text-xs text-green-700 font-bold">[CURRENT]</span>
+								{:else if new Date(rate.effectiveFrom) > new Date()}
+									<span class="text-xs text-amber-700">[FUTURE]</span>
+								{:else}
+									<span class="text-xs text-gray-500">[Historical]</span>
+								{/if}
+							</td>
+							<td class="text-right pr-2 text-sm py-2 whitespace-nowrap">
+								{#if !data.account.closedAt}
+									<form
+										method="POST"
+										action="?/deleteInterestRate"
+										class="inline"
+										use:enhance={() => {
+											return async ({ result }) => {
+												if (result.type === 'success') {
+													submitMessage = { type: 'success', text: 'Interest rate deleted' };
+												} else if (result.type === 'failure' && result.data) {
+													const errorData = result.data as { error?: string };
+													if (errorData.error) {
+														submitMessage = { type: 'error', text: errorData.error };
+													}
+												}
+												await invalidateAll();
+											};
+										}}
+									>
+										<input type="hidden" name="rateId" value={rate.id} />
+										<button
+											type="submit"
+											class="bracket-link text-xs text-red-700"
+											onclick={(e) => { if (!confirm('Delete this rate?')) e.preventDefault(); }}
+										>
+											[Delete]
+										</button>
+									</form>
+								{/if}
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	{/if}
+</div>
+{/if}
+
 <!-- MONTHLY BALANCE SUMMARY -->
 <div>
-	<div class="bg-gray-100 p-2 font-bold border-t-2 border-black">MONTHLY BALANCE SUMMARY (Derived from Transactions)</div>
+	<div class="bg-gray-100 p-2 font-bold border-t border-black">MONTHLY BALANCE SUMMARY (Derived from Transactions)</div>
 	{#if data.monthlyBalances.length === 0}
 		<p class="text-gray-600 text-xs p-2">No transactions yet. Monthly balance summary will appear automatically.</p>
 	{:else}
@@ -188,7 +363,7 @@
 </div>
 
 <!-- TRANSACTIONS SECTION -->
-<div class="border-t-2 border-black">
+<div class="border-t border-black">
 	<div class="bg-gray-100 p-2 font-bold flex justify-between items-center">
 		<span>TRANSACTIONS</span>
 		{#if !data.account.closedAt}
@@ -371,222 +546,3 @@
 		</div>
 	{/if}
 </div>
-
-<!-- INTEREST RATES SECTION -->
-{#if data.account.type === 'savings' || data.account.type === 'investment'}
-<div class="border-t-2 border-black">
-	<div class="bg-gray-100 p-2 font-bold flex justify-between items-center">
-		<span>INTEREST RATES {#if data.currentRate !== null}<span class="font-normal text-sm ml-2">({(data.currentRate / 100).toFixed(2)}% current)</span>{/if}</span>
-		{#if !data.account.closedAt}
-			<button
-				type="button"
-				class="bracket-link text-xs"
-				onclick={() => addRateOpen = !addRateOpen}
-			>
-				{addRateOpen ? '[Cancel]' : '[Add Rate]'}
-			</button>
-		{/if}
-	</div>
-
-	{#if data.interestSummary}
-		<div class="border-b border-black p-2 bg-green-50">
-			<div class="flex items-center justify-between gap-2 mb-2">
-				<div class="font-bold text-sm">INTEREST THIS TAX YEAR ({formatDate(data.interestSummary.taxYearStart)} to {formatDate(data.interestSummary.taxYearEnd)})</div>
-				<form method="GET" class="flex items-center gap-1">
-					<select
-						name="taxYearStart"
-						class="border border-black px-1 py-0.5 text-xs bg-white"
-						value={data.interestSummary.selectedTaxYearStart}
-						onchange={(e) => (e.currentTarget.form as HTMLFormElement).submit()}
-					>
-						{#each data.interestSummary.taxYearOptions as option}
-							<option value={option.value}>
-								{option.label}
-							</option>
-						{/each}
-					</select>
-				</form>
-			</div>
-			<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-				<div>Actual earned:</div>
-				<div class="text-right tabular-nums">{formatCurrency(data.interestSummary.actualInterest)}</div>
-				<div>Projected:</div>
-				<div class="text-right tabular-nums">{formatCurrency(data.interestSummary.projectedInterest)}</div>
-				<div>Total expected:</div>
-				<div class="text-right tabular-nums font-bold">{formatCurrency(data.interestSummary.totalExpectedInterest)}</div>
-				<div>Tax-free remaining ({data.interestSummary.taxBand}):</div>
-				<div class="text-right tabular-nums {data.interestSummary.taxFreeStatus.overAllowance ? 'text-red-700 font-bold' : 'text-green-700'}">
-					{#if data.interestSummary.taxFreeStatus.overAllowance}
-						Over by {formatCurrency(data.interestSummary.taxFreeStatus.taxableAmount)}
-					{:else}
-						{formatCurrency(data.interestSummary.taxFreeStatus.remaining)}
-					{/if}
-				</div>
-			</div>
-
-			{#if data.account.taxWrapper === 'isa' || data.account.taxWrapper === 'lisa'}
-				<div class="mt-3 border-t border-black/20 pt-2">
-					<div class="flex justify-between text-xs mb-1">
-						<span>ISA allowance used</span>
-						<span class="tabular-nums">{formatCurrency(data.interestSummary.isaAllowance.used)} / {formatCurrency(data.interestSummary.isaAllowance.limit)}</span>
-					</div>
-					<div class="h-2 border border-black bg-white">
-						<div
-							class="h-full bg-green-700"
-							style={`width: ${Math.min(100, (data.interestSummary.isaAllowance.used / data.interestSummary.isaAllowance.limit) * 100)}%`}
-						></div>
-					</div>
-				</div>
-			{/if}
-		</div>
-	{/if}
-
-	{#if addRateOpen && !data.account.closedAt}
-		<div class="border-b border-black p-2 bg-gray-50">
-			<form
-				method="POST"
-				action="?/addInterestRate"
-				use:enhance={() => {
-					return async ({ formElement, result }) => {
-						if (result.type === 'success') {
-							submitMessage = { type: 'success', text: 'Interest rate added successfully' };
-							formElement.reset();
-							addRateOpen = false;
-						} else if (result.type === 'failure' && result.data) {
-							const errorData = result.data as { error?: string };
-							if (errorData.error) {
-								submitMessage = { type: 'error', text: errorData.error };
-							}
-						}
-						await invalidateAll();
-					};
-				}}
-				class="flex flex-col gap-2"
-			>
-				<div class="grid grid-cols-2 gap-4">
-					<div>
-						<label for="rate" class="block text-sm font-bold mb-1">Rate (%)</label>
-						<input
-							type="text"
-							id="rate"
-							name="rate"
-							placeholder="4.50"
-							required
-							step="0.01"
-							min="0"
-							max="100"
-							class="w-full border border-black px-2 py-1 text-sm font-mono"
-						/>
-					</div>
-					<div>
-						<label for="effectiveFrom" class="block text-sm font-bold mb-1">Effective From</label>
-						<input
-							type="date"
-							id="effectiveFrom"
-							name="effectiveFrom"
-							value={today}
-							required
-							class="w-full border border-black px-2 py-1 text-sm"
-						/>
-					</div>
-				</div>
-				<div>
-					<button
-						type="submit"
-						disabled={isSubmitting}
-						class="bracket-link text-sm"
-						class:opacity-50={isSubmitting}
-					>
-						{isSubmitting ? 'Adding...' : 'Add Rate'}
-					</button>
-				</div>
-			</form>
-		</div>
-	{/if}
-
-	{#if data.rates.length === 0}
-		<p class="text-gray-600 text-xs p-2">No interest rates recorded yet.</p>
-	{:else}
-		<div class="overflow-x-auto">
-			<table class="w-full table-fixed min-w-[400px]">
-				<thead>
-					<tr>
-						<th class="pl-2 text-left whitespace-nowrap w-[30%]">Effective From</th>
-						<th class="text-right pr-1 whitespace-nowrap w-[25%]">Rate</th>
-						<th class="pl-2 text-left">Status</th>
-						<th class="text-right pr-2 whitespace-nowrap w-[15%]">Actions</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each data.rates as rate}
-						{@const isCurrent = rate.rate === data.currentRate && new Date(rate.effectiveFrom) <= new Date()}
-						<tr class="border-b border-gray-200 last:border-b-0 align-top {isCurrent ? 'bg-green-50' : ''}">
-							<td class="pl-2 text-sm py-2 whitespace-nowrap">{formatDate(rate.effectiveFrom)}</td>
-							<td class="text-right pr-1 text-sm tabular-nums py-2 whitespace-nowrap font-bold">
-								{(rate.rate / 100).toFixed(2)}%
-							</td>
-							<td class="pl-2 text-sm py-2">
-								{#if isCurrent}
-									<span class="text-xs text-green-700 font-bold">[CURRENT]</span>
-								{:else if new Date(rate.effectiveFrom) > new Date()}
-									<span class="text-xs text-amber-700">[FUTURE]</span>
-								{:else}
-									<span class="text-xs text-gray-500">[Historical]</span>
-								{/if}
-							</td>
-							<td class="text-right pr-2 text-sm py-2 whitespace-nowrap">
-								{#if !data.account.closedAt}
-									<form
-										method="POST"
-										action="?/deleteInterestRate"
-										class="inline"
-										use:enhance={() => {
-											return async ({ result }) => {
-												if (result.type === 'success') {
-													submitMessage = { type: 'success', text: 'Interest rate deleted' };
-												} else if (result.type === 'failure' && result.data) {
-													const errorData = result.data as { error?: string };
-													if (errorData.error) {
-														submitMessage = { type: 'error', text: errorData.error };
-													}
-												}
-												await invalidateAll();
-											};
-										}}
-									>
-										<input type="hidden" name="rateId" value={rate.id} />
-										<button
-											type="submit"
-											class="bracket-link text-xs text-red-700"
-											onclick={(e) => { if (!confirm('Delete this rate?')) e.preventDefault(); }}
-										>
-											[Delete]
-										</button>
-									</form>
-								{/if}
-							</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
-
-		<div class="border-t border-black p-2 bg-gray-50">
-			<div class="text-xs font-bold mb-2">RATE HISTORY TIMELINE</div>
-			<div class="space-y-2">
-				{#each ratesChronological as rate}
-					<div class="flex items-start gap-2">
-						<div class="pt-1">
-							<span class="inline-block w-2 h-2 rounded-full border border-black {new Date(rate.effectiveFrom) <= new Date() && rate.rate === data.currentRate ? 'bg-green-700' : 'bg-white'}"></span>
-						</div>
-						<div class="text-xs">
-							<div class="tabular-nums font-bold">{(rate.rate / 100).toFixed(2)}%</div>
-							<div class="text-gray-600">{formatDate(rate.effectiveFrom)}</div>
-						</div>
-					</div>
-				{/each}
-			</div>
-		</div>
-	{/if}
-</div>
-{/if}

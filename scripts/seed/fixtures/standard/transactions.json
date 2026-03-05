@@ -69,5 +69,57 @@
       { "type": "withdrawal", "amount": -3500, "daysAgo": 15, "description": "Water bill" },
       { "type": "withdrawal", "amount": -4500, "daysAgo": 10, "description": "Internet" }
     ]
+  },
+  {
+    "accountName": "Visa Gold",
+    "transactions": [
+      { "type": "charge", "amount": -120000, "daysAgo": 90, "description": "Monthly statement" },
+      { "type": "charge", "amount": -40000, "daysAgo": 60, "description": "After purchases" },
+      { "type": "charge", "amount": -50000, "daysAgo": 30, "description": "After holiday spending" },
+      { "type": "charge", "amount": -30000, "daysAgo": 0, "description": "Current balance" }
+    ]
+  },
+  {
+    "accountName": "Mastercard",
+    "transactions": [
+      { "type": "charge", "amount": -80000, "daysAgo": 60, "description": "Monthly statement" },
+      { "type": "payment", "amount": 15000, "daysAgo": 30, "description": "After payment" },
+      { "type": "payment", "amount": 20000, "daysAgo": 0, "description": "Current balance (being paid down)" }
+    ]
+  },
+  {
+    "accountName": "Car Loan",
+    "transactions": [
+      { "type": "loan_disbursement", "amount": -1200000, "daysAgo": 365, "description": "Loan start" },
+      { "type": "payment", "amount": 20000, "daysAgo": 270, "description": "Monthly payment" },
+      { "type": "payment", "amount": 20000, "daysAgo": 180, "description": "Monthly payment" },
+      { "type": "payment", "amount": 20000, "daysAgo": 90, "description": "Monthly payment" },
+      { "type": "payment", "amount": 20000, "daysAgo": 0, "description": "Monthly payment" }
+    ]
+  },
+  {
+    "accountName": "1-Year Fixed Bond",
+    "transactions": [
+      { "type": "deposit", "amount": 5000000, "daysAgo": 365, "description": "Bond opening - 5.0% fixed" },
+      { "type": "interest", "amount": 62500, "daysAgo": 0, "description": "Interest accrued" }
+    ]
+  },
+  {
+    "accountName": "2-Year Fixed Rate Bond",
+    "transactions": [
+      { "type": "deposit", "amount": 3000000, "daysAgo": 365, "description": "Bond opening - 4.75% fixed" },
+      { "type": "interest", "amount": 48750, "daysAgo": 180, "description": "Interest accrued" },
+      { "type": "interest", "amount": 48750, "daysAgo": 0, "description": "Interest accrued" }
+    ]
+  },
+  {
+    "accountName": "5-Year Growth Bond",
+    "transactions": [
+      { "type": "deposit", "amount": 1500000, "daysAgo": 365, "description": "ISA Bond opening - 4.25% fixed" },
+      { "type": "interest", "amount": 52500, "daysAgo": 270, "description": "Interest accrued" },
+      { "type": "interest", "amount": 52500, "daysAgo": 180, "description": "Interest accrued" },
+      { "type": "interest", "amount": 52500, "daysAgo": 90, "description": "Interest accrued" },
+      { "type": "interest", "amount": 52500, "daysAgo": 0, "description": "Interest accrued" }
+    ]
   }
 ]

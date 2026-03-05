@@ -61,8 +61,8 @@ export const actions: Actions = {
 				errors.type = "Please select a valid account type";
 			}
 
-			// Tax wrapper: required, must match one of 3 values
-			const validTaxWrappers = ["none", "isa", "lisa"];
+			// Tax wrapper: required, must match one of 4 values
+			const validTaxWrappers = ["none", "isa", "lisa", "premium-bonds"];
 			if (!taxWrapper || !validTaxWrappers.includes(taxWrapper)) {
 				errors.taxWrapper = "Please select a valid tax wrapper";
 			}
@@ -147,7 +147,7 @@ export const actions: Actions = {
 						| "credit-card"
 						| "loan"
 						| "mortgage",
-					taxWrapper: taxWrapper as "none" | "isa" | "lisa",
+					taxWrapper: taxWrapper as "none" | "isa" | "lisa" | "premium-bonds",
 					category: category as "asset" | "liability",
 					institution: institution?.trim() || null,
 					liquidity:

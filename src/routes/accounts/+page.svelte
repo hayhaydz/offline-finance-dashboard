@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { formatCurrency, formatAccountType as commonFormatAccountType, formatDateShorthand as commonFormatDateShorthand } from '$lib/utils/currency';
+	import IsaAllowanceWidget from '$lib/components/IsaAllowanceWidget.svelte';
 	import AccountFiltersModal from '$lib/components/AccountFiltersModal.svelte';
 	import AccountSortModal from '$lib/components/AccountSortModal.svelte';
 	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
@@ -42,6 +43,15 @@
 	// Helper function to format date
 	function formatDate(date: Date | null): string {
 		return commonFormatDateShorthand(date);
+	}
+
+	// Helper function to format maturity display
+	function formatMaturity(daysToMaturity: number | null, maturityDate: Date | null): string {
+		if (daysToMaturity === null) return '-';
+		if (daysToMaturity < 0) return 'Matured';
+		if (daysToMaturity === 0) return 'Today';
+		if (daysToMaturity > 30) return formatDate(maturityDate);
+		return `${daysToMaturity}d`;
 	}
 
 	// Helper function to format account type for display
@@ -169,6 +179,81 @@
 	</div>
 </div>
 
+<!-- INTEREST SUMMARY SECTION -->
+{#if data.interestSummary}
+<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
+	<span>INTEREST THIS TAX YEAR</span>
+	<span class="text-xs font-normal">
+		{formatDate(data.interestSummary.taxYearStart)} to {formatDate(data.interestSummary.taxYearEnd)}
+	</span>
+</div>
+<div class="border-b border-black p-2">
+	<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+		<div class="col-span-2 text-xs text-gray-700 mb-1">
+			Actual = posted `interest` transactions. Projected = estimate using current balance and latest rate for the remaining {data.interestSummary.daysRemainingInTaxYear} days in this tax year.
+		</div>
+		<div class="col-span-2 font-bold text-xs border-b border-gray-300 pb-1 mb-1">ISA / LISA ACCOUNTS (Always tax-free)</div>
+		<div>Actual earned (posted):</div>
+		<div class="text-right tabular-nums">{formatCurrency(data.interestSummary.actualInterestIsa)}</div>
+		<div>Projected (estimate):</div>
+		<div class="text-right tabular-nums">{formatCurrency(data.interestSummary.projectedInterestIsa)}</div>
+		<div class="font-bold">Total expected:</div>
+		<div class="text-right tabular-nums font-bold">{formatCurrency(data.interestSummary.totalExpectedIsa)}</div>
+
+		<div class="col-span-2 font-bold text-xs border-b border-gray-300 pb-1 mb-1 mt-2">OTHER SAVINGS (Counts toward Personal Savings Allowance)</div>
+		<div>Actual earned (posted):</div>
+		<div class="text-right tabular-nums">{formatCurrency(data.interestSummary.actualInterestNonIsa)}</div>
+		<div>Projected (estimate):</div>
+		<div class="text-right tabular-nums">{formatCurrency(data.interestSummary.projectedInterestNonIsa)}</div>
+		<div class="font-bold">Total expected:</div>
+		<div class="text-right tabular-nums font-bold">{formatCurrency(data.interestSummary.totalExpectedNonIsa)}</div>
+
+		<div class="col-span-2 border-t border-gray-300 pt-1 mt-1">
+			<div class="text-xs text-gray-600 mb-1">Allowance status now (actual only, {data.interestSummary.taxBand}):</div>
+			{#if data.interestSummary.taxFreeStatusNow.overAllowance}
+				<div class="flex justify-between text-sm">
+					<span class="text-red-700 font-bold">Over by {formatCurrency(data.interestSummary.taxFreeStatusNow.taxableAmount)}</span>
+					<span class="text-gray-600">of {formatCurrency(data.interestSummary.taxFreeStatusNow.allowance)} allowance</span>
+				</div>
+			{:else}
+				<div class="flex justify-between text-sm">
+					<span class="text-green-700 font-bold">{formatCurrency(data.interestSummary.taxFreeStatusNow.remaining)} remaining</span>
+					<span class="text-gray-600">of {formatCurrency(data.interestSummary.taxFreeStatusNow.allowance)} allowance</span>
+				</div>
+			{/if}
+			<div class="text-xs text-gray-600 mt-2 mb-1">Forecast at tax-year end (actual + projected estimate):</div>
+			{#if data.interestSummary.taxFreeStatusProjected.overAllowance}
+				<div class="flex justify-between text-sm">
+					<span class="text-red-700 font-bold">Over by {formatCurrency(data.interestSummary.taxFreeStatusProjected.taxableAmount)}</span>
+					<span class="text-gray-600">of {formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} allowance</span>
+				</div>
+			{:else}
+				<div class="flex justify-between text-sm">
+					<span class="text-green-700 font-bold">{formatCurrency(data.interestSummary.taxFreeStatusProjected.remaining)} remaining</span>
+					<span class="text-gray-600">of {formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} allowance</span>
+				</div>
+			{/if}
+		</div>
+		<div class="col-span-2 text-xs text-gray-600 mt-2">
+			Estimate notes: fixed-term accounts are only projected if their maturity date is on/before tax year end.
+		</div>
+	</div>
+</div>
+{/if}
+
+<!-- ISA ALLOWANCE SECTION -->
+{#if data.isaAllowance}
+<IsaAllowanceWidget
+	data={{
+		used: data.isaAllowance.used,
+		limit: data.isaAllowance.limit,
+		remaining: data.isaAllowance.remaining,
+		taxYearStart: data.interestSummary.taxYearStart,
+		taxYearEnd: data.interestSummary.taxYearEnd
+	}}
+/>
+{/if}
+
 <!-- SUMMARY SECTION -->
 <div class="border-b border-black p-2">
 	<div class="flex justify-between my-1">
@@ -224,44 +309,51 @@
 		<table>
 			<thead>
 				<tr>
-					<th class="pl-2 text-left">Name</th>
-					<th class="pl-2 text-left">Type</th>
-					<th class="text-right pr-1">Balance</th>
+					<th class="pl-3 text-left">Name</th>
+					<th class="pl-3 text-left">Type</th>
+					<th class="pl-3 text-left">Institution</th>
+					<th class="text-right pr-3">Balance</th>
+					<th class="text-right pr-3">Rate</th>
+					<th class="text-right pr-3">Monthly</th>
+					<th class="text-right pr-3">Yearly</th>
 				</tr>
 			</thead>
 			<tbody>
 				<tr>
-					<td colspan="3" class="text-center text-gray-600 text-xs">No accounts found</td>
+					<td colspan="7" class="text-center text-gray-600 text-xs">No accounts found</td>
 				</tr>
 			</tbody>
 		</table>
 	{:else}
 		<div class="overflow-x-auto">
-		<table class="w-full">
+		<table class="min-w-[900px] w-full">
 			<thead>
 				<tr>
-					<th class="pl-2 text-left whitespace-nowrap">Name</th>
-					<th class="pl-2 text-left whitespace-nowrap">Type</th>
-					<th class="pl-2 text-left whitespace-nowrap">Institution</th>
-					<th class="text-right pr-1 whitespace-nowrap">Balance</th>
-					<th class="text-right pr-1 whitespace-nowrap">Maturity</th>
-					<th class="text-right pr-1 whitespace-nowrap">Last Updated</th>
+					<th class="pl-3 text-left whitespace-nowrap min-w-[140px]">Name</th>
+					<th class="pl-3 text-left whitespace-nowrap min-w-[100px]">Type</th>
+					<th class="pl-3 text-left whitespace-nowrap min-w-[120px]">Institution</th>
+					<th class="text-right pr-3 whitespace-nowrap min-w-[110px]">Balance</th>
+					<th class="text-right pr-3 whitespace-nowrap min-w-[70px]">Rate</th>
+					<th class="text-right pr-3 whitespace-nowrap min-w-[90px]">Monthly</th>
+					<th class="text-right pr-3 whitespace-nowrap min-w-[90px]">Yearly</th>
+					<th class="text-right pr-3 whitespace-nowrap min-w-[80px]">Maturity</th>
+					<th class="text-right pr-3 whitespace-nowrap min-w-[90px]">Last Updated</th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each sortedAccounts as account}
 					<tr class="border-b border-gray-200 last:border-b-0">
-						<td class="pl-2 text-sm py-2 whitespace-nowrap">
+						<td class="pl-3 text-sm py-2 whitespace-nowrap">
 							<a href="/accounts/{account.slug}" class="bracket-link" class:line-through={account.closedAt}>{truncateDisplay(account.name, DISPLAY_LIMITS.ACCOUNT_NAME)}</a>
 							{#if account.closedAt}
 								<span class="text-gray-600 text-xs"> (closed)</span>
 							{/if}
 						</td>
-						<td class="pl-2 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>{formatAccountType(account.type)}</td>
-						<td class="pl-2 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>
+						<td class="pl-3 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>{formatAccountType(account.type)}</td>
+						<td class="pl-3 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>
 							{truncateDisplay(account.institution || '-', DISPLAY_LIMITS.INSTITUTION_NAME)}
 						</td>
-						<td class="text-right pr-1 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>
+						<td class="text-right pr-3 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>
 							{#if account.currentBalance !== null}
 								<span class={account.currentBalance >= 0 ? 'text-green-700' : 'text-red-700'}>
 									{formatCurrency(account.currentBalance)}
@@ -270,20 +362,33 @@
 								<span class="text-gray-600">-</span>
 							{/if}
 						</td>
-						<td class="text-right pr-1 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>
-							{#if account.daysToMaturity === null}
-								<span class="text-gray-600">-</span>
-							{:else if account.daysToMaturity < 0}
-								<span class="text-gray-500">Matured</span>
-							{:else if account.daysToMaturity === 0}
-								<span class="text-amber-700 font-bold">Today</span>
+						<td class="text-right pr-3 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>
+							{#if account.currentRate !== null}
+								<span class="tabular-nums">{(account.currentRate / 100).toFixed(2)}%</span>
 							{:else}
-								<span class={account.daysToMaturity <= 90 ? 'text-amber-700 font-bold' : ''}>
-									{account.daysToMaturity}d
-								</span>
+								<span class="text-gray-600">-</span>
 							{/if}
 						</td>
-						<td class="text-right pr-1 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>{formatDate(account.lastUpdated)}</td>
+						<td class="text-right pr-3 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>
+							{#if account.monthlyInterest > 0}
+								<span class="text-green-700 tabular-nums">{formatCurrency(account.monthlyInterest)}</span>
+							{:else}
+								<span class="text-gray-600">-</span>
+							{/if}
+						</td>
+						<td class="text-right pr-3 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>
+							{#if account.yearlyInterest > 0}
+								<span class="text-green-700 tabular-nums">{formatCurrency(account.yearlyInterest)}</span>
+							{:else}
+								<span class="text-gray-600">-</span>
+							{/if}
+						</td>
+						<td class="text-right pr-3 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>
+							<span class={account.daysToMaturity !== null && account.daysToMaturity >= 0 && account.daysToMaturity <= 90 ? 'text-amber-700 font-bold' : ''}>
+								{formatMaturity(account.daysToMaturity, account.maturityDate)}
+							</span>
+						</td>
+						<td class="text-right pr-3 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>{formatDate(account.lastUpdated)}</td>
 					</tr>
 				{/each}
 			</tbody>
