@@ -1,3 +1,22 @@
+## [2026-03-15] — Package.json Scripts Cleanup
+
+**Summary:** Removed redundant Prettier formatting scripts, consolidated linting to use Biome exclusively, and documented one-time migration scripts. Simplified script namespace and removed unused Prettier dependency.
+
+**What Changed:**
+- Removed `format` and `format:check` scripts (Prettier redundant with Biome)
+- Removed `fix:goal-sort-order` and `migrate:slugs` from npm scripts (one-time, documented separately)
+- Renamed `lint:biome` → `lint`, `lint:biome:fix` → `lint:fix`
+- Removed `lint` script's dependency on `check` (now separate concerns)
+- Added `seed` as alias for `seed:standard` (default mode)
+- Removed `prettier` from devDependencies
+- Created `docs/scripts/one-time-scripts.md` documenting migration scripts
+- Updated one-time scripts to reference documentation
+
+**Commit:**
+`chore: clean up package.json scripts, remove prettier`
+
+---
+
 ## [2026-03-05 21:45] — Accounts Interest Overhaul Plan Document
 
 **Summary:** Added a dedicated overhaul plan for replacing the current `/accounts` interest summary UX with a new traceable `/accounts/interest` breakdown page.

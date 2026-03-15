@@ -1,3 +1,9 @@
+/**
+ * One-time script to fix goal sortOrder values.
+ * See: docs/scripts/one-time-scripts.md
+ *
+ * Usage: tsx scripts/fix-sort-order.ts
+ */
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { db } from "../src/lib/db/client";
 import { goals } from "../src/lib/db/schema";

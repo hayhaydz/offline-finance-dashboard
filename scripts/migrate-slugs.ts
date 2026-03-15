@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 /**
  * Slug Migration Script for Existing Database Records
- * Usage: npm run migrate:slugs
+ * See: docs/scripts/one-time-scripts.md
+ *
+ * Usage: tsx scripts/migrate-slugs.ts
  *
  * Generates unique nanoid slugs for existing accounts and accountTransactions
  * that don't have them yet. Handles collision detection and is idempotent.
