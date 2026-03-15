@@ -22,7 +22,7 @@ function isTaxFree(taxWrapper: string): boolean {
 	return taxWrapper === 'isa' || taxWrapper === 'lisa' || taxWrapper === 'premium-bonds';
 }
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
 		redirect(302, "/login");
 	}

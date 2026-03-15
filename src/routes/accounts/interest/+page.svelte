@@ -13,20 +13,21 @@
     <div class="p-2 text-gray-600 text-sm">No interest history found.</div>
 {:else}
     <div class="overflow-x-auto">
-        <table class="w-full table-fixed min-w-[600px]">
+        <table class="min-w-[550px] w-full">
             <thead>
                 <tr>
-                    <th class="pl-2 text-left w-24">Tax Year</th>
-                    <th class="text-right w-32">ISA Interest</th>
-                    <th class="text-right w-32">Taxable Interest</th>
+                    <th class="pl-2 text-left">Tax Year</th>
+                    <th class="text-right">ISA Interest</th>
+                    <th class="text-right">Taxable Interest</th>
                     <th class="text-left pl-4">Allowance Status</th>
-                    <th class="text-right pr-2 w-48">Action</th>
                 </tr>
             </thead>
             <tbody>
                 {#each data.taxYears as year}
                     <tr class="border-b border-gray-200 last:border-b-0">
-                        <td class="pl-2 py-2 text-sm font-bold">{year.label}</td>
+                        <td class="pl-2 py-2 text-sm font-bold">
+                            <a href="/accounts/interest/{year.slug}" class="bracket-link">{year.label}</a>
+                        </td>
                         <td class="text-right py-2 text-sm tabular-nums text-green-700">{formatCurrency(year.isaInterest)}</td>
                         <td class="text-right py-2 text-sm tabular-nums text-green-700">{formatCurrency(year.nonIsaInterest)}</td>
                         <td class="pl-4 py-2 text-sm">
@@ -37,10 +38,6 @@
                                 <span class="text-green-700">Within allowance</span>
                                 <span class="text-xs text-gray-600">({formatCurrency(year.status.remaining)} left)</span>
                             {/if}
-                        </td>
-                        <td class="text-right pr-2 py-2 text-sm whitespace-nowrap">
-                            <a href="/accounts/interest/{year.slug}" class="bracket-link text-xs mr-2">[View Report]</a>
-                            <a href="/accounts?taxYearStart={year.start.toISOString().split('T')[0]}" class="bracket-link text-xs">[View Accounts]</a>
                         </td>
                     </tr>
                 {/each}

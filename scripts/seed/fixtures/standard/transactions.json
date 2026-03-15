@@ -2,7 +2,11 @@
   {
     "accountName": "Emergency Fund",
     "transactions": [
-      { "type": "deposit", "amount": 1000000, "daysAgo": 800, "description": "Old initial deposit" },
+      { "type": "deposit", "amount": 500000, "daysAgo": 1800, "description": "Initial deposit from savings" },
+      { "type": "interest", "amount": 1250, "daysAgo": 1500, "description": "Interest 2021-22" },
+      { "type": "interest", "amount": 1875, "daysAgo": 1135, "description": "Interest 2022-23" },
+      { "type": "interest", "amount": 2250, "daysAgo": 770, "description": "Interest 2023-24" },
+      { "type": "deposit", "amount": 500000, "daysAgo": 800, "description": "Old initial deposit" },
       { "type": "interest", "amount": 2500, "daysAgo": 750, "description": "Interest 2023-24" },
       { "type": "interest", "amount": 2600, "daysAgo": 450, "description": "Interest 2024-25" },
       { "type": "deposit", "amount": 500000, "daysAgo": 365, "description": "Top up deposit" },
@@ -21,7 +25,11 @@
   {
     "accountName": "ISA Saver",
     "transactions": [
-      { "type": "deposit", "amount": 500000, "daysAgo": 800, "description": "Old ISA deposit" },
+      { "type": "deposit", "amount": 200000, "daysAgo": 1500, "description": "ISA deposit 2021-22" },
+      { "type": "interest", "amount": 500, "daysAgo": 1460, "description": "Interest 2021-22" },
+      { "type": "interest", "amount": 750, "daysAgo": 1095, "description": "Interest 2022-23" },
+      { "type": "interest", "amount": 1000, "daysAgo": 730, "description": "Interest 2023-24" },
+      { "type": "deposit", "amount": 300000, "daysAgo": 800, "description": "Old ISA deposit" },
       { "type": "interest", "amount": 1500, "daysAgo": 750, "description": "Interest 2023-24" },
       { "type": "interest", "amount": 1600, "daysAgo": 450, "description": "Interest 2024-25" },
       { "type": "deposit", "amount": 320000, "daysAgo": 365, "description": "ISA opening deposit (tax year 2025/26)" },
@@ -106,6 +114,8 @@
   {
     "accountName": "1-Year Fixed Bond",
     "transactions": [
+      { "type": "deposit", "amount": 5000000, "daysAgo": 1500, "description": "Bond opening - 5.0% fixed" },
+      { "type": "interest", "amount": 62500, "daysAgo": 1135, "description": "Interest accrued" },
       { "type": "deposit", "amount": 5000000, "daysAgo": 365, "description": "Bond opening - 5.0% fixed" },
       { "type": "interest", "amount": 62500, "daysAgo": 0, "description": "Interest accrued" }
     ]
@@ -113,6 +123,9 @@
   {
     "accountName": "2-Year Fixed Rate Bond",
     "transactions": [
+      { "type": "deposit", "amount": 3000000, "daysAgo": 1500, "description": "Bond opening - 4.75% fixed" },
+      { "type": "interest", "amount": 48750, "daysAgo": 1135, "description": "Interest accrued" },
+      { "type": "interest", "amount": 48750, "daysAgo": 770, "description": "Interest accrued" },
       { "type": "deposit", "amount": 3000000, "daysAgo": 365, "description": "Bond opening - 4.75% fixed" },
       { "type": "interest", "amount": 48750, "daysAgo": 180, "description": "Interest accrued" },
       { "type": "interest", "amount": 48750, "daysAgo": 0, "description": "Interest accrued" }
@@ -121,7 +134,10 @@
   {
     "accountName": "5-Year Growth Bond",
     "transactions": [
-      { "type": "deposit", "amount": 1500000, "daysAgo": 365, "description": "ISA Bond opening - 4.25% fixed" },
+      { "type": "deposit", "amount": 1500000, "daysAgo": 1500, "description": "ISA Bond opening - 4.25% fixed" },
+      { "type": "interest", "amount": 31875, "daysAgo": 1135, "description": "Interest 2022-23" },
+      { "type": "interest", "amount": 42500, "daysAgo": 770, "description": "Interest 2023-24" },
+      { "type": "interest", "amount": 52500, "daysAgo": 365, "description": "Bond opening - 4.25% fixed" },
       { "type": "interest", "amount": 52500, "daysAgo": 270, "description": "Interest accrued" },
       { "type": "interest", "amount": 52500, "daysAgo": 180, "description": "Interest accrued" },
       { "type": "interest", "amount": 52500, "daysAgo": 90, "description": "Interest accrued" },

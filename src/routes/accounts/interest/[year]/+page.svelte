@@ -182,16 +182,12 @@
 	});
 
 	// Tax year selector logic
-	const currentYear = new Date().getUTCFullYear();
-	const taxYears = $derived.by(() => {
-		const years = [];
-		for (let i = 0; i < 5; i++) {
-			const startYear = currentYear - i;
-			const endYearSuffix = String(startYear + 1).slice(-2);
-			years.push(`${startYear}-${endYearSuffix}`);
-		}
-		return years;
-	});
+	const currentYearSlug = $derived(data.meta.taxYearStart.getUTCFullYear() + '-' + String(data.meta.taxYearEnd.getUTCFullYear()).slice(-2));
+	
+	const currentIndex = $derived(data.availableTaxYears.findIndex(ty => ty.slug === currentYearSlug));
+	
+	const prevYear = $derived(currentIndex < data.availableTaxYears.length - 1 ? data.availableTaxYears[currentIndex + 1] : null);
+	const nextYear = $derived(currentIndex > 0 ? data.availableTaxYears[currentIndex - 1] : null);
 
 	// Helper for ASCII progress bar
 	function renderProgressBar(used: number, limit: number, width = 10): string {
@@ -209,23 +205,20 @@
 		<div class="text-sm text-gray-600 mt-1">
 			Tax Year: {data.meta.taxYearStart.getUTCFullYear()}-{String(data.meta.taxYearEnd.getUTCFullYear()).slice(-2)}
 		</div>
-		<div class="text-xs text-gray-500">
+		<div class="text-xs text-gray-600">
 			As of {formatDateShorthand(data.meta.asOfDate)} • {data.meta.daysRemainingInTaxYear} days remaining in tax year
 		</div>
 	</div>
 	<div class="flex flex-col items-end gap-2">
-		<div class="text-[10px] uppercase font-bold text-gray-500">Select Tax Year</div>
-		<div class="flex gap-1">
-			{#each taxYears as year}
-				<a 
-					href="/accounts/interest/{year}" 
-					class="bracket-link text-xs"
-					class:bg-black={data.meta.taxYearStart.getUTCFullYear().toString() === year.split('-')[0]}
-					class:text-white={data.meta.taxYearStart.getUTCFullYear().toString() === year.split('-')[0]}
-				>
-					{year}
-				</a>
-			{/each}
+		<div class="text-[10px] uppercase font-bold text-gray-600">Tax Year</div>
+		<div class="flex gap-1 items-center">
+			{#if prevYear}
+				<a href="/accounts/interest/{prevYear.slug}" class="bracket-link text-xs" data-sveltekit-noscroll>[Prev]</a>
+			{/if}
+			<span class="bracket-link bg-black text-white text-xs px-1">{currentYearSlug}</span>
+			{#if nextYear}
+				<a href="/accounts/interest/{nextYear.slug}" class="bracket-link text-xs" data-sveltekit-noscroll>[Next]</a>
+			{/if}
 		</div>
 	</div>
 </div>
@@ -235,9 +228,9 @@
 	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5">
 		<!-- Posted (Actual) -->
 		<div class="border-r border-black p-2">
-			<div class="text-[10px] font-bold text-gray-500 mb-1 uppercase">Posted (Actual)</div>
+			<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Posted (Actual)</div>
 			<div class="text-lg font-bold text-green-700">{formatCurrency(data.actual.total)}</div>
-			<div class="text-[10px] text-gray-500 mt-1">
+			<div class="text-[10px] text-gray-600 mt-1">
 				TAXABLE: {formatCurrency(data.actual.taxableTotal)}<br>
 				TAX-FREE: {formatCurrency(data.actual.taxFreeTotal)}
 			</div>
@@ -245,9 +238,9 @@
 
 		<!-- Estimated (Projected) -->
 		<div class="border-r border-black p-2">
-			<div class="text-[10px] font-bold text-gray-500 mb-1 uppercase">Estimated (Projected)</div>
+			<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Estimated (Projected)</div>
 			<div class="text-lg font-bold text-amber-700">{formatCurrency(data.projected.total)}</div>
-			<div class="text-[10px] text-gray-500 mt-1">
+			<div class="text-[10px] text-gray-600 mt-1">
 				TAXABLE: {formatCurrency(data.projected.taxableTotal)}<br>
 				TAX-FREE: {formatCurrency(data.projected.taxFreeTotal)}
 			</div>
@@ -255,16 +248,16 @@
 
 		<!-- Forecast (Tax Year Total) -->
 		<div class="border-r border-black p-2">
-			<div class="text-[10px] font-bold text-gray-500 mb-1 uppercase">Forecast (Total)</div>
+			<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Forecast (Total)</div>
 			<div class="text-lg font-bold">{formatCurrency(data.forecast.total)}</div>
-			<div class="text-[10px] text-gray-500 mt-1 uppercase">
+			<div class="text-[10px] text-gray-600 mt-1 uppercase">
 				ACTUAL + PROJECTED
 			</div>
 		</div>
 
 		<!-- PSA Status Now -->
 		<div class="border-r border-black p-2">
-			<div class="text-[10px] font-bold text-gray-500 mb-1 uppercase">PSA Status Now</div>
+			<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">PSA Status Now</div>
 			{#if data.forecast.psaStatusNow.overAllowance}
 				<div class="text-sm font-bold text-red-700">
 					OVER BY {formatCurrency(data.forecast.psaStatusNow.taxableAmount)}
@@ -282,7 +275,7 @@
 
 		<!-- PSA Status Forecast -->
 		<div class="p-2">
-			<div class="text-[10px] font-bold text-gray-500 mb-1 uppercase">PSA Status Forecast</div>
+			<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">PSA Status Forecast</div>
 			{#if data.forecast.psaStatusForecast.overAllowance}
 				<div class="text-sm font-bold text-red-700">
 					OVER BY {formatCurrency(data.forecast.psaStatusForecast.taxableAmount)}
@@ -347,8 +340,7 @@
 	<!-- Account Breakdown -->
 	{#if activeBreakdown === 'account'}
 		<div class="p-2">
-			<div class="flex justify-between items-center mb-2">
-				<span class="text-[10px] uppercase font-bold text-gray-500">{data.actual.byAccount.length} accounts found</span>
+			<div class="flex justify-end mb-2">
 				<button
 					type="button"
 					class="bracket-link text-xs"
@@ -361,11 +353,11 @@
 				<table class="w-full">
 					<thead>
 						<tr class="border-b border-black">
-							<th class="pl-2 text-left whitespace-nowrap uppercase text-[10px]">Account</th>
+							<th class="pl-3 text-left whitespace-nowrap uppercase text-[10px]">Account</th>
 							<th class="text-left whitespace-nowrap uppercase text-[10px]">Institution</th>
 							<th class="text-left whitespace-nowrap uppercase text-[10px]">Wrapper</th>
-							<th class="text-right pr-2 whitespace-nowrap uppercase text-[10px]">Amount</th>
-							<th class="text-right pr-2 whitespace-nowrap uppercase text-[10px]">Trans.</th>
+							<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Interest Earned</th>
+							<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Trans.</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -379,25 +371,25 @@
 									else { clearFilters(); filterAccountId = account.accountId; }
 								}}
 							>
-								<td class="pl-2 text-sm py-2 whitespace-nowrap">
+								<td class="pl-3 text-sm whitespace-nowrap">
 									{account.accountName}
 								</td>
-								<td class="text-sm py-2 whitespace-nowrap">{account.accountInstitution || '-'}</td>
-								<td class="text-sm py-2 whitespace-nowrap">{formatTaxWrapper(account.accountTaxWrapper)}</td>
-								<td class="text-right pr-2 text-sm tabular-nums py-2 whitespace-nowrap" class:text-green-700={filterAccountId !== account.accountId}>
+								<td class="text-sm whitespace-nowrap">{account.accountInstitution || '-'}</td>
+								<td class="text-sm whitespace-nowrap">{formatTaxWrapper(account.accountTaxWrapper)}</td>
+								<td class="text-right pr-3 text-sm tabular-nums whitespace-nowrap" class:text-green-700={filterAccountId !== account.accountId}>
 									{formatCurrency(account.total)}
 								</td>
-								<td class="text-right pr-2 text-sm py-2 whitespace-nowrap">{account.transactionCount}</td>
+								<td class="text-right pr-3 text-sm whitespace-nowrap">{account.transactionCount}</td>
 							</tr>
 						{/each}
 					</tbody>
 					<tfoot>
 						<tr class="border-t border-black">
-							<td colspan="3" class="pl-2 text-sm py-2 font-bold uppercase">Total</td>
-							<td class="text-right pr-2 text-sm tabular-nums py-2 font-bold text-green-700">
+							<td colspan="3" class="pl-3 text-sm font-bold uppercase">Total</td>
+							<td class="text-right pr-3 text-sm tabular-nums font-bold text-green-700">
 								{formatCurrency(data.actual.total)}
 							</td>
-							<td class="text-right pr-2 text-sm py-2 font-bold">{data.actual.transactions.filter(t => t.type !== 'opening').length}</td>
+							<td class="text-right pr-3 text-sm font-bold">{data.actual.transactions.filter(t => t.type !== 'opening').length}</td>
 						</tr>
 					</tfoot>
 				</table>
@@ -408,8 +400,7 @@
 	<!-- Month Breakdown -->
 	{#if activeBreakdown === 'month'}
 		<div class="p-2">
-			<div class="flex justify-between items-center mb-2">
-				<span class="text-[10px] uppercase font-bold text-gray-500">{data.actual.byMonth.length} months found</span>
+			<div class="flex justify-end mb-2">
 				<button
 					type="button"
 					class="bracket-link text-xs"
@@ -422,9 +413,9 @@
 				<table class="w-full">
 					<thead>
 						<tr class="border-b border-black">
-							<th class="pl-2 text-left whitespace-nowrap uppercase text-[10px]">Month</th>
-							<th class="text-right pr-2 whitespace-nowrap uppercase text-[10px]">Amount</th>
-							<th class="text-right pr-2 whitespace-nowrap uppercase text-[10px]">Trans.</th>
+							<th class="pl-3 text-left whitespace-nowrap uppercase text-[10px]">Month</th>
+							<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Interest Earned</th>
+							<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Trans.</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -438,21 +429,21 @@
 									else { clearFilters(); filterMonth = month.month; filterYear = month.year; }
 								}}
 							>
-								<td class="pl-2 text-sm py-2 whitespace-nowrap">{month.monthName} {month.year}</td>
-								<td class="text-right pr-2 text-sm tabular-nums py-2 whitespace-nowrap" class:text-green-700={!(filterMonth === month.month && filterYear === month.year)}>
+								<td class="pl-3 text-sm whitespace-nowrap">{month.monthName} {month.year}</td>
+								<td class="text-right pr-3 text-sm tabular-nums whitespace-nowrap" class:text-green-700={!(filterMonth === month.month && filterYear === month.year)}>
 									{formatCurrency(month.total)}
 								</td>
-								<td class="text-right pr-2 text-sm py-2 whitespace-nowrap">{month.transactionCount}</td>
+								<td class="text-right pr-3 text-sm whitespace-nowrap">{month.transactionCount}</td>
 							</tr>
 						{/each}
 					</tbody>
 					<tfoot>
 						<tr class="border-t border-black">
-							<td class="pl-2 text-sm py-2 font-bold uppercase">Total</td>
-							<td class="text-right pr-2 text-sm tabular-nums py-2 font-bold text-green-700">
+							<td class="pl-3 text-sm font-bold uppercase">Total</td>
+							<td class="text-right pr-3 text-sm tabular-nums font-bold text-green-700">
 								{formatCurrency(data.actual.total)}
 							</td>
-							<td class="text-right pr-2 text-sm py-2 font-bold">{data.actual.transactions.filter(t => t.type !== 'opening').length}</td>
+							<td class="text-right pr-3 text-sm font-bold">{data.actual.transactions.filter(t => t.type !== 'opening').length}</td>
 						</tr>
 					</tfoot>
 				</table>
@@ -463,8 +454,7 @@
 	<!-- Institution Breakdown -->
 	{#if activeBreakdown === 'institution'}
 		<div class="p-2">
-			<div class="flex justify-between items-center mb-2">
-				<span class="text-[10px] uppercase font-bold text-gray-500">{data.actual.byInstitution.length} institutions found</span>
+			<div class="flex justify-end mb-2">
 				<button
 					type="button"
 					class="bracket-link text-xs"
@@ -477,9 +467,9 @@
 				<table class="w-full">
 					<thead>
 						<tr class="border-b border-black">
-							<th class="pl-2 text-left whitespace-nowrap uppercase text-[10px]">Institution</th>
-							<th class="text-right pr-2 whitespace-nowrap uppercase text-[10px]">Amount</th>
-							<th class="text-right pr-2 whitespace-nowrap uppercase text-[10px]">Trans.</th>
+							<th class="pl-3 text-left whitespace-nowrap uppercase text-[10px]">Institution</th>
+							<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Interest Earned</th>
+							<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Trans.</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -493,21 +483,21 @@
 									else { clearFilters(); filterInstitution = inst.institution; }
 								}}
 							>
-								<td class="pl-2 text-sm py-2 whitespace-nowrap">{inst.institution}</td>
-								<td class="text-right pr-2 text-sm tabular-nums py-2 whitespace-nowrap" class:text-green-700={filterInstitution !== inst.institution}>
+								<td class="pl-3 text-sm whitespace-nowrap">{inst.institution}</td>
+								<td class="text-right pr-3 text-sm tabular-nums whitespace-nowrap" class:text-green-700={filterInstitution !== inst.institution}>
 									{formatCurrency(inst.total)}
 								</td>
-								<td class="text-right pr-2 text-sm py-2 whitespace-nowrap">{inst.transactionCount}</td>
+								<td class="text-right pr-3 text-sm whitespace-nowrap">{inst.transactionCount}</td>
 							</tr>
 						{/each}
 					</tbody>
 					<tfoot>
 						<tr class="border-t border-black">
-							<td class="pl-2 text-sm py-2 font-bold uppercase">Total</td>
-							<td class="text-right pr-2 text-sm tabular-nums py-2 font-bold text-green-700">
+							<td class="pl-3 text-sm font-bold uppercase">Total</td>
+							<td class="text-right pr-3 text-sm tabular-nums font-bold text-green-700">
 								{formatCurrency(data.actual.total)}
 							</td>
-							<td class="text-right pr-2 text-sm py-2 font-bold">{data.actual.transactions.filter(t => t.type !== 'opening').length}</td>
+							<td class="text-right pr-3 text-sm font-bold">{data.actual.transactions.filter(t => t.type !== 'opening').length}</td>
 						</tr>
 					</tfoot>
 				</table>
@@ -518,8 +508,7 @@
 	<!-- Tax Wrapper Breakdown -->
 	{#if activeBreakdown === 'wrapper'}
 		<div class="p-2">
-			<div class="flex justify-between items-center mb-2">
-				<span class="text-[10px] uppercase font-bold text-gray-500">{data.actual.byTaxWrapper.length} wrappers found</span>
+			<div class="flex justify-end mb-2">
 				<button
 					type="button"
 					class="bracket-link text-xs"
@@ -532,9 +521,9 @@
 				<table class="w-full">
 					<thead>
 						<tr class="border-b border-black">
-							<th class="pl-2 text-left whitespace-nowrap uppercase text-[10px]">Tax Wrapper</th>
-							<th class="text-right pr-2 whitespace-nowrap uppercase text-[10px]">Amount</th>
-							<th class="text-right pr-2 whitespace-nowrap uppercase text-[10px]">Trans.</th>
+							<th class="pl-3 text-left whitespace-nowrap uppercase text-[10px]">Tax Wrapper</th>
+							<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Interest Earned</th>
+							<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Trans.</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -548,26 +537,26 @@
 									else { clearFilters(); filterTaxWrapper = wrap.taxWrapper; }
 								}}
 							>
-								<td class="pl-2 text-sm py-2 whitespace-nowrap uppercase">
+								<td class="pl-3 text-sm whitespace-nowrap uppercase">
 									{formatTaxWrapper(wrap.taxWrapper)}
 									{#if wrap.isTaxFree}
 										<span class="ml-1 text-[10px] font-bold" class:text-green-700={filterTaxWrapper !== wrap.taxWrapper}>[TAX-FREE]</span>
 									{/if}
 								</td>
-								<td class="text-right pr-2 text-sm tabular-nums py-2 whitespace-nowrap" class:text-green-700={filterTaxWrapper !== wrap.taxWrapper}>
+								<td class="text-right pr-3 text-sm tabular-nums whitespace-nowrap" class:text-green-700={filterTaxWrapper !== wrap.taxWrapper}>
 									{formatCurrency(wrap.total)}
 								</td>
-								<td class="text-right pr-2 text-sm py-2 whitespace-nowrap">{wrap.transactionCount}</td>
+								<td class="text-right pr-3 text-sm whitespace-nowrap">{wrap.transactionCount}</td>
 							</tr>
 						{/each}
 					</tbody>
 					<tfoot>
 						<tr class="border-t border-black">
-							<td class="pl-2 text-sm py-2 font-bold uppercase">Total</td>
-							<td class="text-right pr-2 text-sm tabular-nums py-2 font-bold text-green-700">
+							<td class="pl-3 text-sm font-bold uppercase">Total</td>
+							<td class="text-right pr-3 text-sm tabular-nums font-bold text-green-700">
 								{formatCurrency(data.actual.total)}
 							</td>
-							<td class="text-right pr-2 text-sm py-2 font-bold">{data.actual.transactions.filter(t => t.type !== 'opening').length}</td>
+							<td class="text-right pr-3 text-sm font-bold">{data.actual.transactions.filter(t => t.type !== 'opening').length}</td>
 						</tr>
 					</tfoot>
 				</table>
@@ -628,7 +617,7 @@
 						</td>
 						<td class="text-right pr-2 text-sm tabular-nums py-2 whitespace-nowrap">
 							{#if account.exclusionReason}
-								<span class="text-gray-500">-</span>
+								<span class="text-gray-600">-</span>
 							{:else}
 								<div class="flex items-center justify-end gap-1">
 									<span class="text-amber-700">+{formatCurrency(account.projectedInterest)}</span>
@@ -641,7 +630,7 @@
 						</td>
 						<td class="text-sm py-2">
 							{#if account.exclusionReason}
-								<span class="text-[10px] text-gray-500 uppercase">{getExclusionReason(account.exclusionReason)}</span>
+								<span class="text-[10px] text-gray-600 uppercase">{getExclusionReason(account.exclusionReason)}</span>
 							{:else}
 								<span class="text-[10px] text-green-700 font-bold uppercase">Included</span>
 							{/if}
@@ -655,7 +644,7 @@
 					<td class="text-right pr-2 text-sm tabular-nums py-2 font-bold text-amber-700">
 						{formatCurrency(data.projected.total)}
 					</td>
-					<td class="text-[10px] text-gray-500 py-2 uppercase">
+					<td class="text-[10px] text-gray-600 py-2 uppercase">
 						{data.projected.byAccount.filter(a => !a.exclusionReason).length} of {data.projected.byAccount.length} accounts
 					</td>
 				</tr>

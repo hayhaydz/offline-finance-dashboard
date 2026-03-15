@@ -1,3 +1,66 @@
+## [2026-03-15 16:15] — Interest Breakdown UI & Data Filtering Improvements
+
+**Summary:** Updated interest breakdown page UI - removed "X found" counts from all breakdown sections, aligned table styling with `/accounts` page (removed inner padding, use pl-3/pr-3), renamed "Amount" column to "Interest Earned", and filtered out transactions from accounts that mature after the tax year.
+
+**Files:**
+- `src/routes/accounts/interest/[year]/+page.svelte`
+- `src/lib/server/interestBreakdown.ts`
+- `src/routes/accounts/interest/+page.server.ts`
+
+**Commit:**
+```
+fix: improve interest breakdown UI and filter invalid maturity data
+```
+
+**Context:**
+- Removed "5 accounts found", "12 months found", etc. from all 4 breakdown tabs
+- Changed table padding from `pl-2 pr-2 py-2` to `pl-3 pr-3` to match `/accounts` page
+- Renamed "Amount" → "Interest Earned" for clarity
+- Server-side filtering: excluded interest transactions from accounts with maturity date after tax year end (both in breakdown page and interest index)
+
+---
+
+## [2026-03-15 15:50] — Fix: Resolve server error on accounts page
+
+**Summary:** Fixed a `ReferenceError: url is not defined` in the `/accounts` page load function by adding `url` to the destructured parameters.
+
+**Files:**
+- `src/routes/accounts/+page.server.ts`
+
+**Commit:**
+```
+fix: add missing url parameter to accounts page load function
+```
+
+---
+
+## [2026-03-15 15:45] — Interest Tax Year Navigation & History
+
+**Summary:** Implemented tax year navigation for interest data, allowing users to view interest history across multiple tax years. Created a new index page for interest history and updated the tax year selection UI to use "Prev/Next" buttons.
+
+**Files:**
+- `src/routes/accounts/interest/+page.svelte`
+- `src/routes/accounts/interest/+page.server.ts`
+- `src/routes/accounts/+page.svelte`
+- `src/routes/accounts/+page.server.ts`
+- `src/routes/accounts/[slug]/+page.svelte`
+- `src/routes/accounts/[slug]/+page.server.ts`
+- `scripts/seed/fixtures/standard/transactions.json`
+- `scripts/seed/fixtures/standard/interest_rates.json`
+
+**Commit:**
+```
+feat: interest tax year navigation and history index
+```
+
+**Context:**
+- **Database Seed:** Updated standard seed data to include historical interest transactions and rates for tax years 2023/24 and 2024/25.
+- **Interest Index:** Created `/accounts/interest` to list all tax years with activity, showing ISA vs Taxable totals and allowance status. Links to detailed breakdown reports.
+- **Navigation:** Replaced dropdown selectors with `[Prev] YYYY/YY [Next]` buttons on accounts and account detail pages.
+- **Verification:** Verified with new test script and existing integration tests.
+
+---
+
 ## [2026-03-15 15:05] — Improved Interest Breakdown & Dynamic Tax Years
 
 **Summary:** Enhanced the interest breakdown system with bond maturity awareness, taxable/tax-free interest splits, dynamic tax year routing, and interactive filtering.

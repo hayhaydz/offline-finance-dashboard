@@ -1,12 +1,12 @@
 import { redirect } from "@sveltejs/kit";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
+import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
-import { users } from "$lib/db/schema";
-import { devLog, logError } from "$lib/utils/logger";
-import { getInterestBreakdownReport } from "$lib/server/interestBreakdown";
-import type { PageServerLoad } from "./$types";
-
+import { accounts, accountTransactions, users } from "$lib/db/schema";
 import { getUkTaxYearBounds } from "$lib/server/calculations";
+import { getInterestBreakdownReport } from "$lib/server/interestBreakdown";
+import { devLog, logError } from "$lib/utils/logger";
+import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
@@ -36,6 +36,48 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	});
 
 	try {
+		// Get user accounts for filtering transactions
+		const userAccounts = await db.query.accounts.findMany({
+			where: withUserFilter(locals.user.id, accounts),
+			columns: { id: true },
+		});
+
+		const accountIds = userAccounts.map((a) => a.id);
+
+		// Get all interest transactions to determine available tax years
+		const interestTransactions = await db.query.accountTransactions.findMany({
+			where:
+				accountIds.length > 0
+					? inArray(accountTransactions.accountId, accountIds)
+					: eq(accountTransactions.id, 0),
+			columns: { transactionDate: true },
+		});
+
+		// Build available tax years from transactions
+		const availableTaxYears = new Map<
+			string,
+			{ slug: string; start: Date; end: Date }
+		>();
+		for (const tx of interestTransactions) {
+			const bounds = getUkTaxYearBounds(tx.transactionDate);
+			const startYear = bounds.start.getUTCFullYear();
+			const endYear = bounds.end.getUTCFullYear();
+			const slug = `${startYear}-${String(endYear).slice(-2)}`;
+
+			if (!availableTaxYears.has(slug)) {
+				availableTaxYears.set(slug, {
+					slug,
+					start: bounds.start,
+					end: bounds.end,
+				});
+			}
+		}
+
+		// Sort by year (newest first)
+		const sortedTaxYears = Array.from(availableTaxYears.values()).sort(
+			(a, b) => b.start.getTime() - a.start.getTime(),
+		);
+
 		// Generate complete interest breakdown report for the requested year
 		const report = await getInterestBreakdownReport({
 			userId: locals.user.id,
@@ -66,9 +108,14 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			projected: report.projected,
 			forecast: report.forecast,
 			reconciliation: report.reconciliation,
+			availableTaxYears: sortedTaxYears,
 		};
 	} catch (error) {
-		logError("accountsInterest", "Failed to generate interest breakdown report", error);
+		logError(
+			"accountsInterest",
+			"Failed to generate interest breakdown report",
+			error,
+		);
 		throw error;
 	}
 };

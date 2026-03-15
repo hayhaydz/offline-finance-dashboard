@@ -8,21 +8,21 @@
  */
 
 import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
-import { db } from "$lib/db/client";
-import { accountTransactions, accounts } from "$lib/db/schema";
 import { withUserFilter } from "$lib/auth/row-security";
-import { devLog, logError } from "$lib/utils/logger";
-import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
-import { getCurrentRate } from "$lib/server/interestRates";
+import { db } from "$lib/db/client";
+import { accounts, accountTransactions } from "$lib/db/schema";
 import {
 	calculateProjectedInterestInCents,
 	getAccountInterestEarned,
 	getActualInterestEarned,
-	getUkTaxYearBounds,
 	getTaxFreeStatus,
-	type TaxFreeStatus,
+	getUkTaxYearBounds,
 	type TaxBand,
+	type TaxFreeStatus,
 } from "$lib/server/calculations";
+import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
+import { getCurrentRate } from "$lib/server/interestRates";
+import { devLog, logError } from "$lib/utils/logger";
 
 /**
  * Interest transaction with account details for traceability
@@ -201,7 +201,11 @@ export interface InterestBreakdownReport {
  * Check if a tax wrapper is tax-free (excluded from Personal Savings Allowance)
  */
 function isTaxFree(taxWrapper: string): boolean {
-	return taxWrapper === "isa" || taxWrapper === "lisa" || taxWrapper === "premium-bonds";
+	return (
+		taxWrapper === "isa" ||
+		taxWrapper === "lisa" ||
+		taxWrapper === "premium-bonds"
+	);
 }
 
 /**
@@ -275,7 +279,10 @@ export async function getInterestTransactions(
 				lte(accountTransactions.transactionDate, taxYearEnd),
 			),
 		)
-		.orderBy(asc(accountTransactions.transactionDate), asc(accountTransactions.id));
+		.orderBy(
+			asc(accountTransactions.transactionDate),
+			asc(accountTransactions.id),
+		);
 
 	// Initialize result with opening balance rows for each account that is a savings/investment account
 	const result: InterestTransaction[] = [];
@@ -304,7 +311,8 @@ export async function getInterestTransactions(
 	let runningTotal = 0;
 	// Sort transactions to ensure correct running total calculation
 	const sortedTransactions = [...transactions].sort(
-		(a, b) => a.transactionDate.getTime() - b.transactionDate.getTime() || a.id - b.id
+		(a, b) =>
+			a.transactionDate.getTime() - b.transactionDate.getTime() || a.id - b.id,
 	);
 
 	for (const tx of sortedTransactions) {
@@ -327,7 +335,10 @@ export async function getInterestTransactions(
 	}
 
 	// Final sort to ensure opening balances stay at the top for each date
-	result.sort((a, b) => a.transactionDate.getTime() - b.transactionDate.getTime() || a.id - b.id);
+	result.sort(
+		(a, b) =>
+			a.transactionDate.getTime() - b.transactionDate.getTime() || a.id - b.id,
+	);
 
 	devLog("getInterestTransactions", "Fetched transactions", {
 		count: result.length,
@@ -350,46 +361,65 @@ export async function getActualInterestBreakdown(
 	taxYearStart: Date,
 	taxYearEnd: Date,
 ): Promise<ActualInterestBreakdown> {
-	devLog("getActualInterestBreakdown", "Calculating actual interest breakdown", {
+	devLog(
+		"getActualInterestBreakdown",
+		"Calculating actual interest breakdown",
+		{
+			userId,
+			taxYearStart,
+			taxYearEnd,
+		},
+	);
+
+	// Get transactions with running totals (includes interest and interest_accrued)
+	const transactions = await getInterestTransactions(
 		userId,
 		taxYearStart,
 		taxYearEnd,
-	});
-
-	// Get transactions with running totals (includes interest and interest_accrued)
-	const transactions = await getInterestTransactions(userId, taxYearStart, taxYearEnd);
+	);
 
 	// Get user accounts to check maturity dates
 	const userAccounts = await db.query.accounts.findMany({
 		where: withUserFilter(userId, accounts),
 	});
-	const accountMapForMaturity = new Map(userAccounts.map(a => [a.id, a]));
+	const accountMapForMaturity = new Map(userAccounts.map((a) => [a.id, a]));
+
+	// Filter out transactions from accounts that mature after the tax year
+	const validTransactions = transactions.filter((tx) => {
+		const account = accountMapForMaturity.get(tx.accountId);
+		if (!account || !account.maturityDate) return true; // No maturity date = always valid
+		return account.maturityDate <= taxYearEnd; // Only include if matures within tax year
+	});
 
 	// Get headline total from summary query (source of truth for comparison)
 	const total = await getActualInterestEarned(userId, taxYearStart, taxYearEnd);
-	
+
 	let taxableTotal = 0;
 	let taxFreeTotal = 0;
 
 	// Break down by account
 	const accountMap = new Map<number, AccountBreakdown>();
-	for (const tx of transactions) {
+	for (const tx of validTransactions) {
 		// Only count real interest transactions (not synthetic opening balances) for the total
 		if (tx.type === "opening") continue;
 
 		const account = accountMapForMaturity.get(tx.accountId);
 		const isAccrued = tx.type === "interest_accrued";
-		
+
 		// Logic:
 		// 1. ISA/LISA/Premium Bonds are always tax-free
 		// 2. Accrued interest on non-matured bonds is EXCLUDED from taxable actuals for THIS year
 		// 3. Everything else is taxable (unless it's tax-free wrapper)
 
 		const isTaxFreeWrapper = isTaxFree(tx.accountTaxWrapper);
-		
+
 		let countsAsActualThisYear = true;
 		// If it's accrued interest and the account has a maturity date in the future
-		if (account?.maturityDate && account.maturityDate > taxYearEnd && isAccrued) {
+		if (
+			account?.maturityDate &&
+			account.maturityDate > taxYearEnd &&
+			isAccrued
+		) {
 			countsAsActualThisYear = false;
 		}
 
@@ -424,7 +454,7 @@ export async function getActualInterestBreakdown(
 
 	// Break down by month
 	const monthMap = new Map<string, MonthBreakdown>();
-	for (const tx of transactions) {
+	for (const tx of validTransactions) {
 		if (tx.type === "opening") continue;
 		const year = tx.transactionDate.getUTCFullYear();
 		const month = tx.transactionDate.getUTCMonth() + 1; // 1-12
@@ -451,7 +481,7 @@ export async function getActualInterestBreakdown(
 
 	// Break down by institution
 	const institutionMap = new Map<string, InstitutionBreakdown>();
-	for (const tx of transactions) {
+	for (const tx of validTransactions) {
 		if (tx.type === "opening") continue;
 		const institution = tx.accountInstitution || "Unknown";
 		const existing = institutionMap.get(institution);
@@ -472,7 +502,7 @@ export async function getActualInterestBreakdown(
 
 	// Break down by tax wrapper
 	const wrapperMap = new Map<string, TaxWrapperBreakdown>();
-	for (const tx of transactions) {
+	for (const tx of validTransactions) {
 		if (tx.type === "opening") continue;
 		const existing = wrapperMap.get(tx.accountTaxWrapper);
 		if (existing) {
@@ -507,7 +537,7 @@ export async function getActualInterestBreakdown(
 		byMonth,
 		byInstitution,
 		byTaxWrapper,
-		transactions,
+		transactions: validTransactions,
 	};
 }
 
@@ -662,7 +692,9 @@ export async function getProjectedInterestBreakdown(
 				// Matures within this tax year - project only until maturity
 				daysUntilMaturity = Math.max(
 					0,
-					Math.ceil((account.maturityDate.getTime() - now.getTime()) / msPerDay),
+					Math.ceil(
+						(account.maturityDate.getTime() - now.getTime()) / msPerDay,
+					),
 				);
 				projected = calculateProjectedInterestInCents({
 					balanceInCents: currentBalance,
@@ -750,7 +782,11 @@ export async function getInterestReconciliationReport(
 	const flags: ReconciliationFlag[] = [];
 
 	// Get actual breakdown
-	const actual = await getActualInterestBreakdown(userId, taxYearStart, taxYearEnd);
+	const actual = await getActualInterestBreakdown(
+		userId,
+		taxYearStart,
+		taxYearEnd,
+	);
 
 	// Check: transactions sum should equal total
 	const transactionsSum = actual.transactions.reduce(
@@ -833,7 +869,13 @@ export async function getInterestBreakdownReport(params: {
 	asOfDate?: Date;
 	taxBand?: TaxBand;
 }): Promise<InterestBreakdownReport> {
-	const { userId, taxYearStart, taxYearEnd, asOfDate, taxBand = "basic" } = params;
+	const {
+		userId,
+		taxYearStart,
+		taxYearEnd,
+		asOfDate,
+		taxBand = "basic",
+	} = params;
 
 	// Calculate tax year bounds if not provided
 	const taxYear =
@@ -864,7 +906,11 @@ export async function getInterestBreakdownReport(params: {
 
 	// Get all breakdowns in parallel
 	const [actual, projected, reconciliation] = await Promise.all([
-		getActualInterestBreakdown(userId, calculatedTaxYearStart, calculatedTaxYearEnd),
+		getActualInterestBreakdown(
+			userId,
+			calculatedTaxYearStart,
+			calculatedTaxYearEnd,
+		),
 		getProjectedInterestBreakdown(
 			userId,
 			calculatedTaxYearStart,
