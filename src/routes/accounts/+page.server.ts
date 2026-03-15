@@ -4,22 +4,26 @@ import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, users } from "$lib/db/schema";
 import {
+	getAccountInterestEarned,
+	getISAAllowanceUsed,
+	getTaxFreeStatus,
+	getUkTaxYearBounds,
+	ISA_ALLOWANCE_IN_CENTS,
+} from "$lib/server/calculations";
+import {
 	getCurrentBalancesForAccounts,
 	getLatestTransactionDateForAccounts,
 } from "$lib/server/derivedBalances";
 import { getCurrentRate } from "$lib/server/interestRates";
-import { getUkTaxYearBounds } from "$lib/server/calculations";
-import {
-	getAccountInterestEarned,
-	getISAAllowanceUsed,
-	getTaxFreeStatus,
-	ISA_ALLOWANCE_IN_CENTS,
-} from "$lib/server/calculations";
 import type { PageServerLoad } from "./$types";
 
 // Helper: Check if account tax wrapper is tax-free (excluded from Personal Savings Allowance)
 function isTaxFree(taxWrapper: string): boolean {
-	return taxWrapper === 'isa' || taxWrapper === 'lisa' || taxWrapper === 'premium-bonds';
+	return (
+		taxWrapper === "isa" ||
+		taxWrapper === "lisa" ||
+		taxWrapper === "premium-bonds"
+	);
 }
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -42,19 +46,25 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const taxYearParam = url.searchParams.get("taxYearStart");
 	const requestedDate = taxYearParam ? new Date(taxYearParam) : new Date();
 	// Validate date if param provided
-	const validDate = !isNaN(requestedDate.getTime()) ? requestedDate : new Date();
+	const validDate = !isNaN(requestedDate.getTime())
+		? requestedDate
+		: new Date();
 	const taxYear = getUkTaxYearBounds(validDate);
 
 	// Calculate prev/next tax years for navigation
-	const prevTaxYearStart = new Date(Date.UTC(taxYear.start.getUTCFullYear() - 1, 3, 6));
-	const nextTaxYearStart = new Date(Date.UTC(taxYear.start.getUTCFullYear() + 1, 3, 6));
+	const prevTaxYearStart = new Date(
+		Date.UTC(taxYear.start.getUTCFullYear() - 1, 3, 6),
+	);
+	const nextTaxYearStart = new Date(
+		Date.UTC(taxYear.start.getUTCFullYear() + 1, 3, 6),
+	);
 	const prevTaxYearParam = prevTaxYearStart.toISOString().split("T")[0];
 	const nextTaxYearParam = nextTaxYearStart.toISOString().split("T")[0];
 
 	// Fetch interest rates for all accounts
 	const accountRates = new Map<number, number | null>();
 	for (const account of userAccounts) {
-		if (account.type === 'savings' || account.type === 'investment') {
+		if (account.type === "savings" || account.type === "investment") {
 			accountRates.set(account.id, await getCurrentRate(account.id));
 		} else {
 			accountRates.set(account.id, null);
@@ -69,11 +79,20 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	);
 
 	// Separate actual interest by tax-free vs taxable accounts
+	// Exclude accounts that mature after the tax year (interest not yet available)
 	let actualInterestTaxFree = 0;
 	let actualInterestTaxable = 0;
 	for (const account of userAccounts) {
-		if (account.type === 'savings' || account.type === 'investment') {
-			const accountInterest = await getAccountInterestEarned(account.id, taxYear.start, taxYear.end);
+		if (account.type === "savings" || account.type === "investment") {
+			// Skip accounts that mature after the tax year - interest not yet available
+			if (account.maturityDate && account.maturityDate > taxYear.end) {
+				continue;
+			}
+			const accountInterest = await getAccountInterestEarned(
+				account.id,
+				taxYear.start,
+				taxYear.end,
+			);
 			if (isTaxFree(account.taxWrapper)) {
 				actualInterestTaxFree += accountInterest;
 			} else {
@@ -102,12 +121,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		const balance = currentBalances.get(account.id) ?? 0;
 
 		// 1. DISPLAY VALUES: Theoretical monthly/yearly earning rates (keep these for the UI table)
-		const monthlyInterest = rate !== null && balance > 0
-			? Math.round(balance * rate / 120000)
-			: 0;
-		const yearlyInterest = rate !== null && balance > 0
-			? Math.round(balance * rate / 10000)
-			: 0;
+		const monthlyInterest =
+			rate !== null && balance > 0 ? Math.round((balance * rate) / 120000) : 0;
+		const yearlyInterest =
+			rate !== null && balance > 0 ? Math.round((balance * rate) / 10000) : 0;
 
 		// 2. TAX PROJECTION VALUES: What actually pays out before April 5th?
 		let projectedForRestOfTaxYear = 0;
@@ -115,14 +132,24 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		if (rate !== null && balance > 0) {
 			if (account.maturityDate) {
 				// Fixed-term bond: only count if it matures THIS tax year
-				if (account.maturityDate <= taxYear.end && account.maturityDate > today) {
+				if (
+					account.maturityDate <= taxYear.end &&
+					account.maturityDate > today
+				) {
 					// Matures this tax year! Pro-rate the remaining days until maturity.
-					const daysToMaturity = Math.ceil((account.maturityDate.getTime() - today.getTime()) / millisecondsPerDay);
-					projectedForRestOfTaxYear = Math.round((yearlyInterest / 365) * daysToMaturity);
+					const daysToMaturity = Math.ceil(
+						(account.maturityDate.getTime() - today.getTime()) /
+							millisecondsPerDay,
+					);
+					projectedForRestOfTaxYear = Math.round(
+						(yearlyInterest / 365) * daysToMaturity,
+					);
 				}
 			} else {
 				// Standard access account: prorate for the remaining days in the current tax year
-				projectedForRestOfTaxYear = Math.round((yearlyInterest / 365) * daysRemainingInTaxYear);
+				projectedForRestOfTaxYear = Math.round(
+					(yearlyInterest / 365) * daysRemainingInTaxYear,
+				);
 			}
 		}
 
@@ -150,7 +177,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			currentBalance: balance,
 			lastUpdated: latestTransactionDates.get(account.id) ?? null,
 			daysToMaturity: account.maturityDate
-				? Math.ceil((account.maturityDate.getTime() - today.getTime()) / millisecondsPerDay)
+				? Math.ceil(
+						(account.maturityDate.getTime() - today.getTime()) /
+							millisecondsPerDay,
+					)
 				: null,
 			currentRate: rate,
 			monthlyInterest,
@@ -161,15 +191,18 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Get user's tax band for allowance calculation
 	const userWithTaxBand = await db.query.users.findFirst({
 		where: eq(users.id, locals.user.id),
-		columns: { taxBand: true }
+		columns: { taxBand: true },
 	});
-	const taxBand = userWithTaxBand?.taxBand ?? 'basic';
+	const taxBand = userWithTaxBand?.taxBand ?? "basic";
 
 	// Calculate tax-free status (only taxable accounts count toward allowance)
 	const totalExpectedTaxable = actualInterestTaxable + totalProjectedTaxable;
 	const totalExpectedTaxFree = actualInterestTaxFree + totalProjectedTaxFree;
 	const taxFreeStatusNow = getTaxFreeStatus(actualInterestTaxable, taxBand);
-	const taxFreeStatusProjected = getTaxFreeStatus(totalExpectedTaxable, taxBand);
+	const taxFreeStatusProjected = getTaxFreeStatus(
+		totalExpectedTaxable,
+		taxBand,
+	);
 
 	// Get unique institutions for filtering
 	const institutions = Array.from(

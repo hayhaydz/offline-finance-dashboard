@@ -1,3 +1,25 @@
+## [2026-03-15 16:30] — Interest Breakdown UI Refinements & Sort Consolidation
+
+**Summary:** Consolidated all sort toggle buttons into the tab bar header on the interest breakdown page, added "By Tax Wrapper" tab button to the tab bar, and extended server-side maturity filtering to the accounts page interest calculations.
+
+**Files:**
+- `src/routes/accounts/interest/[year]/+page.svelte`
+- `src/routes/accounts/+page.server.ts`
+- `src/lib/server/calculations.ts`
+
+**Commit:**
+```
+fix: consolidate sort controls in breakdown tabs and filter maturing accounts
+```
+
+**Context:**
+- Moved sort toggle buttons (High-Low/Low-High, Reverse/Chronological) from individual breakdown sections into a single row in the tab bar header
+- Added "By Tax Wrapper" tab button directly to the tab bar (was present but not visible in tab buttons)
+- Extended maturity date filtering: accounts with maturity date after tax year end are now excluded from interest calculations in both the accounts page and calculations.ts
+- Added `isNull` and `or` imports to calculations.ts for the new filter condition
+
+---
+
 ## [2026-03-15 16:15] — Interest Breakdown UI & Data Filtering Improvements
 
 **Summary:** Updated interest breakdown page UI - removed "X found" counts from all breakdown sections, aligned table styling with `/accounts` page (removed inner padding, use pl-3/pr-3), renamed "Amount" column to "Interest Earned", and filtered out transactions from accounts that mature after the tax year.

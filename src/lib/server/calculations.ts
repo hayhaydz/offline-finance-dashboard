@@ -1,6 +1,6 @@
-import { and, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "$lib/db/client";
-import { accountTransactions, accounts } from "$lib/db/schema";
+import { accounts, accountTransactions } from "$lib/db/schema";
 import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
 import { getCurrentRate } from "$lib/server/interestRates";
 
@@ -25,7 +25,9 @@ export interface TaxFreeStatus {
  * UK tax year runs from 6 April to 5 April (inclusive).
  * Supports passing a Date or a year string like "2024-25".
  */
-export function getUkTaxYearBounds(input: Date | string = new Date()): TaxYearBounds {
+export function getUkTaxYearBounds(
+	input: Date | string = new Date(),
+): TaxYearBounds {
 	if (typeof input === "string") {
 		// Parse "2024-25" or similar
 		const match = input.match(/^(\d{4})-(\d{2})$/);
@@ -131,6 +133,10 @@ export async function getActualInterestEarned(
 				eq(accountTransactions.type, "interest"),
 				gte(accountTransactions.transactionDate, taxYearStart),
 				lte(accountTransactions.transactionDate, taxYearEnd),
+				or(
+					isNull(accounts.maturityDate),
+					lte(accounts.maturityDate, taxYearEnd),
+				),
 			),
 		);
 
@@ -196,9 +202,10 @@ export async function getProjectedInterest(
 	if (currentRate === null) return 0;
 
 	// If it matures within this tax year, only project up until the maturity date
-	const toDate = account?.maturityDate && account.maturityDate <= taxYearEnd
-		? account.maturityDate
-		: taxYearEnd;
+	const toDate =
+		account?.maturityDate && account.maturityDate <= taxYearEnd
+			? account.maturityDate
+			: taxYearEnd;
 
 	return calculateProjectedInterestInCents({
 		balanceInCents: currentBalance,

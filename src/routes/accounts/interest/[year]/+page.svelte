@@ -298,57 +298,57 @@
 	<div class="p-2 font-bold uppercase">Breakdowns</div>
 
 	<!-- Tab buttons (Bracket style) -->
-	<div class="flex border-b border-black p-2 gap-2">
+	<div class="flex justify-between items-center border-b border-black p-2 gap-2">
+		<div class="flex gap-2">
+			<button
+				type="button"
+				class="bracket-link text-xs"
+				class:bg-black={activeBreakdown === 'account'}
+				class:text-white={activeBreakdown === 'account'}
+				onclick={() => activeBreakdown = 'account'}
+			>
+				By Account
+			</button>
+			<button
+				type="button"
+				class="bracket-link text-xs"
+				class:bg-black={activeBreakdown === 'month'}
+				class:text-white={activeBreakdown === 'month'}
+				onclick={() => activeBreakdown = 'month'}
+			>
+				By Month
+			</button>
+			<button
+				type="button"
+				class="bracket-link text-xs"
+				class:bg-black={activeBreakdown === 'institution'}
+				class:text-white={activeBreakdown === 'institution'}
+				onclick={() => activeBreakdown = 'institution'}
+			>
+				By Institution
+			</button>
+			<button
+				type="button"
+				class="bracket-link text-xs"
+				class:bg-black={activeBreakdown === 'wrapper'}
+				class:text-white={activeBreakdown === 'wrapper'}
+				onclick={() => activeBreakdown = 'wrapper'}
+			>
+				By Tax Wrapper
+			</button>
+		</div>
 		<button
 			type="button"
 			class="bracket-link text-xs"
-			class:bg-black={activeBreakdown === 'account'}
-			class:text-white={activeBreakdown === 'account'}
-			onclick={() => activeBreakdown = 'account'}
+			onclick={() => accountsSortDesc = !accountsSortDesc}
 		>
-			By Account
-		</button>
-		<button
-			type="button"
-			class="bracket-link text-xs"
-			class:bg-black={activeBreakdown === 'month'}
-			class:text-white={activeBreakdown === 'month'}
-			onclick={() => activeBreakdown = 'month'}
-		>
-			By Month
-		</button>
-		<button
-			type="button"
-			class="bracket-link text-xs"
-			class:bg-black={activeBreakdown === 'institution'}
-			class:text-white={activeBreakdown === 'institution'}
-			onclick={() => activeBreakdown = 'institution'}
-		>
-			By Institution
-		</button>
-		<button
-			type="button"
-			class="bracket-link text-xs"
-			class:bg-black={activeBreakdown === 'wrapper'}
-			class:text-white={activeBreakdown === 'wrapper'}
-			onclick={() => activeBreakdown = 'wrapper'}
-		>
-			By Tax Wrapper
+			{accountsSortDesc ? 'Low-High' : 'High-Low'}
 		</button>
 	</div>
 
 	<!-- Account Breakdown -->
 	{#if activeBreakdown === 'account'}
 		<div class="p-2">
-			<div class="flex justify-end mb-2">
-				<button
-					type="button"
-					class="bracket-link text-xs"
-					onclick={() => accountsSortDesc = !accountsSortDesc}
-				>
-					{accountsSortDesc ? 'Low-High' : 'High-Low'}
-				</button>
-			</div>
 			<div class="overflow-x-auto">
 				<table class="w-full">
 					<thead>
@@ -400,15 +400,6 @@
 	<!-- Month Breakdown -->
 	{#if activeBreakdown === 'month'}
 		<div class="p-2">
-			<div class="flex justify-end mb-2">
-				<button
-					type="button"
-					class="bracket-link text-xs"
-					onclick={() => monthsSortDesc = !monthsSortDesc}
-				>
-					{monthsSortDesc ? 'Chronological' : 'Reverse'}
-				</button>
-			</div>
 			<div class="overflow-x-auto">
 				<table class="w-full">
 					<thead>
@@ -454,15 +445,6 @@
 	<!-- Institution Breakdown -->
 	{#if activeBreakdown === 'institution'}
 		<div class="p-2">
-			<div class="flex justify-end mb-2">
-				<button
-					type="button"
-					class="bracket-link text-xs"
-					onclick={() => institutionsSortDesc = !institutionsSortDesc}
-				>
-					{institutionsSortDesc ? 'Low-High' : 'High-Low'}
-				</button>
-			</div>
 			<div class="overflow-x-auto">
 				<table class="w-full">
 					<thead>
@@ -508,15 +490,6 @@
 	<!-- Tax Wrapper Breakdown -->
 	{#if activeBreakdown === 'wrapper'}
 		<div class="p-2">
-			<div class="flex justify-end mb-2">
-				<button
-					type="button"
-					class="bracket-link text-xs"
-					onclick={() => wrappersSortDesc = !wrappersSortDesc}
-				>
-					{wrappersSortDesc ? 'Low-High' : 'High-Low'}
-				</button>
-			</div>
 			<div class="overflow-x-auto">
 				<table class="w-full">
 					<thead>
