@@ -102,6 +102,7 @@ function createMockTransactions(transactions: Array<{
 			id: tx.id,
 			slug: tx.slug,
 			transactionDate: tx.date,
+			type: "interest",
 			amount: tx.amount,
 			description: tx.description,
 			runningTotal,
@@ -145,6 +146,8 @@ describe("getInterestTransactions", () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		// Setup default empty accounts to avoid crashes in functions calling db.query.accounts
+		(db.query.accounts.findMany as any).mockResolvedValue([]);
 	});
 
 	it("should fetch interest transactions with running totals ordered by date", async () => {
@@ -267,6 +270,8 @@ describe("getActualInterestBreakdown", () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		// Setup default empty accounts to avoid crashes in functions calling db.query.accounts
+		(db.query.accounts.findMany as any).mockResolvedValue([]);
 	});
 
 	it("should calculate breakdown by account, month, institution, and tax wrapper", async () => {
@@ -332,6 +337,8 @@ describe("getActualInterestBreakdown", () => {
 
 		// Verify total
 		expect(result.total).toBe(53000);
+		expect(result.taxableTotal).toBe(25000); // none wrapper: 10000+15000
+		expect(result.taxFreeTotal).toBe(20000 + 8000); // isa: 20000, premium-bonds: 8000
 		expect(result.transactions).toHaveLength(4);
 
 		// Verify by account breakdown (sorted by total descending)
@@ -394,13 +401,14 @@ describe("getActualInterestBreakdown", () => {
 			},
 		];
 
-		setupDbSelectMock(createMockTransactions(transactions));
+		setupDbSelectMock(createMockTransactions([transactions[0]]));
 		(getActualInterestEarned as any).mockResolvedValue(10000);
 
 		const result = await getActualInterestBreakdown(mockUserId, mockTaxYearStart, mockTaxYearEnd);
 
 		// Only April 5 transaction should be included
 		expect(result.total).toBe(10000);
+		expect(result.transactions).toHaveLength(1); // 1 real + 0 opening (since mockAccounts is empty)
 		expect(result.byMonth).toHaveLength(1);
 		expect(result.byMonth[0].month).toBe(4);
 	});
@@ -428,6 +436,8 @@ describe("getProjectedInterestBreakdown", () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		// Setup default empty accounts to avoid crashes in functions calling db.query.accounts
+		(db.query.accounts.findMany as any).mockResolvedValue([]);
 	});
 
 	it("should calculate projected interest for remaining tax year", async () => {
@@ -701,6 +711,8 @@ describe("getInterestReconciliationReport", () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		// Setup default empty accounts to avoid crashes in functions calling db.query.accounts
+		(db.query.accounts.findMany as any).mockResolvedValue([]);
 	});
 
 	it("should return zero deltas for balanced data", async () => {
@@ -863,6 +875,8 @@ describe("getInterestBreakdownReport", () => {
 
 	beforeEach(() => {
 		vi.clearAllMocks();
+		// Setup default empty accounts to avoid crashes in functions calling db.query.accounts
+		(db.query.accounts.findMany as any).mockResolvedValue([]);
 	});
 
 	it("should combine actual, projected, forecast, and reconciliation data", async () => {
@@ -932,13 +946,19 @@ describe("getInterestBreakdownReport", () => {
 
 		// Verify actual
 		expect(result.actual.total).toBe(50000);
-		expect(result.actual.transactions).toHaveLength(2);
+		expect(result.actual.taxableTotal).toBe(30000);
+		expect(result.actual.taxFreeTotal).toBe(20000);
+		expect(result.actual.transactions).toHaveLength(3); // 2 real + 1 opening (account 10)
 
 		// Verify projected
 		expect(result.projected.total).toBe(10000);
+		expect(result.projected.taxableTotal).toBe(10000);
+		expect(result.projected.taxFreeTotal).toBe(0);
 
 		// Verify forecast (actual + projected)
 		expect(result.forecast.total).toBe(60000);
+		expect(result.forecast.taxableTotal).toBe(30000 + 10000);
+		expect(result.forecast.taxFreeTotal).toBe(20000);
 
 		// Verify reconciliation
 		expect(result.reconciliation.actualVsTransactionsDelta).toBe(0);

@@ -16,7 +16,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { redirect } from "@sveltejs/kit";
 import { db } from "$lib/db/client";
-import { load } from "../../src/routes/accounts/interest/+page.server";
+import { load } from "../../src/routes/accounts/interest/[year]/+page.server";
 
 // Mock all dependencies
 vi.mock("$lib/db/client", () => ({
@@ -40,7 +40,7 @@ vi.mock("$lib/utils/logger", () => ({
 
 import { getInterestBreakdownReport } from "$lib/server/interestBreakdown";
 
-describe("/accounts/interest page load", () => {
+describe("/accounts/interest/[year] page load", () => {
 	const mockUserId = 1;
 	const mockLocals = {
 		user: {
@@ -50,14 +50,14 @@ describe("/accounts/interest page load", () => {
 	};
 
 	// Helper to create a mock ServerLoadEvent
-	function createMockLoadEvent(locals: any) {
+	function createMockLoadEvent(locals: any, params: any = { year: "2025-26" }) {
 		return {
 			locals,
 			// Add required SvelteKit properties
-			params: {},
-			route: { id: "/accounts/interest" },
-			url: new URL("http://localhost/accounts/interest"),
-			request: new Request("http://localhost/accounts/interest"),
+			params,
+			route: { id: "/accounts/interest/[year]" },
+			url: new URL(`http://localhost/accounts/interest/${params.year}`),
+			request: new Request(`http://localhost/accounts/interest/${params.year}`),
 			cookies: {
 				get: vi.fn(),
 				set: vi.fn(),
@@ -185,8 +185,9 @@ describe("/accounts/interest page load", () => {
 			expect(getInterestBreakdownReport).toHaveBeenCalledWith({
 				userId: mockUserId,
 				taxBand: "basic",
-			});
-		});
+				taxYearStart: expect.any(Date),
+				taxYearEnd: expect.any(Date),
+			});		});
 
 		it("should use default tax band of 'basic' when user has no tax band", async () => {
 			(db.query.users.findFirst as any).mockResolvedValue({
@@ -202,8 +203,9 @@ describe("/accounts/interest page load", () => {
 			expect(getInterestBreakdownReport).toHaveBeenCalledWith({
 				userId: mockUserId,
 				taxBand: "basic",
-			});
-		});
+				taxYearStart: expect.any(Date),
+				taxYearEnd: expect.any(Date),
+			});		});
 
 		it("should use higher tax band when user has higher tax band", async () => {
 			(db.query.users.findFirst as any).mockResolvedValue({
@@ -219,8 +221,9 @@ describe("/accounts/interest page load", () => {
 			expect(getInterestBreakdownReport).toHaveBeenCalledWith({
 				userId: mockUserId,
 				taxBand: "higher",
-			});
-		});
+				taxYearStart: expect.any(Date),
+				taxYearEnd: expect.any(Date),
+			});		});
 	});
 
 	describe("Data consistency and reconciliation", () => {
@@ -648,15 +651,23 @@ function createMockReport(options: {
 
 	// Calculate PSA status
 	let taxableActual: number;
+	let taxFreeActual: number;
 	if (includeTaxFreeWrappers && transactionCount >= 3) {
 		// Total minus isa, lisa, premium-bonds portions (approximately 3/4 of total)
 		taxableActual = Math.floor(actualTotal / 4);
+		taxFreeActual = actualTotal - taxableActual;
 	} else if (includeEmptyBreakdowns) {
 		taxableActual = 0;
+		taxFreeActual = 0;
 	} else {
 		taxableActual = actualTotal;
+		taxFreeActual = 0;
 	}
 	const taxableForecast = taxableActual + projectedTotal;
+	const taxFreeForecast = taxFreeActual; // Assuming no projected tax-free for simplicity
+
+	// Update transactions with type
+	transactions.forEach(tx => tx.type = 'interest');
 
 	return {
 		meta: {
@@ -667,6 +678,8 @@ function createMockReport(options: {
 		},
 		actual: {
 			total: actualTotal,
+			taxableTotal: taxableActual,
+			taxFreeTotal: taxFreeActual,
 			byAccount,
 			byMonth,
 			byInstitution,
@@ -675,10 +688,14 @@ function createMockReport(options: {
 		},
 		projected: {
 			total: projectedTotal,
+			taxableTotal: projectedTotal,
+			taxFreeTotal: 0,
 			byAccount: projectedByAccount,
 		},
 		forecast: {
 			total: actualTotal + projectedTotal,
+			taxableTotal: taxableActual + projectedTotal,
+			taxFreeTotal: taxFreeActual,
 			psaStatusNow: {
 				allowance: 100000, // £1,000 for basic rate
 				used: taxableActual,

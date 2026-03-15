@@ -23,8 +23,28 @@ export interface TaxFreeStatus {
 
 /**
  * UK tax year runs from 6 April to 5 April (inclusive).
+ * Supports passing a Date or a year string like "2024-25".
  */
-export function getUkTaxYearBounds(referenceDate: Date = new Date()): TaxYearBounds {
+export function getUkTaxYearBounds(input: Date | string = new Date()): TaxYearBounds {
+	if (typeof input === "string") {
+		// Parse "2024-25" or similar
+		const match = input.match(/^(\d{4})-(\d{2})$/);
+		if (match) {
+			const startYear = parseInt(match[1], 10);
+			const endYear = startYear + 1;
+			// Verify end year match (e.g., 2024-25 -> 2025)
+			if (endYear % 100 === parseInt(match[2], 10)) {
+				return {
+					start: new Date(Date.UTC(startYear, 3, 6, 0, 0, 0, 0)),
+					end: new Date(Date.UTC(endYear, 3, 5, 23, 59, 59, 999)),
+				};
+			}
+		}
+		// Fallback to Date parsing if string doesn't match format
+		return getUkTaxYearBounds(new Date(input));
+	}
+
+	const referenceDate = input;
 	const year = referenceDate.getUTCFullYear();
 	const startThisYear = new Date(Date.UTC(year, 3, 6, 0, 0, 0, 0));
 

@@ -31,6 +31,7 @@ export interface InterestTransaction {
 	id: number;
 	slug: string;
 	transactionDate: Date;
+	type: string; // 'interest' or 'interest_accrued' or 'opening'
 	amount: number; // in cents
 	description: string | null;
 	runningTotal: number; // cumulative total in cents
@@ -93,6 +94,8 @@ export interface TaxWrapperBreakdown {
  */
 export interface ActualInterestBreakdown {
 	total: number; // in cents
+	taxableTotal: number; // in cents
+	taxFreeTotal: number; // in cents
 	byAccount: AccountBreakdown[];
 	byMonth: MonthBreakdown[];
 	byInstitution: InstitutionBreakdown[];
@@ -137,6 +140,8 @@ export interface ProjectedAccountBreakdown {
  */
 export interface ProjectedInterestBreakdown {
 	total: number; // in cents
+	taxableTotal: number; // in cents
+	taxFreeTotal: number; // in cents
 	byAccount: ProjectedAccountBreakdown[];
 }
 
@@ -145,6 +150,8 @@ export interface ProjectedInterestBreakdown {
  */
 export interface InterestForecast {
 	total: number; // in cents (actual + projected)
+	taxableTotal: number; // in cents
+	taxFreeTotal: number; // in cents
 	psaStatusNow: TaxFreeStatus; // Personal Savings Allowance status (actual only)
 	psaStatusForecast: TaxFreeStatus; // PSA status (actual + projected)
 }
@@ -238,11 +245,17 @@ export async function getInterestTransactions(
 		taxYearEnd,
 	});
 
+	// Get all user accounts first to create opening balance rows
+	const userAccounts = await db.query.accounts.findMany({
+		where: withUserFilter(userId, accounts),
+	});
+
 	const transactions = await db
 		.select({
 			id: accountTransactions.id,
 			slug: accountTransactions.slug,
 			transactionDate: accountTransactions.transactionDate,
+			type: accountTransactions.type,
 			amount: accountTransactions.amount,
 			description: accountTransactions.description,
 			accountId: accountTransactions.accountId,
@@ -257,23 +270,50 @@ export async function getInterestTransactions(
 		.where(
 			and(
 				eq(accounts.userId, userId),
-				eq(accountTransactions.type, "interest"),
+				inArray(accountTransactions.type, ["interest", "interest_accrued"]),
 				gte(accountTransactions.transactionDate, taxYearStart),
 				lte(accountTransactions.transactionDate, taxYearEnd),
 			),
 		)
 		.orderBy(asc(accountTransactions.transactionDate), asc(accountTransactions.id));
 
+	// Initialize result with opening balance rows for each account that is a savings/investment account
+	const result: InterestTransaction[] = [];
+
+	for (const account of userAccounts) {
+		if (account.type === "savings" || account.type === "investment") {
+			result.push({
+				id: -account.id, // Synthetic ID
+				slug: `opening-${account.slug}`,
+				transactionDate: taxYearStart,
+				type: "opening",
+				amount: 0,
+				description: "Opening Balance @ 06 APR",
+				runningTotal: 0,
+				accountId: account.id,
+				accountSlug: account.slug,
+				accountName: account.name,
+				accountType: account.type,
+				accountInstitution: account.institution,
+				accountTaxWrapper: account.taxWrapper,
+			});
+		}
+	}
+
 	// Calculate running total
 	let runningTotal = 0;
-	const transactionsWithRunningTotal: InterestTransaction[] = [];
+	// Sort transactions to ensure correct running total calculation
+	const sortedTransactions = [...transactions].sort(
+		(a, b) => a.transactionDate.getTime() - b.transactionDate.getTime() || a.id - b.id
+	);
 
-	for (const tx of transactions) {
+	for (const tx of sortedTransactions) {
 		runningTotal += tx.amount;
-		transactionsWithRunningTotal.push({
+		result.push({
 			id: tx.id,
 			slug: tx.slug,
 			transactionDate: tx.transactionDate,
+			type: tx.type,
 			amount: tx.amount,
 			description: tx.description,
 			runningTotal,
@@ -286,12 +326,15 @@ export async function getInterestTransactions(
 		});
 	}
 
+	// Final sort to ensure opening balances stay at the top for each date
+	result.sort((a, b) => a.transactionDate.getTime() - b.transactionDate.getTime() || a.id - b.id);
+
 	devLog("getInterestTransactions", "Fetched transactions", {
-		count: transactionsWithRunningTotal.length,
+		count: result.length,
 		total: runningTotal,
 	});
 
-	return transactionsWithRunningTotal;
+	return result;
 }
 
 /**
@@ -313,15 +356,51 @@ export async function getActualInterestBreakdown(
 		taxYearEnd,
 	});
 
-	// Get transactions with running totals
+	// Get transactions with running totals (includes interest and interest_accrued)
 	const transactions = await getInterestTransactions(userId, taxYearStart, taxYearEnd);
 
-	// Get headline total
+	// Get user accounts to check maturity dates
+	const userAccounts = await db.query.accounts.findMany({
+		where: withUserFilter(userId, accounts),
+	});
+	const accountMapForMaturity = new Map(userAccounts.map(a => [a.id, a]));
+
+	// Get headline total from summary query (source of truth for comparison)
 	const total = await getActualInterestEarned(userId, taxYearStart, taxYearEnd);
+	
+	let taxableTotal = 0;
+	let taxFreeTotal = 0;
 
 	// Break down by account
 	const accountMap = new Map<number, AccountBreakdown>();
 	for (const tx of transactions) {
+		// Only count real interest transactions (not synthetic opening balances) for the total
+		if (tx.type === "opening") continue;
+
+		const account = accountMapForMaturity.get(tx.accountId);
+		const isAccrued = tx.type === "interest_accrued";
+		
+		// Logic:
+		// 1. ISA/LISA/Premium Bonds are always tax-free
+		// 2. Accrued interest on non-matured bonds is EXCLUDED from taxable actuals for THIS year
+		// 3. Everything else is taxable (unless it's tax-free wrapper)
+
+		const isTaxFreeWrapper = isTaxFree(tx.accountTaxWrapper);
+		
+		let countsAsActualThisYear = true;
+		// If it's accrued interest and the account has a maturity date in the future
+		if (account?.maturityDate && account.maturityDate > taxYearEnd && isAccrued) {
+			countsAsActualThisYear = false;
+		}
+
+		if (countsAsActualThisYear) {
+			if (isTaxFreeWrapper) {
+				taxFreeTotal += tx.amount;
+			} else {
+				taxableTotal += tx.amount;
+			}
+		}
+
 		const existing = accountMap.get(tx.accountId);
 		if (existing) {
 			existing.total += tx.amount;
@@ -346,6 +425,7 @@ export async function getActualInterestBreakdown(
 	// Break down by month
 	const monthMap = new Map<string, MonthBreakdown>();
 	for (const tx of transactions) {
+		if (tx.type === "opening") continue;
 		const year = tx.transactionDate.getUTCFullYear();
 		const month = tx.transactionDate.getUTCMonth() + 1; // 1-12
 		const key = `${year}-${month}`;
@@ -372,6 +452,7 @@ export async function getActualInterestBreakdown(
 	// Break down by institution
 	const institutionMap = new Map<string, InstitutionBreakdown>();
 	for (const tx of transactions) {
+		if (tx.type === "opening") continue;
 		const institution = tx.accountInstitution || "Unknown";
 		const existing = institutionMap.get(institution);
 		if (existing) {
@@ -392,6 +473,7 @@ export async function getActualInterestBreakdown(
 	// Break down by tax wrapper
 	const wrapperMap = new Map<string, TaxWrapperBreakdown>();
 	for (const tx of transactions) {
+		if (tx.type === "opening") continue;
 		const existing = wrapperMap.get(tx.accountTaxWrapper);
 		if (existing) {
 			existing.total += tx.amount;
@@ -411,15 +493,16 @@ export async function getActualInterestBreakdown(
 
 	devLog("getActualInterestBreakdown", "Calculated breakdown", {
 		total,
-		transactionCount: transactions.length,
+		taxableTotal,
+		taxFreeTotal,
+		transactionCount: transactions.length - userAccounts.length, // excluding opening balances
 		accountCount: byAccount.length,
-		monthCount: byMonth.length,
-		institutionCount: byInstitution.length,
-		wrapperCount: byTaxWrapper.length,
 	});
 
 	return {
 		total,
+		taxableTotal,
+		taxFreeTotal,
 		byAccount,
 		byMonth,
 		byInstitution,
@@ -461,7 +544,7 @@ export async function getProjectedInterestBreakdown(
 
 	if (daysRemainingInTaxYear === 0) {
 		// Tax year has ended, no projections
-		return { total: 0, byAccount: [] };
+		return { total: 0, taxableTotal: 0, taxFreeTotal: 0, byAccount: [] };
 	}
 
 	// Get all user accounts
@@ -472,6 +555,8 @@ export async function getProjectedInterestBreakdown(
 	// Calculate projection for each account
 	const byAccount: ProjectedAccountBreakdown[] = [];
 	let total = 0;
+	let taxableTotal = 0;
+	let taxFreeTotal = 0;
 
 	for (const account of userAccounts) {
 		const accountId = account.id;
@@ -613,6 +698,11 @@ export async function getProjectedInterestBreakdown(
 		});
 
 		total += projected;
+		if (isTaxFree(account.taxWrapper)) {
+			taxFreeTotal += projected;
+		} else {
+			taxableTotal += projected;
+		}
 	}
 
 	// Sort by projected amount descending
@@ -620,12 +710,16 @@ export async function getProjectedInterestBreakdown(
 
 	devLog("getProjectedInterestBreakdown", "Calculated projections", {
 		total,
+		taxableTotal,
+		taxFreeTotal,
 		accountCount: byAccount.length,
 		daysRemainingInTaxYear,
 	});
 
 	return {
 		total,
+		taxableTotal,
+		taxFreeTotal,
 		byAccount,
 	};
 }
@@ -787,21 +881,12 @@ export async function getInterestBreakdownReport(params: {
 
 	// Calculate forecast totals
 	const total = actual.total + projected.total;
-
-	// Separate taxable vs tax-free for PSA calculation
-	const actualTaxable = actual.byTaxWrapper
-		.filter((w) => !w.isTaxFree)
-		.reduce((sum, w) => sum + w.total, 0);
-
-	const projectedTaxable = projected.byAccount
-		.filter((acc) => !isTaxFree(acc.accountTaxWrapper))
-		.reduce((sum, acc) => sum + acc.projectedInterest, 0);
-
-	const totalTaxable = actualTaxable + projectedTaxable;
+	const taxableTotal = actual.taxableTotal + projected.taxableTotal;
+	const taxFreeTotal = actual.taxFreeTotal + projected.taxFreeTotal;
 
 	// Calculate PSA status
-	const psaStatusNow = getTaxFreeStatus(actualTaxable, taxBand);
-	const psaStatusForecast = getTaxFreeStatus(totalTaxable, taxBand);
+	const psaStatusNow = getTaxFreeStatus(actual.taxableTotal, taxBand);
+	const psaStatusForecast = getTaxFreeStatus(taxableTotal, taxBand);
 
 	const meta: InterestBreakdownMeta = {
 		taxYearStart: calculatedTaxYearStart,
@@ -812,6 +897,8 @@ export async function getInterestBreakdownReport(params: {
 
 	const forecast: InterestForecast = {
 		total,
+		taxableTotal,
+		taxFreeTotal,
 		psaStatusNow,
 		psaStatusForecast,
 	};
@@ -820,9 +907,8 @@ export async function getInterestBreakdownReport(params: {
 		actualTotal: actual.total,
 		projectedTotal: projected.total,
 		forecastTotal: total,
-		actualTaxable,
-		projectedTaxable,
-		totalTaxable,
+		taxableTotal,
+		taxFreeTotal,
 		flagCount: reconciliation.flags.length,
 	});
 

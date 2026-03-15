@@ -129,6 +129,7 @@ export const accountTransactions = sqliteTable(
 				"deposit",
 				"withdrawal",
 				"interest",
+				"interest_accrued",
 				"dividend",
 				"value_change",
 				"transfer_in",

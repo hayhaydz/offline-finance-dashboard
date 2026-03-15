@@ -1,3 +1,44 @@
+## [2026-03-15 15:05] — Improved Interest Breakdown & Dynamic Tax Years
+
+**Summary:** Enhanced the interest breakdown system with bond maturity awareness, taxable/tax-free interest splits, dynamic tax year routing, and interactive filtering.
+
+**Files:**
+- `src/lib/db/schema.ts`
+- `src/lib/server/interestBreakdown.ts`
+- `src/lib/server/calculations.ts`
+- `src/routes/accounts/interest/+page.server.ts`
+- `src/routes/accounts/interest/[year]/+page.server.ts`
+- `src/routes/accounts/interest/[year]/+page.svelte`
+- `tests/unit/interestBreakdown.test.ts`
+- `tests/integration/accounts-interest.test.ts`
+
+**Commit:**
+```
+feat(accounts): improve interest breakdown with bond maturity awareness, taxable split, and dynamic routing
+```
+
+**Context:** Fixed issues with bond interest incorrectly counting as current year actuals. Added clarity to PSA status with taxable/tax-free splits and ASCII progress bars. Implemented dynamic routing for historical tax year review and interactive filtering in the breakdown UI.
+
+---
+
+## [2026-03-15 13:40] — Completed Interest Breakdown Feature
+
+**Summary:** Successfully implemented and verified the comprehensive Interest Breakdown page, including actual vs projected interest, PSA tracking, and multiple breakdown views.
+
+**Files:**
+- `src/routes/accounts/interest/+page.svelte`
+- `src/lib/utils/currency.ts`
+
+**Commit:**
+```
+feat(accounts): implement interest breakdown with projection and PSA tracking
+```
+
+**Context:** The page provides a detailed view of interest earned and expected within the current tax year (2025-26), helping users manage their tax liability and monitor savings performance.
+
+---
+
+
 ## [2026-03-15] — Accounts Interest Overhaul Implementation Complete
 
 **Summary:** Fully implemented the Accounts Interest Overhaul Plan (`docs/2026-03-05-accounts-interest-overhaul-plan.md`).
