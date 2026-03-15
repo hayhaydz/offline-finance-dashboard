@@ -167,21 +167,17 @@
 	{#if data.interestSummary}
 		<div class="border-b border-black p-2 bg-green-50">
 			<div class="flex items-center justify-between gap-2 mb-2">
-				<div class="font-bold text-sm">INTEREST THIS TAX YEAR ({formatDate(data.interestSummary.taxYearStart)} to {formatDate(data.interestSummary.taxYearEnd)})</div>
-				<form method="GET" class="flex items-center gap-1">
-					<select
-						name="taxYearStart"
-						class="border border-black px-1 py-0.5 text-xs bg-white"
-						value={data.interestSummary.selectedTaxYearStart}
-						onchange={(e) => (e.currentTarget.form as HTMLFormElement).submit()}
-					>
-						{#each data.interestSummary.taxYearOptions as option}
-							<option value={option.value}>
-								{option.label}
-							</option>
-						{/each}
-					</select>
-				</form>
+				<div class="flex items-center gap-2">
+					<span class="font-bold text-sm">INTEREST:</span>
+					<a href="?taxYearStart={data.interestSummary.prevTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>[Prev]</a>
+					<span class="font-bold text-sm">
+						{new Date(data.interestSummary.taxYearStart).getFullYear()}/{String(new Date(data.interestSummary.taxYearEnd).getFullYear()).slice(-2)}
+					</span>
+					<a href="?taxYearStart={data.interestSummary.nextTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>[Next]</a>
+				</div>
+				<div class="text-xs font-normal">
+					({formatDate(data.interestSummary.taxYearStart)} to {formatDate(data.interestSummary.taxYearEnd)})
+				</div>
 			</div>
 			<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
 				<div>Actual earned:</div>

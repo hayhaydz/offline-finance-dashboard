@@ -2,7 +2,10 @@
   {
     "accountName": "Emergency Fund",
     "transactions": [
-      { "type": "deposit", "amount": 1500000, "daysAgo": 365, "description": "Initial emergency fund deposit" },
+      { "type": "deposit", "amount": 1000000, "daysAgo": 800, "description": "Old initial deposit" },
+      { "type": "interest", "amount": 2500, "daysAgo": 750, "description": "Interest 2023-24" },
+      { "type": "interest", "amount": 2600, "daysAgo": 450, "description": "Interest 2024-25" },
+      { "type": "deposit", "amount": 500000, "daysAgo": 365, "description": "Top up deposit" },
       { "type": "interest", "amount": 3125, "daysAgo": 335, "description": "Monthly interest" },
       { "type": "interest", "amount": 3156, "daysAgo": 305, "description": "Monthly interest" },
       { "type": "interest", "amount": 3187, "daysAgo": 275, "description": "Monthly interest" },
@@ -18,7 +21,10 @@
   {
     "accountName": "ISA Saver",
     "transactions": [
-      { "type": "deposit", "amount": 820000, "daysAgo": 365, "description": "ISA opening deposit (tax year 2025/26)" },
+      { "type": "deposit", "amount": 500000, "daysAgo": 800, "description": "Old ISA deposit" },
+      { "type": "interest", "amount": 1500, "daysAgo": 750, "description": "Interest 2023-24" },
+      { "type": "interest", "amount": 1600, "daysAgo": 450, "description": "Interest 2024-25" },
+      { "type": "deposit", "amount": 320000, "daysAgo": 365, "description": "ISA opening deposit (tax year 2025/26)" },
       { "type": "interest", "amount": 1708, "daysAgo": 335, "description": "Monthly interest" },
       { "type": "interest", "amount": 1714, "daysAgo": 305, "description": "Monthly interest" },
       { "type": "deposit", "amount": 100000, "daysAgo": 270, "description": "ISA contribution" },

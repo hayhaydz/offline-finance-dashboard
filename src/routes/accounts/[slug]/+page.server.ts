@@ -111,17 +111,11 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		start: selectedTaxYearStart,
 		end: getTaxYearEndFromStart(selectedTaxYearStart),
 	};
-	const taxYearOptions = Array.from({ length: 5 }, (_, i) => {
-		const start = new Date(
-			Date.UTC(currentTaxYear.start.getUTCFullYear() - i, 3, 6, 0, 0, 0, 0),
-		);
-		const end = getTaxYearEndFromStart(start);
-		const label = `${start.getUTCFullYear()}/${String(end.getUTCFullYear()).slice(-2)}`;
-		return {
-			value: formatTaxYearStartParam(start),
-			label,
-		};
-	});
+	
+	const prevTaxYearStart = new Date(Date.UTC(taxYear.start.getUTCFullYear() - 1, 3, 6));
+	const nextTaxYearStart = new Date(Date.UTC(taxYear.start.getUTCFullYear() + 1, 3, 6));
+	const prevTaxYearParam = formatTaxYearStartParam(prevTaxYearStart);
+	const nextTaxYearParam = formatTaxYearStartParam(nextTaxYearStart);
 
 	const [actualInterestAllAccounts, accountActualInterest, projectedInterest] =
 		await Promise.all([
@@ -151,7 +145,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 						taxBand,
 						taxFreeStatus,
 						selectedTaxYearStart: formatTaxYearStartParam(taxYear.start),
-						taxYearOptions,
+						prevTaxYearParam,
+						nextTaxYearParam,
 					}
 				: null,
 		breadcrumbOverrides: [

@@ -182,7 +182,14 @@
 <!-- INTEREST SUMMARY SECTION -->
 {#if data.interestSummary}
 <div class="font-bold flex justify-between items-center bg-gray-100 border-b border-black p-2">
-	<span>INTEREST THIS TAX YEAR</span>
+	<div class="flex items-center gap-2">
+		<span>INTEREST:</span>
+		<a href="?taxYearStart={data.interestSummary.prevTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>[Prev]</a>
+		<span>
+			{new Date(data.interestSummary.taxYearStart).getFullYear()}/{String(new Date(data.interestSummary.taxYearEnd).getFullYear()).slice(-2)}
+		</span>
+		<a href="?taxYearStart={data.interestSummary.nextTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>[Next]</a>
+	</div>
 	<div class="flex items-center gap-2">
 		<span class="text-xs font-normal">
 			{formatDate(data.interestSummary.taxYearStart)} to {formatDate(data.interestSummary.taxYearEnd)}

@@ -38,8 +38,18 @@ export const load: PageServerLoad = async ({ locals }) => {
 		getLatestTransactionDateForAccounts(accountIds),
 	]);
 
-	// Get current tax year bounds
-	const taxYear = getUkTaxYearBounds(new Date());
+	// Get requested tax year bounds
+	const taxYearParam = url.searchParams.get("taxYearStart");
+	const requestedDate = taxYearParam ? new Date(taxYearParam) : new Date();
+	// Validate date if param provided
+	const validDate = !isNaN(requestedDate.getTime()) ? requestedDate : new Date();
+	const taxYear = getUkTaxYearBounds(validDate);
+
+	// Calculate prev/next tax years for navigation
+	const prevTaxYearStart = new Date(Date.UTC(taxYear.start.getUTCFullYear() - 1, 3, 6));
+	const nextTaxYearStart = new Date(Date.UTC(taxYear.start.getUTCFullYear() + 1, 3, 6));
+	const prevTaxYearParam = prevTaxYearStart.toISOString().split("T")[0];
+	const nextTaxYearParam = nextTaxYearStart.toISOString().split("T")[0];
 
 	// Fetch interest rates for all accounts
 	const accountRates = new Map<number, number | null>();
@@ -187,6 +197,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			taxYearStart: taxYear.start,
 			taxYearEnd: taxYear.end,
 			daysRemainingInTaxYear,
+			prevTaxYearParam,
+			nextTaxYearParam,
 		},
 		isaAllowance: {
 			used: isaAllowanceUsed,

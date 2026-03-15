@@ -2,6 +2,7 @@
   {
     "accountName": "Emergency Fund",
     "rates": [
+      { "rate": 300, "daysAgo": 800, "description": "Ancient rate 3.00% AER" },
       { "rate": 425, "daysAgo": 365, "description": "Initial rate 4.25% AER" },
       { "rate": 450, "daysAgo": 180, "description": "Rate increase to 4.50% AER" }
     ]
@@ -9,6 +10,7 @@
   {
     "accountName": "ISA Saver",
     "rates": [
+      { "rate": 350, "daysAgo": 800, "description": "Old rate 3.50% AER" },
       { "rate": 400, "daysAgo": 365, "description": "Initial rate 4.00% AER" },
       { "rate": 425, "daysAgo": 200, "description": "Rate increase to 4.25% AER" },
       { "rate": 450, "daysAgo": 60, "description": "Rate increase to 4.50% AER" }
