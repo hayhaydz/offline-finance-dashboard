@@ -1,3 +1,119 @@
+## [2026-03-15] — Accounts Interest Overhaul Implementation Complete
+
+**Summary:** Fully implemented the Accounts Interest Overhaul Plan (`docs/2026-03-05-accounts-interest-overhaul-plan.md`).
+
+**Phase 1 - Core Module:**
+- Created `src/lib/server/interestBreakdown.ts` (843 lines)
+- Functions: getInterestTransactions, getActualInterestBreakdown, getProjectedInterestBreakdown, getInterestReconciliationReport, getInterestBreakdownReport
+- Proper tax year handling (6 Apr - 5 Apr)
+- Maturity-aware projections for fixed-term bonds
+- Tax wrapper identification (ISA, LISA, Premium Bonds as tax-free)
+- Reconciliation validation with delta checks
+
+**Phase 2 - Server Route:**
+- Created `src/routes/accounts/interest/+page.server.ts` (66 lines)
+- Authentication check with redirect
+- User tax band retrieval
+- Complete report data passed to UI
+
+**Phase 3 - UI Page:**
+- Created `src/routes/accounts/interest/+page.svelte` (586 lines)
+- Terminal aesthetic styling (monospace, black borders, no shadows)
+- KPI cards: Actual, Projected, Forecast, PSA Status Now/Forecast
+- Transaction table with running totals
+- Breakdowns by account, month, institution, tax wrapper (tabbed)
+- Projection assumptions table with exclusion reasons
+- Reconciliation panel showing validation flags
+
+**Phase 4 - Navigation:**
+- Added `[View Breakdown]` link to `/accounts` page
+- Added `[Back to Accounts]` link on interest breakdown page
+
+**Tests:**
+- Unit tests: 28 tests in `tests/unit/interestBreakdown.test.ts`
+- Integration tests: 21 tests in `tests/integration/accounts-interest.test.ts`
+- All 49 new tests passing
+
+**QA:**
+- Type checking passes (svelte-check: 0 errors)
+- All new tests passing
+- Implementation matches plan requirements
+
+**Commit:**
+`feat: implement accounts interest breakdown page with full audit trail`
+
+---
+
+## [2026-03-15] — Accounts Interest Page Integration Tests
+
+**Summary:** Created comprehensive integration tests for `/accounts/interest` page covering page load, authentication, data structure, reconciliation, forecast calculations, tax wrapper handling, error handling, and edge cases.
+
+**What Changed:**
+- Created test file: `tests/integration/accounts-interest.test.ts` (670 lines)
+- 21 integration test cases covering all requirements from the overhaul plan
+- Mocked `getInterestBreakdownReport` function and database calls
+- Test coverage includes:
+  - Page loads and displays consistent totals
+  - Authentication redirect works (unauthenticated users redirected to `/login`)
+  - Data structure matches expected contract (user, meta, actual, projected, forecast, reconciliation)
+  - Tax band handling (basic default, user-specific, higher rate)
+  - Data consistency and reconciliation:
+    - Zero deltas for balanced data
+    - Reconciliation flags appear when data is unbalanced
+    - Transaction ledger subtotal equals headline actual
+    - Account breakdown subtotal equals headline actual
+    - Month breakdown subtotal equals headline actual
+  - Forecast calculations:
+    - Forecast = actual + projected
+    - PSA status for actual only (now)
+    - PSA status for forecast (actual + projected)
+  - Tax wrapper handling:
+    - ISA, LISA, Premium Bonds marked as tax-free
+    - Tax-free wrappers excluded from PSA calculation
+  - Error handling:
+    - Errors thrown when report generation fails
+    - Proper error propagation
+  - Edge cases:
+    - Zero interest scenario
+    - No projected interest
+    - No actual interest (projected only)
+
+**Test Results:**
+- All 21 tests passing
+- Tests follow vitest patterns used in other integration test files
+- Mock helper function (`createMockReport`) provides flexible test data generation
+
+**Commit:**
+`test: add integration tests for /accounts/interest page`
+
+---
+
+## [2026-03-15] — Interest Breakdown Unit Tests
+
+**Summary:** Created comprehensive unit tests for `src/lib/server/interestBreakdown.ts` covering tax-year boundaries, maturity handling, exclusion logic, reconciliation, and tax wrapper PSA calculations.
+
+**What Changed:**
+- Created test file: `tests/unit/interestBreakdown.test.ts` (1,228 lines)
+- 28 test cases covering all major scenarios from the overhaul plan
+- Mocked database calls and external dependencies (db, getCurrentBalanceForAccount, getCurrentRate, calculations)
+- Test coverage includes:
+  - Tax-year boundaries (April 5/6 edge cases)
+  - Fixed-term maturity handling (after tax year, within tax year, already matured)
+  - Exclusion flags (no balance, no rate, closed account, non-interest-bearing)
+  - Reconciliation deltas (zero for balanced data, error flags for mismatches)
+  - Tax wrapper handling (ISA, LISA, Premium Bonds excluded from PSA)
+  - Integration test for complete breakdown report
+
+**Test Results:**
+- All 28 tests passing
+- Tests follow vitest patterns used in other test files
+- Proper beforeEach cleanup to prevent test interference
+
+**Commit:**
+`test: add comprehensive unit tests for interestBreakdown.ts`
+
+---
+
 ## [2026-03-15] — Package.json Scripts Cleanup
 
 **Summary:** Removed redundant Prettier formatting scripts, consolidated linting to use Biome exclusively, and documented one-time migration scripts. Simplified script namespace and removed unused Prettier dependency.

@@ -181,11 +181,14 @@
 
 <!-- INTEREST SUMMARY SECTION -->
 {#if data.interestSummary}
-<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
+<div class="font-bold flex justify-between items-center bg-gray-100 border-b border-black p-2">
 	<span>INTEREST THIS TAX YEAR</span>
-	<span class="text-xs font-normal">
-		{formatDate(data.interestSummary.taxYearStart)} to {formatDate(data.interestSummary.taxYearEnd)}
-	</span>
+	<div class="flex items-center gap-2">
+		<span class="text-xs font-normal">
+			{formatDate(data.interestSummary.taxYearStart)} to {formatDate(data.interestSummary.taxYearEnd)}
+		</span>
+		<a href="/accounts/interest" class="bracket-link text-xs">[View Breakdown]</a>
+	</div>
 </div>
 <div class="border-b border-black p-2">
 	<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
