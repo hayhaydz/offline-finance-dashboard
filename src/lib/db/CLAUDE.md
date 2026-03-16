@@ -29,4 +29,12 @@
 | #7747 | 8:35 PM | 🟣 | Accounts in allocation history table now clickable | ~236 |
 | #7729 | 7:33 PM | 🔵 | Schema confirms accounts table includes slug field | ~301 |
 | #7724 | 7:26 PM | 🔵 | Accounts table uses slug field for URL routes | ~220 |
+
+### Mar 16, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #8137 | 8:08 PM | 🟣 | Snapshots now include interest rate tracking and enhanced account data | ~250 |
+| #8131 | 8:07 PM | 🔵 | Focused review of snapshots table schema definition | ~208 |
+| #8129 | 8:06 PM | 🔵 | Examined database schema for snapshots table structure | ~258 |
 </claude-mem-context>

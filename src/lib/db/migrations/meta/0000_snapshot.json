@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a8e51a1a-4403-490c-a09e-06e7a92391c1",
+  "id": "6ea32451-b096-43c4-8b81-c3daeaa6c379",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "account_transactions": {
@@ -812,8 +812,36 @@
           "notNull": false,
           "autoincrement": false
         },
+        "interest_breakdown": {
+          "name": "interest_breakdown",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "goals_breakdown": {
           "name": "goals_breakdown",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "isa_breakdown": {
+          "name": "isa_breakdown",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "interest_breakdown_detail": {
+          "name": "interest_breakdown_detail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "isa_and_interest_breakdown": {
+          "name": "isa_and_interest_breakdown",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -953,6 +981,14 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "tax_band": {
+          "name": "tax_band",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'basic'"
         },
         "created_at": {
           "name": "created_at",

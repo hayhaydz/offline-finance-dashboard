@@ -388,6 +388,15 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 			const assets = Math.max(0, netWorth + 500_000);
 			const liabilities = assets - netWorth;
 
+			// Generate extreme interest values for stress testing
+			// Progressive accumulation across 204 snapshots
+			const interestMultiplier = Math.min(1, monthIdx / 100);
+			const actualTaxFree = Math.round(monthIdx * 5000 * interestMultiplier);
+			const actualTaxable = Math.round(monthIdx * 25000 * interestMultiplier);
+			const projectedTaxFree = Math.round(100000 * interestMultiplier);
+			const projectedTaxable = Math.round(500000 * interestMultiplier);
+			const isaUsed = Math.min(20_000_00, monthIdx * 200000);
+
 			await db.insert(schema.snapshots).values({
 				slug: slug(),
 				userId,
@@ -404,6 +413,48 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 				goalsBreakdown: {
 					goals: [],
 					totalAllocated: 0,
+				},
+				isaBreakdown: {
+					snapshotTakenAt: new Date().toISOString(),
+					snapshotDate: date,
+					taxYear: {
+						start: `${y}-04-06`,
+						end: `${y + 1}-04-05`,
+						label: `${y}-${String(y + 1).slice(-2)}`
+					},
+					allowance: {
+						usedThisTaxYear: isaUsed,
+						limit: 20_000_00,
+						remaining: Math.max(0, 20_000_00 - isaUsed),
+						usedThisSnapshotDate: isaUsed
+					}
+				},
+				interestBreakdownDetail: {
+					snapshotTakenAt: new Date().toISOString(),
+					snapshotDate: date,
+					taxYear: {
+						start: `${y}-04-06`,
+						end: `${y + 1}-04-05`,
+						label: `${y}-${String(y + 1).slice(-2)}`
+					},
+					actualInterest: { taxFree: actualTaxFree, taxable: actualTaxable, total: actualTaxFree + actualTaxable },
+					projectedInterest: { taxFree: projectedTaxFree, taxable: projectedTaxable, total: projectedTaxFree + projectedTaxable },
+					totalExpected: {
+						taxFree: actualTaxFree + projectedTaxFree,
+						taxable: actualTaxable + projectedTaxable,
+						total: actualTaxFree + actualTaxable + projectedTaxFree + projectedTaxable
+					},
+					taxPosition: {
+						taxBand: "basic",
+						personalSavingsAllowance: {
+							allowance: 1_000_00,
+							used: actualTaxable,
+							remaining: Math.max(0, 1_000_00 - actualTaxable),
+							overAllowance: actualTaxable > 1_000_00,
+							taxableAmount: Math.max(0, actualTaxable - 1_000_00)
+						}
+					},
+					byAccount: []
 				},
 				notes,
 			});

@@ -19,14 +19,20 @@ import { db } from "$lib/db/client";
 import { load } from "../../src/routes/accounts/interest/[year]/+page.server";
 
 // Mock all dependencies
-vi.mock("$lib/db/client", () => ({
-	db: {
-		query: {
-			users: {
-				findFirst: vi.fn(),
+	vi.mock("$lib/db/client", () => ({
+		db: {
+			query: {
+				accounts: {
+					findMany: vi.fn(),
+				},
+				accountTransactions: {
+					findMany: vi.fn(),
+				},
+				users: {
+					findFirst: vi.fn(),
+				},
 			},
 		},
-	},
 }));
 
 vi.mock("$lib/server/interestBreakdown", () => ({
@@ -88,6 +94,8 @@ describe("/accounts/interest/[year] page load", () => {
 			id: mockUserId,
 			taxBand: "basic",
 		});
+		(db.query.accounts.findMany as any).mockResolvedValue([]);
+		(db.query.accountTransactions.findMany as any).mockResolvedValue([]);
 	});
 
 	describe("Authentication", () => {

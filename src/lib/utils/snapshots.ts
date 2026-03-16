@@ -4,14 +4,16 @@ import type { Snapshot } from "$lib/db/schema";
 import { accounts, goals, snapshots } from "$lib/db/schema";
 import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
 import { calculateAssetsAndLiabilities } from "$lib/server/finance";
+import { calculateISAAllowanceBreakdown, calculateInterestBreakdown, type ISAAllowanceBreakdown, type InterestBreakdownDetail } from "$lib/server/snapshotBreakdowns";
 import { devLog } from "$lib/utils/logger";
 
 /**
  * Calculate current snapshot data from accounts and goals
  * Returns net worth, totals, and JSON breakdowns for point-in-time preservation
  */
-export async function calculateSnapshotData(userId: number) {
-	devLog("calculateSnapshotData", "Calculating snapshot data", { userId });
+export async function calculateSnapshotData(userId: number, snapshotDate?: Date) {
+	const effectiveDate = snapshotDate ?? new Date();
+	devLog("calculateSnapshotData", "Calculating snapshot data", { userId, snapshotDate: effectiveDate });
 
 	// Fetch all user accounts
 	const allAccounts = await db.query.accounts.findMany({
@@ -50,8 +52,10 @@ export async function calculateSnapshotData(userId: number) {
 			name: a.name,
 			type: a.type,
 			category: a.category as "asset" | "liability",
+			taxWrapper: a.taxWrapper as "none" | "isa" | "lisa" | "premium-bonds",
 			balanceInCents: balanceMap.get(a.id) ?? 0,
 			includedInTotal: !a.excludedFromNetWorth,
+			maturityDate: a.maturityDate ? a.maturityDate.toISOString() : null,
 		})),
 		totalByType: allAccounts.reduce(
 			(acc, a) => {
@@ -75,6 +79,12 @@ export async function calculateSnapshotData(userId: number) {
 		totalAllocated,
 	};
 
+	// Calculate ISA and interest breakdown (now separate objects with metadata)
+	const [isaData, interestData] = await Promise.all([
+		calculateISAAllowanceBreakdown(userId, effectiveDate),
+		calculateInterestBreakdown(userId, allAccounts, effectiveDate, "basic"), // TODO: Fetch user's actual taxBand
+	]);
+
 	devLog("calculateSnapshotData", "Snapshot data calculated", {
 		netWorth,
 		totalAssets,
@@ -82,6 +92,7 @@ export async function calculateSnapshotData(userId: number) {
 		totalAllocated,
 		accountsCount: allAccounts.length,
 		goalsCount: allGoals.length,
+		hasISAAndInterest: true,
 	});
 
 	return {
@@ -91,6 +102,8 @@ export async function calculateSnapshotData(userId: number) {
 		totalAllocated,
 		accountsBreakdown,
 		goalsBreakdown,
+		isaBreakdown: isaData,
+		interestBreakdownDetail: interestData
 	};
 }
 

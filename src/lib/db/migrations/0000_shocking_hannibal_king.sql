@@ -114,7 +114,11 @@ CREATE TABLE `snapshots` (
 	`total_liabilities_in_cents` integer NOT NULL,
 	`total_allocated_in_cents` integer DEFAULT 0 NOT NULL,
 	`accounts_breakdown` text,
+	`interest_breakdown` text,
 	`goals_breakdown` text,
+	`isa_breakdown` text,
+	`interest_breakdown_detail` text,
+	`isa_and_interest_breakdown` text,
 	`notes` text,
 	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action

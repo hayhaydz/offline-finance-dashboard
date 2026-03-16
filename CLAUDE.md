@@ -4,7 +4,7 @@
 - **SAVE POINTS:** Update `VERSION_HISTORY.md` (newest first) instead of committing.
 - **VERIFICATION:** Grep/Read files to verify changes BEFORE claiming completion. Keep to 1 line commits messages
 - **LOCKS:** `package.json` and `kit.csp` are READ-ONLY. Approval required.
-- **FILES:** Docs -> `docs/[topic]/`. Plans -> `.planning/`.
+- **FILES:** Docs -> `docs/[topic]/`. Plans/Markdown -> `./.docs/`.
 
 ## 🎨 UI: TERMINAL AESTHETIC
 - **STYLING:** Monospace, high-contrast, black borders, no rounded corners/shadows.
@@ -21,6 +21,7 @@
 - **LOGGING:** Use `$lib/utils/logger.ts`. NO `console.log` in server code.
 - **DB:** Update `scripts/seed.ts` immediately on schema change.
 - **PHASE:** Active Dev. Direct schema edits (db:push) > migrations.
+- **🔒 DATABASE LOCKED:** DO NOT touch raw SQLite files. DO NOT run migrations without EXPLICIT permission.
 - **QA:** Mandatory `npm run check` and `npm test` after units of work.
 
 ## 💷 UK TAX CONTEXT

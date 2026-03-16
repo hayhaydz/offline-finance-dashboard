@@ -48,6 +48,13 @@ interface SnapshotFixture {
 	multiplier: number;
 	notes: string | null;
 	special?: "excluded_accounts" | "empty_goals" | "force_negative";
+	interestOverrideByName?: Record<string, {
+		actualInterest?: number;
+		projectedInterest?: number;
+	}>;
+	isaAllowanceOverride?: {
+		usedThisTaxYear?: number;
+	};
 }
 
 export async function seedEdge(db: DB, userId: number): Promise<void> {
@@ -205,6 +212,9 @@ export async function seedEdge(db: DB, userId: number): Promise<void> {
 			opts.forceExcludeAccountSlugs = excludedSlugs;
 		if (snap.special === "empty_goals") opts.emptyGoals = true;
 		if (snap.special === "force_negative") opts.forceNegative = true;
+
+		opts.interestOverrideByName = snap.interestOverrideByName;
+		opts.isaAllowanceOverride = snap.isaAllowanceOverride;
 
 		await createSnapshot(
 			db,

@@ -1,6 +1,46 @@
 [
-  { "date": "2025-11-01", "multiplier": 0.85, "notes": null },
-  { "date": "2025-12-01", "multiplier": 0.90, "notes": null },
-  { "date": "2026-01-01", "multiplier": 0.95, "notes": null },
-  { "date": "2026-02-01", "multiplier": 1.00, "notes": null }
+  {
+    "date": "2025-11-01",
+    "multiplier": 0.85,
+    "notes": null,
+    "interestOverrideByName": {
+      "Emergency Fund": { "actualInterest": 75000, "projectedInterest": 86552 },
+      "ISA Saver": { "actualInterest": 45000, "projectedInterest": 55420 },
+      "1-Year Fixed Bond": { "actualInterest": 0, "projectedInterest": 550634 }
+    },
+    "isaAllowanceOverride": { "usedThisTaxYear": 1500000 }
+  },
+  {
+    "date": "2025-12-01",
+    "multiplier": 0.90,
+    "notes": null,
+    "interestOverrideByName": {
+      "Emergency Fund": { "actualInterest": 92000, "projectedInterest": 79250 },
+      "ISA Saver": { "actualInterest": 58000, "projectedInterest": 50620 },
+      "1-Year Fixed Bond": { "actualInterest": 0, "projectedInterest": 550634 }
+    },
+    "isaAllowanceOverride": { "usedThisTaxYear": 1750000 }
+  },
+  {
+    "date": "2026-01-01",
+    "multiplier": 0.95,
+    "notes": null,
+    "interestOverrideByName": {
+      "Emergency Fund": { "actualInterest": 112000, "projectedInterest": 71200 },
+      "ISA Saver": { "actualInterest": 72000, "projectedInterest": 45800 },
+      "1-Year Fixed Bond": { "actualInterest": 0, "projectedInterest": 550634 }
+    },
+    "isaAllowanceOverride": { "usedThisTaxYear": 1920000 }
+  },
+  {
+    "date": "2026-02-01",
+    "multiplier": 1.00,
+    "notes": null,
+    "interestOverrideByName": {
+      "Emergency Fund": { "actualInterest": 135000, "projectedInterest": 62500 },
+      "ISA Saver": { "actualInterest": 88000, "projectedInterest": 40200 },
+      "1-Year Fixed Bond": { "actualInterest": 0, "projectedInterest": 550634 }
+    },
+    "isaAllowanceOverride": { "usedThisTaxYear": 20000000 }
+  }
 ]

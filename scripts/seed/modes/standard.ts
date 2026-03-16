@@ -39,6 +39,13 @@ interface SnapshotFixture {
 	date: string;
 	multiplier: number;
 	notes: string | null;
+	interestOverrideByName?: Record<string, {
+		actualInterest?: number;
+		projectedInterest?: number;
+	}>;
+	isaAllowanceOverride?: {
+		usedThisTaxYear?: number;
+	};
 }
 
 interface TransactionFixture {
@@ -202,7 +209,10 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 	console.log("\n📸 Creating snapshots...");
 
 	for (const snap of snapshots) {
-		await createSnapshot(db, userId, snap.date, snap.multiplier, snap.notes);
+		await createSnapshot(db, userId, snap.date, snap.multiplier, snap.notes, {
+			interestOverrideByName: snap.interestOverrideByName,
+			isaAllowanceOverride: snap.isaAllowanceOverride,
+		});
 		console.log(`  ✓ ${snap.date}`);
 	}
 

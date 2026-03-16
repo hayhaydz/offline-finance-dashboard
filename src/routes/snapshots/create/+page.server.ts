@@ -78,6 +78,8 @@ export const actions: Actions = {
 				totalAllocated,
 				accountsBreakdown,
 				goalsBreakdown,
+				isaBreakdown,
+				interestBreakdownDetail,
 			} = await calculateSnapshotData(locals.user.id);
 
 			// Create snapshot
@@ -92,6 +94,8 @@ export const actions: Actions = {
 				totalAllocatedInCents: totalAllocated,
 				accountsBreakdown,
 				goalsBreakdown,
+				isaBreakdown,
+				interestBreakdownDetail,
 				notes: notes || null,
 			});
 

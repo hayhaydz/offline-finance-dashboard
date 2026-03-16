@@ -1,3 +1,75 @@
+## [2026-03-16 23:00] — Fix Accounts Interest Test Mocks + QA
+
+**Summary:** Updated accounts interest integration test mocks for new account/transaction queries and ran QA (`npm run check`, `npm test`).
+
+**Files:**
+- `tests/integration/accounts-interest.test.ts`
+
+**Commit:**
+```
+test: mock account queries for interest page
+```
+
+---
+
+## [2026-03-16 22:50] — Filter Snapshot Interest Accounts Like Interest Logic
+
+**Summary:** Aligned snapshot per-account interest breakdown with interest filtering rules, excluding invalid accounts in manual snapshots and seeded snapshots.
+
+**Files:**
+- `src/lib/server/snapshotBreakdowns.ts`
+- `scripts/seed/lib/snapshot.ts`
+
+**Commit:**
+```
+fix: filter snapshot interest by account validity
+```
+
+---
+
+## [2026-03-16 22:35] — Fix Snapshot Seed Shapes + UI Guards
+
+**Summary:** Aligned seed interest breakdown shape with schema, corrected UK tax-year bounds in seed calculations, and added UI fallbacks for legacy snapshot data to avoid SSR crashes.
+
+**Files:**
+- `scripts/seed/lib/snapshot.ts`
+- `src/routes/snapshots/[slug]/+page.svelte`
+
+**Commit:**
+```
+fix: align snapshot seed shape and add legacy UI guards
+```
+
+---
+
+## [2026-03-16 22:20] — Plan: Snapshots Seed + UI Fixes
+
+**Summary:** Documented plan to align snapshot seed shapes with schema/UI, correct UK tax-year bounds in seed calculations, add UI fallbacks for legacy data, and note reseed requirements.
+
+**Files:**
+- `.docs/2026-03-16-snapshots-seed-ui-fix-plan.md`
+
+**Commit:**
+```
+docs: add snapshots seed+ui fix plan
+```
+
+---
+
+## [2026-03-16 22:05] — Fix Seed ISA Breakdown Shape
+
+**Summary:** Aligned seeded snapshot ISA breakdown structure with the runtime schema by renaming `isaAllowance` to `allowance`, preventing snapshot detail UI crashes.
+
+**Files:**
+- `scripts/seed/lib/snapshot.ts`
+
+**Commit:**
+```
+fix: align seeded ISA breakdown schema
+```
+
+---
+
 ## [2026-03-15 16:30] — Interest Breakdown UI Refinements & Sort Consolidation
 
 **Summary:** Consolidated all sort toggle buttons into the tab bar header on the interest breakdown page, added "By Tax Wrapper" tab button to the tab bar, and extended server-side maturity filtering to the accounts page interest calculations.
@@ -2334,3 +2406,16 @@ chore: remove legacy init-db script and update documentation
 ```
 
 **Context:** The `init-db.ts` script was a manual precursor to the Drizzle-based migration system. With the implementation of the tiered environment strategy, the database client now handles file creation and encryption pragmas automatically, while Drizzle handles schema migrations. Initial data is now managed via `npm run db:seed`.
+## [2026-03-16 22:20] — Plan: Snapshots Seed + UI Fixes
+
+**Summary:** Documented plan to align snapshot seed shapes with schema/UI, correct UK tax-year bounds in seed calculations, add UI fallbacks for legacy data, and note reseed requirements.
+
+**Files:**
+- `.docs/2026-03-16-snapshots-seed-ui-fix-plan.md`
+
+**Commit:**
+```
+docs: add snapshots seed+ui fix plan
+```
+
+---

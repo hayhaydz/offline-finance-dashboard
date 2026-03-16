@@ -260,10 +260,22 @@ export const snapshots = sqliteTable(
 				name: string;
 				type: string;
 				category: "asset" | "liability";
+				taxWrapper: "none" | "isa" | "lisa" | "premium-bonds";
 				balanceInCents: number;
 				includedInTotal: boolean;
+				maturityDate: string | null;
 			}>;
 			totalByType: Record<string, number>;
+		}>(),
+		interestBreakdown: text("interest_breakdown", { mode: "json" }).$type<{
+			snapshotTakenAt: string;
+			accounts: Array<{
+				accountId: number;
+				accountSlug: string;
+				name: string;
+				currentRate: number | null; // Basis points, null if no rate set
+				effectiveFrom: string | null;
+			}>;
 		}>(),
 		goalsBreakdown: text("goals_breakdown", { mode: "json" }).$type<{
 			goals: Array<{
@@ -275,6 +287,121 @@ export const snapshots = sqliteTable(
 				isEmergencyFund: boolean;
 			}>;
 			totalAllocated: number;
+		}>(),
+		// ISA allowance tracking (separated from interest for clarity)
+		isaBreakdown: text("isa_breakdown", { mode: "json" }).$type<{
+			snapshotTakenAt: string;
+			snapshotDate: string;
+			taxYear: {
+				start: string;
+				end: string;
+				label: string;
+			};
+			allowance: {
+				usedThisTaxYear: number;
+				limit: number;
+				remaining: number;
+				usedThisSnapshotDate: number;
+			};
+		}>(),
+
+		// Detailed interest breakdown with PSA status
+		interestBreakdownDetail: text("interest_breakdown_detail", { mode: "json" }).$type<{
+			snapshotTakenAt: string;
+			snapshotDate: string;
+			taxYear: {
+				start: string;
+				end: string;
+				label: string;
+			};
+			actualInterest: {
+				taxFree: number;
+				taxable: number;
+				total: number;
+			};
+			projectedInterest: {
+				taxFree: number;
+				taxable: number;
+				total: number;
+			};
+			totalExpected: {
+				taxFree: number;
+				taxable: number;
+				total: number;
+			};
+			taxPosition: {
+				taxBand: "basic" | "higher" | "additional";
+				personalSavingsAllowance: {
+					allowance: number;
+					used: number;
+					remaining: number;
+					overAllowance: boolean;
+					taxableAmount: number;
+				};
+			};
+			byAccount: Array<{
+				accountId: number;
+				accountSlug: string;
+				name: string;
+				taxWrapper: "none" | "isa" | "lisa" | "premium-bonds";
+				actualInterestEarned: number;
+				projectedInterest: number;
+				currentRate: number | null;
+				balanceInCents: number;
+			}>;
+		}>(),
+
+		isaAndInterestBreakdown: text("isa_and_interest_breakdown", { mode: "json" }).$type<{
+			snapshotTakenAt: string;
+			snapshotDate: string;
+			taxYear: {
+				start: string;
+				end: string;
+				label: string;
+			};
+			isaAllowance: {
+				usedThisTaxYear: number;
+				limit: number;
+				remaining: number;
+				usedThisSnapshotDate: number;
+			};
+			interestSummary: {
+				actualInterest: {
+					taxFree: number;
+					taxable: number;
+					total: number;
+				};
+				projectedInterest: {
+					taxFree: number;
+					taxable: number;
+					total: number;
+				};
+				totalExpected: {
+					taxFree: number;
+					taxable: number;
+					total: number;
+				};
+				taxPosition: {
+					taxBand: "basic" | "higher" | "additional";
+					personalSavingsAllowance: {
+						allowance: number;
+						used: number;
+						remaining: number;
+						overAllowance: boolean;
+						taxableAmount: number;
+					};
+				};
+				byAccount: Array<{
+					accountId: number;
+					accountSlug: string;
+					name: string;
+					taxWrapper: "none" | "isa" | "lisa" | "premium-bonds";
+					actualInterestEarned: number;
+					projectedInterest: number;
+					currentRate: number | null;
+					balanceInCents: number;
+				}>;
+			};
 		}>(),
 
 		notes: text("notes"),

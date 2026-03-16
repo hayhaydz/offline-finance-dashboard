@@ -150,7 +150,7 @@
 								{group.count}
 							</td>
 							<td class="pl-2 py-2">
-								<a href="/accounts?type={group.type}" class="hover:underline">
+								<a href="/accounts?type={group.type}" class="bracket-link">
 									{formatAccountType(group.type)}
 								</a>
 							</td>
@@ -173,7 +173,7 @@
 								{group.count}
 							</td>
 							<td class="pl-2 py-2">
-								<a href="/accounts?type={group.type}" class="hover:underline">
+								<a href="/accounts?type={group.type}" class="bracket-link">
 									{formatAccountType(group.type)}
 								</a>
 							</td>

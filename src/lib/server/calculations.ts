@@ -238,3 +238,33 @@ export function getTaxFreeStatus(
 		taxableAmount,
 	};
 }
+
+/**
+ * Cumulative ISA deposits from account opening to asOfDate.
+ * Queries all deposit transactions on ISA/LISA accounts for the user.
+ *
+ * @param userId - User ID
+ * @param asOfDate - End date for cumulative calculation (inclusive)
+ * @returns Total deposits in cents
+ */
+export async function getCumulativeISADeposits(
+	userId: number,
+	asOfDate: Date,
+): Promise<number> {
+	const [result] = await db
+		.select({
+			total: sql<number>`coalesce(sum(case when ${accountTransactions.amount} > 0 then ${accountTransactions.amount} else 0 end), 0)`,
+		})
+		.from(accountTransactions)
+		.innerJoin(accounts, eq(accountTransactions.accountId, accounts.id))
+		.where(
+			and(
+				eq(accounts.userId, userId),
+				inArray(accounts.taxWrapper, ["isa", "lisa"]),
+				eq(accountTransactions.type, "deposit"),
+				lte(accountTransactions.transactionDate, asOfDate),
+			),
+		);
+
+	return Number(result?.total ?? 0);
+}
