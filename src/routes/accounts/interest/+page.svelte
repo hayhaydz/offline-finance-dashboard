@@ -1,7 +1,31 @@
 <script lang="ts">
 	import { formatCurrency } from '$lib/utils/currency';
+	import { goto } from '$app/navigation';
+	import { page as pageState } from '$app/state';
+	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	
     let { data } = $props();
+
+	let currentPage = $state(Number(pageState.url.searchParams.get('page')) || 0);
+
+	$effect(() => {
+		const urlPage = Number(pageState.url.searchParams.get('page')) || 0;
+		if (currentPage !== urlPage) {
+			currentPage = urlPage;
+		}
+	});
+
+	$effect(() => {
+		if (currentPage !== (Number(pageState.url.searchParams.get('page')) || 0)) {
+			const url = new URL(window.location.href);
+			if (currentPage === 0) {
+				url.searchParams.delete('page');
+			} else {
+				url.searchParams.set('page', String(currentPage));
+			}
+			goto(url.pathname + url.search, { replaceState: true, noScroll: true });
+		}
+	});
 </script>
 
 <div class="bg-gray-100 p-2 font-bold border-b border-black flex justify-between items-center">
@@ -44,4 +68,5 @@
             </tbody>
         </table>
     </div>
+    <PaginationClient bind:page={currentPage} totalPages={data.totalPages ?? 0} />
 {/if}

@@ -1,12 +1,16 @@
 import { fail, redirect } from "@sveltejs/kit";
-import { asc } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
-import { accounts, goals } from "$lib/db/schema";
+import { accounts, goals, users } from "$lib/db/schema";
 import {
-	ISA_ALLOWANCE_IN_CENTS,
+	getAccountInterestEarned,
+	getActualInterestEarned,
 	getISAAllowanceUsed,
+	getProjectedInterest,
+	getTaxFreeStatus,
 	getUkTaxYearBounds,
+	ISA_ALLOWANCE_IN_CENTS,
 } from "$lib/server/calculations";
 import {
 	getCurrentBalancesForAccounts,
@@ -14,9 +18,14 @@ import {
 } from "$lib/server/derivedBalances";
 import { updateTypeExclusions } from "$lib/server/exclusions";
 import { calculateAssetsAndLiabilities } from "$lib/server/finance";
+import { getCurrentRate } from "$lib/server/interestRates";
 import { devLog, isVerboseDebug, logError } from "$lib/utils/logger";
 import { getStaleness } from "$lib/utils/staleness";
 import type { Actions, PageServerLoad } from "./$types";
+
+function isTaxFree(taxWrapper: string): boolean {
+	return ["ISA", "LISA"].includes(taxWrapper);
+}
 
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
@@ -192,6 +201,110 @@ export const load: PageServerLoad = async ({ locals }) => {
 		taxYearEnd: taxYear.end,
 	};
 
+	// Calculate interest summary (same logic as accounts page)
+	// Separate actual interest by tax-free vs taxable accounts
+	// Exclude accounts that mature after the tax year (interest not yet available)
+	let actualInterestTaxFree = 0;
+	let actualInterestTaxable = 0;
+	for (const account of userAccounts) {
+		if (account.type === "savings" || account.type === "investment") {
+			// Skip accounts that mature after the tax year - interest not yet available
+			if (account.maturityDate && account.maturityDate > taxYear.end) {
+				continue;
+			}
+			const accountInterest = await getAccountInterestEarned(
+				account.id,
+				taxYear.start,
+				taxYear.end,
+			);
+			if (isTaxFree(account.taxWrapper)) {
+				actualInterestTaxFree += accountInterest;
+			} else {
+				actualInterestTaxable += accountInterest;
+			}
+		}
+	}
+
+	// Transform data for display
+	// (today already declared above)
+	const millisecondsPerDay = 24 * 60 * 60 * 1000;
+
+	// Calculate days remaining in tax year
+	const daysRemainingInTaxYear = Math.max(
+		0,
+		Math.ceil((taxYear.end.getTime() - today.getTime()) / millisecondsPerDay),
+	);
+
+	// Calculate projected interest for each account
+	let totalProjectedTaxable = 0;
+	let totalProjectedTaxFree = 0;
+
+	for (const account of userAccounts) {
+		const rate = await getCurrentRate(account.id);
+		const balance = currentBalances.get(account.id) ?? 0;
+
+		// Skip if no rate or zero balance
+		if (rate === null || balance <= 0) continue;
+
+		const yearlyInterest = Math.round((balance * rate) / 10000);
+		let projectedForRestOfTaxYear = 0;
+
+		if (account.maturityDate) {
+			// Fixed-term bond: only count if it matures THIS tax year
+			if (account.maturityDate <= taxYear.end && account.maturityDate > today) {
+				const daysToMaturity = Math.ceil(
+					(account.maturityDate.getTime() - today.getTime()) /
+						millisecondsPerDay,
+				);
+				projectedForRestOfTaxYear = Math.round(
+					(yearlyInterest / 365) * daysToMaturity,
+				);
+			}
+		} else {
+			// Standard access account: prorate for remaining days
+			projectedForRestOfTaxYear = Math.round(
+				(yearlyInterest / 365) * daysRemainingInTaxYear,
+			);
+		}
+
+		if (isTaxFree(account.taxWrapper)) {
+			totalProjectedTaxFree += projectedForRestOfTaxYear;
+		} else {
+			totalProjectedTaxable += projectedForRestOfTaxYear;
+		}
+	}
+
+	// Get user's tax band for allowance calculation
+	const userWithTaxBand = await db.query.users.findFirst({
+		where: eq(users.id, locals.user.id),
+		columns: { taxBand: true },
+	});
+	const taxBand = userWithTaxBand?.taxBand ?? "basic";
+
+	const totalExpectedTaxable = actualInterestTaxable + totalProjectedTaxable;
+	const totalExpectedTaxFree = actualInterestTaxFree + totalProjectedTaxFree;
+
+	const taxFreeStatusNow = getTaxFreeStatus(actualInterestTaxable, taxBand);
+	const taxFreeStatusProjected = getTaxFreeStatus(
+		totalExpectedTaxable,
+		taxBand,
+	);
+
+	const interestSummary = {
+		actualInterestIsa: actualInterestTaxFree,
+		actualInterestNonIsa: actualInterestTaxable,
+		projectedInterestIsa: totalProjectedTaxFree,
+		projectedInterestNonIsa: totalProjectedTaxable,
+		totalExpectedIsa: totalExpectedTaxFree,
+		totalExpectedNonIsa: totalExpectedTaxable,
+		taxBand,
+		taxFreeStatusNow,
+		taxFreeStatusProjected,
+		taxYearStart: taxYear.start,
+		taxYearEnd: taxYear.end,
+		daysRemainingInTaxYear,
+	};
+
 	devLog("homePage", "Exclusion count calculated", {
 		excludedTypes: Array.from(excludedTypes),
 		exclusionCount,
@@ -226,13 +339,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 			newest: newestDate,
 		},
 		hasStaleData,
-			exclusionCount,
-			accounts: accountsWithDerivedBalances,
-			maturingSoon,
-			isaTracker,
-			goals: activeGoals,
-			staleness,
-		};
+		exclusionCount,
+		accounts: accountsWithDerivedBalances,
+		maturingSoon,
+		isaTracker,
+		interestSummary,
+		goals: activeGoals,
+		staleness,
+	};
 };
 
 export const actions: Actions = {

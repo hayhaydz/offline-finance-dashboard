@@ -1,12 +1,24 @@
 <script lang="ts">
 	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
 	import IsaAllowanceWidget from '$lib/components/IsaAllowanceWidget.svelte';
+	import TaxYearProgress from '$lib/components/TaxYearProgress.svelte';
 	import GoalCard from '$lib/components/GoalCard.svelte';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import { formatCurrency, formatCurrencyShorthand, formatAccountType, formatDateShorthand } from '$lib/utils/currency';
 
 	let { data } = $props();
 	let { user, environment: env, goals } = $derived(data);
+
+	// Accordion state for interest section
+	let interestExpanded = $state(false);
+
+	// Current tax year slug for interest link
+	const currentYearSlug = $derived(
+		data.interestSummary
+			? new Date(data.interestSummary.taxYearStart).getUTCFullYear() + '-' +
+			  String(new Date(data.interestSummary.taxYearEnd).getUTCFullYear()).slice(-2)
+			: ''
+	);
 
 	// Group accounts by type for the overview.
 	// Each account's balance is split by sign: positive balances sit under Assets,
@@ -119,7 +131,78 @@
 		accounts={data.accounts}
 	/>
 
+	<TaxYearProgress data={data.isaTracker} />
+
 	<IsaAllowanceWidget data={data.isaTracker} />
+
+	<!-- INTEREST SUMMARY SECTION -->
+	{#if data.interestSummary}
+	{@const posted = data.interestSummary.actualInterestIsa + data.interestSummary.actualInterestNonIsa}
+	{@const estimated = data.interestSummary.projectedInterestIsa + data.interestSummary.projectedInterestNonIsa}
+	{@const forecast = posted + estimated}
+	<div class="font-bold flex justify-between items-center bg-gray-100 border-b border-black p-2">
+		<span>INTEREST</span>
+		<div class="flex items-center gap-2">
+			<a href="/accounts/interest/{currentYearSlug}" class="bracket-link text-xs">View Breakdown</a>
+		</div>
+	</div>
+	<div class="border-b border-black">
+		<div class="grid grid-cols-2 md:grid-cols-4">
+			<div class="border-r border-black p-2">
+				<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Posted (Actual)</div>
+				<div class="text-lg font-bold text-green-700">{formatCurrency(posted)}</div>
+			</div>
+			<div class="border-r border-black p-2">
+				<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Estimated (Projected)</div>
+				<div class="text-lg font-bold text-amber-700">{formatCurrency(estimated)}</div>
+			</div>
+			<div class="border-r border-black p-2">
+				<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Forecast (Total)</div>
+				<div class="text-lg font-bold">{formatCurrency(forecast)}</div>
+			</div>
+			<div class="p-2">
+				<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">PSA Remaining</div>
+				{#if data.interestSummary.taxFreeStatusProjected.overAllowance}
+					<div class="text-sm font-bold text-red-700">Over</div>
+				{:else}
+					<div class="text-sm font-bold text-green-700">{formatCurrency(data.interestSummary.taxFreeStatusProjected.remaining)}</div>
+				{/if}
+			</div>
+		</div>
+	</div>
+
+	<!-- Accordion: Interest Explanation -->
+	<div class="border-b border-black">
+		<button
+			type="button"
+			class="w-full p-2 text-left font-bold flex justify-between items-center hover:bg-gray-50"
+			onclick={() => interestExpanded = !interestExpanded}
+		>
+			<span class="text-xs uppercase">{interestExpanded ? '[-] Collapse' : '[+] Expand'}</span>
+		</button>
+		{#if interestExpanded}
+			<div class="p-2 border-t border-black text-xs text-gray-700 space-y-2">
+				<div>
+					<span class="font-bold">Posted (Actual):</span> Interest transactions already received this tax year.
+				</div>
+				<div>
+					<span class="font-bold">Estimated (Projected):</span> Projected interest based on current balances and rates for the remaining {data.interestSummary.daysRemainingInTaxYear} days.
+				</div>
+				<div>
+					<span class="font-bold">ISA/LISA:</span> Always tax-free. Current total: {formatCurrency(data.interestSummary.totalExpectedIsa)}
+				</div>
+				<div>
+					<span class="font-bold">Personal Savings Allowance:</span> 
+					{#if data.interestSummary.taxFreeStatusProjected.overAllowance}
+						Over by {formatCurrency(data.interestSummary.taxFreeStatusProjected.taxableAmount)} of {formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} allowance ({data.interestSummary.taxBand} rate).
+					{:else}
+						{formatCurrency(data.interestSummary.taxFreeStatusProjected.remaining)} remaining of {formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} allowance ({data.interestSummary.taxBand} rate).
+					{/if}
+				</div>
+			</div>
+		{/if}
+	</div>
+	{/if}
 
 	<!-- ACCOUNTS BY TYPE -->
 	<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">

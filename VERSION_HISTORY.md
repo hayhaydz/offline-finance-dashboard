@@ -1,3 +1,26 @@
+## [2026-03-17] — Interest History Pagination
+
+**Summary:** Added pagination to `/accounts/interest` index view to display tax years in pages of 20. URL format: `/accounts/interest?page=1`
+
+**Files:**
+- `src/routes/accounts/interest/+page.server.ts`
+- `src/routes/accounts/interest/+page.svelte`
+
+**Commit:** `feat: add pagination to interest history`
+
+---
+
+## [2026-03-17] — Sync Create Preview with Snapshot Detail Page
+
+**Summary:** Added ISA Allowance and Interest Breakdown sections to snapshot create preview page to match the detail page display. Both pages now show identical data.
+
+**Files:**
+- `src/routes/snapshots/create/+page.svelte`
+
+**Commit:** `ui: add isa and interest to snapshot preview`
+
+---
+
 ## [2026-03-16 23:00] — Fix Accounts Interest Test Mocks + QA
 
 **Summary:** Updated accounts interest integration test mocks for new account/transaction queries and ran QA (`npm run check`, `npm test`).

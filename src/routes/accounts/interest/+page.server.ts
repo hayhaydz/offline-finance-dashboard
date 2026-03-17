@@ -22,10 +22,14 @@ function getTaxYearLabel(date: Date): string {
 	return `${startYear}/${String(endYear).slice(-2)}`;
 }
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
 		redirect(302, "/login");
 	}
+
+	const TAX_YEARS_PER_PAGE = 20;
+	const page = Number(url.searchParams.get("page")) || 0;
+	const offset = page * TAX_YEARS_PER_PAGE;
 
 	// 1. Get user accounts with maturity dates
 	const userAccounts = await db.query.accounts.findMany({
@@ -34,7 +38,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	});
 
 	if (userAccounts.length === 0) {
-		return { taxYears: [] };
+		return { taxYears: [], totalPages: 0, totalCount: 0, currentPage: page };
 	}
 
 	const accountIds = userAccounts.map((a) => a.id);
@@ -113,8 +117,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	// 5. Format for display
 	const taxYears = Array.from(taxYearsMap.values())
-		.filter((year) => year.isaInterest > 0 || year.nonIsaInterest > 0) // Only show years with interest
-		.sort((a, b) => b.start.getTime() - a.start.getTime()) // Newest first
+		.filter((year) => year.isaInterest > 0 || year.nonIsaInterest > 0)
+		.sort((a, b) => b.start.getTime() - a.start.getTime())
 		.map((year) => {
 			const status = getTaxFreeStatus(year.nonIsaInterest, taxBand);
 			return {
@@ -124,7 +128,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 			};
 		});
 
+	const totalCount = taxYears.length;
+	const totalPages = Math.ceil(totalCount / TAX_YEARS_PER_PAGE);
+	const paginatedTaxYears = taxYears.slice(offset, offset + TAX_YEARS_PER_PAGE);
+
 	return {
-		taxYears,
+		taxYears: paginatedTaxYears,
+		totalPages,
+		totalCount,
+		currentPage: page,
 	};
 };

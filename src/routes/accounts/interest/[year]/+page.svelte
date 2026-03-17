@@ -210,6 +210,9 @@
 		</div>
 	</div>
 	<div class="flex flex-col items-end gap-2">
+		<div class="flex gap-2 mb-1">
+			<a href="/accounts/interest" class="bracket-link text-xs">[All Years]</a>
+		</div>
 		<div class="text-[10px] uppercase font-bold text-gray-600">Tax Year</div>
 		<div class="flex gap-1 items-center">
 			{#if prevYear}
@@ -634,19 +637,19 @@
 	<div class="p-2 font-bold uppercase">System Integrity Check</div>
 	<div class="p-2 font-mono text-[10px] space-y-1 uppercase">
 		<div class="flex justify-between max-w-md">
-			<span>> Ledger reconciliation</span>
+			<span>Ledger reconciliation</span>
 			<span class={data.reconciliation.actualVsTransactionsDelta === 0 ? 'text-green-700' : 'text-red-700 font-bold'}>
 				{data.reconciliation.actualVsTransactionsDelta === 0 ? 'OK' : 'FAIL ' + formatCurrency(data.reconciliation.actualVsTransactionsDelta)}
 			</span>
 		</div>
 		<div class="flex justify-between max-w-md">
-			<span>> Account cross-check</span>
+			<span>Account cross-check</span>
 			<span class={data.reconciliation.actualVsByAccountDelta === 0 ? 'text-green-700' : 'text-red-700 font-bold'}>
 				{data.reconciliation.actualVsByAccountDelta === 0 ? 'OK' : 'FAIL ' + formatCurrency(data.reconciliation.actualVsByAccountDelta)}
 			</span>
 		</div>
 		<div class="flex justify-between max-w-md">
-			<span>> Monthly sum validation</span>
+			<span>Monthly sum validation</span>
 			<span class={data.reconciliation.actualVsByMonthDelta === 0 ? 'text-green-700' : 'text-red-700 font-bold'}>
 				{data.reconciliation.actualVsByMonthDelta === 0 ? 'OK' : 'FAIL ' + formatCurrency(data.reconciliation.actualVsByMonthDelta)}
 			</span>
@@ -726,7 +729,7 @@
 				</tbody>
 			</table>
 		</div>
-		<div class="border-t border-black">
+		<div class="border-t border-black empty:hidden">
 			<PaginationClient bind:page={transactionsPage} totalPages={totalTransactionPages} />
 		</div>
 	{/if}

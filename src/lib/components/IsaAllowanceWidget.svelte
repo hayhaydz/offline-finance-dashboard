@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatCurrency, formatCurrencyShorthand, formatDateShorthand } from '$lib/utils/currency';
+	import { formatCurrency, formatCurrencyShorthand } from '$lib/utils/currency';
 
 	interface IsaAllowanceData {
 		used: number;
@@ -12,14 +12,10 @@
 	let { data }: { data: IsaAllowanceData } = $props();
 
 	const percentUsed = $derived(Math.min(100, (data.used / data.limit) * 100));
-	const taxYearLabel = $derived(
-		`${formatDateShorthand(data.taxYearStart)} to ${formatDateShorthand(data.taxYearEnd)}`
-	);
 </script>
 
 <div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-	<span>ISA ALLOWANCE TRACKER</span>
-	<span class="text-xs font-normal">{taxYearLabel}</span>
+	<span>ISA ALLOWANCE</span>
 </div>
 <div class="border-b border-black p-2">
 	<div class="flex justify-between text-sm mb-1">

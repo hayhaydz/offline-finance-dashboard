@@ -12,6 +12,8 @@
 	let filterModalOpen = $state(false);
 	let sortModalOpen = $state(false);
 
+	// Current tax year slug for interest links
+
 	// Current filters from URL
 	const activeFilters = $derived({
 		type: page.url.searchParams.get('type')?.split(',').filter(Boolean) || [],
@@ -178,91 +180,6 @@
 		<span class="text-red-700 font-bold">{formatCurrency(Math.abs(totalLiabilities))}</span>
 	</div>
 </div>
-
-<!-- INTEREST SUMMARY SECTION -->
-{#if data.interestSummary}
-<div class="font-bold flex justify-between items-center bg-gray-100 border-b border-black p-2">
-	<div class="flex items-center gap-2">
-		<span>INTEREST:</span>
-		<a href="?taxYearStart={data.interestSummary.prevTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>[Prev]</a>
-		<span>
-			{new Date(data.interestSummary.taxYearStart).getFullYear()}/{String(new Date(data.interestSummary.taxYearEnd).getFullYear()).slice(-2)}
-		</span>
-		<a href="?taxYearStart={data.interestSummary.nextTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>[Next]</a>
-	</div>
-	<div class="flex items-center gap-2">
-		<span class="text-xs font-normal">
-			{formatDate(data.interestSummary.taxYearStart)} to {formatDate(data.interestSummary.taxYearEnd)}
-		</span>
-		<a href="/accounts/interest" class="bracket-link text-xs">[View Breakdown]</a>
-	</div>
-</div>
-<div class="border-b border-black p-2">
-	<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-		<div class="col-span-2 text-xs text-gray-700 mb-1">
-			Actual = posted `interest` transactions. Projected = estimate using current balance and latest rate for the remaining {data.interestSummary.daysRemainingInTaxYear} days in this tax year.
-		</div>
-		<div class="col-span-2 font-bold text-xs border-b border-gray-300 pb-1 mb-1">ISA / LISA ACCOUNTS (Always tax-free)</div>
-		<div>Actual earned (posted):</div>
-		<div class="text-right tabular-nums">{formatCurrency(data.interestSummary.actualInterestIsa)}</div>
-		<div>Projected (estimate):</div>
-		<div class="text-right tabular-nums">{formatCurrency(data.interestSummary.projectedInterestIsa)}</div>
-		<div class="font-bold">Total expected:</div>
-		<div class="text-right tabular-nums font-bold">{formatCurrency(data.interestSummary.totalExpectedIsa)}</div>
-
-		<div class="col-span-2 font-bold text-xs border-b border-gray-300 pb-1 mb-1 mt-2">OTHER SAVINGS (Counts toward Personal Savings Allowance)</div>
-		<div>Actual earned (posted):</div>
-		<div class="text-right tabular-nums">{formatCurrency(data.interestSummary.actualInterestNonIsa)}</div>
-		<div>Projected (estimate):</div>
-		<div class="text-right tabular-nums">{formatCurrency(data.interestSummary.projectedInterestNonIsa)}</div>
-		<div class="font-bold">Total expected:</div>
-		<div class="text-right tabular-nums font-bold">{formatCurrency(data.interestSummary.totalExpectedNonIsa)}</div>
-
-		<div class="col-span-2 border-t border-gray-300 pt-1 mt-1">
-			<div class="text-xs text-gray-600 mb-1">Allowance status now (actual only, {data.interestSummary.taxBand}):</div>
-			{#if data.interestSummary.taxFreeStatusNow.overAllowance}
-				<div class="flex justify-between text-sm">
-					<span class="text-red-700 font-bold">Over by {formatCurrency(data.interestSummary.taxFreeStatusNow.taxableAmount)}</span>
-					<span class="text-gray-600">of {formatCurrency(data.interestSummary.taxFreeStatusNow.allowance)} allowance</span>
-				</div>
-			{:else}
-				<div class="flex justify-between text-sm">
-					<span class="text-green-700 font-bold">{formatCurrency(data.interestSummary.taxFreeStatusNow.remaining)} remaining</span>
-					<span class="text-gray-600">of {formatCurrency(data.interestSummary.taxFreeStatusNow.allowance)} allowance</span>
-				</div>
-			{/if}
-			<div class="text-xs text-gray-600 mt-2 mb-1">Forecast at tax-year end (actual + projected estimate):</div>
-			{#if data.interestSummary.taxFreeStatusProjected.overAllowance}
-				<div class="flex justify-between text-sm">
-					<span class="text-red-700 font-bold">Over by {formatCurrency(data.interestSummary.taxFreeStatusProjected.taxableAmount)}</span>
-					<span class="text-gray-600">of {formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} allowance</span>
-				</div>
-			{:else}
-				<div class="flex justify-between text-sm">
-					<span class="text-green-700 font-bold">{formatCurrency(data.interestSummary.taxFreeStatusProjected.remaining)} remaining</span>
-					<span class="text-gray-600">of {formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} allowance</span>
-				</div>
-			{/if}
-		</div>
-		<div class="col-span-2 text-xs text-gray-600 mt-2">
-			Estimate notes: fixed-term accounts are only projected if their maturity date is on/before tax year end.
-		</div>
-	</div>
-</div>
-{/if}
-
-<!-- ISA ALLOWANCE SECTION -->
-{#if data.isaAllowance}
-<IsaAllowanceWidget
-	data={{
-		used: data.isaAllowance.used,
-		limit: data.isaAllowance.limit,
-		remaining: data.isaAllowance.remaining,
-		taxYearStart: data.interestSummary.taxYearStart,
-		taxYearEnd: data.interestSummary.taxYearEnd
-	}}
-/>
-{/if}
 
 <!-- SUMMARY SECTION -->
 <div class="border-b border-black p-2">
