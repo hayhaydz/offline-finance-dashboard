@@ -1,9 +1,33 @@
 <script lang="ts">
 	import { formatCurrency } from '$lib/utils/currency';
+	import { goto } from '$app/navigation';
+	import { page as pageState } from '$app/state';
 	import GoalRow from '$lib/components/GoalRow.svelte';
+	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import type { Goal } from '$lib/db/schema';
 
 	let { data } = $props();
+
+	let currentPage = $state(data.goalsPagination.page);
+
+	$effect(() => {
+		const urlPage = Number(pageState.url.searchParams.get('page')) || 0;
+		if (currentPage !== urlPage) {
+			currentPage = urlPage;
+		}
+	});
+
+	$effect(() => {
+		if (currentPage !== (Number(pageState.url.searchParams.get('page')) || 0)) {
+			const url = new URL(window.location.href);
+			if (currentPage === 0) {
+				url.searchParams.delete('page');
+			} else {
+				url.searchParams.set('page', String(currentPage));
+			}
+			goto(url.pathname + url.search, { replaceState: true, noScroll: true });
+		}
+	});
 
 	// Calculate progress percentage for a goal
 	function getProgress(goal: Goal): number {
@@ -73,5 +97,6 @@
 				{/each}
 			</tbody>
 		</table>
+		<PaginationClient bind:page={currentPage} totalPages={data.goalsPagination.totalPages} />
 	{/if}
 </div>

@@ -227,7 +227,7 @@
 		<p class="text-red-700 font-bold my-2">{form.error}</p>
 	{/if}
 
-	<div class="mb-2">
+	<div class="mt-4 mb-2">
 		<button
 			type="submit"
 			class="bracket-link"
@@ -239,7 +239,7 @@
 	</div>
 </form>
 
-<div class="border-b border-black p-2">
+<div class="p-2">
 	<p class="text-sm text-gray-600 mb-2">Need to remove this account?</p>
 	<a href="/accounts/{data.account.slug}/delete" class="bracket-link text-sm text-red-700">
 		Close Account

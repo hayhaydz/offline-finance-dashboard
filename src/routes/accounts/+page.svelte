@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { goto } from '$app/navigation';
 	import { formatCurrency, formatAccountType as commonFormatAccountType, formatDateShorthand as commonFormatDateShorthand } from '$lib/utils/currency';
 	import IsaAllowanceWidget from '$lib/components/IsaAllowanceWidget.svelte';
 	import AccountFiltersModal from '$lib/components/AccountFiltersModal.svelte';
 	import AccountSortModal from '$lib/components/AccountSortModal.svelte';
+	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 
 	let { data } = $props();
@@ -11,6 +13,28 @@
 	// Modal state
 	let filterModalOpen = $state(false);
 	let sortModalOpen = $state(false);
+
+	// Pagination state
+	let currentPage = $state(data.accountsPagination.page);
+
+	$effect(() => {
+		const urlPage = Number(page.url.searchParams.get('page')) || 0;
+		if (currentPage !== urlPage) {
+			currentPage = urlPage;
+		}
+	});
+
+	$effect(() => {
+		if (currentPage !== (Number(page.url.searchParams.get('page')) || 0)) {
+			const url = new URL(window.location.href);
+			if (currentPage === 0) {
+				url.searchParams.delete('page');
+			} else {
+				url.searchParams.set('page', String(currentPage));
+			}
+			goto(url.pathname + url.search, { replaceState: true, noScroll: true });
+		}
+	});
 
 	// Current tax year slug for interest links
 
@@ -321,6 +345,7 @@
 			</tbody>
 		</table>
 		</div>
+		<PaginationClient bind:page={currentPage} totalPages={data.accountsPagination.totalPages} />
 	{/if}
 </div>
 

@@ -1,15 +1,8 @@
 import { error, fail, redirect } from "@sveltejs/kit";
-import { desc, eq } from "drizzle-orm";
+import { count, desc, eq } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
-import { accountTransactions, accounts, interestRates } from "$lib/db/schema";
-import {
-	createInterestRate,
-	deleteInterestRate,
-	getCurrentRate,
-	getInterestRateById,
-	parseRateToBasisPoints,
-} from "$lib/server/interestRates";
+import { accounts, accountTransactions, interestRates } from "$lib/db/schema";
 import {
 	getAccountInterestEarned,
 	getActualInterestEarned,
@@ -21,6 +14,13 @@ import {
 	getCurrentBalanceForAccount,
 	getMonthlyBalanceHistory,
 } from "$lib/server/derivedBalances";
+import {
+	createInterestRate,
+	deleteInterestRate,
+	getCurrentRate,
+	getInterestRateById,
+	parseRateToBasisPoints,
+} from "$lib/server/interestRates";
 import {
 	createTransaction,
 	deleteTransaction,
@@ -39,15 +39,7 @@ function formatTaxYearStartParam(date: Date): string {
 
 function getTaxYearEndFromStart(taxYearStart: Date): Date {
 	return new Date(
-		Date.UTC(
-			taxYearStart.getUTCFullYear() + 1,
-			3,
-			5,
-			23,
-			59,
-			59,
-			999,
-		),
+		Date.UTC(taxYearStart.getUTCFullYear() + 1, 3, 5, 23, 59, 59, 999),
 	);
 }
 
@@ -87,11 +79,26 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		getMonthlyBalanceHistory(account.id, 24),
 	]);
 
-	// Get recent transactions for this account
+	// Pagination for transactions
+	const TRANSACTIONS_PER_PAGE = 20;
+	const page = Number(url.searchParams.get("page")) || 0;
+	const offset = page * TRANSACTIONS_PER_PAGE;
+
+	// Get total transaction count for pagination
+	const [{ total }] = await db
+		.select({ total: count() })
+		.from(accountTransactions)
+		.where(eq(accountTransactions.accountId, account.id));
+	const totalTransactionPages = Math.ceil(total / TRANSACTIONS_PER_PAGE);
+	const safePage = Math.min(page, Math.max(0, totalTransactionPages - 1));
+	const safeOffset = safePage * TRANSACTIONS_PER_PAGE;
+
+	// Get paginated transactions for this account
 	const transactions = await db.query.accountTransactions.findMany({
 		where: eq(accountTransactions.accountId, account.id),
 		orderBy: desc(accountTransactions.transactionDate),
-		limit: 20,
+		limit: TRANSACTIONS_PER_PAGE,
+		offset: safeOffset,
 	});
 
 	// Get interest rate history for this account
@@ -111,9 +118,13 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		start: selectedTaxYearStart,
 		end: getTaxYearEndFromStart(selectedTaxYearStart),
 	};
-	
-	const prevTaxYearStart = new Date(Date.UTC(taxYear.start.getUTCFullYear() - 1, 3, 6));
-	const nextTaxYearStart = new Date(Date.UTC(taxYear.start.getUTCFullYear() + 1, 3, 6));
+
+	const prevTaxYearStart = new Date(
+		Date.UTC(taxYear.start.getUTCFullYear() - 1, 3, 6),
+	);
+	const nextTaxYearStart = new Date(
+		Date.UTC(taxYear.start.getUTCFullYear() + 1, 3, 6),
+	);
 	const prevTaxYearParam = formatTaxYearStartParam(prevTaxYearStart);
 	const nextTaxYearParam = formatTaxYearStartParam(nextTaxYearStart);
 
@@ -132,6 +143,10 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		monthlyBalances: monthlyBalances.toReversed(),
 		currentBalance,
 		transactions,
+		transactionPagination: {
+			page: safePage,
+			totalPages: totalTransactionPages,
+		},
 		rates,
 		currentRate,
 		interestSummary:

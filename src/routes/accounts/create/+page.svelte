@@ -165,7 +165,7 @@
 			await update();
 		};
 	}}
-	class="border-b border-black p-2"
+	class="p-2"
 >
 	<FormField
 		bind:this={nameField}
@@ -261,7 +261,7 @@
 		<p class="text-red-700 font-bold my-2">{form.error}</p>
 	{/if}
 
-	<div class="mb-2">
+	<div class="mt-4 mb-2">
 		<button
 			type="submit"
 			class="bracket-link"

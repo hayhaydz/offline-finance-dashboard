@@ -1,3 +1,25 @@
+## [2026-03-19] — Pagination Implementation Across App
+
+**Summary:** Added pagination to 4 routes across the application using existing `PaginationClient` component pattern:
+1. `/accounts/[slug]` — Transactions paginated (20 per page, URL: `?page=N`)
+2. `/` (homepage) — Accounts and goals paginated (10 per page each, URLs: `?accountsPage=N`, `?goalsPage=N`)
+3. `/accounts` — Accounts list paginated (20 per page, URL: `?page=N`)
+4. `/goals/archived` — Archived goals paginated (20 per page, URL: `?page=N`)
+
+**Files:**
+- `src/routes/accounts/[slug]/+page.server.ts`
+- `src/routes/accounts/[slug]/+page.svelte`
+- `src/routes/+page.server.ts`
+- `src/routes/+page.svelte`
+- `src/routes/accounts/+page.server.ts`
+- `src/routes/accounts/+page.svelte`
+- `src/routes/goals/archived/+page.server.ts`
+- `src/routes/goals/archived/+page.svelte`
+
+**Commit:** `feat: add pagination across app routes`
+
+---
+
 ## [2026-03-17] — Interest History Pagination
 
 **Summary:** Added pagination to `/accounts/interest` index view to display tax years in pages of 20. URL format: `/accounts/interest?page=1`

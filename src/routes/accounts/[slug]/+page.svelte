@@ -2,11 +2,35 @@
 	import { enhance } from '$app/forms';
 	import { formatCurrency, formatDateShorthand } from '$lib/utils/currency';
 	import { invalidateAll } from '$app/navigation';
+	import { goto } from '$app/navigation';
+	import { page as pageState } from '$app/state';
 	import type { PageData, ActionData } from './$types';
 	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 	import type { TransactionType } from '$lib/server/transactions';
+	import PaginationClient from '$lib/components/PaginationClient.svelte';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
+
+	let transactionPage = $state(data.transactionPagination.page);
+
+	$effect(() => {
+		const urlPage = Number(pageState.url.searchParams.get('page')) || 0;
+		if (transactionPage !== urlPage) {
+			transactionPage = urlPage;
+		}
+	});
+
+	$effect(() => {
+		if (transactionPage !== (Number(pageState.url.searchParams.get('page')) || 0)) {
+			const url = new URL(window.location.href);
+			if (transactionPage === 0) {
+				url.searchParams.delete('page');
+			} else {
+				url.searchParams.set('page', String(transactionPage));
+			}
+			goto(url.pathname + url.search, { replaceState: true, noScroll: true });
+		}
+	});
 
 	// Form submission feedback state
 	let isSubmitting = $state(false);
@@ -96,7 +120,7 @@
 </script>
 
 <!-- ACCOUNT INFO HEADER -->
-<div class="border-b border-black p-2">
+<div class="p-2">
 	<div class="flex justify-between items-center gap-2 mb-2">
 		<h2 class="text-base font-bold m-0 min-w-0 overflow-hidden">
 			<span class="truncate block">
@@ -111,8 +135,9 @@
 			<a href="/accounts/{data.account.slug}/edit" class="bracket-link text-xs">Edit</a>
 			<a href="/accounts/{data.account.slug}/delete" class="bracket-link text-xs text-red-700">Close</a>
 		</div>
-		{/if}
-	</div>
+		<PaginationClient bind:page={transactionPage} totalPages={data.transactionPagination.totalPages} />
+	{/if}
+</div>
 	<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
 		<div>Type:</div>
 		<div>{getAccountType(data.account.type)}</div>
@@ -325,7 +350,7 @@
 
 <!-- MONTHLY BALANCE SUMMARY -->
 <div>
-	<div class="bg-gray-100 p-2 font-bold border-t border-black">MONTHLY BALANCE SUMMARY (Derived from Transactions)</div>
+	<div class="bg-gray-100 p-2 font-bold border-y border-black">MONTHLY BALANCE SUMMARY (Derived from Transactions)</div>
 	{#if data.monthlyBalances.length === 0}
 		<p class="text-gray-600 text-xs p-2">No transactions yet. Monthly balance summary will appear automatically.</p>
 	{:else}
@@ -362,7 +387,7 @@
 
 <!-- TRANSACTIONS SECTION -->
 <div class="border-t border-black">
-	<div class="bg-gray-100 p-2 font-bold flex justify-between items-center">
+	<div class="border-b border-black bg-gray-100 p-2 font-bold flex justify-between items-center">
 		<span>TRANSACTIONS</span>
 		{#if !data.account.closedAt}
 			<button

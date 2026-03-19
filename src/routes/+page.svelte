@@ -5,12 +5,49 @@
 	import GoalCard from '$lib/components/GoalCard.svelte';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import { formatCurrency, formatCurrencyShorthand, formatAccountType, formatDateShorthand } from '$lib/utils/currency';
+	import { goto } from '$app/navigation';
+	import { page as pageState } from '$app/state';
 
 	let { data } = $props();
 	let { user, environment: env, goals } = $derived(data);
 
 	// Accordion state for interest section
 	let interestExpanded = $state(false);
+
+	// Server-side pagination state for accounts and goals
+	let accountsPage = $state(data.accountsPagination.page);
+	let goalsPage = $state(data.goalsPagination.page);
+
+	// Sync pagination state with URL
+	$effect(() => {
+		const urlAccountsPage = Number(pageState.url.searchParams.get('accountsPage')) || 0;
+		const urlGoalsPage = Number(pageState.url.searchParams.get('goalsPage')) || 0;
+		if (accountsPage !== urlAccountsPage) accountsPage = urlAccountsPage;
+		if (goalsPage !== urlGoalsPage) goalsPage = urlGoalsPage;
+	});
+
+	// Handle page changes
+	function updateAccountsPage(newPage: number) {
+		accountsPage = newPage;
+		const url = new URL(window.location.href);
+		if (newPage === 0) {
+			url.searchParams.delete('accountsPage');
+		} else {
+			url.searchParams.set('accountsPage', String(newPage));
+		}
+		goto(url.pathname + url.search, { replaceState: true, noScroll: true });
+	}
+
+	function updateGoalsPage(newPage: number) {
+		goalsPage = newPage;
+		const url = new URL(window.location.href);
+		if (newPage === 0) {
+			url.searchParams.delete('goalsPage');
+		} else {
+			url.searchParams.set('goalsPage', String(newPage));
+		}
+		goto(url.pathname + url.search, { replaceState: true, noScroll: true });
+	}
 
 	// Current tax year slug for interest link
 	const currentYearSlug = $derived(
@@ -80,12 +117,6 @@
 	const cappedAssetGroups = $derived(assetGroups.slice(0, ACCOUNTS_CAP));
 	const cappedLiabilityGroups = $derived(liabilityGroups.slice(0, Math.max(0, ACCOUNTS_CAP - assetGroups.length)));
 	const hiddenAccountGroupsCount = $derived(Math.max(0, (assetGroups.length + liabilityGroups.length) - ACCOUNTS_CAP));
-
-	// Goals client-side pagination
-	const GOALS_PER_PAGE = 5;
-	let goalPage = $state(0);
-	const goalTotalPages = $derived(Math.ceil((goals?.length ?? 0) / GOALS_PER_PAGE));
-	const pagedGoals = $derived(goals?.slice(goalPage * GOALS_PER_PAGE, (goalPage + 1) * GOALS_PER_PAGE) ?? []);
 </script>
 
 {#if !user}
@@ -323,12 +354,12 @@
 			<a href="/goals" class="bracket-link text-xs">View All</a>
 		</div>
 		<div>
-			{#each pagedGoals as goal}
+			{#each goals as goal}
 				<div class="p-2 border-b border-black last:border-0 mb-2 last:mb-0">
 					<GoalCard {goal} />
 				</div>
 			{/each}
 		</div>
-		<PaginationClient bind:page={goalPage} totalPages={goalTotalPages} />
+		<PaginationClient page={goalsPage} totalPages={data.goalsPagination.totalPages} />
 	{/if}
 {/if}

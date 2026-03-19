@@ -1,5 +1,5 @@
 import { redirect } from "@sveltejs/kit";
-import { eq } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, users } from "$lib/db/schema";
@@ -31,10 +31,28 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		redirect(302, "/login");
 	}
 
-	// Query accounts with user filter
+	// Pagination for accounts
+	const ACCOUNTS_PER_PAGE = 20;
+	const pageParam = url.searchParams.get("page");
+	const parsedPage = pageParam ? Number.parseInt(pageParam, 10) : 0;
+	const validPage =
+		Number.isFinite(parsedPage) && parsedPage >= 0 ? parsedPage : 0;
+
+	// Get total count for pagination
+	const [{ total }] = await db
+		.select({ total: count() })
+		.from(accounts)
+		.where(withUserFilter(locals.user.id, accounts));
+	const totalPages = Math.ceil(total / ACCOUNTS_PER_PAGE);
+	const safePage = Math.min(validPage, Math.max(0, totalPages - 1));
+	const offset = safePage * ACCOUNTS_PER_PAGE;
+
+	// Query accounts with user filter and pagination
 	const userAccounts = await db.query.accounts.findMany({
 		where: withUserFilter(locals.user.id, accounts),
 		orderBy: (accounts, { desc }) => desc(accounts.createdAt),
+		limit: ACCOUNTS_PER_PAGE,
+		offset,
 	});
 	const accountIds = userAccounts.map((a) => a.id);
 	const [currentBalances, latestTransactionDates] = await Promise.all([
@@ -211,6 +229,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	return {
 		accounts: accountsWithInterest,
+		accountsPagination: {
+			page: safePage,
+			totalPages,
+		},
 		institutions,
 		user: {
 			id: locals.user.id,

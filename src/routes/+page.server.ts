@@ -1,5 +1,5 @@
 import { fail, redirect } from "@sveltejs/kit";
-import { asc, eq } from "drizzle-orm";
+import { asc, count, desc, eq } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, goals, users } from "$lib/db/schema";
@@ -27,7 +27,7 @@ function isTaxFree(taxWrapper: string): boolean {
 	return ["ISA", "LISA"].includes(taxWrapper);
 }
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
 		devLog("homePage", "Unauthenticated access, redirecting to login");
 		redirect(302, "/login");
@@ -37,9 +37,35 @@ export const load: PageServerLoad = async ({ locals }) => {
 		userId: locals.user.id,
 	});
 
-	// Fetch all user accounts
+	// Pagination for accounts and goals
+	const ACCOUNTS_PER_PAGE = 10;
+	const GOALS_PER_PAGE = 10;
+	const accountsPage = Number(url.searchParams.get("accountsPage")) || 0;
+	const goalsPage = Number(url.searchParams.get("goalsPage")) || 0;
+
+	// Fetch total counts for pagination
+	const [{ totalAccounts }] = await db
+		.select({ totalAccounts: count() })
+		.from(accounts)
+		.where(withUserFilter(locals.user.id, accounts));
+	const [{ totalGoals }] = await db
+		.select({ totalGoals: count() })
+		.from(goals)
+		.where(withUserFilter(locals.user.id, goals));
+
+	const totalAccountPages = Math.ceil(totalAccounts / ACCOUNTS_PER_PAGE);
+	const totalGoalPages = Math.ceil(totalGoals / GOALS_PER_PAGE);
+	const safeAccountsPage = Math.min(
+		accountsPage,
+		Math.max(0, totalAccountPages - 1),
+	);
+	const safeGoalsPage = Math.min(goalsPage, Math.max(0, totalGoalPages - 1));
+
+	// Fetch paginated user accounts
 	const userAccounts = await db.query.accounts.findMany({
 		where: withUserFilter(locals.user.id, accounts),
+		limit: ACCOUNTS_PER_PAGE,
+		offset: safeAccountsPage * ACCOUNTS_PER_PAGE,
 	});
 	const accountIds = userAccounts.map((a) => a.id);
 	const [currentBalances, latestTransactionDates] = await Promise.all([
@@ -56,10 +82,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 		accountCount: userAccounts.length,
 	});
 
-	// Fetch goals for homepage preview
+	// Fetch paginated goals for homepage preview
 	const userGoals = await db.query.goals.findMany({
 		where: withUserFilter(locals.user.id, goals),
 		orderBy: [asc(goals.sortOrder)],
+		limit: GOALS_PER_PAGE,
+		offset: safeGoalsPage * GOALS_PER_PAGE,
 		with: {
 			allocations: {
 				columns: {
@@ -341,10 +369,18 @@ export const load: PageServerLoad = async ({ locals }) => {
 		hasStaleData,
 		exclusionCount,
 		accounts: accountsWithDerivedBalances,
+		accountsPagination: {
+			page: safeAccountsPage,
+			totalPages: totalAccountPages,
+		},
 		maturingSoon,
 		isaTracker,
 		interestSummary,
 		goals: activeGoals,
+		goalsPagination: {
+			page: safeGoalsPage,
+			totalPages: totalGoalPages,
+		},
 		staleness,
 	};
 };
