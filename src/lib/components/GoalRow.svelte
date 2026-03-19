@@ -28,7 +28,7 @@
 	const staleness = $derived(getStaleness(goal.updatedAt));
 </script>
 
-<tr class="border-b border-gray-200 last:border-b-0 {isArchived ? 'bg-gray-50' : ''} {isSelected ? 'bg-amber-50' : ''}">
+<tr class="goal-row border-b border-gray-200 last:border-b-0 {isArchived ? 'bg-gray-50' : ''} {isSelected ? 'bg-amber-50' : ''}">
 	<td class="pl-2 text-sm py-2">
 		<!-- Goal name -->
 		<div class="font-bold {isArchived ? 'text-gray-600' : ''}">
@@ -100,9 +100,5 @@
 			<span class="text-gray-400 text-xs">-</span>
 		{/if}
 		</td>
-	{/if}
-	{#if showActions}
-	<td class="text-right pr-1 text-sm py-2 whitespace-nowrap">
-	</td>
 	{/if}
 </tr>

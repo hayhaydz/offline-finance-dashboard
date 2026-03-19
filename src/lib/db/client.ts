@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3-multiple-ciphers";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import { logError } from "$lib/utils/logger";
+import { devLog, logError } from "$lib/utils/logger";
 import * as schema from "./schema";
 
 // Load environment variables from .env file
@@ -68,7 +68,7 @@ export function createDb(customPath?: string) {
 		sqlite.pragma("cipher_page_size = 4096");
 		sqlite.pragma("cipher_memory_security = ON");
 		if (!isTest)
-			console.log("[PROD] Database encryption ENABLED (AES-256-CBC)");
+			devLog("database", "Database encryption ENABLED (AES-256-CBC)");
 
 		// Startup security checks (only for existing databases)
 		if (!isNewDatabase) {
@@ -121,12 +121,14 @@ export function createDb(customPath?: string) {
 			sqlite.pragma("cipher_page_size = 4096");
 			sqlite.pragma("cipher_memory_security = ON");
 			if (!isTest)
-				console.log(
-					`[${appEnv.toUpperCase()}] Database encryption ENABLED (Dev Key)`,
+				devLog(
+					"database",
+					`Database encryption ENABLED (${appEnv.toUpperCase()} Dev Key)`,
 				);
 		} else if (!isTest) {
-			console.log(
-				`[${appEnv.toUpperCase()}] WARNING: Database encryption DISABLED (Loose Mode)`,
+			devLog(
+				"database",
+				`WARNING: Database encryption DISABLED (${appEnv.toUpperCase()} Loose Mode)`,
 			);
 		}
 	}

@@ -74,23 +74,6 @@ const logger = winston.createLogger({
 			level: "error",
 		}),
 	],
-	// Add console transport in development only
-	...(isDevelopment()
-		? [
-				new winston.transports.Console({
-					format: winston.format.combine(
-						winston.format.colorize(),
-						winston.format.printf(({ level, message, timestamp, ...meta }) => {
-							let msg = `${timestamp} [${level}]: ${message}`;
-							if (Object.keys(meta).length > 0) {
-								msg += ` ${JSON.stringify(meta, null, 2)}`;
-							}
-							return msg;
-						}),
-					),
-				}),
-			]
-		: []),
 });
 
 /**
@@ -117,16 +100,12 @@ export function devLog(
 			message,
 			data: maskedData,
 		});
-		console.log(`${prefix}`);
-		console.log(`  Timestamp: ${timestamp}`);
-		console.log(`  Data:`, maskedData);
 	} else {
 		logger.debug(prefix, {
 			timestamp,
 			category,
 			message,
 		});
-		console.log(`${prefix} (${timestamp})`);
 	}
 }
 
@@ -142,33 +121,19 @@ export function logError(
 	const timestamp = getTimestamp();
 	const prefix = `[ERROR] [${category}] ${message}`;
 
-	if (isDevelopment()) {
-		if (error !== undefined) {
-			logger.error(prefix, {
-				timestamp,
-				category,
-				message,
-				error: error instanceof Error ? error.stack : error,
-			});
-			console.error(`${prefix}`);
-			console.error(`  Timestamp: ${timestamp}`);
-			console.error(`  Error:`, error);
-		} else {
-			logger.error(prefix, {
-				timestamp,
-				category,
-				message,
-			});
-			console.error(`${prefix} (${timestamp})`);
-		}
+	if (error !== undefined) {
+		logger.error(prefix, {
+			timestamp,
+			category,
+			message,
+			error: error instanceof Error ? error.stack : error,
+		});
 	} else {
-		// Production: only log category and message, no sensitive data
 		logger.error(prefix, {
 			timestamp,
 			category,
 			message,
 		});
-		console.error(`${prefix} (${timestamp})`);
 	}
 }
 
@@ -189,10 +154,6 @@ export function logFormData(category: string, formData: unknown): void {
 		category,
 		formData: maskedData,
 	});
-
-	console.log(`[DEV] [${category}] Form Data`);
-	console.log(`  Timestamp: ${timestamp}`);
-	console.log(`  Data:`, maskedData);
 }
 
 /**
@@ -215,15 +176,6 @@ export function logRequest(category: string, request: Request): void {
 			"content-type": request.headers.get("content-type"),
 			"user-agent": request.headers.get("user-agent"),
 		},
-	});
-
-	console.log(`[DEV] [${category}] Request`);
-	console.log(`  Timestamp: ${timestamp}`);
-	console.log(`  Method: ${request.method}`);
-	console.log(`  URL: ${request.url}`);
-	console.log(`  Headers:`, {
-		"content-type": request.headers.get("content-type"),
-		"user-agent": request.headers.get("user-agent"),
 	});
 }
 

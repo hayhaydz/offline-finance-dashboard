@@ -62,6 +62,10 @@ td {
 	@apply py-1;
 }
 
+.goal-row td {
+  @apply py-4;
+}
+
 /* Bar chart character spacing */
 .bar-chart {
 	letter-spacing: -1px;
