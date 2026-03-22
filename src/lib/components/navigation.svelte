@@ -18,6 +18,9 @@
 		label: string;
 		authRequired?: boolean;
 		children?: NavItem[];
+		// For child links: whether to highlight when on child routes (e.g., /accounts/123)
+		// Default: false (only highlight on exact match)
+		includeChildRoutes?: boolean;
 	}
 
 	interface Props {
@@ -50,7 +53,7 @@
 			label: 'Accounts',
 			authRequired: true,
 			children: [
-				{ href: '/accounts', label: 'All Accounts' },
+				{ href: '/accounts', label: 'All Accounts', includeChildRoutes: true },
 				{ href: '/accounts/interest', label: 'Interest' },
 				{ href: '/accounts/isa', label: 'ISA' },
 				{ href: '/accounts/create', label: 'Create Account' }
@@ -225,11 +228,17 @@
 		{@const activeItem = navItems.find(i => i.href === activeSubNav)}
 		{#if activeItem?.children}
 			<div class="absolute left-0 right-0 bg-gray-50 border-b border-t z-10">
-				<div class="flex gap-4 p-2">
+				<div class="flex gap-4 p-2 min-h-8 items-center">
 					{#each activeItem.children as child}
-						{@const isChildActive = child.href === '/' ? currentPath === child.href : currentPath.startsWith(child.href)}
+						{@const otherSiblingHrefs = activeItem.children?.filter(c => c.href !== child.href).map(c => c.href) ?? []}
+						{@const isChildActive = child.href === '/'
+							? currentPath === child.href
+							: child.includeChildRoutes
+								? currentPath === child.href || (currentPath.startsWith(child.href + '/') && !otherSiblingHrefs.some(h => currentPath === h || currentPath.startsWith(h + '/')))
+								: currentPath === child.href}
 						<a
 							href={child.href}
+							onclick={() => activeSubNav = null}
 							class="bracket-link text-xs"
 							class:bg-gray-100={isChildActive}
 							class:font-bold={isChildActive}
@@ -242,11 +251,3 @@
 		{/if}
 	{/if}
 </div>
-
-<!-- Spacer to prevent content overlap when sub-nav is open -->
-{#if activeSubNav}
-	{@const activeItem = navItems.find(i => i.href === activeSubNav)}
-	{#if activeItem?.children}
-		<div class="h-10"></div>
-	{/if}
-{/if}

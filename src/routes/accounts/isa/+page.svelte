@@ -3,7 +3,6 @@
 	import { goto } from '$app/navigation';
 	import { page as pageState } from '$app/state';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
-	import { ISA_ALLOWANCE_IN_CENTS } from '$lib/server/calculations';
 
 	let { data } = $props();
 
@@ -56,9 +55,9 @@
                         <td class="text-right py-2 text-sm tabular-nums text-green-700">{formatCurrency(year.totalSubscribed)}</td>
                         <td class="text-right py-2 text-sm tabular-nums text-green-700">{year.utilizationPercent}%</td>
                         <td class="pl-4 py-2 text-sm">
-                            {#if year.allowanceUsed > ISA_ALLOWANCE_IN_CENTS}
-                                <span class="text-red-700 font-bold">Over by {formatCurrency(year.allowanceUsed - ISA_ALLOWANCE_IN_CENTS)}</span>
-                                <span class="text-xs text-gray-600">({formatCurrency(ISA_ALLOWANCE_IN_CENTS)} allowance)</span>
+                            {#if year.overAllowance}
+                                <span class="text-red-700 font-bold">Over by {formatCurrency(year.allowanceUsed - year.allowance)}</span>
+                                <span class="text-xs text-gray-600">({formatCurrency(year.allowance)} allowance)</span>
                             {:else}
                                 <span class="text-green-700">{formatCurrency(year.allowanceRemaining)} remaining</span>
                                 <span class="text-xs text-gray-600">({year.utilizationPercent}% used)</span>

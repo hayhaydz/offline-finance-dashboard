@@ -59,6 +59,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			allowanceRemaining: number;
 			utilizationPercent: number;
 			transactionCount: number;
+			overAllowance: boolean;
+			allowance: number;
 		}
 	>();
 
@@ -80,6 +82,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 				allowanceRemaining: ISA_ALLOWANCE_IN_CENTS,
 				utilizationPercent: 0,
 				transactionCount: 0,
+				overAllowance: false,
+				allowance: ISA_ALLOWANCE_IN_CENTS,
 			});
 		}
 
@@ -89,6 +93,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		yearData.allowanceRemaining = Math.max(0, ISA_ALLOWANCE_IN_CENTS - yearData.allowanceUsed);
 		yearData.utilizationPercent = Math.min(100, Math.round((yearData.allowanceUsed / ISA_ALLOWANCE_IN_CENTS) * 100));
 		yearData.transactionCount++;
+		yearData.overAllowance = yearData.allowanceUsed > ISA_ALLOWANCE_IN_CENTS;
 	}
 
 	// 4. Format for display, newest first

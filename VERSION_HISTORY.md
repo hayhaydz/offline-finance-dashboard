@@ -1,4 +1,19 @@
-## [2026-03-22] — Navigation Dropdowns
+## [2026-03-22] — Navigation Active Link & Sub-Nav Close Improvements
+
+**Summary:** Refined navigation dropdown behavior with sibling-aware active link detection and auto-close on link click. Parent links (e.g., "All Accounts") now highlight correctly on detail pages but not on functional sibling pages (e.g., "Interest").
+
+**Features:**
+- Added `includeChildRoutes` property to NavItem interface for configurable child route highlighting
+- Implemented sibling-aware active state logic that excludes functional sibling routes
+- Sub-navigation now closes automatically when any child link is clicked
+- Removed commented-out spacer div code (cleanup)
+
+**Files:**
+- `src/lib/components/navigation.svelte` — Added `includeChildRoutes?: boolean` to NavItem interface, sibling-aware `isChildActive` logic with `otherSiblingHrefs` filtering, `onclick={() => activeSubNav = null}` on child links
+
+**Commit:**
+- `refactor: improve navigation active link detection with sibling-aware logic`
+- `fix: close sub-navigation dropdown when child links are clicked`
 
 **Summary:** Added dropdown-style sub-navigation to main navigation bar. Navigation items with children (Accounts, Settings) now show expandable sub-navigation rows. Main navigation changed from justify-between to left-aligned with consistent spacing.
 

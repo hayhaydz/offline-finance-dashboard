@@ -188,6 +188,22 @@
 		const empty = width - filled;
 		return `[${'#'.repeat(filled)}${'.'.repeat(empty)}] ${Math.round(ratio * 100)}%`;
 	}
+
+	// Derived sort label based on active breakdown
+	const sortLabel = $derived(() => {
+		switch (activeBreakdown) {
+			case 'account':
+				return accountsSortDesc ? 'Low-High' : 'High-Low';
+			case 'month':
+				return monthsSortDesc ? 'Newest-Oldest' : 'Oldest-Newest';
+			case 'institution':
+				return institutionsSortDesc ? 'Low-High' : 'High-Low';
+			case 'wrapper':
+				return wrappersSortDesc ? 'Low-High' : 'High-Low';
+			default:
+				return 'Sort';
+		}
+	});
 </script>
 
 <!-- HEADER SECTION -->
@@ -333,10 +349,7 @@
 				else if (activeBreakdown === 'wrapper') wrappersSortDesc = !wrappersSortDesc;
 			}}
 		>
-			{activeBreakdown === 'account' && (accountsSortDesc ? 'Low-High' : 'High-Low')}
-			{activeBreakdown === 'month' && (monthsSortDesc ? 'Newest-Oldest' : 'Oldest-Newest')}
-			{activeBreakdown === 'institution' && (institutionsSortDesc ? 'Low-High' : 'High-Low')}
-			{activeBreakdown === 'wrapper' && (wrappersSortDesc ? 'Low-High' : 'High-Low')}
+			{sortLabel()}
 		</button>
 	</div>
 
