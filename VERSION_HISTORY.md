@@ -1,3 +1,107 @@
+## [2026-03-22] — Interest Navigation Enhancements
+
+**Summary:** Added "View Breakdown" link to account detail page interest section (matching homepage) and implemented year boundaries for prev/next navigation (matching breakdown page). Navigation now respects global available tax years across all user accounts.
+
+**Features:**
+- Account detail page now links to current year's interest breakdown page
+- Prev/Next buttons are hidden when at min/max tax year boundaries
+- Server queries all interest transactions to build global `availableTaxYears` list
+- Navigation logic matches breakdown page implementation
+
+**Files:**
+- `src/routes/accounts/[slug]/+page.server.ts` — Added global `availableTaxYears` calculation using all user accounts' interest transactions
+- `src/routes/accounts/[slug]/+page.svelte` — Added derived `currentYearSlug`, `prevYear`, `nextYear` for navigation, added "View Breakdown" link, conditionally render prev/next buttons
+
+**Commit:**
+- `feat: add view breakdown link and year boundaries to account interest navigation`
+
+## [2026-03-22] — Interest Display Consistency Fix
+
+**Summary:** Fixed inconsistency where accounts with no interest and excluded from projections were still showing a 0/0 summary on the individual account page. Now, an account's interest summary is only shown if it has actual interest earned or is eligible for projections, matching the behavior of the Interest Breakdown page.
+
+**Files:**
+- `src/routes/accounts/[slug]/+page.svelte` — Updated interest summary conditional display logic, moved transaction pagination to below the table, added client-side pagination for interest rates and monthly balances
+- `src/routes/accounts/interest/[year]/+page.svelte` — Added client-side pagination for breakdown tabs and projection assumptions table, including reset logic on tab/sort change
+
+**Commit:**
+- `fix: hide interest summary when account has no interest and is excluded from projections`
+- `ui: move transaction pagination to below the table on account detail page`
+- `ui: add client-side pagination for interest rates and monthly balance summary`
+- `ui: add client-side pagination for interest breakdown tables and projections`
+
+## [2026-03-22] — Interest Display Unification
+
+**Summary:** Unified interest display logic between account detail page and interest breakdown page by creating a single source of truth for projection eligibility. Now both pages use the same eligibility checks (closed_account, no_balance, no_rate, already_matured, matures_after_tax_year, non_interest_bearing). Account detail page shows exclusion reasons for projections instead of misleadingly showing amounts for accounts that don't qualify.
+
+**Features:**
+- Added `AccountInterestSummary` interface for single-account interest summaries
+- Extracted `checkProjectionEligibility()` helper function for reusable eligibility logic
+- Added `getAccountInterestSummary()` function that applies same logic as multi-account breakdown
+- Account detail page now displays "(Not included - {reason})" for excluded projections
+- Shows exclusion reasons: Account closed, No current balance, No interest rate set, Bond already matured, Bond matures after tax year
+
+**Files:**
+- `src/lib/server/interestBreakdown.ts` — Added `AccountInterestSummary` interface, `checkProjectionEligibility()` helper, `getAccountInterestSummary()` function
+- `src/routes/accounts/[slug]/+page.server.ts` — Replaced inline interest calculation with `getAccountInterestSummary()` call
+- `src/routes/accounts/[slug]/+page.svelte` — Added `exclusionReasonToText()` helper, updated "Projected" row to show exclusion reasons
+
+**Commits:**
+- `feat: add AccountInterestSummary type definition`
+- `refactor: extract projection eligibility helper function`
+- `feat: add getAccountInterestSummary unified function`
+- `refactor: use unified getAccountInterestSummary in account detail page`
+- `feat: show projection exclusion reason in account detail page`
+
+---
+
+## [2026-03-22] — Interest Display Unification - Task 3: Account Detail UI Exclusion Reasons
+
+**Summary:** Updated account detail page UI to display projection exclusion reasons when projections are not included. Added `exclusionReasonToText()` helper function to map internal reason codes to user-friendly text. Modified "Projected" row to conditionally show exclusion message instead of currency value when `projectionExclusionReason` is present.
+
+**Files:**
+- `src/routes/accounts/[slug]/+page.svelte` — Added `exclusionReasonToText()` helper function after `getAccountType()`, updated "Projected" row template to conditionally render exclusion reason
+
+**Commit:** `feat: show projection exclusion reason in account detail page`
+
+---
+
+## [2026-03-22] — Interest Display Unification - Task 5: Account Detail Page Update
+
+**Summary:** Updated account detail page server load function to use the new `getAccountInterestSummary()` unified function. Removed inline interest calculation logic and replaced with call to unified function. Cleaned up unused imports. Navigation params (prevTaxYearParam, nextTaxYearParam, selectedTaxYearStart) now added to summary via spread operator for client-side navigation.
+
+**Files:**
+- `src/routes/accounts/[slug]/+page.server.ts` — Replaced inline interest calculation with `getAccountInterestSummary()` call, removed unused imports (getAccountInterestEarned, getActualInterestEarned, getProjectedInterest, getTaxFreeStatus), added getAccountInterestSummary import from interestBreakdown
+
+**Commit:** `refactor: use unified getAccountInterestSummary in account detail page`
+
+---
+
+## [2026-03-22] — Interest Display Unification - Task 4: getAccountInterestSummary
+
+**Summary:** Added `getAccountInterestSummary()` function to provide unified interest summary for single accounts. Reuses same eligibility logic as multi-account breakdown for consistency. Returns `AccountInterestSummary` with actual interest, projected interest, total expected interest, projection exclusion reason, tax year bounds, and tax-free status.
+
+**Files:**
+- `src/lib/server/interestBreakdown.ts` — Added `getAccountInterestSummary()` function after `getInterestBreakdownReport()`
+
+**Commit:** `feat: add getAccountInterestSummary unified function`
+
+---
+
+## [2026-03-19 14:00] — README Overhaul + Logger Console Cleanup
+
+**Summary:** Rewrote README.md with quick start, "what this does" section, project structure, and updated philosophy. Removed redundant `console.log` calls from logger utility functions and switched database client startup messages to use `devLog` instead.
+
+**Files:**
+- `README.md`
+- `src/lib/utils/logger.ts`
+- `src/lib/db/client.ts`
+- `src/app.css`
+- `src/lib/components/GoalRow.svelte`
+
+**Commit:** `docs: overhaul README and cleanup redundant console.log calls`
+
+---
+
 ## [2026-03-19] — Pagination Implementation Across App
 
 **Summary:** Added pagination to 4 routes across the application using existing `PaginationClient` component pattern:

@@ -8,10 +8,43 @@
 	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 	import type { TransactionType } from '$lib/server/transactions';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
+	import { devLogClient, logComponentLifecycle } from '$lib/utils/client-logger';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
+	// Tax year navigation for interest breakdown links
+	const currentYearSlug = $derived(
+		data.interestSummary
+			? `${data.interestSummary.taxYearStart.getUTCFullYear()}-${String(data.interestSummary.taxYearEnd.getUTCFullYear()).slice(-2)}`
+			: null
+	);
+	const currentIndex = $derived(
+		currentYearSlug !== null
+			? data.availableTaxYears.findIndex((ty) => ty.slug === currentYearSlug)
+			: -1
+	);
+	const prevYear = $derived(
+		currentIndex >= 0 && currentIndex < data.availableTaxYears.length - 1
+			? data.availableTaxYears[currentIndex + 1]
+			: null
+	);
+	const nextYear = $derived(
+		currentIndex > 0 ? data.availableTaxYears[currentIndex - 1] : null
+	);
+
 	let transactionPage = $state(data.transactionPagination.page);
+
+	// Interest rates pagination state
+	let ratesPage = $state(0);
+	const RATES_PER_PAGE = 5;
+	const paginatedRates = $derived(data.rates.slice(ratesPage * RATES_PER_PAGE, (ratesPage + 1) * RATES_PER_PAGE));
+	const totalRatesPages = $derived(Math.ceil(data.rates.length / RATES_PER_PAGE));
+
+	// Monthly balance pagination state
+	let balancesPage = $state(0);
+	const BALANCES_PER_PAGE = 6;
+	const paginatedBalances = $derived(data.monthlyBalances.slice(balancesPage * BALANCES_PER_PAGE, (balancesPage + 1) * BALANCES_PER_PAGE));
+	const totalBalancesPages = $derived(Math.ceil(data.monthlyBalances.length / BALANCES_PER_PAGE));
 
 	$effect(() => {
 		const urlPage = Number(pageState.url.searchParams.get('page')) || 0;
@@ -66,6 +99,20 @@
 		return types[type] || type;
 	}
 
+	// Get projection exclusion reason display text
+	function exclusionReasonToText(reason: string | null): string {
+		if (!reason) return '';
+		const reasons: Record<string, string> = {
+			closed_account: 'Account closed',
+			no_balance: 'No current balance',
+			no_rate: 'No interest rate set',
+			already_matured: 'Bond already matured',
+			matures_after_tax_year: 'Bond matures after tax year',
+			non_interest_bearing: 'Not interest-bearing'
+		};
+		return reasons[reason] || reason;
+	}
+
 	// Get transaction type display name
 	function getTransactionType(type: TransactionType): string {
 		const types: Record<TransactionType, string> = {
@@ -117,6 +164,79 @@
 			}
 		}
 	});
+
+	// Comprehensive interest data logging on mount and data changes
+	$effect(() => {
+		// Log component lifecycle
+		logComponentLifecycle('AccountDetail', data.account.slug, 'mount', {
+			accountType: data.account.type,
+			accountName: data.account.name,
+			isClosed: !!data.account.closedAt,
+			currentBalance: data.currentBalance
+		});
+
+		// Log interest summary availability
+		devLogClient('AccountDetail', 'Interest data loaded', {
+			hasInterestSummary: !!data.interestSummary,
+			accountType: data.account.type,
+			currentRate: data.currentRate,
+			ratesCount: data.rates.length
+		});
+
+		// Log detailed interest summary if available
+		if (data.interestSummary) {
+			devLogClient('AccountDetail', 'Interest summary details', {
+				actualInterest: data.interestSummary.actualInterest,
+				projectedInterest: data.interestSummary.projectedInterest,
+				totalExpectedInterest: data.interestSummary.totalExpectedInterest,
+				taxYearStart: data.interestSummary.taxYearStart.toISOString(),
+				taxYearEnd: data.interestSummary.taxYearEnd.toISOString(),
+				hasExclusionReason: !!data.interestSummary.projectionExclusionReason,
+				exclusionReason: data.interestSummary.projectionExclusionReason
+			});
+
+			// Log eligibility analysis
+			if (data.interestSummary.projectionExclusionReason) {
+				devLogClient('AccountDetail', 'Projection excluded - eligibility check', {
+					reason: data.interestSummary.projectionExclusionReason,
+					reasonText: exclusionReasonToText(data.interestSummary.projectionExclusionReason),
+					accountClosed: !!data.account.closedAt,
+					balance: data.currentBalance,
+					hasRate: data.currentRate !== null
+				});
+			} else {
+				devLogClient('AccountDetail', 'Projection included - eligible account', {
+					actualInterest: data.interestSummary.actualInterest,
+					projectedInterest: data.interestSummary.projectedInterest,
+					totalExpected: data.interestSummary.totalExpectedInterest
+				});
+			}
+		} else {
+			// Log why interest summary is not available
+			devLogClient('AccountDetail', 'No interest summary - account analysis', {
+				accountType: data.account.type,
+				isSavingsOrInvestment: data.account.type === 'savings' || data.account.type === 'investment',
+				isClosed: !!data.account.closedAt,
+				currentBalance: data.currentBalance,
+				currentRate: data.currentRate,
+				hasRates: data.rates.length > 0,
+				ratesCount: data.rates.length
+			});
+		}
+
+		// Log interest rates data
+		if (data.rates.length > 0) {
+			devLogClient('AccountDetail', 'Interest rates loaded', {
+				count: data.rates.length,
+				currentRate: data.currentRate,
+				rates: data.rates.map(r => ({
+					effectiveFrom: r.effectiveFrom,
+					rate: r.rate,
+					isCurrent: r.rate === data.currentRate
+				}))
+			});
+		}
+	});
 </script>
 
 <!-- ACCOUNT INFO HEADER -->
@@ -135,7 +255,6 @@
 			<a href="/accounts/{data.account.slug}/edit" class="bracket-link text-xs">Edit</a>
 			<a href="/accounts/{data.account.slug}/delete" class="bracket-link text-xs text-red-700">Close</a>
 		</div>
-		<PaginationClient bind:page={transactionPage} totalPages={data.transactionPagination.totalPages} />
 	{/if}
 </div>
 	<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
@@ -153,7 +272,7 @@
 </div>
 
 {#if submitMessage}
-	<div class="p-2 border-b border-black text-sm flex justify-between items-start {submitMessage.type === 'error' ? 'bg-red-100' : 'bg-green-100'}">
+	<div class="p-2 border-t text-sm flex justify-between items-start {submitMessage.type === 'error' ? 'bg-red-100' : 'bg-green-100'}">
 		<div class="flex-1">
 			{@html submitMessage.text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="bracket-link text-xs">$1</a>')}
 		</div>
@@ -174,9 +293,9 @@
 {/if}
 
 <!-- INTEREST RATES SECTION -->
-{#if data.account.type === 'savings' || data.account.type === 'investment'}
+{#if data.interestSummary || data.rates.length > 0}
 <div class="">
-	<div class="bg-gray-100 p-2 font-bold flex justify-between items-center">
+	<div class="border-y bg-gray-100 p-2 font-bold flex justify-between items-center">
 		<span>INTEREST RATES {#if data.currentRate !== null}<span class="font-normal text-sm ml-2">({(data.currentRate / 100).toFixed(2)}% current)</span>{/if}</span>
 		{#if !data.account.closedAt}
 			<button
@@ -189,26 +308,43 @@
 		{/if}
 	</div>
 
-	{#if data.interestSummary}
+	{#if data.interestSummary && (data.interestSummary.actualInterest > 0 || !data.interestSummary.projectionExclusionReason)}
 		<div class="border-b border-black p-2 bg-green-50">
 			<div class="flex items-center justify-between gap-2 mb-2">
 				<div class="flex items-center gap-2">
 					<span class="font-bold text-sm">INTEREST:</span>
-					<a href="?taxYearStart={data.interestSummary.prevTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>[Prev]</a>
+					{#if prevYear}
+						<a href="?taxYearStart={data.interestSummary.prevTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>[Prev]</a>
+					{/if}
 					<span class="font-bold text-sm">
 						{new Date(data.interestSummary.taxYearStart).getFullYear()}/{String(new Date(data.interestSummary.taxYearEnd).getFullYear()).slice(-2)}
 					</span>
-					<a href="?taxYearStart={data.interestSummary.nextTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>[Next]</a>
+					{#if nextYear}
+						<a href="?taxYearStart={data.interestSummary.nextTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>[Next]</a>
+					{/if}
 				</div>
-				<div class="text-xs font-normal">
-					({formatDate(data.interestSummary.taxYearStart)} to {formatDate(data.interestSummary.taxYearEnd)})
+				<div class="flex items-center gap-2">
+					<div class="text-xs font-normal">
+						({formatDate(data.interestSummary.taxYearStart)} to {formatDate(data.interestSummary.taxYearEnd)})
+					</div>
+					{#if currentYearSlug}
+						<a href="/accounts/interest/{currentYearSlug}" class="bracket-link text-xs">View Breakdown</a>
+					{/if}
 				</div>
 			</div>
 			<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
 				<div>Actual earned:</div>
 				<div class="text-right tabular-nums">{formatCurrency(data.interestSummary.actualInterest)}</div>
 				<div>Projected:</div>
-				<div class="text-right tabular-nums">{formatCurrency(data.interestSummary.projectedInterest)}</div>
+				<div class="text-right tabular-nums">
+					{#if data.interestSummary.projectionExclusionReason}
+						<span class="text-gray-600 text-xs">
+							(Not included - {exclusionReasonToText(data.interestSummary.projectionExclusionReason)})
+						</span>
+					{:else}
+						{formatCurrency(data.interestSummary.projectedInterest)}
+					{/if}
+				</div>
 				<div>Total expected:</div>
 				<div class="text-right tabular-nums font-bold">{formatCurrency(data.interestSummary.totalExpectedInterest)}</div>
 			</div>
@@ -292,7 +428,7 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#each data.rates as rate}
+					{#each paginatedRates as rate}
 						{@const isCurrent = rate.rate === data.currentRate && new Date(rate.effectiveFrom) <= new Date()}
 						<tr class="border-b border-gray-200 last:border-b-0 align-top">
 							<td class="pl-2 text-sm py-2 whitespace-nowrap">{formatDate(rate.effectiveFrom)}</td>
@@ -344,6 +480,7 @@
 				</tbody>
 			</table>
 		</div>
+		<PaginationClient bind:page={ratesPage} totalPages={totalRatesPages} />
 	{/if}
 </div>
 {/if}
@@ -364,7 +501,7 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each data.monthlyBalances as balance}
+				{#each paginatedBalances as balance}
 					<tr class="border-b border-gray-200 last:border-b-0 align-top">
 						<td class="pl-2 text-sm py-2 whitespace-nowrap">{balance.monthKey}</td>
 						<td class="text-right pr-1 text-sm tabular-nums py-2 whitespace-nowrap">
@@ -382,6 +519,7 @@
 			</tbody>
 		</table>
 		</div>
+		<PaginationClient bind:page={balancesPage} totalPages={totalBalancesPages} />
 	{/if}
 </div>
 
@@ -566,6 +704,9 @@
 					{/each}
 				</tbody>
 			</table>
+		</div>
+		<div class="border-t border-black empty:hidden">
+			<PaginationClient bind:page={transactionPage} totalPages={data.transactionPagination.totalPages} />
 		</div>
 	{/if}
 </div>

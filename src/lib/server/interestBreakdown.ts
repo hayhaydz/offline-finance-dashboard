@@ -198,6 +198,30 @@ export interface InterestBreakdownReport {
 }
 
 /**
+ * Single-account interest summary with projection eligibility
+ */
+export interface AccountInterestSummary {
+	// Actual interest earned in tax year (always present if account type qualifies)
+	actualInterest: number; // in cents
+
+	// Projected interest for remaining tax year (may be 0 if excluded)
+	projectedInterest: number; // in cents
+
+	// Total expected interest (actual + projected)
+	totalExpectedInterest: number; // in cents
+
+	// Why projections were excluded (null if projections are valid)
+	projectionExclusionReason: ProjectedAccountBreakdown["exclusionReason"];
+
+	// Tax year bounds
+	taxYearStart: Date;
+	taxYearEnd: Date;
+
+	// Tax-free status (Personal Savings Allowance)
+	taxFreeStatus: TaxFreeStatus;
+}
+
+/**
  * Check if a tax wrapper is tax-free (excluded from Personal Savings Allowance)
  */
 function isTaxFree(taxWrapper: string): boolean {
@@ -539,6 +563,64 @@ export async function getActualInterestBreakdown(
 		byTaxWrapper,
 		transactions: validTransactions,
 	};
+}
+
+/**
+ * Check if an account qualifies for interest projections.
+ * Returns eligibility status and exclusion reason if not eligible.
+ *
+ * @param account - Account to check
+ * @param currentBalance - Current account balance in cents
+ * @param currentRate - Current interest rate in basis points (null if none)
+ * @param now - Reference date for calculations
+ * @param taxYearEnd - End of tax year
+ * @returns Eligibility status and exclusion reason
+ */
+function checkProjectionEligibility(
+	account: {
+		closedAt: Date | null;
+		type: string;
+		maturityDate: Date | null;
+	},
+	currentBalance: number,
+	currentRate: number | null,
+	now: Date,
+	taxYearEnd: Date
+): { eligible: boolean; exclusionReason: ProjectedAccountBreakdown["exclusionReason"] } {
+	// Check if account is closed
+	if (account.closedAt) {
+		return { eligible: false, exclusionReason: "closed_account" };
+	}
+
+	// Check if account type is interest-bearing
+	if (account.type !== "savings" && account.type !== "investment") {
+		return { eligible: false, exclusionReason: "non_interest_bearing" };
+	}
+
+	// Check if account has balance
+	if (currentBalance <= 0) {
+		return { eligible: false, exclusionReason: "no_balance" };
+	}
+
+	// Check if account has a rate set
+	if (currentRate === null || currentRate === 0) {
+		return { eligible: false, exclusionReason: "no_rate" };
+	}
+
+	// Handle fixed-term maturity checks
+	if (account.maturityDate) {
+		if (account.maturityDate > taxYearEnd) {
+			// Matures after tax year end - no payout this tax year
+			return { eligible: false, exclusionReason: "matures_after_tax_year" };
+		}
+		if (account.maturityDate <= now) {
+			// Already matured
+			return { eligible: false, exclusionReason: "already_matured" };
+		}
+	}
+
+	// All checks passed
+	return { eligible: true, exclusionReason: null };
 }
 
 /**
@@ -965,6 +1047,116 @@ export async function getInterestBreakdownReport(params: {
 		forecast,
 		reconciliation,
 	};
+}
+
+/**
+ * Get interest summary for a single account with projection eligibility.
+ * Reuses the same eligibility logic as multi-account breakdown for consistency.
+ *
+ * @param params - Account ID, tax year bounds, and optional parameters
+ * @returns Account interest summary or null if account is not interest-bearing type
+ */
+export async function getAccountInterestSummary(params: {
+	accountId: number;
+	taxYearStart: Date;
+	taxYearEnd: Date;
+	asOfDate?: Date;
+	taxBand?: TaxBand;
+}): Promise<AccountInterestSummary | null> {
+	const { accountId, taxYearStart, taxYearEnd, asOfDate, taxBand = "basic" } = params;
+
+	devLog("getAccountInterestSummary", "Fetching account interest summary", {
+		accountId,
+		taxYearStart,
+		taxYearEnd,
+	});
+
+	// Get the account
+	const account = await db.query.accounts.findFirst({
+		where: eq(accounts.id, accountId),
+	});
+
+	if (!account) {
+		logError("getAccountInterestSummary", "Account not found", { accountId });
+		return null;
+	}
+
+	// Return null for non-interest-bearing account types
+	if (account.type !== "savings" && account.type !== "investment") {
+		devLog("getAccountInterestSummary", "Account is not interest-bearing type", {
+			accountId,
+			accountType: account.type,
+		});
+		return null;
+	}
+
+	const now = asOfDate ?? new Date();
+
+	// Get actual interest earned (use the single-account query)
+	const actualInterest = await getAccountInterestEarned(accountId, taxYearStart, taxYearEnd);
+
+	// Get current balance and rate for eligibility check
+	const [currentBalance, currentRate] = await Promise.all([
+		getCurrentBalanceForAccount(accountId),
+		getCurrentRate(accountId),
+	]);
+
+	// Check projection eligibility using the same logic as multi-account breakdown
+	const { eligible, exclusionReason } = checkProjectionEligibility(
+		account,
+		currentBalance,
+		currentRate,
+		now,
+		taxYearEnd
+	);
+
+	let projectedInterest = 0;
+
+	if (eligible) {
+		// Calculate projection using the same formula as multi-account breakdown
+		if (account.maturityDate) {
+			// Fixed-term bond - project only until maturity
+			projectedInterest = calculateProjectedInterestInCents({
+				balanceInCents: currentBalance,
+				rateBasisPoints: currentRate!,
+				fromDate: now,
+				toDate: account.maturityDate,
+			});
+		} else {
+			// Standard access account - project until tax year end
+			projectedInterest = calculateProjectedInterestInCents({
+				balanceInCents: currentBalance,
+				rateBasisPoints: currentRate!,
+				fromDate: now,
+				toDate: taxYearEnd,
+			});
+		}
+	}
+
+	// Get tax-free status for actual interest
+	const taxFreeStatus = getTaxFreeStatus(actualInterest, taxBand);
+
+	const totalExpectedInterest = actualInterest + projectedInterest;
+
+	const summary: AccountInterestSummary = {
+		actualInterest,
+		projectedInterest,
+		totalExpectedInterest,
+		projectionExclusionReason: exclusionReason,
+		taxYearStart,
+		taxYearEnd,
+		taxFreeStatus,
+	};
+
+	devLog("getAccountInterestSummary", "Summary calculated", {
+		accountId,
+		actualInterest,
+		projectedInterest,
+		totalExpectedInterest,
+		exclusionReason: exclusionReason,
+	});
+
+	return summary;
 }
 
 /**

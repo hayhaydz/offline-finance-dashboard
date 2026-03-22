@@ -1,15 +1,9 @@
 import { error, fail, redirect } from "@sveltejs/kit";
-import { count, desc, eq } from "drizzle-orm";
-import { validateUserAccess } from "$lib/auth/row-security";
+import { count, desc, eq, inArray } from "drizzle-orm";
+import { validateUserAccess, withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions, interestRates } from "$lib/db/schema";
-import {
-	getAccountInterestEarned,
-	getActualInterestEarned,
-	getProjectedInterest,
-	getTaxFreeStatus,
-	getUkTaxYearBounds,
-} from "$lib/server/calculations";
+import { getUkTaxYearBounds } from "$lib/server/calculations";
 import {
 	getCurrentBalanceForAccount,
 	getMonthlyBalanceHistory,
@@ -21,6 +15,7 @@ import {
 	getInterestRateById,
 	parseRateToBasisPoints,
 } from "$lib/server/interestRates";
+import { getAccountInterestSummary } from "$lib/server/interestBreakdown";
 import {
 	createTransaction,
 	deleteTransaction,
@@ -110,6 +105,37 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
 	// Get current effective rate
 	const currentRate = await getCurrentRate(account.id);
+
+	// Get all interest transactions to determine available tax years (global context for navigation)
+	const userAccounts = await db.query.accounts.findMany({
+		where: withUserFilter(locals.user.id, accounts),
+		columns: { id: true },
+	});
+	const accountIds = userAccounts.map((a) => a.id);
+	const interestTransactions = await db.query.accountTransactions.findMany({
+		where:
+			accountIds.length > 0
+				? inArray(accountTransactions.accountId, accountIds)
+				: eq(accountTransactions.id, 0),
+		columns: { transactionDate: true },
+	});
+	const availableTaxYears = new Map<
+		string,
+		{ slug: string; start: Date; end: Date }
+	>();
+	for (const tx of interestTransactions) {
+		const bounds = getUkTaxYearBounds(tx.transactionDate);
+		const startYear = bounds.start.getUTCFullYear();
+		const endYear = bounds.end.getUTCFullYear();
+		const slug = `${startYear}-${String(endYear).slice(-2)}`;
+		if (!availableTaxYears.has(slug)) {
+			availableTaxYears.set(slug, { slug, start: bounds.start, end: bounds.end });
+		}
+	}
+	const sortedTaxYears = Array.from(availableTaxYears.values()).sort(
+		(a, b) => b.start.getTime() - a.start.getTime(),
+	);
+
 	const currentTaxYear = getUkTaxYearBounds(new Date());
 	const selectedTaxYearStart =
 		parseTaxYearStart(url.searchParams.get("taxYearStart")) ??
@@ -119,6 +145,15 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		end: getTaxYearEndFromStart(selectedTaxYearStart),
 	};
 
+	// Get unified interest summary with projection eligibility
+	const interestSummary = await getAccountInterestSummary({
+		accountId: account.id,
+		taxYearStart: taxYear.start,
+		taxYearEnd: taxYear.end,
+		taxBand: "basic",
+	});
+
+	// Format tax year params for navigation (only if summary exists)
 	const prevTaxYearStart = new Date(
 		Date.UTC(taxYear.start.getUTCFullYear() - 1, 3, 6),
 	);
@@ -128,15 +163,15 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const prevTaxYearParam = formatTaxYearStartParam(prevTaxYearStart);
 	const nextTaxYearParam = formatTaxYearStartParam(nextTaxYearStart);
 
-	const [actualInterestAllAccounts, accountActualInterest, projectedInterest] =
-		await Promise.all([
-			getActualInterestEarned(locals.user.id, taxYear.start, taxYear.end),
-			getAccountInterestEarned(account.id, taxYear.start, taxYear.end),
-			getProjectedInterest(account.id, taxYear.end),
-		]);
-	const taxBand = "basic" as const;
-	const taxFreeStatus = getTaxFreeStatus(actualInterestAllAccounts, taxBand);
-	const totalExpectedInterest = accountActualInterest + projectedInterest;
+	// Extend summary with navigation params for client-side
+	const summaryWithNav = interestSummary
+		? {
+				...interestSummary,
+				prevTaxYearParam,
+				nextTaxYearParam,
+				selectedTaxYearStart: formatTaxYearStartParam(taxYear.start),
+		  }
+		: null;
 
 	return {
 		account,
@@ -149,21 +184,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		},
 		rates,
 		currentRate,
-		interestSummary:
-			account.type === "savings" || account.type === "investment"
-				? {
-						taxYearStart: taxYear.start,
-						taxYearEnd: taxYear.end,
-						actualInterest: accountActualInterest,
-						projectedInterest,
-						totalExpectedInterest,
-						taxBand,
-						taxFreeStatus,
-						selectedTaxYearStart: formatTaxYearStartParam(taxYear.start),
-						prevTaxYearParam,
-						nextTaxYearParam,
-					}
-				: null,
+		interestSummary: summaryWithNav,
+		availableTaxYears: sortedTaxYears,
 		breadcrumbOverrides: [
 			{ segmentIndex: 1, label: account.name, skipLink: false },
 		],

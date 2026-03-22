@@ -86,6 +86,26 @@
 
 	const totalTransactionPages = $derived(Math.ceil(sortedTransactions.length / TRANSACTIONS_PER_PAGE));
 
+	// Breakdown pagination state
+	let breakdownsPage = $state(0);
+	const BREAKDOWNS_PER_PAGE = 10;
+
+	// Reset breakdown page when tab changes or sorts change
+	$effect(() => {
+		const _ = { activeBreakdown, accountsSortDesc, monthsSortDesc, institutionsSortDesc, wrappersSortDesc };
+		breakdownsPage = 0;
+	});
+
+	// Projection pagination state
+	let projectionsPage = $state(0);
+	const PROJECTIONS_PER_PAGE = 10;
+
+	// Reset projection page when sort changes
+	$effect(() => {
+		const _ = projectedAccountsSortDesc;
+		projectionsPage = 0;
+	});
+
 	// Reset page when filters change
 	$effect(() => {
 		// This effect will run whenever any filter changes
@@ -141,6 +161,9 @@
 		return accounts;
 	});
 
+	const paginatedAccounts = $derived(sortedAccounts.slice(breakdownsPage * BREAKDOWNS_PER_PAGE, (breakdownsPage + 1) * BREAKDOWNS_PER_PAGE));
+	const totalAccountPages = $derived(Math.ceil(sortedAccounts.length / BREAKDOWNS_PER_PAGE));
+
 	// Sort state for month breakdown (default: chronological)
 	let monthsSortDesc = $state(false);
 	const sortedMonths = $derived.by(() => {
@@ -152,6 +175,9 @@
 		return months;
 	});
 
+	const paginatedMonths = $derived(sortedMonths.slice(breakdownsPage * BREAKDOWNS_PER_PAGE, (breakdownsPage + 1) * BREAKDOWNS_PER_PAGE));
+	const totalMonthPages = $derived(Math.ceil(sortedMonths.length / BREAKDOWNS_PER_PAGE));
+
 	// Sort state for institution breakdown (default: amount descending)
 	let institutionsSortDesc = $state(true);
 	const sortedInstitutions = $derived.by(() => {
@@ -160,6 +186,9 @@
 		return institutions;
 	});
 
+	const paginatedInstitutions = $derived(sortedInstitutions.slice(breakdownsPage * BREAKDOWNS_PER_PAGE, (breakdownsPage + 1) * BREAKDOWNS_PER_PAGE));
+	const totalInstitutionPages = $derived(Math.ceil(sortedInstitutions.length / BREAKDOWNS_PER_PAGE));
+
 	// Sort state for wrapper breakdown (default: amount descending)
 	let wrappersSortDesc = $state(true);
 	const sortedWrappers = $derived.by(() => {
@@ -167,6 +196,9 @@
 		wrappers.sort((a, b) => wrappersSortDesc ? b.total - a.total : a.total - b.total);
 		return wrappers;
 	});
+
+	const paginatedWrappers = $derived(sortedWrappers.slice(breakdownsPage * BREAKDOWNS_PER_PAGE, (breakdownsPage + 1) * BREAKDOWNS_PER_PAGE));
+	const totalWrapperPages = $derived(Math.ceil(sortedWrappers.length / BREAKDOWNS_PER_PAGE));
 
 	// Filter to only show valid interest-bearing accounts (excluded accounts are not relevant for projection display)
 	const validProjectedAccounts = $derived.by(() => {
@@ -180,6 +212,9 @@
 		accounts.sort((a, b) => projectedAccountsSortDesc ? b.projectedInterest - a.projectedInterest : a.projectedInterest - b.projectedInterest);
 		return accounts;
 	});
+
+	const paginatedProjectedAccounts = $derived(sortedProjectedAccounts.slice(projectionsPage * PROJECTIONS_PER_PAGE, (projectionsPage + 1) * PROJECTIONS_PER_PAGE));
+	const totalProjectedPages = $derived(Math.ceil(sortedProjectedAccounts.length / PROJECTIONS_PER_PAGE));
 
 	// Tax year selector logic
 	const currentYearSlug = $derived(data.meta.taxYearStart.getUTCFullYear() + '-' + String(data.meta.taxYearEnd.getUTCFullYear()).slice(-2));
@@ -351,7 +386,7 @@
 
 	<!-- Account Breakdown -->
 	{#if activeBreakdown === 'account'}
-		<div class="p-2">
+		<div>
 			<div class="overflow-x-auto">
 				<table class="w-full">
 					<thead>
@@ -364,7 +399,7 @@
 						</tr>
 					</thead>
 					<tbody>
-						{#each sortedAccounts as account}
+						{#each paginatedAccounts as account}
 							<tr 
 								class="border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50"
 								class:bg-black={filterAccountId === account.accountId}
@@ -397,12 +432,13 @@
 					</tfoot>
 				</table>
 			</div>
+			<PaginationClient bind:page={breakdownsPage} totalPages={totalAccountPages} />
 		</div>
 	{/if}
 
 	<!-- Month Breakdown -->
 	{#if activeBreakdown === 'month'}
-		<div class="p-2">
+		<div>
 			<div class="overflow-x-auto">
 				<table class="w-full">
 					<thead>
@@ -413,7 +449,7 @@
 						</tr>
 					</thead>
 					<tbody>
-						{#each sortedMonths as month}
+						{#each paginatedMonths as month}
 							<tr 
 								class="border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50"
 								class:bg-black={filterMonth === month.month && filterYear === month.year}
@@ -442,12 +478,13 @@
 					</tfoot>
 				</table>
 			</div>
+			<PaginationClient bind:page={breakdownsPage} totalPages={totalMonthPages} />
 		</div>
 	{/if}
 
 	<!-- Institution Breakdown -->
 	{#if activeBreakdown === 'institution'}
-		<div class="p-2">
+		<div>
 			<div class="overflow-x-auto">
 				<table class="w-full">
 					<thead>
@@ -458,7 +495,7 @@
 						</tr>
 					</thead>
 					<tbody>
-						{#each sortedInstitutions as inst}
+						{#each paginatedInstitutions as inst}
 							<tr 
 								class="border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50"
 								class:bg-black={filterInstitution === inst.institution}
@@ -487,12 +524,13 @@
 					</tfoot>
 				</table>
 			</div>
+			<PaginationClient bind:page={breakdownsPage} totalPages={totalInstitutionPages} />
 		</div>
 	{/if}
 
 	<!-- Tax Wrapper Breakdown -->
 	{#if activeBreakdown === 'wrapper'}
-		<div class="p-2">
+		<div>
 			<div class="overflow-x-auto">
 				<table class="w-full">
 					<thead>
@@ -503,7 +541,7 @@
 						</tr>
 					</thead>
 					<tbody>
-						{#each sortedWrappers as wrap}
+						{#each paginatedWrappers as wrap}
 							<tr 
 								class="border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50"
 								class:bg-black={filterTaxWrapper === wrap.taxWrapper}
@@ -537,6 +575,7 @@
 					</tfoot>
 				</table>
 			</div>
+			<PaginationClient bind:page={breakdownsPage} totalPages={totalWrapperPages} />
 		</div>
 	{/if}
 </div>
@@ -567,7 +606,7 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each sortedProjectedAccounts as account}
+				{#each paginatedProjectedAccounts as account}
 					<tr class="border-b border-gray-200 last:border-b-0">
 						<td class="pl-2 text-sm py-2 whitespace-nowrap">
 							<a href="/accounts/{account.accountSlug}" class="bracket-link text-xs">{account.accountName}</a>
@@ -627,6 +666,7 @@
 			</tfoot>
 		</table>
 	</div>
+	<PaginationClient bind:page={projectionsPage} totalPages={totalProjectedPages} />
 	<div class="p-2 text-[10px] text-gray-600 border-t border-black uppercase font-mono">
 		[TECHNICAL NOTE] Basis: balance * rate * (days / 365). fixed-term accounts project only to maturity date. non-matured fixed-term interest is excluded from taxable totals until maturity.
 	</div>
