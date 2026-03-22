@@ -48,24 +48,72 @@
 	const paginatedBalances = $derived(data.monthlyBalances.slice(balancesPage * BALANCES_PER_PAGE, (balancesPage + 1) * BALANCES_PER_PAGE));
 	const totalBalancesPages = $derived(Math.ceil(data.monthlyBalances.length / BALANCES_PER_PAGE));
 
+	// Scroll targets for pagination
+	let transactionsSectionRef: HTMLElement | null = $state(null);
+	let ratesSectionRef: HTMLElement | null = $state(null);
+	let balancesSectionRef: HTMLElement | null = $state(null);
+
+	// Track if we're updating to prevent loops
+	let isUpdatingTransactionPage = $state(false);
+	let isUpdatingRatesPage = $state(false);
+	let isUpdatingBalancesPage = $state(false);
+
+	// Sync pagination state with URL (1-indexed)
 	$effect(() => {
-		const urlPage = Number(pageState.url.searchParams.get('page')) || 0;
-		if (transactionPage !== urlPage) {
-			transactionPage = urlPage;
-		}
+		if (isUpdatingTransactionPage) return;
+		const urlTxPage = Number(pageState.url.searchParams.get('txPage')) || 1;
+		if (transactionPage !== urlTxPage - 1) transactionPage = urlTxPage - 1;
+
+		if (isUpdatingRatesPage) return;
+		const urlRatesPage = Number(pageState.url.searchParams.get('ratesPage')) || 1;
+		if (ratesPage !== urlRatesPage - 1) ratesPage = urlRatesPage - 1;
+
+		if (isUpdatingBalancesPage) return;
+		const urlBalancesPage = Number(pageState.url.searchParams.get('balancesPage')) || 1;
+		if (balancesPage !== urlBalancesPage - 1) balancesPage = urlBalancesPage - 1;
 	});
 
-	$effect(() => {
-		if (transactionPage !== (Number(pageState.url.searchParams.get('page')) || 0)) {
-			const url = new URL(window.location.href);
-			if (transactionPage === 0) {
-				url.searchParams.delete('page');
-			} else {
-				url.searchParams.set('page', String(transactionPage));
-			}
-			goto(url.pathname + url.search, { replaceState: true, noScroll: true });
+	async function updateTransactionPage(newPage: number) {
+		if (isUpdatingTransactionPage) return;
+		isUpdatingTransactionPage = true;
+		transactionPage = newPage;
+		const url = new URL(pageState.url);
+		if (newPage + 1 !== 1) {
+			url.searchParams.set('txPage', String(newPage + 1));
+		} else {
+			url.searchParams.delete('txPage');
 		}
-	});
+		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
+		isUpdatingTransactionPage = false;
+	}
+
+	async function updateRatesPage(newPage: number) {
+		if (isUpdatingRatesPage) return;
+		isUpdatingRatesPage = true;
+		ratesPage = newPage;
+		const url = new URL(pageState.url);
+		if (newPage + 1 !== 1) {
+			url.searchParams.set('ratesPage', String(newPage + 1));
+		} else {
+			url.searchParams.delete('ratesPage');
+		}
+		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
+		isUpdatingRatesPage = false;
+	}
+
+	async function updateBalancesPage(newPage: number) {
+		if (isUpdatingBalancesPage) return;
+		isUpdatingBalancesPage = true;
+		balancesPage = newPage;
+		const url = new URL(pageState.url);
+		if (newPage + 1 !== 1) {
+			url.searchParams.set('balancesPage', String(newPage + 1));
+		} else {
+			url.searchParams.delete('balancesPage');
+		}
+		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
+		isUpdatingBalancesPage = false;
+	}
 
 	// Form submission feedback state
 	let isSubmitting = $state(false);
@@ -296,7 +344,7 @@
 
 <!-- INTEREST RATES SECTION -->
 {#if data.interestSummary || data.rates.length > 0}
-<div class="">
+<div bind:this={ratesSectionRef}>
 	<div class="border-y bg-gray-100 p-2 font-bold flex justify-between items-center">
 		<span>INTEREST RATES {#if data.currentRate !== null}<span class="font-normal text-sm ml-2">({(data.currentRate / 100).toFixed(2)}% current)</span>{/if}</span>
 		{#if !data.account.closedAt}
@@ -522,13 +570,13 @@
 				</tbody>
 			</table>
 		</div>
-		<PaginationClient bind:page={ratesPage} totalPages={totalRatesPages} />
+		<PaginationClient page={ratesPage} totalPages={totalRatesPages} onPageChange={updateRatesPage} scrollTarget={ratesSectionRef} />
 	{/if}
 </div>
 {/if}
 
 <!-- MONTHLY BALANCE SUMMARY -->
-<div>
+<div bind:this={balancesSectionRef}>
 	<div class="bg-gray-100 p-2 font-bold border-y border-black">MONTHLY BALANCE SUMMARY (Derived from Transactions)</div>
 	{#if data.monthlyBalances.length === 0}
 		<p class="text-gray-600 text-xs p-2">No transactions yet. Monthly balance summary will appear automatically.</p>
@@ -561,12 +609,12 @@
 			</tbody>
 		</table>
 		</div>
-		<PaginationClient bind:page={balancesPage} totalPages={totalBalancesPages} />
+		<PaginationClient page={balancesPage} totalPages={totalBalancesPages} onPageChange={updateBalancesPage} scrollTarget={balancesSectionRef} />
 	{/if}
 </div>
 
 <!-- TRANSACTIONS SECTION -->
-<div class="border-t border-black">
+<div bind:this={transactionsSectionRef} class="border-t border-black">
 	<div class="border-b border-black bg-gray-100 p-2 font-bold flex justify-between items-center">
 		<span>TRANSACTIONS</span>
 		{#if !data.account.closedAt}
@@ -748,7 +796,7 @@
 			</table>
 		</div>
 		<div class="border-t border-black empty:hidden">
-			<PaginationClient bind:page={transactionPage} totalPages={data.transactionPagination.totalPages} />
+			<PaginationClient page={transactionPage} totalPages={data.transactionPagination.totalPages} onPageChange={updateTransactionPage} scrollTarget={transactionsSectionRef} />
 		</div>
 	{/if}
 </div>

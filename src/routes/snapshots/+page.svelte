@@ -1,8 +1,36 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { page as pageState } from '$app/state';
 	import { formatCurrencyShorthand } from '$lib/utils/currency';
-	import Pagination from '$lib/components/Pagination.svelte';
+	import PaginationClient from '$lib/components/PaginationClient.svelte';
 
 	let { data } = $props();
+
+	let tableRef: HTMLElement | null = $state(null);
+	let currentPage = $state(data.page);
+	let isUpdatingPage = $state(false);
+
+	async function updatePage(newPage: number) {
+		if (isUpdatingPage) return;
+		isUpdatingPage = true;
+		currentPage = newPage;
+		const url = new URL(pageState.url);
+		if (newPage + 1 !== 1) {
+			url.searchParams.set('page', String(newPage + 1));
+		} else {
+			url.searchParams.delete('page');
+		}
+		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
+		isUpdatingPage = false;
+	}
+
+	$effect(() => {
+		if (isUpdatingPage) return;
+		const urlPage = Number(pageState.url.searchParams.get('page')) || 1;
+		if (currentPage !== urlPage - 1) {
+			currentPage = urlPage - 1;
+		}
+	});
 
 	const snapshotsWithTrends = $derived.by(() => {
 		return data.snapshots.map((snapshot, index) => {
@@ -38,7 +66,7 @@
 			No snapshots yet. Create your first snapshot to start tracking your net worth over time.
 		</p>
 	{:else}
-		<table>
+		<table bind:this={tableRef}>
 			<thead>
 				<tr>
 					<th class="w-8 text-center border-r border-gray-200">T</th>
@@ -81,8 +109,9 @@
 	{/if}
 </div>
 
-<Pagination
-	currentPage={data.page}
+<PaginationClient
+	page={currentPage}
 	totalPages={data.totalPages}
-	buildHref={(p) => `/snapshots?page=${p}`}
+	onPageChange={updatePage}
+	scrollTarget={tableRef}
 />

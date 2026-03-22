@@ -37,11 +37,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		userId: locals.user.id,
 	});
 
-	// Pagination for accounts and goals
+	// Pagination for accounts and goals (1-indexed URL parameters)
 	const ACCOUNTS_PER_PAGE = 10;
 	const GOALS_PER_PAGE = 10;
-	const accountsPage = Number(url.searchParams.get("accountsPage")) || 0;
-	const goalsPage = Number(url.searchParams.get("goalsPage")) || 0;
+	const accountsPageParam = Number(url.searchParams.get("accountsPage")) || 1;
+	const goalsPageParam = Number(url.searchParams.get("goalsPage")) || 1;
 
 	// Fetch total counts for pagination
 	const [{ totalAccounts }] = await db
@@ -55,11 +55,15 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	const totalAccountPages = Math.ceil(totalAccounts / ACCOUNTS_PER_PAGE);
 	const totalGoalPages = Math.ceil(totalGoals / GOALS_PER_PAGE);
+	// Convert 1-indexed URL to 0-indexed internal and clamp to valid range
 	const safeAccountsPage = Math.min(
-		accountsPage,
+		Math.max(0, accountsPageParam - 1),
 		Math.max(0, totalAccountPages - 1),
 	);
-	const safeGoalsPage = Math.min(goalsPage, Math.max(0, totalGoalPages - 1));
+	const safeGoalsPage = Math.min(
+		Math.max(0, goalsPageParam - 1),
+		Math.max(0, totalGoalPages - 1),
+	);
 
 	// Fetch paginated user accounts
 	const userAccounts = await db.query.accounts.findMany({

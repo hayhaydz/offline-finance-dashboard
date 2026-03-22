@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { formatCurrency, formatDateShorthand } from '$lib/utils/currency';
+	import { goto } from '$app/navigation';
+	import { page as pageState } from '$app/state';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import type { PageData } from './$types';
 
@@ -39,6 +41,14 @@
 
 	// Sort state for transactions (default: date ascending)
 	let transactionsSortDesc = $state(false);
+
+	// Scroll targets for pagination
+	let transactionsSectionRef: HTMLElement | null = $state(null);
+	let breakdownsSectionRef: HTMLElement | null = $state(null);
+
+	// Track if we're updating to prevent loops
+	let isUpdatingTransactionsPage = $state(false);
+	let isUpdatingBreakdownsPage = $state(false);
 
 	// Derived filtered transactions (deposits only for allowance tracking)
 	const filteredTransactions = $derived.by(() => {
@@ -80,6 +90,41 @@
 	$effect(() => {
 		breakdownsPage = 0;
 	});
+
+	// Sync pagination state with URL (1-indexed)
+	$effect(() => {
+		if (isUpdatingBreakdownsPage) return;
+		const urlBreakdownsPage = Number(pageState.url.searchParams.get('breakdownsPage')) || 1;
+		if (breakdownsPage !== urlBreakdownsPage - 1) breakdownsPage = urlBreakdownsPage - 1;
+
+		if (isUpdatingTransactionsPage) return;
+		const urlTransactionsPage = Number(pageState.url.searchParams.get('txPage')) || 1;
+		if (transactionsPage !== urlTransactionsPage - 1) transactionsPage = urlTransactionsPage - 1;
+	});
+
+	async function updateBreakdownsPage(newPage: number) {
+		if (isUpdatingBreakdownsPage) return;
+		isUpdatingBreakdownsPage = true;
+		breakdownsPage = newPage;
+		const url = new URL(pageState.url);
+		url.searchParams.set('breakdownsPage', String(newPage + 1));
+		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
+		isUpdatingBreakdownsPage = false;
+	}
+
+	async function updateTransactionsPage(newPage: number) {
+		if (isUpdatingTransactionsPage) return;
+		isUpdatingTransactionsPage = true;
+		transactionsPage = newPage;
+		const url = new URL(pageState.url);
+		if (newPage + 1 !== 1) {
+			url.searchParams.set('txPage', String(newPage + 1));
+		} else {
+			url.searchParams.delete('txPage');
+		}
+		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
+		isUpdatingTransactionsPage = false;
+	}
 
 	// Reset page when filters change
 	$effect(() => {
@@ -355,7 +400,7 @@
 
 	<!-- Account Breakdown -->
 	{#if activeBreakdown === 'account'}
-		<div>
+	<div bind:this={breakdownsSectionRef}>
 			<div class="overflow-x-auto">
 				<table class="w-full">
 					<thead>
@@ -400,7 +445,7 @@
 					</tfoot>
 				</table>
 			</div>
-			<PaginationClient bind:page={breakdownsPage} totalPages={totalAccountPages} />
+			<PaginationClient page={breakdownsPage} onPageChange={updateBreakdownsPage} totalPages={totalAccountPages} scrollTarget={breakdownsSectionRef} />
 		</div>
 	{/if}
 
@@ -446,7 +491,7 @@
 					</tfoot>
 				</table>
 			</div>
-			<PaginationClient bind:page={breakdownsPage} totalPages={totalMonthPages} />
+			<PaginationClient page={breakdownsPage} onPageChange={updateBreakdownsPage} totalPages={totalMonthPages} scrollTarget={breakdownsSectionRef} />
 		</div>
 	{/if}
 
@@ -492,7 +537,7 @@
 					</tfoot>
 				</table>
 			</div>
-			<PaginationClient bind:page={breakdownsPage} totalPages={totalInstitutionPages} />
+			<PaginationClient page={breakdownsPage} onPageChange={updateBreakdownsPage} totalPages={totalInstitutionPages} scrollTarget={breakdownsSectionRef} />
 		</div>
 	{/if}
 
@@ -540,7 +585,7 @@
 					</tfoot>
 				</table>
 			</div>
-			<PaginationClient bind:page={breakdownsPage} totalPages={totalWrapperPages} />
+			<PaginationClient page={breakdownsPage} onPageChange={updateBreakdownsPage} totalPages={totalWrapperPages} scrollTarget={breakdownsSectionRef} />
 		</div>
 	{/if}
 </div>
@@ -586,7 +631,7 @@
 </div>
 
 <!-- TAX YEAR ISA SUBSCRIPTION RECORD SECTION -->
-<div id="transactions-anchor">
+<div id="transactions-anchor" bind:this={transactionsSectionRef}>
 	<div class="p-2 font-bold flex justify-between items-center uppercase border-b border-black">
 		<div class="flex flex-col gap-1">
 			<span>Tax Year Subscription Record ({sortedTransactions.length} results)</span>
@@ -643,7 +688,7 @@
 			</table>
 		</div>
 		<div class="border-t border-black empty:hidden">
-			<PaginationClient bind:page={transactionsPage} totalPages={totalTransactionPages} />
+			<PaginationClient page={transactionsPage} totalPages={totalTransactionPages} onPageChange={updateTransactionsPage} scrollTarget={transactionsSectionRef} />
 		</div>
 	{/if}
 	<div class="p-2 text-[10px] text-gray-600 border-t border-black uppercase font-mono">

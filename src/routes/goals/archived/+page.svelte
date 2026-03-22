@@ -8,26 +8,35 @@
 
 	let { data } = $props();
 
+	// Pagination state with scroll target
+	let tableSectionRef: HTMLElement | null = $state(null);
 	let currentPage = $state(data.goalsPagination.page);
 
+	// Track if we're updating to prevent loops
+	let isUpdatingPage = $state(false);
+
+	// Sync from URL (1-indexed)
 	$effect(() => {
-		const urlPage = Number(pageState.url.searchParams.get('page')) || 0;
-		if (currentPage !== urlPage) {
-			currentPage = urlPage;
+		if (isUpdatingPage) return;
+		const urlPage = Number(pageState.url.searchParams.get('page')) || 1;
+		if (currentPage !== urlPage - 1) {
+			currentPage = urlPage - 1;
 		}
 	});
 
-	$effect(() => {
-		if (currentPage !== (Number(pageState.url.searchParams.get('page')) || 0)) {
-			const url = new URL(window.location.href);
-			if (currentPage === 0) {
-				url.searchParams.delete('page');
-			} else {
-				url.searchParams.set('page', String(currentPage));
-			}
-			goto(url.pathname + url.search, { replaceState: true, noScroll: true });
+	async function updatePage(newPage: number) {
+		if (isUpdatingPage) return;
+		isUpdatingPage = true;
+		currentPage = newPage;
+		const url = new URL(pageState.url);
+		if (newPage + 1 !== 1) {
+			url.searchParams.set('page', String(newPage + 1));
+		} else {
+			url.searchParams.delete('page');
 		}
-	});
+		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
+		isUpdatingPage = false;
+	}
 
 	// Calculate progress percentage for a goal
 	function getProgress(goal: Goal): number {
@@ -61,11 +70,12 @@
 
 <!-- ARCHIVED GOALS LIST SECTION -->
 <div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-	<span><span class="text-gray-600">●</span> ARCHIVED ({data.goals.length})</span>
+	<span><span class="text-gray-600">●</span> ARCHIVED ({data.totalCount})</span>
 	<a href="/goals" class="bracket-link text-xs">Back to Goals</a>
 </div>
 
-<div class="p-0">
+<div bind:this={tableSectionRef}>
+	<div class="p-0">
 	{#if data.goals.length === 0}
 		<p class="text-gray-600 text-xs p-2">
 			No archived goals yet. Goals are archived when you delete them from the active list.
@@ -97,6 +107,7 @@
 				{/each}
 			</tbody>
 		</table>
-		<PaginationClient bind:page={currentPage} totalPages={data.goalsPagination.totalPages} />
+		<PaginationClient page={currentPage} totalPages={data.goalsPagination.totalPages} onPageChange={updatePage} scrollTarget={tableSectionRef} />
 	{/if}
+	</div>
 </div>

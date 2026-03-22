@@ -75,10 +75,11 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		getMonthlyBalanceHistory(account.id, 24),
 	]);
 
-	// Pagination for transactions
+	// Pagination for transactions (1-indexed URL parameter)
 	const TRANSACTIONS_PER_PAGE = 20;
-	const page = Number(url.searchParams.get("page")) || 0;
-	const offset = page * TRANSACTIONS_PER_PAGE;
+	const pageParam = url.searchParams.get("txPage");
+	const parsedPage = pageParam ? Number.parseInt(pageParam, 10) : 1;
+	const validPage = Number.isFinite(parsedPage) && parsedPage >= 1 ? parsedPage : 1;
 
 	// Get total transaction count for pagination
 	const [{ total }] = await db
@@ -86,7 +87,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		.from(accountTransactions)
 		.where(eq(accountTransactions.accountId, account.id));
 	const totalTransactionPages = Math.ceil(total / TRANSACTIONS_PER_PAGE);
-	const safePage = Math.min(page, Math.max(0, totalTransactionPages - 1));
+	// Convert 1-indexed to 0-indexed and clamp to valid range
+	const safePage = Math.min(validPage - 1, Math.max(0, totalTransactionPages - 1));
 	const safeOffset = safePage * TRANSACTIONS_PER_PAGE;
 
 	// Get paginated transactions for this account

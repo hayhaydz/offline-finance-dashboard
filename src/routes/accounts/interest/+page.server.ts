@@ -28,7 +28,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	}
 
 	const TAX_YEARS_PER_PAGE = 20;
-	const page = Number(url.searchParams.get("page")) || 0;
+	// 1-indexed URL parameter
+	const pageParam = Number(url.searchParams.get("page")) || 1;
+	const page = Math.max(0, pageParam - 1); // Convert to 0-indexed
 	const offset = page * TAX_YEARS_PER_PAGE;
 
 	// 1. Get user accounts with maturity dates

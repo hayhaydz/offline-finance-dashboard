@@ -74,14 +74,32 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		orderBy: desc(goalAllocations.createdAt),
 	});
 
+	// Pagination for source accounts
+	const SRC_PAGE_SIZE = 20;
+	const srcPageParam = url.searchParams.get("srcPage");
+	const srcPage = Math.max(
+		0,
+		srcPageParam ? parseInt(srcPageParam, 10) - 1 : 0,
+	);
+
 	// Fetch account allocation breakdown for this goal (with account details)
 	const accountAllocationsRaw = await getGoalAccountNetAllocations({
 		goalId: goal.id,
 	});
 
-	// Enrich with account details
+	// Total source accounts count for pagination
+	const srcTotalAccounts = accountAllocationsRaw.length;
+	const srcTotalPages = Math.ceil(srcTotalAccounts / SRC_PAGE_SIZE);
+	const safeSrcPage = Math.min(srcPage, Math.max(0, srcTotalPages - 1));
+
+	// Paginate and enrich with account details
+	const paginatedAllocationsRaw = accountAllocationsRaw.slice(
+		safeSrcPage * SRC_PAGE_SIZE,
+		(safeSrcPage + 1) * SRC_PAGE_SIZE,
+	);
+
 	const accountAllocations = await Promise.all(
-		accountAllocationsRaw.map(async (alloc) => {
+		paginatedAllocationsRaw.map(async (alloc) => {
 			const account = await db.query.accounts.findFirst({
 				where: eq(accounts.id, alloc.accountId),
 			});
@@ -148,7 +166,11 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		allocationHistory,
 		allocPage: safeAllocPage,
 		allocTotalPages,
+		allocTotal,
 		accountAllocations,
+		srcPage: safeSrcPage,
+		srcTotalPages,
+		srcTotalAccounts,
 		paceMetrics,
 		liquidityBreakdown,
 		contributionStats,

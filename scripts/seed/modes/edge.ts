@@ -48,10 +48,13 @@ interface SnapshotFixture {
 	multiplier: number;
 	notes: string | null;
 	special?: "excluded_accounts" | "empty_goals" | "force_negative";
-	interestOverrideByName?: Record<string, {
-		actualInterest?: number;
-		projectedInterest?: number;
-	}>;
+	interestOverrideByName?: Record<
+		string,
+		{
+			actualInterest?: number;
+			projectedInterest?: number;
+		}
+	>;
 	isaAllowanceOverride?: {
 		usedThisTaxYear?: number;
 	};
@@ -83,13 +86,13 @@ export async function seedEdge(db: DB, userId: number): Promise<void> {
 				category: a.category,
 				liquidity: a.liquidity,
 				excludedFromNetWorth: a.excludedFromNetWorth,
-				closedAt: a.closedAt ? new Date(a.closedAt) : null,
+				closedAt: null, // Insert with null, close account after transactions
 				createdAt: now,
 				updatedAt: now,
 			})
 			.returning();
 
-		// Insert explicit transactions that define balance history
+		// Insert explicit transactions that define balance history (before closing account)
 		for (const b of a.balances) {
 			const transactionDate = daysAgo(b.daysAgo);
 			await db.insert(schema.accountTransactions).values({
@@ -123,6 +126,14 @@ export async function seedEdge(db: DB, userId: number): Promise<void> {
 					createdAt: transactionDate,
 				});
 			}
+		}
+
+		// Close the account after inserting historical transactions
+		if (a.closedAt) {
+			await db
+				.update(schema.accounts)
+				.set({ closedAt: new Date(a.closedAt) })
+				.where(eq(schema.accounts.id, account.id));
 		}
 
 		accountByName.set(a.name, account);

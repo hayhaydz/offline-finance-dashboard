@@ -34,9 +34,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Pagination for accounts
 	const ACCOUNTS_PER_PAGE = 20;
 	const pageParam = url.searchParams.get("page");
-	const parsedPage = pageParam ? Number.parseInt(pageParam, 10) : 0;
+	// URL parameter is 1-indexed, convert to 0-indexed for internal use
+	const parsedPage = pageParam ? Number.parseInt(pageParam, 10) : 1;
 	const validPage =
-		Number.isFinite(parsedPage) && parsedPage >= 0 ? parsedPage : 0;
+		Number.isFinite(parsedPage) && parsedPage >= 1 ? parsedPage : 1;
 
 	// Get total count for pagination
 	const [{ total }] = await db
@@ -44,7 +45,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		.from(accounts)
 		.where(withUserFilter(locals.user.id, accounts));
 	const totalPages = Math.ceil(total / ACCOUNTS_PER_PAGE);
-	const safePage = Math.min(validPage, Math.max(0, totalPages - 1));
+	// Convert 1-indexed to 0-indexed and clamp to valid range
+	const safePage = Math.min(validPage - 1, Math.max(0, totalPages - 1));
 	const offset = safePage * ACCOUNTS_PER_PAGE;
 
 	// Query accounts with user filter and pagination

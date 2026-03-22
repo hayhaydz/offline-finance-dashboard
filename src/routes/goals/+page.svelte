@@ -1,11 +1,39 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { page as pageState } from '$app/state';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { getStaleness } from '$lib/utils/staleness';
 	import GoalRow from '$lib/components/GoalRow.svelte';
-	import Pagination from '$lib/components/Pagination.svelte';
+	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import type { Goal } from '$lib/db/schema';
 
 	let { data } = $props();
+
+	let tableRef: HTMLElement | null = $state(null);
+	let currentPage = $state(data.page);
+	let isUpdatingPage = $state(false);
+
+	async function updatePage(newPage: number) {
+		if (isUpdatingPage) return;
+		isUpdatingPage = true;
+		currentPage = newPage;
+		const url = new URL(pageState.url);
+		if (newPage + 1 !== 1) {
+			url.searchParams.set('page', String(newPage + 1));
+		} else {
+			url.searchParams.delete('page');
+		}
+		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
+		isUpdatingPage = false;
+	}
+
+	$effect(() => {
+		if (isUpdatingPage) return;
+		const urlPage = Number(pageState.url.searchParams.get('page')) || 1;
+		if (currentPage !== urlPage - 1) {
+			currentPage = urlPage - 1;
+		}
+	});
 
 	// Reactive goals array for client-side reordering
 	let goals = $state<Goal[]>([]);
@@ -155,7 +183,7 @@
 			No goals yet. Create your first goal to start tracking.
 		</p>
 	{:else}
-		<div class="overflow-x-auto">
+		<div class="overflow-x-auto" bind:this={tableRef}>
 		<table class="w-full">
 			<thead>
 				<tr>
@@ -192,9 +220,10 @@
 			</div>
 		{/if}
 	{/if}
-	<Pagination
-		currentPage={data.page}
+	<PaginationClient
+		page={currentPage}
 		totalPages={data.totalPages}
-		buildHref={(p) => `/goals?page=${p}`}
+		onPageChange={updatePage}
+		scrollTarget={tableRef}
 	/>
 </div>

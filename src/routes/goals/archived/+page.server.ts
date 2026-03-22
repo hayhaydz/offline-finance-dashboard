@@ -13,12 +13,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		redirect(302, "/login");
 	}
 
-	// Pagination for archived goals
+	// Pagination for archived goals (1-indexed URL parameters)
 	const GOALS_PER_PAGE = 20;
 	const pageParam = url.searchParams.get("page");
-	const parsedPage = pageParam ? Number.parseInt(pageParam, 10) : 0;
+	const parsedPage = pageParam ? Number.parseInt(pageParam, 10) : 1;
 	const validPage =
-		Number.isFinite(parsedPage) && parsedPage >= 0 ? parsedPage : 0;
+		Number.isFinite(parsedPage) && parsedPage >= 1 ? parsedPage : 1;
 
 	// Get total count for pagination
 	const [{ total }] = await db
@@ -28,7 +28,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			and(withUserFilter(locals.user.id, goals), isNotNull(goals.deletedAt)),
 		);
 	const totalPages = Math.ceil(total / GOALS_PER_PAGE);
-	const safePage = Math.min(validPage, Math.max(0, totalPages - 1));
+	// Convert 1-indexed to 0-indexed and clamp to valid range
+	const safePage = Math.min(validPage - 1, Math.max(0, totalPages - 1));
 	const offset = safePage * GOALS_PER_PAGE;
 
 	// Query user's archived goals (deletedAt IS NOT NULL) with row-level security
@@ -58,6 +59,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			page: safePage,
 			totalPages,
 		},
+		totalCount: total,
 		readyToAssign,
 		totalAssets,
 		totalAllocated,

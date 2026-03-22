@@ -14,39 +14,56 @@
 	// Accordion state for interest section
 	let interestExpanded = $state(false);
 
-	// Server-side pagination state for accounts and goals
+	// Pagination state with scroll targets
+	let accountsSectionRef: HTMLElement | null = $state(null);
+	let goalsSectionRef: HTMLElement | null = $state(null);
 	let accountsPage = $state(data.accountsPagination.page);
 	let goalsPage = $state(data.goalsPagination.page);
 
-	// Sync pagination state with URL
+	// Track if we're updating to prevent loops
+	let isUpdatingAccountsPage = $state(false);
+	let isUpdatingGoalsPage = $state(false);
+
+	// Sync pagination state with URL (1-indexed)
 	$effect(() => {
-		const urlAccountsPage = Number(pageState.url.searchParams.get('accountsPage')) || 0;
-		const urlGoalsPage = Number(pageState.url.searchParams.get('goalsPage')) || 0;
-		if (accountsPage !== urlAccountsPage) accountsPage = urlAccountsPage;
-		if (goalsPage !== urlGoalsPage) goalsPage = urlGoalsPage;
+		if (isUpdatingAccountsPage) return;
+		const urlAccountsPage = Number(pageState.url.searchParams.get('accountsPage')) || 1;
+		if (accountsPage !== urlAccountsPage - 1) accountsPage = urlAccountsPage - 1;
+	});
+
+	$effect(() => {
+		if (isUpdatingGoalsPage) return;
+		const urlGoalsPage = Number(pageState.url.searchParams.get('goalsPage')) || 1;
+		if (goalsPage !== urlGoalsPage - 1) goalsPage = urlGoalsPage - 1;
 	});
 
 	// Handle page changes
-	function updateAccountsPage(newPage: number) {
+	async function updateAccountsPage(newPage: number) {
+		if (isUpdatingAccountsPage) return;
+		isUpdatingAccountsPage = true;
 		accountsPage = newPage;
-		const url = new URL(window.location.href);
-		if (newPage === 0) {
-			url.searchParams.delete('accountsPage');
+		const url = new URL(pageState.url);
+		if (newPage + 1 !== 1) {
+			url.searchParams.set('accountsPage', String(newPage + 1));
 		} else {
-			url.searchParams.set('accountsPage', String(newPage));
+			url.searchParams.delete('accountsPage');
 		}
-		goto(url.pathname + url.search, { replaceState: true, noScroll: true });
+		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
+		isUpdatingAccountsPage = false;
 	}
 
-	function updateGoalsPage(newPage: number) {
+	async function updateGoalsPage(newPage: number) {
+		if (isUpdatingGoalsPage) return;
+		isUpdatingGoalsPage = true;
 		goalsPage = newPage;
-		const url = new URL(window.location.href);
-		if (newPage === 0) {
-			url.searchParams.delete('goalsPage');
+		const url = new URL(pageState.url);
+		if (newPage + 1 !== 1) {
+			url.searchParams.set('goalsPage', String(newPage + 1));
 		} else {
-			url.searchParams.set('goalsPage', String(newPage));
+			url.searchParams.delete('goalsPage');
 		}
-		goto(url.pathname + url.search, { replaceState: true, noScroll: true });
+		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
+		isUpdatingGoalsPage = false;
 	}
 
 	// Current tax year slug for interest link
@@ -346,6 +363,7 @@
 
 	<!-- GOALS PREVIEW -->
 	{#if goals && goals.length > 0}
+	<div bind:this={goalsSectionRef}>
 		<div class="font-bold flex justify-between bg-gray-100 border-y border-black p-2">
 			<div class="flex items-center gap-2">
 				<span>GOALS ({goals.length})</span>
@@ -360,6 +378,12 @@
 				</div>
 			{/each}
 		</div>
-		<PaginationClient page={goalsPage} totalPages={data.goalsPagination.totalPages} />
+		<PaginationClient
+      page={goalsPage}
+      totalPages={data.goalsPagination.totalPages}
+      onPageChange={updateGoalsPage}
+      scrollTarget={goalsSectionRef}
+    />
+	</div>
 	{/if}
 {/if}

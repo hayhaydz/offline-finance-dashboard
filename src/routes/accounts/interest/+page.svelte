@@ -6,26 +6,35 @@
 	
     let { data } = $props();
 
-	let currentPage = $state(Number(pageState.url.searchParams.get('page')) || 0);
+	// Pagination state with scroll target
+	let tableSectionRef: HTMLElement | null = $state(null);
+	let currentPage = $state(data.currentPage);
 
+	// Track if we're updating to prevent loops
+	let isUpdatingPage = $state(false);
+
+	// Sync from URL (1-indexed)
 	$effect(() => {
-		const urlPage = Number(pageState.url.searchParams.get('page')) || 0;
-		if (currentPage !== urlPage) {
-			currentPage = urlPage;
+		if (isUpdatingPage) return;
+		const urlPage = Number(pageState.url.searchParams.get('page')) || 1;
+		if (currentPage !== urlPage - 1) {
+			currentPage = urlPage - 1;
 		}
 	});
 
-	$effect(() => {
-		if (currentPage !== (Number(pageState.url.searchParams.get('page')) || 0)) {
-			const url = new URL(window.location.href);
-			if (currentPage === 0) {
-				url.searchParams.delete('page');
-			} else {
-				url.searchParams.set('page', String(currentPage));
-			}
-			goto(url.pathname + url.search, { replaceState: true, noScroll: true });
+	async function updatePage(newPage: number) {
+		if (isUpdatingPage) return;
+		isUpdatingPage = true;
+		currentPage = newPage;
+		const url = new URL(pageState.url);
+		if (newPage + 1 !== 1) {
+			url.searchParams.set('page', String(newPage + 1));
+		} else {
+			url.searchParams.delete('page');
 		}
-	});
+		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
+		isUpdatingPage = false;
+	}
 </script>
 
 <div class="bg-gray-100 p-2 font-bold border-b border-black flex justify-between items-center">
@@ -36,6 +45,7 @@
 {#if data.taxYears.length === 0}
     <div class="p-2 text-gray-600 text-sm">No interest history found.</div>
 {:else}
+<div bind:this={tableSectionRef}>
     <div class="overflow-x-auto">
         <table class="min-w-[550px] w-full">
             <thead>
@@ -68,5 +78,6 @@
             </tbody>
         </table>
     </div>
-    <PaginationClient bind:page={currentPage} totalPages={data.totalPages ?? 0} />
+    <PaginationClient page={currentPage} totalPages={data.totalPages ?? 0} onPageChange={updatePage} scrollTarget={tableSectionRef} />
+</div>
 {/if}

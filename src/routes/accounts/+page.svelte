@@ -14,27 +14,50 @@
 	let filterModalOpen = $state(false);
 	let sortModalOpen = $state(false);
 
-	// Pagination state
+	// Pagination state - use a ref to avoid race conditions
+	let accountsSectionRef: HTMLElement | null = $state(null);
 	let currentPage = $state(data.accountsPagination.page);
 
-	$effect(() => {
-		const urlPage = Number(page.url.searchParams.get('page')) || 0;
-		if (currentPage !== urlPage) {
-			currentPage = urlPage;
-		}
-	});
+	// Track if we're updating to prevent loops
+	let isUpdatingPage = $state(false);
 
-	$effect(() => {
-		if (currentPage !== (Number(page.url.searchParams.get('page')) || 0)) {
-			const url = new URL(window.location.href);
-			if (currentPage === 0) {
-				url.searchParams.delete('page');
-			} else {
-				url.searchParams.set('page', String(currentPage));
-			}
-			goto(url.pathname + url.search, { replaceState: true, noScroll: true });
+  // Sync from URL (handles browser back/forward and direct links)
+  $effect(() => {
+    if (isUpdatingPage) return; // Skip if we're updating from user action
+
+    const urlPage = Number(page.url.searchParams.get('page')) || 1;
+    // Convert 1-indexed URL to 0-indexed internal state
+    const internalPage = urlPage - 1;
+    if (currentPage !== internalPage) {
+      currentPage = internalPage;
+    }
+  });
+
+  async function updateAccountsPage(newPage: number) {
+    // 1. Prevent double-clicks from firing concurrent route changes
+    if (isUpdatingPage) return; 
+    
+    isUpdatingPage = true;
+    currentPage = newPage;
+    
+    // 2. Use SvelteKit's reactive page.url instead of window.location.href
+    const url = new URL(page.url); 
+    
+    // Convert 0-indexed internal state to 1-indexed URL parameter
+    const displayPage = newPage + 1;
+    if (displayPage !== 1) {
+			url.searchParams.set('page', String(displayPage));
+		} else {
+			url.searchParams.delete('page');
 		}
-	});
+    
+    // 3. AWAIT the goto function! This ensures the navigation fully completes 
+    // and the URL physically updates before we release the 'isUpdatingPage' lock.
+    await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
+
+    // 4. Safely release the lock now that page.url has updated
+    isUpdatingPage = false;
+  }
 
 	// Current tax year slug for interest links
 
@@ -226,35 +249,37 @@
 </div>
 
 <!-- ACCOUNTS OVERVIEW SECTION -->
-<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-	<div class="flex items-center gap-2">
-		{#if hasActiveFilters}
-			<span class="bg-black text-white px-1 text-xs uppercase">
-				Filtered ({activeFilterCount})
-			</span>
-			<a href="/accounts" class="bracket-link text-xs">Clear All</a>
-		{/if}
+<!-- Wrapper div for scroll-to-top reference -->
+<div bind:this={accountsSectionRef}>
+	<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
+		<div class="flex items-center gap-2">
+			{#if hasActiveFilters}
+				<span class="bg-black text-white px-1 text-xs uppercase">
+					Filtered ({activeFilterCount})
+				</span>
+				<a href="/accounts" class="bracket-link text-xs">Clear All</a>
+			{/if}
+		</div>
+		<div class="flex gap-2">
+			<button
+				type="button"
+				class="bracket-link text-xs"
+				onclick={() => sortModalOpen = true}
+			>
+				Sort
+			</button>
+			<button
+				type="button"
+				class="bracket-link text-xs"
+				onclick={() => filterModalOpen = true}
+			>
+				Filters
+			</button>
+			<a href="/accounts/create" class="bracket-link text-xs">Create Account</a>
+		</div>
 	</div>
-	<div class="flex gap-2">
-		<button
-			type="button"
-			class="bracket-link text-xs"
-			onclick={() => sortModalOpen = true}
-		>
-			Sort
-		</button>
-		<button
-			type="button"
-			class="bracket-link text-xs"
-			onclick={() => filterModalOpen = true}
-		>
-			Filters
-		</button>
-		<a href="/accounts/create" class="bracket-link text-xs">Create Account</a>
-	</div>
-</div>
 
-<div class="p-0">
+	<div class="p-0">
 	{#if sortedAccounts.length === 0}
 		<p class="text-gray-600 text-xs p-2">No accounts yet. Add your first account to start tracking.</p>
 		<table>
@@ -345,9 +370,16 @@
 			</tbody>
 		</table>
 		</div>
-		<PaginationClient bind:page={currentPage} totalPages={data.accountsPagination.totalPages} />
+		<PaginationClient
+			page={currentPage}
+			totalPages={data.accountsPagination.totalPages}
+			onPageChange={updateAccountsPage}
+			scrollTarget={accountsSectionRef}
+		/>
 	{/if}
+	</div>
 </div>
+<!-- End of accounts section wrapper for scroll-to-top -->
 
 {#if filterModalOpen}
 	<AccountFiltersModal
