@@ -1,3 +1,23 @@
+## [2026-03-22] — Navigation Dropdowns
+
+**Summary:** Added dropdown-style sub-navigation to main navigation bar. Navigation items with children (Accounts, Settings) now show expandable sub-navigation rows. Main navigation changed from justify-between to left-aligned with consistent spacing.
+
+**Features:**
+- Hierarchical navigation data structure with parent/child relationships
+- Sub-navigation rows appear absolutely positioned beneath main nav
+- Spacer div prevents content overlap when sub-nav is visible
+- Active route detection auto-opens relevant sub-navigation
+- Manual toggle support for opening/closing sub-navs
+- Visual distinction between main nav and sub-nav (gray background)
+- Consistent terminal aesthetic maintained with bracket-links
+- Accessibility preserved with semantic `<a>` elements and preventDefault for toggles
+
+**Files:**
+- `src/lib/components/navigation.svelte` - Enhanced NavItem interface, added activeSubNav state, updated template with left-aligned layout and sub-nav rendering
+
+**Commit:**
+- `feat: add dropdown-style sub-navigation to main nav`
+
 ## [2026-03-22] — Interest Navigation Enhancements
 
 **Summary:** Added "View Breakdown" link to account detail page interest section (matching homepage) and implemented year boundaries for prev/next navigation (matching breakdown page). Navigation now respects global available tax years across all user accounts.

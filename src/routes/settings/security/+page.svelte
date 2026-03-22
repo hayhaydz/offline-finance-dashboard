@@ -2,7 +2,6 @@
 	import { enhance } from '$app/forms';
 	import { browser } from '$app/environment';
 	import FormField from '$lib/components/ui/form-field/form-field.svelte';
-	import SettingsNav from '$lib/components/SettingsNav.svelte';
 	import { required, minLength, hasUppercase, hasLowercase, hasNumber, hasSpecial, matches } from '$lib/validation/rules';
 	import type { ActionData } from './$types';
 
@@ -165,7 +164,6 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <main>
-	<SettingsNav current="security" />
 		<!-- PASSWORD CHANGE SECTION -->
 		<section>
 			<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">

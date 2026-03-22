@@ -1,11 +1,8 @@
 <script lang="ts">
-	import SettingsNav from '$lib/components/SettingsNav.svelte';
 	let { data } = $props();
 </script>
 
 <main>
-	<SettingsNav current="profile" />
-
 	<!-- USER INFO SECTION -->
 	<section>
 		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">

@@ -1,10 +1,4 @@
-<script lang="ts">
-	import SettingsNav from '$lib/components/SettingsNav.svelte';
-</script>
-
 <main>
-	<SettingsNav current="data" />
-
 	<section>
 		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 			<span>DATA MANAGEMENT</span>

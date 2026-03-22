@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import FormField from '$lib/components/ui/form-field/form-field.svelte';
-	import SettingsNav from '$lib/components/SettingsNav.svelte';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { required, monetary } from '$lib/validation/rules';
 
@@ -46,7 +45,6 @@
 </script>
 
 <main>
-	<SettingsNav current="reference" />
 		<!-- MONTHLY EXPENSES CONFIGURATION SECTION -->
 		<section>
 			<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
