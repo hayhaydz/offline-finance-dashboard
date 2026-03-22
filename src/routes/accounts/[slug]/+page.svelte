@@ -16,7 +16,9 @@
 	const currentYearSlug = $derived(
 		data.interestSummary
 			? `${data.interestSummary.taxYearStart.getUTCFullYear()}-${String(data.interestSummary.taxYearEnd.getUTCFullYear()).slice(-2)}`
-			: null
+			: data.isaSummary
+				? `${data.isaSummary.taxYearStart.getUTCFullYear()}-${String(data.isaSummary.taxYearEnd.getUTCFullYear()).slice(-2)}`
+				: null
 	);
 	const currentIndex = $derived(
 		currentYearSlug !== null
@@ -347,6 +349,46 @@
 				</div>
 				<div>Total expected:</div>
 				<div class="text-right tabular-nums font-bold">{formatCurrency(data.interestSummary.totalExpectedInterest)}</div>
+			</div>
+		</div>
+	{/if}
+
+	<!-- ISA SUBSCRIPTION SUMMARY -->
+	{#if data.account.taxWrapper !== 'none' && data.isaSummary}
+		<div class="border-b border-black p-2 bg-amber-50">
+			<div class="flex items-center justify-between gap-2 mb-2">
+				<div class="flex items-center gap-2">
+					<span class="font-bold text-sm">ISA SUBSCRIPTION:</span>
+					{#if prevYear}
+						<a href="?isaTaxYearStart={data.isaSummary.prevTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>[Prev]</a>
+					{/if}
+					<span class="font-bold text-sm">
+						{new Date(data.isaSummary.taxYearStart).getFullYear()}/{String(new Date(data.isaSummary.taxYearEnd).getFullYear()).slice(-2)}
+					</span>
+					{#if nextYear}
+						<a href="?isaTaxYearStart={data.isaSummary.nextTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>[Next]</a>
+					{/if}
+				</div>
+				<div class="flex items-center gap-2">
+					<div class="text-xs font-normal">
+						({formatDate(data.isaSummary.taxYearStart)} to {formatDate(data.isaSummary.taxYearEnd)})
+					</div>
+					{#if currentYearSlug}
+						<a href="/accounts/isa/{currentYearSlug}" class="bracket-link text-xs">View Breakdown</a>
+					{/if}
+				</div>
+			</div>
+			<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
+				<div>Subscribed this year:</div>
+				<div class="text-right tabular-nums text-green-700">{formatCurrency(data.isaSummary.subscribed)}</div>
+				<div>Allowance remaining:</div>
+				<div class="text-right tabular-nums {data.isaSummary.remaining > 0 ? 'text-green-700' : 'text-red-700'}">
+					{formatCurrency(data.isaSummary.remaining)}
+				</div>
+				<div>Utilization:</div>
+				<div class="text-right tabular-nums font-bold">
+					{data.isaSummary.utilizationPercent}%
+				</div>
 			</div>
 		</div>
 	{/if}

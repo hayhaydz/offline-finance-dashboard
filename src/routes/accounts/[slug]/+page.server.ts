@@ -3,7 +3,7 @@ import { count, desc, eq, inArray } from "drizzle-orm";
 import { validateUserAccess, withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions, interestRates } from "$lib/db/schema";
-import { getUkTaxYearBounds } from "$lib/server/calculations";
+import { getUkTaxYearBounds, ISA_ALLOWANCE_IN_CENTS } from "$lib/server/calculations";
 import {
 	getCurrentBalanceForAccount,
 	getMonthlyBalanceHistory,
@@ -16,6 +16,7 @@ import {
 	parseRateToBasisPoints,
 } from "$lib/server/interestRates";
 import { getAccountInterestSummary } from "$lib/server/interestBreakdown";
+import { getISABreakdownReport } from "$lib/server/isaBreakdown";
 import {
 	createTransaction,
 	deleteTransaction,
@@ -163,6 +164,41 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const prevTaxYearParam = formatTaxYearStartParam(prevTaxYearStart);
 	const nextTaxYearParam = formatTaxYearStartParam(nextTaxYearStart);
 
+	// Calculate ISA summary if account has tax wrapper
+	let isaSummary: {
+		taxYearStart: Date;
+		taxYearEnd: Date;
+		subscribed: number;
+		remaining: number;
+		utilizationPercent: number;
+		prevTaxYearParam: string;
+		nextTaxYearParam: string;
+	} | null = null;
+
+	if (account.taxWrapper !== 'none') {
+		const taxYear = getUkTaxYearBounds();
+		const isaReport = await getISABreakdownReport({
+			userId: locals.user.id,
+			taxYearStart: taxYear.start,
+			taxYearEnd: taxYear.end,
+		});
+
+		// Find this account's contribution
+		const accountContribution = isaReport.actual.byAccount.find(
+			a => a.accountId === account.id
+		)?.total ?? 0;
+
+		isaSummary = {
+			taxYearStart: isaReport.meta.taxYearStart,
+			taxYearEnd: isaReport.meta.taxYearEnd,
+			subscribed: accountContribution,
+			remaining: Math.max(0, ISA_ALLOWANCE_IN_CENTS - accountContribution),
+			utilizationPercent: Math.round((accountContribution / ISA_ALLOWANCE_IN_CENTS) * 100),
+			prevTaxYearParam: new Date(Date.UTC(taxYear.start.getUTCFullYear() - 1, 3, 6)).toISOString(),
+			nextTaxYearParam: new Date(Date.UTC(taxYear.start.getUTCFullYear() + 1, 3, 6)).toISOString(),
+		};
+	}
+
 	// Extend summary with navigation params for client-side
 	const summaryWithNav = interestSummary
 		? {
@@ -185,6 +221,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		rates,
 		currentRate,
 		interestSummary: summaryWithNav,
+		isaSummary,
 		availableTaxYears: sortedTaxYears,
 		breadcrumbOverrides: [
 			{ segmentIndex: 1, label: account.name, skipLink: false },

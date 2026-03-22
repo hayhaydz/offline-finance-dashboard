@@ -52,6 +52,7 @@
 			children: [
 				{ href: '/accounts', label: 'All Accounts' },
 				{ href: '/accounts/interest', label: 'Interest' },
+				{ href: '/accounts/isa', label: 'ISA' },
 				{ href: '/accounts/create', label: 'Create Account' }
 			]
 		},
@@ -129,6 +130,8 @@
 				settings: 'Settings',
 				profile: 'Profile',
 				create: 'Create',
+				isa: 'ISA',
+				interest: 'Interest',
 				balances: 'Balances',
 				edit: 'Edit',
 				delete: 'Close'
