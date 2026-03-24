@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { formatDate, truncateDisplay } from '$lib/utils/currency';
+	import { formatDateTime, truncateDisplay } from '$lib/utils/currency';
 	import { DISPLAY_LIMITS } from '$lib/utils/fieldLimits';
 
 	let { data }: { data: PageData } = $props();
@@ -10,10 +10,10 @@
 	<!-- Header -->
 	<div class="flex justify-between items-center mb-2">
 		<h2 class="text-base font-bold m-0">
-			Notes for {data.account.name}
+			{data.account.name}
 		</h2>
 		<a href="/accounts/{data.account.slug}" class="bracket-link text-xs">
-			[Back to Account]
+			[Account]
 		</a>
 	</div>
 
@@ -23,18 +23,14 @@
 		<div class="divide-y divide-gray-200">
 			{#each data.notes as note}
 				<div class="py-2">
+					<div class="mb-1 text-sm whitespace-pre-wrap">
+						{truncateDisplay(note.content, DISPLAY_LIMITS.NOTE_CONTENT)}
+					</div>
 					<a
 						href="/accounts/{data.account.slug}/notes/{note.slug}"
-						class="block hover:bg-gray-50"
+						class="bracket-link text-xs"
 					>
-						<div class="flex justify-between items-start gap-2 mb-1">
-							<span class="text-sm font-medium">
-								{truncateDisplay(note.content, DISPLAY_LIMITS.NOTE_CONTENT)}
-							</span>
-							<span class="text-xs text-gray-500 whitespace-nowrap">
-								{formatDate(note.createdAt)}
-							</span>
-						</div>
+						{formatDateTime(note.createdAt)}
 					</a>
 				</div>
 			{/each}

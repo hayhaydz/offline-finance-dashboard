@@ -205,6 +205,65 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 		console.log(`  ✓ ${r.accountName} (${r.rates.length} rates)`);
 	}
 
+	// --- Account Notes ---
+	console.log("\n📝 Creating account notes...");
+	let totalNotes = 0;
+
+	// Define realistic note patterns for different account types
+	const notePatterns: Record<string, string[]> = {
+		"Main Current": [
+			"Main day-to-day spending account. Salary arrives on 25th of each month.",
+			"Remember to check direct debits quarterly.",
+		],
+		"Emergency Fund": [
+			"Emergency fund target: 6 months of expenses.",
+			"Only use for genuine emergencies - not holidays or luxuries.",
+		],
+		"Stocks & Shares ISA": [
+			"£20k ISA allowance used for 2025/26 tax year.",
+			"High growth strategy - Vanguard funds. Review annually.",
+		],
+		"Visa Gold": [
+			"Pay off in full each month to avoid interest.",
+			"Main spending card for groceries and everyday purchases.",
+		],
+		"Tesco Car Loan": [
+			"Fixed monthly payment: ~£350 on 15th of each month.",
+			"Remaining balance: ~£11,200 as of Jan 2025.",
+		],
+		"Home Mortgage": [
+			"Tracker rate: 6.25% (base rate + 0.25%).",
+			"Consider overpaying when possible to reduce interest.",
+		],
+		"Rewards Card": [
+			"0% promotional period until May 2026.",
+			"Pay off full balance before promo ends to avoid interest.",
+		],
+	};
+
+	for (const [accountName, notes] of Object.entries(notePatterns)) {
+		const account = accountByName.get(accountName);
+		if (!account) continue;
+
+		for (const content of notes) {
+			const now = new Date();
+			// Stagger note creation times for realism
+			const daysOffset = Math.floor(Math.random() * 90);
+			const createdAt = new Date(now.getTime() - daysOffset * 24 * 60 * 60 * 1000);
+
+			await db.insert(schema.accountNotes).values({
+				slug: slug(),
+				userId,
+				accountId: account.id,
+				content,
+				createdAt,
+			});
+			totalNotes++;
+		}
+	}
+
+	console.log(`  ✓ ${totalNotes} notes created`);
+
 	// --- Snapshots ---
 	console.log("\n📸 Creating snapshots...");
 
@@ -223,7 +282,7 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 
 	console.log("\n✅ [standard] Seed complete!");
 	console.log(
-		`   ${accounts.length} accounts | ${goals.length} goals | ${totalTransactions} transactions | ${totalRates} rates | ${snapshots.length} snapshots`,
+		`   ${accounts.length} accounts | ${goals.length} goals | ${totalTransactions} transactions | ${totalRates} rates | ${snapshots.length} snapshots | ${totalNotes} notes`,
 	);
 	console.log(`   Net worth (latest balances): ${netWorth}`);
 }

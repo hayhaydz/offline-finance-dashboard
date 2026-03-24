@@ -141,6 +141,112 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 
 	console.log(`  ✓ 50 accounts created`);
 
+	// ─── Account Notes (Stress Volume) ─────────────────────────────────────────
+	console.log("\n📝 Creating stress volume account notes...");
+
+	let totalNotes = 0;
+	const stressNoteAccountId = createdAccountIds[1]; // Second account for heavy notes
+
+	// 50 notes on one account (tests pagination)
+	const noteContents = [
+		"Remember to check monthly statements",
+		"Review interest rate in April",
+		"Consider switching to higher yield account",
+		"Tax year planning: review ISA allowances",
+		"Emergency fund target: 6 months expenses",
+		"Automated transfer set up for 1st of month",
+		"Monitor fees and charges quarterly",
+		"Check for unclaimed dormant account fees",
+		"Update beneficiaries after life events",
+		"Review overdraft limit annually",
+		"Note: minimum balance fee waiver requires £1500/mo",
+		"Reminder: premium services cost £5/mo",
+		"Contact support for joint account upgrade",
+		"Mobile app deposit limit: £500/day",
+		"Direct debit setup for utilities",
+		"Standing order for savings transfer",
+		"Alert threshold: low balance < £100",
+		"Card blocked temporarily - call to unblock",
+		"New card issued: expires 2027",
+		"PIN reminder: never share with anyone",
+		"Contactless limit: £100 per transaction",
+		"International transaction fee: 2.99%",
+		"Cash withdrawal limit: £500/day",
+		"Online banking access code saved securely",
+		"Two-factor authentication enabled",
+		"Statement available from 1st of each month",
+		"Tax statement: request in January",
+		"Interest credited monthly on 25th",
+		"Account opened: original deposit £1000",
+		"Joint owner: full access permissions",
+		"Power of attorney registered",
+		"Deceased account marker removed - active",
+		"Dormancy warning: activity within 12 months required",
+		"Account tier: Silver (upgrade to Gold at £50k)",
+		"Relationship manager: unavailable for this tier",
+		"Branch counter visits limited to 3/month free",
+		"Phone banking priority queue: Silver tier",
+		"Travel notice required for international use",
+		"Free card replacement: once per year",
+		"Premium card fee waived first year",
+		"Cashback on groceries: 1% (ends March)",
+		"Reward points expiry: December 2026",
+		"Refer-a-friend bonus: £50 per successful referral",
+		"Student status verified - fee waiver until 2027",
+		"Graduate account upgrade pending",
+		"Overdraft arranged: £2000 interest-free",
+		"Credit score impact: on-time payments help",
+		"Debt consolidation loan considered",
+		"Balance transfer offer: 0% for 12 months",
+		"Minimum payment: 2% or £5, whichever is higher",
+		"Statement balance vs current balance differs",
+		"Pending transactions: not yet posted",
+		"Available credit vs credit limit distinction",
+		"Grace period: 25 days from statement date",
+		"Late fee: £12 if payment received after due date",
+		"Returned payment fee: £12 for insufficient funds",
+	];
+
+	for (const content of noteContents) {
+		const now = new Date();
+		// Stagger note creation over time
+		const daysOffset = Math.floor(Math.random() * 365);
+		const createdAt = new Date(now.getTime() - daysOffset * 24 * 60 * 60 * 1000);
+
+		await db.insert(schema.accountNotes).values({
+			slug: slug(),
+			userId,
+			accountId: stressNoteAccountId,
+			content,
+			createdAt,
+		});
+		totalNotes++;
+	}
+
+	// Add 1-3 notes to most other accounts for variety
+	for (let i = 0; i < Math.min(20, createdAccountIds.length); i++) {
+		const accountId = createdAccountIds[i + 5];
+		if (!accountId) continue;
+
+		const noteCount = randomBetween(1, 3);
+		for (let j = 0; j < noteCount; j++) {
+			const now = new Date();
+			const daysOffset = randomBetween(1, 180);
+			const createdAt = new Date(now.getTime() - daysOffset * 24 * 60 * 60 * 1000);
+
+			await db.insert(schema.accountNotes).values({
+				slug: slug(),
+				userId,
+				accountId,
+				content: `Stress test note ${j + 1} for account ${i + 1}`,
+				createdAt,
+			});
+			totalNotes++;
+		}
+	}
+
+	console.log(`  ✓ ${totalNotes} notes created (50+ on one account for pagination)`);
+
 	// ─── Account Transactions ──────────────────────────────────────────────────
 
 	console.log("\n📈 Creating stress transaction entries...");
@@ -466,7 +572,7 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 	console.log(`  ✓ ${snapshotCount} snapshots created`);
 	console.log("\n✅ [stress] Seed complete!");
 	console.log(
-		`   50 accounts | 70 goals (50+20 archived) | ${snapshotCount} snapshots`,
+		`   50 accounts | 70 goals (50+20 archived) | ${snapshotCount} snapshots | ${totalNotes} notes`,
 	);
 	console.log(
 		`   ~${500 + 6 + 3 + 10} special transaction entries + pagination account`,

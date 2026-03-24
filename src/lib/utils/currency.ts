@@ -156,6 +156,32 @@ export function formatDateShorthand(date: Date | null | undefined): string {
 }
 
 /**
+ * Format a date and time for note display in terminal brutalist style
+ *
+ * Uses UTC to ensure consistency across timezones. Returns format:
+ * "9 Mar 2026 14:32" - date shorthand with 24-hour time
+ *
+ * @param date - The date to format
+ * @returns Formatted date-time string or "-" if null
+ *
+ * @example
+ * formatDateTime(new Date(2026, 1, 9, 14, 32))  // => "9 Mar 2026 14:32"
+ * formatDateTime(new Date(2026, 1, 9, 9, 5))    // => "9 Mar 2026 09:05"
+ */
+export function formatDateTime(date: Date | null | undefined): string {
+	if (!date) return "-";
+
+	// Use UTC parts for consistency
+	const day = date.getUTCDate();
+	const month = date.toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" });
+	const year = date.getUTCFullYear();
+	const hours = String(date.getUTCHours()).padStart(2, "0");
+	const minutes = String(date.getUTCMinutes()).padStart(2, "0");
+
+	return `${day} ${month} ${year} ${hours}:${minutes}`;
+}
+
+/**
  * Format a date range for net worth display
  *
  * Produces "as of {date}" format with intelligent year handling:

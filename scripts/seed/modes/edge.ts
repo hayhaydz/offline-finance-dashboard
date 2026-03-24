@@ -205,6 +205,71 @@ export async function seedEdge(db: DB, userId: number): Promise<void> {
 		);
 	}
 
+	// --- Account Notes (Edge Cases) ---
+	console.log("\n📝 Creating edge case account notes...");
+	let totalNotes = 0;
+
+	const edgeCases: Array<{
+		accountName: string;
+		content: string;
+		description: string;
+	}> = [
+		{
+			accountName: "Main Current",
+			content: "x".repeat(5000),
+			description: "max-length note (5000 chars)",
+		},
+		{
+			accountName: "Emergency Fund",
+			content: "A",
+			description: "single character",
+		},
+		{
+			accountName: "Stocks & Shares ISA",
+			content: "A".repeat(500),
+			description: "500-char single word",
+		},
+		{
+			accountName: "Visa Gold",
+			content: "Special chars: <script>alert('xss')</script> & \"quotes\" and 'apostrophes' — dashes –",
+			description: "XSS attempt & special chars",
+		},
+		{
+			accountName: "Car Loan",
+			content: "Unicode: 你好 🎉 Ñoño Háček £€$ ‽‽ ℠™ ↑↑↓↓←→←→BA",
+			description: "unicode & emoji",
+		},
+		{
+			accountName: "Mortgage",
+			content: "Multiple\nLines\nOf\nText",
+			description: "newlines",
+		},
+		{
+			accountName: "Old Savings Account",
+			content: "Note on a closed account",
+			description: "closed account note",
+		},
+	];
+
+	for (const edgeCase of edgeCases) {
+		const account = accountByName.get(edgeCase.accountName);
+		if (!account) {
+			console.log(`  ⚠ Account "${edgeCase.accountName}" not found, skipping note`);
+			continue;
+		}
+
+		const now = new Date();
+		await db.insert(schema.accountNotes).values({
+			slug: slug(),
+			userId,
+			accountId: account.id,
+			content: edgeCase.content,
+			createdAt: now,
+		});
+		totalNotes++;
+		console.log(`  ✓ ${edgeCase.accountName}: ${edgeCase.description}`);
+	}
+
 	// --- Snapshots ---
 	console.log("\n📸 Creating snapshots...");
 
@@ -243,6 +308,6 @@ export async function seedEdge(db: DB, userId: number): Promise<void> {
 
 	console.log("\n✅ [edge] Seed complete!");
 	console.log(
-		`   ${accounts.length} accounts | ${activeGoals} active goals + ${archivedGoals} archived | ${snapshots.length} snapshots`,
+		`   ${accounts.length} accounts | ${activeGoals} active goals + ${archivedGoals} archived | ${snapshots.length} snapshots | ${totalNotes} edge-case notes`,
 	);
 }

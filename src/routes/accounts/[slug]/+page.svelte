@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { formatCurrency, formatDateShorthand } from '$lib/utils/currency';
+	import { formatCurrency, formatDateShorthand, formatDateTime } from '$lib/utils/currency';
 	import { invalidateAll } from '$app/navigation';
 	import { goto } from '$app/navigation';
 	import { page as pageState } from '$app/state';
@@ -755,45 +755,47 @@
 		<div class="divide-y divide-gray-200">
 			{#each data.notes as note}
 				<div class="p-2">
-					<div class="flex justify-between items-start gap-2 mb-1">
-						<a
-							href="/accounts/{data.account.slug}/notes/{note.slug}"
-							class="text-sm text-gray-700 hover:underline flex-1"
-						>
+					<div class="flex justify-between items-start gap-2">
+						<div class="text-sm text-gray-700 whitespace-pre-wrap flex-1">
 							{truncateDisplay(note.content, DISPLAY_LIMITS.NOTE_CONTENT)}
-						</a>
-						{#if !data.account.closedAt}
-							<form
-								method="POST"
-								action="?/deleteNote"
-								class="inline"
-								use:enhance={() => {
-									return async ({ result }) => {
-										if (result.type === 'success') {
-											submitMessage = { type: 'success', text: 'Note deleted' };
-										} else if (result.type === 'failure' && result.data) {
-											const errorData = result.data as { error?: string };
-											if (errorData.error) {
-												submitMessage = { type: 'error', text: errorData.error };
-											}
-										}
-										await invalidateAll();
-									};
-								}}
+						</div>
+						<div class="flex items-center gap-2 shrink-0">
+							<a
+								href="/accounts/{data.account.slug}/notes/{note.slug}"
+								class="bracket-link text-xs"
 							>
-								<input type="hidden" name="noteSlug" value={note.slug} />
-								<button
-									type="submit"
-									class="bracket-link text-xs text-red-700"
-									onclick={(e) => { if (!confirm('Delete this note?')) e.preventDefault(); }}
+								{formatDateTime(note.createdAt)}
+							</a>
+							{#if !data.account.closedAt}
+								<form
+									method="POST"
+									action="?/deleteNote"
+									class="inline"
+									use:enhance={() => {
+										return async ({ result }) => {
+											if (result.type === 'success') {
+												submitMessage = { type: 'success', text: 'Note deleted' };
+											} else if (result.type === 'failure' && result.data) {
+												const errorData = result.data as { error?: string };
+												if (errorData.error) {
+													submitMessage = { type: 'error', text: errorData.error };
+												}
+											}
+											await invalidateAll();
+										};
+									}}
 								>
-									[Delete]
-								</button>
-							</form>
-						{/if}
-					</div>
-					<div class="text-xs text-gray-500">
-						{formatDate(note.createdAt)}
+									<input type="hidden" name="noteSlug" value={note.slug} />
+									<button
+										type="submit"
+										class="text-xs text-red-700"
+										onclick={(e) => { if (!confirm('Delete this note?')) e.preventDefault(); }}
+									>
+										[Delete]
+									</button>
+								</form>
+							{/if}
+						</div>
 					</div>
 				</div>
 			{/each}
