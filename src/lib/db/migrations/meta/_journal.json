@@ -8,6 +8,27 @@
       "when": 1774199136787,
       "tag": "0000_pink_captain_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1774372091755,
+      "tag": "0001_sudden_expediter",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1774372201962,
+      "tag": "0002_living_grim_reaper",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1774383476405,
+      "tag": "0003_sweet_daimon_hellstrom",
+      "breakpoints": true
     }
   ]
 }

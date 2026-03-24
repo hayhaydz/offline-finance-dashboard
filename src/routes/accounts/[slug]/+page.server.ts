@@ -2,7 +2,7 @@ import { error, fail, redirect } from "@sveltejs/kit";
 import { count, desc, eq, inArray } from "drizzle-orm";
 import { validateUserAccess, withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
-import { accounts, accountTransactions, interestRates } from "$lib/db/schema";
+import { accounts, accountTransactions, interestRates, accountNotes } from "$lib/db/schema";
 import { getUkTaxYearBounds, ISA_ALLOWANCE_IN_CENTS } from "$lib/server/calculations";
 import {
 	getCurrentBalanceForAccount,
@@ -23,7 +23,13 @@ import {
 	getTransactionBySlug,
 	type TransactionType,
 } from "$lib/server/transactions";
+import {
+	createNote,
+	deleteNote,
+	getNoteBySlug,
+} from "$lib/server/notes";
 import { devLog, logError } from "$lib/utils/logger";
+import { calculateTTZ } from "$lib/utils/debt-calculator";
 import type { Actions, PageServerLoad } from "./$types";
 
 function formatTaxYearStartParam(date: Date): string {
@@ -211,6 +217,39 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		  }
 		: null;
 
+	// Calculate TTZ and projection for liability accounts
+	let projection: Array<{ month: number; balance: number; interest: number; payment: number }> | null = null;
+	let ttz: { months: number | null; years: number | null; totalInterest: number | null } | null = null;
+
+	if (account.category === 'liability') {
+		// For liability accounts, use account.balance as source of truth
+		// currentBalance from transactions may be 0 if no transactions exist
+		const balanceForTTZ = account.balance;
+
+		const rate = await getCurrentRate(account.id);
+		if (rate !== null) {
+			const rule = {
+				type: account.minimumPaymentType,
+				flat: account.minimumPaymentFlat,
+				percentage: account.minimumPaymentPercentage
+			};
+			const ttzResult = calculateTTZ(balanceForTTZ, rate, rule);
+			projection = ttzResult.projection.slice(0, 12); // 12 months only
+			ttz = {
+				months: ttzResult.months,
+				years: ttzResult.years,
+				totalInterest: ttzResult.totalInterest
+			};
+		}
+	}
+
+	// Get notes for this account
+	const notes = await db.query.accountNotes.findMany({
+		where: eq(accountNotes.accountId, account.id),
+		orderBy: desc(accountNotes.createdAt),
+		limit: 10, // Show 10 most recent notes
+	});
+
 	return {
 		account,
 		monthlyBalances: monthlyBalances.toReversed(),
@@ -225,6 +264,9 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		interestSummary: summaryWithNav,
 		isaSummary,
 		availableTaxYears: sortedTaxYears,
+		projection,
+		ttz,
+		notes,
 		breadcrumbOverrides: [
 			{ segmentIndex: 1, label: account.name, skipLink: false },
 		],
@@ -510,6 +552,120 @@ export const actions: Actions = {
 				error: err instanceof Error ? err.message : String(err),
 			});
 			return fail(500, { error: "Failed to delete interest rate" });
+		}
+	},
+
+	/**
+	 * Add a new note to an account
+	 */
+	addNote: async ({ request, locals, params }) => {
+		if (!locals.user) {
+			logError("addNote", "Authentication required");
+			return fail(401, { error: "Authentication required" });
+		}
+
+		const accountSlug = params.slug;
+
+		// Validate ownership
+		const account = await db.query.accounts.findFirst({
+			where: eq(accounts.slug, accountSlug),
+		});
+
+		if (!account) {
+			logError("addNote", "Account not found", {
+				accountSlug,
+				userId: locals.user.id,
+			});
+			return fail(404, { error: "Account not found" });
+		}
+
+		validateUserAccess(account, locals.user, "Account");
+
+		const formData = await request.formData();
+		const content = formData.get("content") as string;
+
+		// Validate content
+		if (!content || content.trim().length === 0) {
+			return fail(400, { error: "Note content is required" });
+		}
+
+		if (content.length > 5000) {
+			return fail(400, { error: "Note content must be 5000 characters or less" });
+		}
+
+		try {
+			const result = await createNote({
+				accountId: account.id,
+				content: content.trim(),
+			});
+
+			devLog("addNote", "Note created successfully", {
+				accountSlug,
+				noteSlug: result.noteSlug,
+			});
+
+			return { success: true, noteSlug: result.noteSlug };
+		} catch (err) {
+			logError("addNote", "Failed to create note", {
+				error: err instanceof Error ? err.message : String(err),
+			});
+			return fail(500, { error: "Failed to create note" });
+		}
+	},
+
+	/**
+	 * Delete a note
+	 */
+	deleteNote: async ({ request, locals, params }) => {
+		if (!locals.user) {
+			logError("deleteNote", "Authentication required");
+			return fail(401, { error: "Authentication required" });
+		}
+
+		const accountSlug = params.slug;
+
+		// Validate ownership
+		const account = await db.query.accounts.findFirst({
+			where: eq(accounts.slug, accountSlug),
+		});
+
+		if (!account) {
+			logError("deleteNote", "Account not found", {
+				accountSlug,
+				userId: locals.user.id,
+			});
+			return fail(404, { error: "Account not found" });
+		}
+
+		validateUserAccess(account, locals.user, "Account");
+
+		const formData = await request.formData();
+		const noteSlug = formData.get("noteSlug") as string;
+
+		if (!noteSlug) {
+			return fail(400, { error: "Note slug is required" });
+		}
+
+		try {
+			// Verify note belongs to this account (account ownership already validated above)
+			const note = await getNoteBySlug(noteSlug);
+			if (!note || note.accountId !== account.id) {
+				return fail(404, { error: "Note not found" });
+			}
+
+			await deleteNote(noteSlug);
+
+			devLog("deleteNote", "Note deleted successfully", {
+				accountSlug,
+				noteSlug,
+			});
+
+			return { success: true };
+		} catch (err) {
+			logError("deleteNote", "Failed to delete note", {
+				error: err instanceof Error ? err.message : String(err),
+			});
+			return fail(500, { error: "Failed to delete note" });
 		}
 	},
 };

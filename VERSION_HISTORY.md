@@ -1,3 +1,71 @@
+## [Unreleased] — Account Notes Feature
+
+**Summary:** Add contextual notes to accounts for recording information like "Opened this for the 5.1% rate, will review when it drops" or "Fixed until March 2027, set reminder".
+
+**Schema Changes:**
+- Added `account_notes` table with slug-based routing
+- Fields: id (auto-increment), slug (unique), accountId (FK), content, createdAt
+- Composite index on (accountId, createdAt) for efficient queries
+- AccountNote type export for TypeScript support
+
+**Features:**
+- Add notes to any account (max 5000 characters)
+- Truncated preview on account detail page (120 characters)
+- Dedicated note detail page at `/accounts/[slug]/notes/[noteSlug]`
+- Notes list page at `/accounts/[slug]/notes`
+- Notes displayed in reverse chronological order
+- Delete notes from account detail page
+- Hidden for closed accounts
+
+**Files:**
+- `src/lib/db/schema.ts` — Added accountNotes table and relations
+- `src/lib/utils/fieldLimits.ts` — Added NOTE_CONTENT limits (5000 validation, 120 display)
+- `src/lib/server/notes.ts` — CRUD operations for notes
+- `src/routes/accounts/[slug]/+page.server.ts` — Added addNote/deleteNote actions
+- `src/routes/accounts/[slug]/+page.svelte` — Added notes section with add/delete UI
+- `src/routes/accounts/[slug]/notes/+page.server.ts` — Notes list page server
+- `src/routes/accounts/[slug]/notes/+page.svelte` — Notes list page component
+- `src/routes/accounts/[slug]/notes/[noteSlug]/+page.server.ts` — Note detail page server
+- `src/routes/accounts/[slug]/notes/[noteSlug]/+page.svelte` — Note detail page component
+
+**Testing:**
+- 9 tests pass (6 for CRUD operations, 3 for note detail page)
+- Type checking passes
+
+**Commit:**
+- `feat: add account notes feature with CRUD operations and dedicated pages`
+
+---
+
+## [2026-03-24] — Liability Interest Tracking Phase 1: Schema Expansion
+
+**Summary:** Added 5 new columns to accounts table to support liability payment rules and debt tracking. Foundation for Time-to-Zero (TTZ) calculation engine.
+
+**Schema Changes:**
+- Added `minimumPaymentType` (enum: flat, percentage, flat_or_percentage) - Default: 'flat'
+- Added `minimumPaymentFlat` (integer, pence) - Default: 0
+- Added `minimumPaymentPercentage` (integer, basis points) - Default: 0
+- Added `creditLimit` (integer, pence) - NULL for installment debt
+- Added `originalPrincipal` (integer, pence) - NULL for revolving debt
+
+**Features:**
+- Minimum payment rules support for credit cards and loans
+- Credit limit tracking for revolving debt
+- Original principal tracking for installment debt
+- Proper default values for existing accounts
+- Drizzle ORM schema updated with new columns
+
+**Files:**
+- `src/lib/db/schema.ts` — Updated accounts table with 5 new columns
+- `src/lib/db/migrations/0001_sudden_expediter.sql` — Initial migration
+- `src/lib/db/migrations/0002_living_grim_reaper.sql` — Table recreation with defaults
+- `src/lib/db/migrations/0003_manual_add_columns.sql` — Manual column addition
+
+**Commit:**
+- `feat: add liability payment rules and tracking columns to accounts schema`
+
+---
+
 ## [2026-03-22] — Navigation Active Link & Sub-Nav Close Improvements
 
 **Summary:** Refined navigation dropdown behavior with sibling-aware active link detection and auto-close on link click. Parent links (e.g., "All Accounts") now highlight correctly on detail pages but not on functional sibling pages (e.g., "Interest").

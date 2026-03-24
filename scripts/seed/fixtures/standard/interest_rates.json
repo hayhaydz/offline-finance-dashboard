@@ -39,5 +39,36 @@
     "rates": [
       { "rate": 425, "daysAgo": 365, "description": "ISA Bond fixed rate 4.25% AER until maturity" }
     ]
+  },
+  {
+    "accountName": "Rewards Card",
+    "rates": [
+      { "rate": 0, "daysAgo": 90, "description": "0% promotional rate until May 2026" },
+      { "rate": 2190, "daysAgo": 60, "description": "Standard rate 21.9% APR after promo ends" }
+    ]
+  },
+  {
+    "accountName": "Car Loan",
+    "rates": [
+      { "rate": 850, "daysAgo": 800, "description": "Fixed rate 8.50% APR for personal loan" }
+    ]
+  },
+  {
+    "accountName": "Home Mortgage",
+    "rates": [
+      { "rate": 625, "daysAgo": 365, "description": "Tracker mortgage rate 6.25% Bank of England + 0.25%" }
+    ]
+  },
+  {
+    "accountName": "High-APR Card",
+    "rates": [
+      { "rate": 2490, "daysAgo": 800, "description": "High APR 24.9% for maxed out credit card" }
+    ]
+  },
+  {
+    "accountName": "Tesco Car Loan",
+    "rates": [
+      { "rate": 850, "daysAgo": 800, "description": "Fixed rate 8.50% APR for personal loan" }
+    ]
   }
 ]

@@ -23,4 +23,10 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #7239 | 12:40 PM | 🟣 | Added formatDateShorthand utility function for ISO date display | ~128 |
+
+### Mar 24, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #9223 | 5:15 PM | 🟣 | TTZ Calculation Engine - Time-to-Zero Debt Projection Algorithm | ~609 |
 </claude-mem-context>

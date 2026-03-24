@@ -102,6 +102,13 @@ export const accounts = sqliteTable(
 		updatedAt: integer("updated_at", { mode: "timestamp" })
 			.notNull()
 			.default(sql`CURRENT_TIMESTAMP`),
+		// Minimum payment rules
+		minimumPaymentType: text('minimumPaymentType', { enum: ['flat', 'percentage', 'flat_or_percentage'] }).notNull().default('flat'),
+		minimumPaymentFlat: integer('minimumPaymentFlat').default(0).notNull(),
+		minimumPaymentPercentage: integer('minimumPaymentPercentage').default(0).notNull(),
+		// Credit and loan tracking
+		creditLimit: integer('creditLimit'), // NULL for installment debt
+		originalPrincipal: integer('originalPrincipal'), // NULL for revolving debt
 	},
 	(table) => ({
 		userClosedIdx: index("idx_accounts_user_closed").on(
@@ -170,6 +177,27 @@ export const interestRates = sqliteTable(
 		accountEffectiveIdx: index("idx_interest_rates_account_effective").on(
 			table.accountId,
 			table.effectiveFrom,
+		),
+	}),
+);
+
+export const accountNotes = sqliteTable(
+	"account_notes",
+	{
+		id: integer("id").primaryKey({ autoIncrement: true }),
+		slug: text("slug").notNull().unique(),
+		accountId: integer("account_id")
+			.notNull()
+			.references(() => accounts.id),
+		content: text("content").notNull(),
+		createdAt: integer("created_at", { mode: "timestamp" })
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+	},
+	(table) => ({
+		accountCreatedIdx: index("idx_account_notes_account_created").on(
+			table.accountId,
+			table.createdAt,
 		),
 	}),
 );
@@ -444,6 +472,7 @@ export const backupCodesRelations = relations(backupCodes, ({ one }) => ({
 export const accountsRelations = relations(accounts, ({ many }) => ({
 	transactions: many(accountTransactions),
 	interestRates: many(interestRates),
+	notes: many(accountNotes),
 }));
 
 export const goalsRelations = relations(goals, ({ one, many }) => ({
@@ -485,6 +514,13 @@ export const interestRatesRelations = relations(interestRates, ({ one }) => ({
 	}),
 }));
 
+export const accountNotesRelations = relations(accountNotes, ({ one }) => ({
+	account: one(accounts, {
+		fields: [accountNotes.accountId],
+		references: [accounts.id],
+	}),
+}));
+
 export const snapshotsRelations = relations(snapshots, ({ one }) => ({
 	user: one(users, {
 		fields: [snapshots.userId],
@@ -498,6 +534,7 @@ export type BackupCode = typeof backupCodes.$inferSelect;
 export type Account = typeof accounts.$inferSelect;
 export type AccountTransaction = typeof accountTransactions.$inferSelect;
 export type InterestRate = typeof interestRates.$inferSelect;
+export type AccountNote = typeof accountNotes.$inferSelect;
 export type Goal = typeof goals.$inferSelect;
 export type GoalAllocation = typeof goalAllocations.$inferSelect;
 export type Snapshot = typeof snapshots.$inferSelect;

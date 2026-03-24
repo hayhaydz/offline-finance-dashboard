@@ -120,7 +120,7 @@
     ]
   },
   {
-    "name": "Car Loan",
+    "name": "Tesco Car Loan",
     "institution": "Tesco Bank",
     "type": "loan",
     "taxWrapper": "none",
@@ -188,6 +188,76 @@
       { "balanceInCents": 1605000, "daysAgo": 180, "notes": "Interest accrued" },
       { "balanceInCents": 1657500, "daysAgo": 90, "notes": "Interest accrued" },
       { "balanceInCents": 1710000, "daysAgo": 0, "notes": "Current balance with interest" }
+    ]
+  },
+  {
+    "name": "Rewards Card",
+    "institution": "Barclays",
+    "type": "credit-card",
+    "taxWrapper": "none",
+    "category": "liability",
+    "liquidity": null,
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "maturityDate": null,
+    "balances": [
+      { "balanceInCents": -85000, "daysAgo": 90, "notes": "Monthly statement" },
+      { "balanceInCents": -82000, "daysAgo": 60, "notes": "After payment" },
+      { "balanceInCents": -87000, "daysAgo": 30, "notes": "New purchases" },
+      { "balanceInCents": -85000, "daysAgo": 0, "notes": "Current balance (0% promo until May 2026)" }
+    ]
+  },
+  {
+    "name": "Car Loan",
+    "institution": "HSBC",
+    "type": "loan",
+    "taxWrapper": "none",
+    "category": "liability",
+    "liquidity": "locked",
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "maturityDate": null,
+    "balances": [
+      { "balanceInCents": -1235000, "daysAgo": 365, "notes": "Loan start - £15,000 at 8.5% APR" },
+      { "balanceInCents": -1185000, "daysAgo": 270, "notes": "After payment" },
+      { "balanceInCents": -1135000, "daysAgo": 180, "notes": "After payment" },
+      { "balanceInCents": -1085000, "daysAgo": 90, "notes": "After payment" },
+      { "balanceInCents": -1235000, "daysAgo": 0, "notes": "Current balance (fixed rate)" }
+    ]
+  },
+  {
+    "name": "Home Mortgage",
+    "institution": "Nationwide",
+    "type": "mortgage",
+    "taxWrapper": "none",
+    "category": "liability",
+    "liquidity": "locked",
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "maturityDate": null,
+    "balances": [
+      { "balanceInCents": -23800000, "daysAgo": 365, "notes": "Initial mortgage - £250,000" },
+      { "balanceInCents": -23750000, "daysAgo": 270, "notes": "After payment" },
+      { "balanceInCents": -23700000, "daysAgo": 180, "notes": "After payment" },
+      { "balanceInCents": -23650000, "daysAgo": 90, "notes": "After payment" },
+      { "balanceInCents": -23800000, "daysAgo": 0, "notes": "Current balance (tracker rate 6.25%)" }
+    ]
+  },
+  {
+    "name": "High-APR Card",
+    "institution": "Capital One",
+    "type": "credit-card",
+    "taxWrapper": "none",
+    "category": "liability",
+    "liquidity": null,
+    "excludedFromNetWorth": false,
+    "closedAt": null,
+    "maturityDate": null,
+    "balances": [
+      { "balanceInCents": -98000, "daysAgo": 90, "notes": "Monthly statement - 98% utilization" },
+      { "balanceInCents": -97500, "daysAgo": 60, "notes": "After minimum payment" },
+      { "balanceInCents": -98500, "daysAgo": 30, "notes": "New purchases" },
+      { "balanceInCents": -98000, "daysAgo": 0, "notes": "Current balance - maxed out at 98% (£1,000 limit)" }
     ]
   }
 ]

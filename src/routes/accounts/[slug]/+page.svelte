@@ -122,6 +122,7 @@
 	// Accordion state
 	let addTransactionOpen = $state(false);
 	let addRateOpen = $state(false);
+	let addNoteOpen = $state(false);
 
 	// Get today's date in YYYY-MM-DD format for max attribute
 	const today = new Date().toISOString().split('T')[0];
@@ -343,7 +344,7 @@
 {/if}
 
 <!-- INTEREST RATES SECTION -->
-{#if data.interestSummary || data.rates.length > 0}
+{#if data.account.category === 'liability' || data.interestSummary || data.rates.length > 0}
 <div bind:this={ratesSectionRef}>
 	<div class="border-y bg-gray-100 p-2 font-bold flex justify-between items-center">
 		<span>INTEREST RATES {#if data.currentRate !== null}<span class="font-normal text-sm ml-2">({(data.currentRate / 100).toFixed(2)}% current)</span>{/if}</span>
@@ -575,6 +576,77 @@
 </div>
 {/if}
 
+<!-- DEBT PROJECTION SECTION -->
+{#if data.account.category === 'liability' && data.projection}
+<div class="border-y bg-gray-100 p-2 font-bold">
+	DEBT PROJECTION
+</div>
+
+<div class="border-b border-black p-2">
+	<div class="metrics-row grid grid-cols-2 gap-x-4 gap-y-1 text-sm mb-2">
+		{#if data.ttz && data.ttz.months !== null}
+			<div class="metric">
+				<span class="label">Time to Zero:</span>
+				<span class="value font-bold">
+					{#if data.ttz.years !== null && data.ttz.years < 1}
+						{data.ttz.months} months
+					{:else}
+						{Math.floor(data.ttz.years || 0)}y {Math.round(((data.ttz.years || 0) % 1) * 12)}m
+					{/if}
+				</span>
+			</div>
+			<div class="metric">
+				<span class="label">Monthly Interest:</span>
+				<span class="value font-bold">£{data.projection[0].interest / 100}</span>
+			</div>
+			{#if data.account.creditLimit}
+				<div class="metric">
+					<span class="label">Utilization:</span>
+					<span class="value font-bold">{(data.currentBalance / data.account.creditLimit * 100).toFixed(1)}%</span>
+				</div>
+			{/if}
+			{#if data.account.originalPrincipal}
+				<div class="metric">
+					<span class="label">Progress:</span>
+					<span class="value font-bold">{((data.account.originalPrincipal - data.currentBalance) / data.account.originalPrincipal * 100).toFixed(1)}%</span>
+				</div>
+			{/if}
+		{:else}
+			<div class="warning col-span-2 text-amber-700 text-xs">
+				At current payment levels, this debt will never be paid off.
+			</div>
+		{/if}
+	</div>
+
+	<table class="projection-table w-full table-fixed min-w-[400px]">
+		<thead>
+			<tr>
+				<th class="pl-2 text-left whitespace-nowrap w-[25%]">Month</th>
+				<th class="text-right pr-1 whitespace-nowrap w-[25%]">Balance</th>
+				<th class="text-right pr-1 whitespace-nowrap w-[25%]">Interest</th>
+				<th class="text-right pr-2 whitespace-nowrap w-[25%]">Payment</th>
+			</tr>
+		</thead>
+		<tbody>
+			{#each data.projection as row}
+				<tr class="border-b border-gray-200 last:border-b-0 align-top">
+					<td class="pl-2 text-sm py-2 whitespace-nowrap">{row.month}</td>
+					<td class="text-right pr-1 text-sm tabular-nums py-2 whitespace-nowrap {row.balance >= 0 ? 'text-green-700' : 'text-red-700'}">
+						£{row.balance / 100}
+					</td>
+					<td class="text-right pr-1 text-sm tabular-nums py-2 whitespace-nowrap text-amber-700">
+						£{row.interest / 100}
+					</td>
+					<td class="text-right pr-2 text-sm tabular-nums py-2 whitespace-nowrap text-green-700">
+						£{row.payment / 100}
+					</td>
+				</tr>
+			{/each}
+		</tbody>
+	</table>
+</div>
+{/if}
+
 <!-- MONTHLY BALANCE SUMMARY -->
 <div bind:this={balancesSectionRef}>
 	<div class="bg-gray-100 p-2 font-bold border-y border-black">MONTHLY BALANCE SUMMARY (Derived from Transactions)</div>
@@ -610,6 +682,122 @@
 		</table>
 		</div>
 		<PaginationClient page={balancesPage} totalPages={totalBalancesPages} onPageChange={updateBalancesPage} scrollTarget={balancesSectionRef} />
+	{/if}
+</div>
+
+<!-- NOTES SECTION -->
+<div class="border-t border-black">
+	<div class="border-b border-black bg-gray-100 p-2 font-bold flex justify-between items-center">
+		<span>NOTES ({data.notes.length})</span>
+		{#if !data.account.closedAt}
+			<button
+				type="button"
+				class="bracket-link text-xs"
+				onclick={() => addNoteOpen = !addNoteOpen}
+			>
+				{addNoteOpen ? '[Cancel]' : '[Add Note]'}
+			</button>
+		{/if}
+	</div>
+
+	{#if addNoteOpen && !data.account.closedAt}
+		<div class="border-b border-black p-2 bg-gray-50">
+			<form
+				method="POST"
+				action="?/addNote"
+				use:enhance={() => {
+					return async ({ formElement, result }) => {
+						if (result.type === 'success') {
+							submitMessage = { type: 'success', text: 'Note added successfully' };
+							formElement.reset();
+							addNoteOpen = false;
+						} else if (result.type === 'failure' && result.data) {
+							const errorData = result.data as { error?: string };
+							if (errorData.error) {
+								submitMessage = { type: 'error', text: errorData.error };
+							}
+						}
+						await invalidateAll();
+					};
+				}}
+				class="flex flex-col gap-2"
+			>
+				<div>
+					<label for="noteContent" class="block text-sm font-bold mb-1">Note</label>
+					<textarea
+						id="noteContent"
+						name="content"
+						rows="4"
+						maxlength="5000"
+						placeholder="Opened this for the 5.1% rate, will review when it drops..."
+						required
+						class="w-full border border-black px-2 py-1 text-sm font-mono"
+					></textarea>
+					<div class="text-xs text-gray-600 mt-1">Max 5000 characters</div>
+				</div>
+				<div>
+					<button
+						type="submit"
+						disabled={isSubmitting}
+						class="bracket-link text-sm"
+						class:opacity-50={isSubmitting}
+					>
+						{isSubmitting ? 'Adding...' : 'Add Note'}
+					</button>
+				</div>
+			</form>
+		</div>
+	{/if}
+
+	{#if data.notes.length === 0}
+		<p class="text-gray-600 text-xs p-2">No notes yet. Add context for your future self.</p>
+	{:else}
+		<div class="divide-y divide-gray-200">
+			{#each data.notes as note}
+				<div class="p-2">
+					<div class="flex justify-between items-start gap-2 mb-1">
+						<a
+							href="/accounts/{data.account.slug}/notes/{note.slug}"
+							class="text-sm text-gray-700 hover:underline flex-1"
+						>
+							{truncateDisplay(note.content, DISPLAY_LIMITS.NOTE_CONTENT)}
+						</a>
+						{#if !data.account.closedAt}
+							<form
+								method="POST"
+								action="?/deleteNote"
+								class="inline"
+								use:enhance={() => {
+									return async ({ result }) => {
+										if (result.type === 'success') {
+											submitMessage = { type: 'success', text: 'Note deleted' };
+										} else if (result.type === 'failure' && result.data) {
+											const errorData = result.data as { error?: string };
+											if (errorData.error) {
+												submitMessage = { type: 'error', text: errorData.error };
+											}
+										}
+										await invalidateAll();
+									};
+								}}
+							>
+								<input type="hidden" name="noteSlug" value={note.slug} />
+								<button
+									type="submit"
+									class="bracket-link text-xs text-red-700"
+									onclick={(e) => { if (!confirm('Delete this note?')) e.preventDefault(); }}
+								>
+									[Delete]
+								</button>
+							</form>
+						{/if}
+					</div>
+					<div class="text-xs text-gray-500">
+						{formatDate(note.createdAt)}
+					</div>
+				</div>
+			{/each}
+		</div>
 	{/if}
 </div>
 

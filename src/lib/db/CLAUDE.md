@@ -37,4 +37,11 @@
 | #8137 | 8:08 PM | 🟣 | Snapshots now include interest rate tracking and enhanced account data | ~250 |
 | #8131 | 8:07 PM | 🔵 | Focused review of snapshots table schema definition | ~208 |
 | #8129 | 8:06 PM | 🔵 | Examined database schema for snapshots table structure | ~258 |
+
+### Mar 24, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #9222 | 5:14 PM | 🟣 | Database Schema Expanded for Liability Interest Tracking | ~669 |
+| #9221 | 5:11 PM | 🟣 | Schema Expansion - Liability Payment Rules and Debt Tracking Columns | ~624 |
 </claude-mem-context>
