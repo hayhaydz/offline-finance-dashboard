@@ -1,3 +1,48 @@
+## [Unreleased] — Liabilities Section Redesign
+
+**Summary:** Comprehensive redesign of the liabilities section with terminal aesthetic, unified visual language across Interest/ISA/Liabilities sections, and enhanced debt management features.
+
+**UI Changes:**
+
+**Unified Header Design:**
+- All three sections (Interest, ISA, Liabilities) now use `border-y-2 border-black bg-gray-100` for consistent terminal aesthetic
+- Removed colored backgrounds (green-50, amber-50) for cleaner, more cohesive design
+- Added status badges: [INCLUDED]/[EXCLUDED] for Interest, [OK]/[WARNING]/[NEAR LIMIT] for ISA, [HEALTHY]/[WARNING]/[CRITICAL] for Liabilities
+
+**Liabilities Enhancements:**
+- Debt projection table now collapsed by default with "Expand Projection" toggle
+- Projection length toggle buttons (6m/12m/24m) for flexible viewing
+- Payment suggestion feature: Shows optimal payment and time/interest savings when applicable
+- Status badge based on Time to Zero: <5 years = [HEALTHY], 5+ years = [WARNING], never = [CRITICAL]
+- "View Breakdown" link to dedicated Liabilities page
+
+**Navigation Update:**
+- Added "Liabilities" entry to Accounts dropdown menu
+- Brings up dedicated `/accounts/liabilities` page with all debts grouped by type
+
+**Route Migration:**
+- Moved `/liabilities` → `/accounts/liabilities` for consistent URL hierarchy
+- All liability-related functionality now under `/accounts/` namespace
+
+**Code Changes:**
+- `src/lib/components/navigation.svelte` - Added Liabilities to Accounts children array
+- `src/routes/accounts/[slug]/+page.server.ts` - Added getDebtHealthStatus, calculateMinimumPayment, calculatePaymentSuggestion functions
+- `src/routes/accounts/[slug]/+page.svelte` - Updated Interest, ISA, Liabilities sections with new design
+- `src/routes/accounts/liabilities/+page.*` - Moved from `/liabilities/`, updated with terminal aesthetic
+
+**Transaction Type Support:**
+- Added display labels and styling for new liability transaction types: charge, payment, loan_disbursement, mortgage_disbursement, interest_charge
+
+**Suggested commit message:**
+```
+feat(liabilities): redesign section with terminal aesthetic
+
+- Unified Interest/ISA/Liabilities header design with double-border and status badges
+- Added debt health status, payment suggestions, projection toggle controls
+- Migrated /liabilities route to /accounts/liabilities
+- Added Liabilities entry to Accounts navigation dropdown
+```
+
 ## [Unreleased] — Add Liability Transaction Types to Schema
 
 **Summary:** Added liability-specific transaction types to the accountTransactions schema enum to support credit cards, loans, and mortgages.

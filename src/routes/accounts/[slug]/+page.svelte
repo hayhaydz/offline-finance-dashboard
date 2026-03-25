@@ -48,6 +48,11 @@
 	const paginatedBalances = $derived(data.monthlyBalances.slice(balancesPage * BALANCES_PER_PAGE, (balancesPage + 1) * BALANCES_PER_PAGE));
 	const totalBalancesPages = $derived(Math.ceil(data.monthlyBalances.length / BALANCES_PER_PAGE));
 
+	// Liabilities projection toggle state
+	let projectionLength = $state(12); // 6, 12, or 24 months
+	let projectionExpanded = $state(false); // Collapsed by default
+	const paginatedProjection = $derived(data.projection?.slice(0, projectionLength) ?? []);
+
 	// Scroll targets for pagination
 	let transactionsSectionRef: HTMLElement | null = $state(null);
 	let ratesSectionRef: HTMLElement | null = $state(null);
@@ -174,7 +179,12 @@
 			dividend: 'Dividend',
 			value_change: 'Value Change',
 			transfer_in: 'Transfer In',
-			transfer_out: 'Transfer Out'
+			transfer_out: 'Transfer Out',
+			charge: 'Charge',
+			payment: 'Payment',
+			loan_disbursement: 'Loan Disbursement',
+			mortgage_disbursement: 'Mortgage Disbursement',
+			interest_charge: 'Interest Charge'
 		};
 		return types[type] || type;
 	}
@@ -189,7 +199,12 @@
 			dividend: 'bg-purple-100 text-purple-800',
 			value_change: 'bg-gray-100 text-gray-800',
 			transfer_in: 'bg-cyan-100 text-cyan-800',
-			transfer_out: 'bg-orange-100 text-orange-800'
+			transfer_out: 'bg-orange-100 text-orange-800',
+			charge: 'bg-red-100 text-red-800',
+			payment: 'bg-green-100 text-green-800',
+			loan_disbursement: 'bg-green-100 text-green-800',
+			mortgage_disbursement: 'bg-green-100 text-green-800',
+			interest_charge: 'bg-amber-100 text-amber-800'
 		};
 		return classes[type] || 'bg-gray-100 text-gray-800';
 	}
@@ -343,6 +358,13 @@
 	</div>
 {/if}
 
+// Interest status badge for projection eligibility
+const interestStatus = $derived(
+	data.interestSummary?.projectionExclusionReason
+		? { label: '[EXCLUDED]', class: 'text-gray-600' }
+		: { label: '[INCLUDED]', class: 'text-green-700' }
+);
+
 <!-- INTEREST RATES SECTION -->
 {#if data.account.category === 'liability' || data.interestSummary || data.rates.length > 0}
 <div bind:this={ratesSectionRef}>
@@ -360,28 +382,32 @@
 	</div>
 
 	{#if data.interestSummary && (data.interestSummary.actualInterest > 0 || !data.interestSummary.projectionExclusionReason)}
-		<div class="border-b border-black p-2 bg-green-50">
-			<div class="flex items-center justify-between gap-2 mb-2">
-				<div class="flex items-center gap-2">
-					<span class="font-bold text-sm">INTEREST:</span>
-					{#if prevYear}
-						<a href="?taxYearStart={data.interestSummary.prevTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>[Prev]</a>
-					{/if}
-					<span class="font-bold text-sm">
-						{new Date(data.interestSummary.taxYearStart).getFullYear()}/{String(new Date(data.interestSummary.taxYearEnd).getFullYear()).slice(-2)}
-					</span>
-					{#if nextYear}
-						<a href="?taxYearStart={data.interestSummary.nextTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>[Next]</a>
-					{/if}
-				</div>
-				<div class="flex items-center gap-2">
-					<div class="text-xs font-normal">
-						({formatDate(data.interestSummary.taxYearStart)} to {formatDate(data.interestSummary.taxYearEnd)})
-					</div>
-					{#if currentYearSlug}
-						<a href="/accounts/interest/{currentYearSlug}" class="bracket-link text-xs">View Breakdown</a>
-					{/if}
-				</div>
+		<div class="border-y-2 border-black bg-gray-100 p-2 font-bold flex justify-between items-center">
+			<div class="flex items-center gap-2">
+				<span>INTEREST:</span>
+				{#if prevYear}
+					<a href="?taxYearStart={data.interestSummary.prevTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>Prev</a>
+				{/if}
+				<span class="font-normal text-sm">
+					{new Date(data.interestSummary.taxYearStart).getFullYear()}/{String(new Date(data.interestSummary.taxYearEnd).getFullYear()).slice(-2)}
+				</span>
+				{#if nextYear}
+					<a href="?taxYearStart={data.interestSummary.nextTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>Next</a>
+				{/if}
+			</div>
+			<div class="flex items-center gap-2">
+				{#if data.interestSummary}
+					<span class="text-xs font-bold {interestStatus.class}">{interestStatus.label}</span>
+				{/if}
+				{#if currentYearSlug}
+					<a href="/accounts/interest/{currentYearSlug}" class="bracket-link text-xs">View Breakdown</a>
+				{/if}
+			</div>
+		</div>
+
+		<div class="border-b border-black p-2">
+			<div class="text-xs text-gray-600 mb-2">
+				({formatDate(data.interestSummary.taxYearStart)} to {formatDate(data.interestSummary.taxYearEnd)})
 			</div>
 			<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
 				<div>Actual earned:</div>
@@ -402,30 +428,41 @@
 		</div>
 	{/if}
 
+	// ISA tolerance status badge
+	const isaStatus = $derived(() => {
+		if (!data.isaSummary) return { label: '', class: '' };
+		const util = data.isaSummary.utilizationPercent;
+		if (util < 50) return { label: '[OK]', class: 'text-green-700' };
+		if (util < 90) return { label: '[WARNING]', class: 'text-amber-700' };
+		return { label: '[NEAR LIMIT]', class: 'text-red-700' };
+	});
+
 	<!-- ISA SUBSCRIPTION SUMMARY -->
 	{#if data.account.taxWrapper !== 'none' && data.isaSummary}
-		<div class="border-b border-black p-2 bg-amber-50">
-			<div class="flex items-center justify-between gap-2 mb-2">
-				<div class="flex items-center gap-2">
-					<span class="font-bold text-sm">ISA SUBSCRIPTION:</span>
-					{#if prevYear}
-						<a href="?isaTaxYearStart={data.isaSummary.prevTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>[Prev]</a>
-					{/if}
-					<span class="font-bold text-sm">
-						{new Date(data.isaSummary.taxYearStart).getFullYear()}/{String(new Date(data.isaSummary.taxYearEnd).getFullYear()).slice(-2)}
-					</span>
-					{#if nextYear}
-						<a href="?isaTaxYearStart={data.isaSummary.nextTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>[Next]</a>
-					{/if}
-				</div>
-				<div class="flex items-center gap-2">
-					<div class="text-xs font-normal">
-						({formatDate(data.isaSummary.taxYearStart)} to {formatDate(data.isaSummary.taxYearEnd)})
-					</div>
-					{#if currentYearSlug}
-						<a href="/accounts/isa/{currentYearSlug}" class="bracket-link text-xs">View Breakdown</a>
-					{/if}
-				</div>
+		<div class="border-y-2 border-black bg-gray-100 p-2 font-bold flex justify-between items-center">
+			<div class="flex items-center gap-2">
+				<span>ISA SUBSCRIPTION:</span>
+				{#if prevYear}
+					<a href="?isaTaxYearStart={data.isaSummary.prevTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>Prev</a>
+				{/if}
+				<span class="font-normal text-sm">
+					{new Date(data.isaSummary.taxYearStart).getFullYear()}/{String(new Date(data.isaSummary.taxYearEnd).getFullYear()).slice(-2)}
+				</span>
+				{#if nextYear}
+					<a href="?isaTaxYearStart={data.isaSummary.nextTaxYearParam}" class="bracket-link text-xs" data-sveltekit-noscroll>Next</a>
+				{/if}
+			</div>
+			<div class="flex items-center gap-2">
+				<span class="text-xs font-bold {isaStatus.class}">{isaStatus.label}</span>
+				{#if currentYearSlug}
+					<a href="/accounts/isa/{currentYearSlug}" class="bracket-link text-xs">View Breakdown</a>
+				{/if}
+			</div>
+		</div>
+
+		<div class="border-b border-black p-2">
+			<div class="text-xs text-gray-600 mb-2">
+				({formatDate(data.isaSummary.taxYearStart)} to {formatDate(data.isaSummary.taxYearEnd)})
 			</div>
 			<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
 				<div>Subscribed this year:</div>
@@ -578,73 +615,135 @@
 
 <!-- DEBT PROJECTION SECTION -->
 {#if data.account.category === 'liability' && data.projection}
-<div class="border-y bg-gray-100 p-2 font-bold">
-	DEBT PROJECTION
-</div>
+	<!-- Header with status badge -->
+	<div class="border-y-2 border-black bg-gray-100 p-2 font-bold flex justify-between items-center">
+		<div class="flex items-center gap-2">
+			<span>DEBT PROJECTION</span>
+			{#if data.debtHealthStatus}
+				<span class="text-xs font-bold {data.debtHealthStatus.class}">{data.debtHealthStatus.label}</span>
+			{/if}
+		</div>
+		<a href="/accounts/liabilities" class="bracket-link text-xs">View Breakdown</a>
+	</div>
 
-<div class="border-b border-black p-2">
-	<div class="metrics-row grid grid-cols-2 gap-x-4 gap-y-1 text-sm mb-2">
-		{#if data.ttz && data.ttz.months !== null}
-			<div class="metric">
-				<span class="label">Time to Zero:</span>
-				<span class="value font-bold">
+	<!-- Summary Box -->
+	<div class="border-b border-black p-2">
+		<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm tabular-nums">
+			<!-- Time to Zero -->
+			<div>Time to Zero:</div>
+			<div class="text-right font-bold">
+				{#if data.ttz && data.ttz.months !== null}
 					{#if data.ttz.years !== null && data.ttz.years < 1}
 						{data.ttz.months} months
 					{:else}
 						{Math.floor(data.ttz.years || 0)}y {Math.round(((data.ttz.years || 0) % 1) * 12)}m
 					{/if}
+				{:else}
+					<span class="text-amber-700">Never pays off</span>
+				{/if}
+			</div>
+
+			<!-- Monthly Interest -->
+			<div>Monthly Interest:</div>
+			<div class="text-right font-bold tabular-nums text-amber-700">
+				{#if data.projection && data.projection[0]}
+					£{data.projection[0].interest / 100}
+				{:else}
+					£0.00
+				{/if}
+			</div>
+
+			<!-- Utilization (revolving) or Progress (installment) -->
+			{#if data.account.creditLimit}
+				<div>Utilization:</div>
+				<div class="text-right font-bold">{(data.currentBalance / data.account.creditLimit * 100).toFixed(1)}%</div>
+			{:else if data.account.originalPrincipal}
+				<div>Progress:</div>
+				<div class="text-right font-bold">{((data.account.originalPrincipal - data.currentBalance) / data.account.originalPrincipal * 100).toFixed(1)}%</div>
+			{/if}
+		</div>
+
+		<!-- Payment Suggestion -->
+		{#if data.paymentSuggestion}
+			<div class="mt-2 pt-2 border-t border-gray-300 text-xs">
+				<span class="text-gray-700">Suggested: </span>
+				<span class="font-bold text-green-700">£{data.paymentSuggestion.suggestedPayment / 100}</span>
+				<span class="text-gray-700">
+					(pays off {data.paymentSuggestion.monthsSaved} months faster, saves £{data.paymentSuggestion.interestSaved / 100})
 				</span>
 			</div>
-			<div class="metric">
-				<span class="label">Monthly Interest:</span>
-				<span class="value font-bold">£{data.projection[0].interest / 100}</span>
-			</div>
-			{#if data.account.creditLimit}
-				<div class="metric">
-					<span class="label">Utilization:</span>
-					<span class="value font-bold">{(data.currentBalance / data.account.creditLimit * 100).toFixed(1)}%</span>
-				</div>
-			{/if}
-			{#if data.account.originalPrincipal}
-				<div class="metric">
-					<span class="label">Progress:</span>
-					<span class="value font-bold">{((data.account.originalPrincipal - data.currentBalance) / data.account.originalPrincipal * 100).toFixed(1)}%</span>
-				</div>
-			{/if}
+		{/if}
+
+		<!-- Projection Length Toggle -->
+		<div class="flex gap-2 text-xs py-2 border-t border-gray-300">
+			{#each [6, 12, 24] as months}
+				<button
+					type="button"
+					class="bracket-link"
+					class:font-bold={projectionLength === months}
+					onclick={() => projectionLength = months}
+				>
+					{months}m
+				</button>
+			{/each}
+		</div>
+
+		<!-- Expand/Collapse Toggle -->
+		{#if projectionExpanded}
+			<!-- already expanded, show collapse button below table -->
 		{:else}
-			<div class="warning col-span-2 text-amber-700 text-xs">
-				At current payment levels, this debt will never be paid off.
+			<div class="text-center py-2">
+				<button
+					type="button"
+					onclick={() => projectionExpanded = true}
+					class="bracket-link text-xs"
+				>
+					Expand Projection
+				</button>
 			</div>
 		{/if}
 	</div>
 
-	<table class="projection-table w-full table-fixed min-w-[400px]">
-		<thead>
-			<tr>
-				<th class="pl-2 text-left whitespace-nowrap w-[25%]">Month</th>
-				<th class="text-right pr-1 whitespace-nowrap w-[25%]">Balance</th>
-				<th class="text-right pr-1 whitespace-nowrap w-[25%]">Interest</th>
-				<th class="text-right pr-2 whitespace-nowrap w-[25%]">Payment</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each data.projection as row}
-				<tr class="border-b border-gray-200 last:border-b-0 align-top">
-					<td class="pl-2 text-sm py-2 whitespace-nowrap">{row.month}</td>
-					<td class="text-right pr-1 text-sm tabular-nums py-2 whitespace-nowrap {row.balance >= 0 ? 'text-green-700' : 'text-red-700'}">
-						£{row.balance / 100}
-					</td>
-					<td class="text-right pr-1 text-sm tabular-nums py-2 whitespace-nowrap text-amber-700">
-						£{row.interest / 100}
-					</td>
-					<td class="text-right pr-2 text-sm tabular-nums py-2 whitespace-nowrap text-green-700">
-						£{row.payment / 100}
-					</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
-</div>
+	<!-- Projection Table -->
+	{#if projectionExpanded}
+		<div class="border-b border-black p-2">
+			<table class="projection-table w-full table-fixed min-w-[400px]">
+				<thead>
+					<tr>
+						<th class="pl-2 text-left whitespace-nowrap w-[25%]">Month</th>
+						<th class="text-right pr-1 whitespace-nowrap w-[25%]">Balance</th>
+						<th class="text-right pr-1 whitespace-nowrap w-[25%]">Interest</th>
+						<th class="text-right pr-2 whitespace-nowrap w-[25%]">Payment</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each paginatedProjection as row}
+						<tr class="border-b border-gray-200 last:border-b-0 align-top">
+							<td class="pl-2 text-sm py-2 whitespace-nowrap">{row.month}</td>
+							<td class="text-right pr-1 text-sm tabular-nums py-2 whitespace-nowrap {row.balance >= 0 ? 'text-green-700' : 'text-red-700'}">
+								£{row.balance / 100}
+							</td>
+							<td class="text-right pr-1 text-sm tabular-nums py-2 whitespace-nowrap text-amber-700">
+								£{row.interest / 100}
+							</td>
+							<td class="text-right pr-2 text-sm tabular-nums py-2 whitespace-nowrap text-green-700">
+								£{row.payment / 100}
+							</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+			<div class="text-center py-1">
+				<button
+					type="button"
+					onclick={() => projectionExpanded = false}
+					class="bracket-link text-xs"
+				>
+					Collapse
+				</button>
+			</div>
+		</div>
+	{/if}
 {/if}
 
 <!-- MONTHLY BALANCE SUMMARY -->

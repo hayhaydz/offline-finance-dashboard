@@ -7,6 +7,18 @@ import { withUserFilter } from '$lib/auth/row-security';
 import { eq, and } from 'drizzle-orm';
 import { getCurrentBalancesForAccounts } from '$lib/server/derivedBalances';
 
+function getDebtStatusLabel(ttz: { months: number | null; years: number | null }): string {
+	if (ttz.months === null) return '[CRITICAL]';
+	if (ttz.years !== null && ttz.years >= 5) return '[WARNING]';
+	return '[HEALTHY]';
+}
+
+function getDebtStatusClass(ttz: { months: number | null; years: number | null }): string {
+	if (ttz.months === null) return 'text-red-700';
+	if (ttz.years !== null && ttz.years >= 5) return 'text-amber-700';
+	return 'text-green-700';
+}
+
 export const load: PageServerLoad = async ({ locals }) => {
 	if (!locals.user) {
 		return {
@@ -55,7 +67,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 			balance,
 			...ttz,
 			utilization,
-			progress
+			progress,
+			debtStatusLabel: getDebtStatusLabel(ttz),
+			debtStatusClass: getDebtStatusClass(ttz)
 		};
 	}));
 

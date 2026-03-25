@@ -55,6 +55,7 @@
         { href: '/accounts', label: 'All Accounts', includeChildRoutes: true },
         { href: '/accounts/interest', label: 'Interest' },
         { href: '/accounts/isa', label: 'ISA' },
+        { href: '/accounts/liabilities', label: 'Liabilities' },
         { href: '/accounts/create', label: 'Create Account' }
       ]
     },
@@ -119,6 +120,7 @@
         create: 'Create',
         isa: 'ISA',
         interest: 'Interest',
+        liabilities: 'Liabilities',
         balances: 'Balances',
         edit: 'Edit',
         delete: 'Close'
