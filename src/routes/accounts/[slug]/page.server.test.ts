@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { db } from '$lib/db/client';
-import { accounts, interestRates } from '$lib/db/schema';
+import { accounts, interestRates, accountTransactions } from '$lib/db/schema';
 import { nanoid } from 'nanoid';
 import { eq } from 'drizzle-orm';
 import { load } from './+page.server';
@@ -15,7 +15,6 @@ describe('Account page load - liability projections', () => {
 			name: 'Test Liability',
 			type: 'credit-card',
 			category: 'liability',
-			balance: 100000, // £1,000
 			creditLimit: 200000, // £2,000
 			minimumPaymentType: 'flat_or_percentage',
 			minimumPaymentFlat: 2500, // £25
@@ -32,6 +31,15 @@ describe('Account page load - liability projections', () => {
 			accountId: testAccountId,
 			rate: 1000, // 10%
 			effectiveFrom: new Date('2024-01-01')
+		});
+
+		// Add transaction to establish balance
+		await db.insert(accountTransactions).values({
+			slug: nanoid(21),
+			accountId: testAccountId,
+			type: 'withdrawal',
+			amount: -100000, // -£1,000
+			transactionDate: new Date('2024-01-01')
 		});
 	});
 

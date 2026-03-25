@@ -143,5 +143,33 @@
       { "type": "interest", "amount": 52500, "daysAgo": 90, "description": "Interest accrued" },
       { "type": "interest", "amount": 52500, "daysAgo": 0, "description": "Interest accrued" }
     ]
+  },
+  {
+    "accountName": "Rewards Card",
+    "transactions": [
+      { "type": "charge", "amount": -85000, "daysAgo": 90, "description": "Monthly statement" },
+      { "type": "payment", "amount": 3000, "daysAgo": 60, "description": "After payment" },
+      { "type": "charge", "amount": -5000, "daysAgo": 30, "description": "New purchases" },
+      { "type": "payment", "amount": 2000, "daysAgo": 0, "description": "Current balance (0% promo until May 2026)" }
+    ]
+  },
+  {
+    "accountName": "Home Mortgage",
+    "transactions": [
+      { "type": "mortgage_disbursement", "amount": -23800000, "daysAgo": 365, "description": "Initial mortgage - £250,000" },
+      { "type": "payment", "amount": 50000, "daysAgo": 270, "description": "Monthly payment" },
+      { "type": "payment", "amount": 50000, "daysAgo": 180, "description": "Monthly payment" },
+      { "type": "payment", "amount": 50000, "daysAgo": 90, "description": "Monthly payment" },
+      { "type": "interest_charge", "amount": -150000, "daysAgo": 0, "description": "Current balance (tracker rate 6.25%)" }
+    ]
+  },
+  {
+    "accountName": "High-APR Card",
+    "transactions": [
+      { "type": "charge", "amount": -98000, "daysAgo": 90, "description": "Monthly statement - 98% utilization" },
+      { "type": "payment", "amount": 500, "daysAgo": 60, "description": "After minimum payment" },
+      { "type": "charge", "amount": -1000, "daysAgo": 30, "description": "New purchases" },
+      { "type": "payment", "amount": 1000, "daysAgo": 0, "description": "Current balance - maxed out at 98% (£1,000 limit)" }
+    ]
   }
 ]

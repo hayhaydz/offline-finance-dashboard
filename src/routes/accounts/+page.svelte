@@ -346,15 +346,19 @@
 							{/if}
 						</td>
 						<td class="text-right pr-3 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>
-							{#if account.monthlyInterest > 0}
-								<span class="text-green-700 tabular-nums">{formatCurrency(account.monthlyInterest)}</span>
+							{#if account.monthlyInterest !== 0}
+								<span class="tabular-nums" class:text-green-700={account.monthlyInterest > 0} class:text-red-700={account.monthlyInterest < 0}>
+									{formatCurrency(account.monthlyInterest)}
+								</span>
 							{:else}
 								<span class="text-gray-600">-</span>
 							{/if}
 						</td>
 						<td class="text-right pr-3 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>
-							{#if account.yearlyInterest > 0}
-								<span class="text-green-700 tabular-nums">{formatCurrency(account.yearlyInterest)}</span>
+							{#if account.yearlyInterest !== 0}
+								<span class="tabular-nums" class:text-green-700={account.yearlyInterest > 0} class:text-red-700={account.yearlyInterest < 0}>
+									{formatCurrency(account.yearlyInterest)}
+								</span>
 							{:else}
 								<span class="text-gray-600">-</span>
 							{/if}

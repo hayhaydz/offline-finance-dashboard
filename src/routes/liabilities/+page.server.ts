@@ -41,7 +41,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 			flat: account.minimumPaymentFlat,
 			percentage: account.minimumPaymentPercentage
 		};
-		const ttz = calculateTTZ(balance, currentRate, rule);
+		// For liability accounts, balance is negative; convert to positive for debt calculator
+		const ttz = calculateTTZ(Math.abs(balance), currentRate, rule);
 		const utilization = account.creditLimit
 			? (balance / account.creditLimit * 100).toFixed(1)
 			: null;

@@ -222,9 +222,10 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	let ttz: { months: number | null; years: number | null; totalInterest: number | null } | null = null;
 
 	if (account.category === 'liability') {
-		// For liability accounts, use account.balance as source of truth
-		// currentBalance from transactions may be 0 if no transactions exist
-		const balanceForTTZ = account.balance;
+		// Use derived balance from transactions (source of truth)
+		// currentBalance is calculated at line 79 from transactions
+		// For liability accounts, balance is negative; convert to positive for debt calculator
+		const balanceForTTZ = Math.abs(currentBalance);
 
 		const rate = await getCurrentRate(account.id);
 		if (rate !== null) {

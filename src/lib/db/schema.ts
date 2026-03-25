@@ -141,6 +141,12 @@ export const accountTransactions = sqliteTable(
 				"value_change",
 				"transfer_in",
 				"transfer_out",
+				// Liability-specific transaction types
+				"charge", // Credit card purchases (increases debt)
+				"payment", // Payments toward debt (decreases liability)
+				"loan_disbursement", // Initial loan amount received
+				"mortgage_disbursement", // Initial mortgage amount received
+				"interest_charge", // Interest charged on debt (increases liability)
 			],
 		}).notNull(),
 		amount: integer("amount").notNull(), // Signed cents: + for additions, - for deductions

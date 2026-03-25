@@ -1,3 +1,211 @@
+## [Unreleased] — Add Liability Transaction Types to Schema
+
+**Summary:** Added liability-specific transaction types to the accountTransactions schema enum to support credit cards, loans, and mortgages.
+
+**New Transaction Types Added:**
+- `charge` - Credit card purchases (increases debt, negative amount)
+- `payment` - Payments toward debt (decreases liability, positive amount)
+- `loan_disbursement` - Initial loan amount received
+- `mortgage_disbursement` - Initial mortgage amount received
+- `interest_charge` - Interest charged on debt (increases liability, negative amount)
+
+**Code Changes:**
+- `src/lib/db/schema.ts` - Extended accountTransactions type enum with 5 new liability-specific types (lines 147-151)
+
+**Why These Types:**
+The existing types (`deposit`, `withdrawal`) were designed for asset accounts and don't accurately represent liability transactions:
+- Credit card charges aren't "withdrawals" - they're purchases on credit
+- Loan payments aren't "deposits" - they're debt repayments
+- Having explicit types improves semantic clarity and enables liability-specific reporting
+
+**Existing Data Compatibility:**
+- Visa Gold transactions (lines 90-93) already used `charge` type - now valid
+- Mastercard transactions (lines 99-101) already used `charge` and `payment` - now valid
+- Car Loan transactions (lines 107-111) already used `loan_disbursement` and `payment` - now valid
+
+**Suggested commit message:**
+```
+feat(schema): add liability transaction types
+
+Add charge, payment, loan_disbursement, mortgage_disbursement, and interest_charge types to accountTransactions enum for liability account support.
+```
+
+## [Unreleased] — Fix Liability Account Interest Display and Balances
+
+**Summary:** Fixed two issues preventing liability accounts from showing monthly/yearly interest costs and correct balances on the /accounts page.
+
+**Issues Fixed:**
+
+**Issue #1: Interest not displaying for liability accounts**
+- Root cause: Server-side calculation used `balance > 0` condition, excluding negative balances (liabilities)
+- Liability accounts like Car Loan, Home Mortgage, and credit cards showed "-" for monthly/yearly interest
+
+**Issue #2: £0.00 balances for Rewards Card, Home Mortgage, High-APR Card**
+- Root cause: These accounts had no transactions in seed data, and balances are calculated from transaction sums
+- Accounts showed £0.00 despite having correct fixture definitions
+
+**Code Changes:**
+
+**Server Calculation (`src/routes/accounts/+page.server.ts`):**
+- Lines 146-168: Updated interest calculation to use absolute balance for both assets and liabilities
+- Liability accounts now return negative interest values (indicating cost)
+- Tax projection logic updated to exclude liability interest (only assets generate taxable income)
+
+**Svelte Template (`src/routes/accounts/+page.svelte`):**
+- Lines 348-364: Updated monthly/yearly interest display logic
+- Changed from `> 0` check to `!== 0` to show negative values
+- Added conditional styling: green for positive (asset earnings), red for negative (liability costs)
+
+**Seed Data (`scripts/seed/fixtures/standard/transactions.json`):**
+- Added transactions for Rewards Card (4 transactions → -£850 balance)
+- Added transactions for Home Mortgage (5 transactions → -£238,000 balance)
+- Added transactions for High-APR Card (4 transactions → -£980 balance)
+
+**Expected Results:**
+After re-running seed script and refreshing /accounts page:
+- Car Loan (-£11,200 @ 8.5%): Shows -£79/month, -£952/year (red, cost)
+- Home Mortgage (-£238,000 @ 6.25%): Shows -£1,238/month, -£14,875/year (red, cost)
+- High-APR Card (-£980 @ 24.9%): Shows -£20/month, -£244/year (red, cost)
+- Rewards Card (-£850 @ 21.9%): Shows -£15/month, -£186/year (red, cost)
+
+**Suggested commit message:**
+```
+feat(accounts): display interest costs for liability accounts
+
+- Calculate interest on absolute balance for both assets and liabilities
+- Return negative interest values for liabilities to indicate cost
+- Update UI to show liability interest in red, asset interest in green
+- Add missing seed transactions for Rewards Card, Home Mortgage, High-APR Card
+```
+
+## [Unreleased] — Add Minimum Payment Rules to Liability Accounts in Seed Data
+
+**Summary:** Added minimum payment fields (minimumPaymentType, minimumPaymentFlat, minimumPaymentPercentage) to all liability accounts in the seed data. These fields were defined in the schema but missing from the fixture, causing all liability accounts to use defaults (flat/0/0) which made TTZ calculations invalid.
+
+**Payment Rules Implemented:**
+**Credit Cards** (flat_or_percentage, £25 min or 1% of balance):
+- Visa Gold: £25.00 flat minimum OR 1% of balance
+- Mastercard: £25.00 flat minimum OR 1% of balance
+- Rewards Card: £25.00 flat minimum OR 1% of balance
+- High-APR Card: £25.00 flat minimum OR 1% of balance
+
+**Loans** (flat monthly payments):
+- Tesco Car Loan: £350.00/month
+- Car Loan: £380.00/month
+
+**Mortgage** (flat monthly payment):
+- Home Mortgage: £1,480.00/month
+
+**Code Changes:**
+- `scripts/seed/fixtures/standard/accounts.json` - Added minimum payment fields to all 7 liability accounts:
+  - Credit cards: `flat_or_percentage` type, £25.00 (2500 cents) flat, 1% (100 basis points) percentage
+  - Loans: `flat` type, £350-£380 monthly amounts in cents, 0% percentage
+  - Mortgage: `flat` type, £1,480 monthly amount in cents, 0% percentage
+- `scripts/seed/modes/standard.ts` - Updated AccountFixture interface and account creation to include minimum payment fields
+- Re-ran seed script to populate database with new payment rules
+- Verified payment rules appear correctly in database with proper foreign key relationships
+
+**Testing:**
+- JSON validated with `jq` for proper syntax
+- Seed script executed successfully after fixing database constraints
+- Database verification shows correct payment rules for all liability accounts:
+  - Credit cards: flat_or_percentage | 2500 | 100 (£25 min, 1% rate)
+  - Loans: flat | 35000/38000 | 0 (£350/£380 monthly)
+  - Mortgage: flat | 148000 | 0 (£1,480 monthly)
+- All amounts correctly formatted in cents and basis points as required
+- Seed data now supports accurate TTZ calculations for debt projections
+
+## [Unreleased] — Add Missing Credit Card Rates to Seed Data
+
+**Summary:** Added missing Visa Gold and Mastercard interest rates to seed data. The interest_rates.json fixture was missing entries for these liability accounts, causing incomplete interest rate data in the database.
+
+**Code Changes:**
+- `scripts/seed/fixtures/standard/interest_rates.json` - Added missing entries:
+  - Visa Gold: 19.9% previous rate, 21.9% current rate
+  - Mastercard: 21.9% standard rate
+- Re-ran seed script to populate database with new rates
+- Verified rates appear correctly in database with proper foreign key relationships
+
+**Testing:**
+- JSON validated with `jq` for proper syntax
+- Seed script executed successfully without foreign key errors
+- Database verification shows correct rate entries:
+  - Mastercard: 2190 (21.9% APR)
+  - Visa Gold: 1990 (19.9% APR), 2190 (21.9% APR) - with rate history
+- All 15 accounts now have appropriate interest rates for accurate debt projections
+
+## [Unreleased] — Fix Undefined account.balance Bug (Account Detail)
+
+**Summary:** Fixed critical bug in account detail page where debt projection (TTZ calculation) referenced non-existent `account.balance` property. The accounts table has no balance column - balances are derived from transactions. Changed to use `currentBalance` which is correctly computed from transactions at line 79.
+
+**Code Changes:**
+- `src/routes/accounts/[slug]/+page.server.ts` (lines 224-228) - Changed from `account.balance` (undefined) to `Math.abs(currentBalance)` (derived from transactions)
+- `src/routes/liabilities/+page.server.ts` (line 44) - Also fixed to use `Math.abs(balance)` for debt calculator
+- Updated comments to reflect that balances are transaction-derived, not stored on accounts
+
+**Bug Details:**
+- Line 227 referenced `account.balance` which doesn't exist in schema
+- This caused TTZ calculation to receive `undefined`, resulting in `months: null, years: null, totalInterest: NaN`
+- Projection array showed all `balance: undefined, interest: NaN, payment: NaN`
+- Balances for liability accounts are negative (e.g., -240000 for £2,400 debt), so `Math.abs()` is required for debt calculator
+
+**Testing:**
+- Created TDD test suite: `src/routes/accounts/[slug]/__tests__/debt-projection.test.ts`
+- 3 tests pass:
+  - ✓ TTZ calculation uses currentBalance correctly (25 months, £210.58 interest for £1,000 debt at 18.9%)
+  - ✓ Zero balance handled correctly (TTZ months = 0, not undefined/null)
+  - ✓ Asset accounts return null projection (no TTZ for non-liabilities)
+- Fixed existing tests in `page.server.test.ts` and `liabilities/page.server.test.ts` to create transactions instead of inserting non-existent `balance` field
+- All tests pass: 195 passed
+
+**Before Fix:**
+```typescript
+const balanceForTTZ = account.balance; // undefined - doesn't exist in schema
+```
+
+**After Fix:**
+```typescript
+// Use derived balance from transactions (source of truth)
+// currentBalance is calculated at line 79 from transactions
+// For liability accounts, balance is negative; convert to positive for debt calculator
+const balanceForTTZ = Math.abs(currentBalance);
+```
+
+**Commit:**
+- `fix(account-detail): use currentBalance instead of undefined account.balance`
+
+---
+
+## [Unreleased] — Fix Interest Rate Fetching for Liability Accounts (Accounts Index)
+
+**Summary:** Modified accounts index page to fetch and display interest rates for liability accounts (credit-card, loan, mortgage). Previously only savings/investment accounts showed rates in the Rate column.
+
+**Code Changes:**
+- `src/routes/accounts/+page.server.ts` (lines 87-92) - Extended rate fetching logic to include `account.category === "liability"` alongside existing `savings` and `investment` types
+- Changed condition from checking only account type to checking both type and category
+
+**Testing:**
+- Created comprehensive test suite: `src/routes/accounts/__tests__/rate-fetching.test.ts`
+- 7 tests pass:
+  - ✓ Savings accounts (existing behavior maintained)
+  - ✓ Credit-card accounts (new behavior)
+  - ✓ Loan accounts (new behavior)
+  - ✓ Mortgage accounts (new behavior)
+  - ✓ Investment accounts (existing behavior maintained)
+  - ✓ Current accounts correctly return null (existing behavior maintained)
+  - ✓ Liability accounts without rates return null (edge case)
+- All existing tests still pass (189 passed, 3 pre-existing failures unrelated to this change)
+
+**Behavior Changes:**
+- Liability accounts now show their current interest rate in the accounts index table
+- Liability accounts without rates continue to show '-' (null)
+- No impact on asset accounts (savings, investment, current)
+
+**Commit:**
+- `feat(accounts-index): fetch interest rates for liability accounts`
+
+---
+
 ## [Unreleased] — Account Notes Feature
 
 **Summary:** Add contextual notes to accounts for recording information like "Opened this for the 5.1% rate, will review when it drops" or "Fixed until March 2027, set reminder".

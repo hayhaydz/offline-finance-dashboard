@@ -70,5 +70,18 @@
     "rates": [
       { "rate": 850, "daysAgo": 800, "description": "Fixed rate 8.50% APR for personal loan" }
     ]
+  },
+  {
+    "accountName": "Visa Gold",
+    "rates": [
+      { "rate": 1990, "daysAgo": 800, "description": "Previous rate 19.9% APR" },
+      { "rate": 2190, "daysAgo": 365, "description": "Current rate 21.9% APR standard" }
+    ]
+  },
+  {
+    "accountName": "Mastercard",
+    "rates": [
+      { "rate": 2190, "daysAgo": 365, "description": "Standard rate 21.9% APR" }
+    ]
   }
 ]

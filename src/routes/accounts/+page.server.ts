@@ -84,7 +84,14 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Fetch interest rates for all accounts
 	const accountRates = new Map<number, number | null>();
 	for (const account of userAccounts) {
-		if (account.type === "savings" || account.type === "investment") {
+		// Fetch rates for savings/investment accounts AND liability accounts
+		// (credit-card, loan, mortgage) - all can have interest rates
+		const hasInterestRate =
+			account.type === "savings" ||
+			account.type === "investment" ||
+			account.category === "liability";
+
+		if (hasInterestRate) {
 			accountRates.set(account.id, await getCurrentRate(account.id));
 		} else {
 			accountRates.set(account.id, null);
@@ -141,15 +148,31 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		const balance = currentBalances.get(account.id) ?? 0;
 
 		// 1. DISPLAY VALUES: Theoretical monthly/yearly earning rates (keep these for the UI table)
-		const monthlyInterest =
-			rate !== null && balance > 0 ? Math.round((balance * rate) / 120000) : 0;
-		const yearlyInterest =
-			rate !== null && balance > 0 ? Math.round((balance * rate) / 10000) : 0;
+		// Calculate interest on absolute balance for both assets and liabilities
+		// For liabilities (negative balance), the interest is a cost (negative value)
+		const absoluteBalance = Math.abs(balance);
+		const isLiability = balance < 0;
+
+		let monthlyInterest = 0;
+		let yearlyInterest = 0;
+
+		if (rate !== null && absoluteBalance > 0) {
+			monthlyInterest = Math.round((absoluteBalance * rate) / 120000);
+			yearlyInterest = Math.round((absoluteBalance * rate) / 10000);
+
+			// For liabilities, interest is a cost (negative value)
+			if (isLiability) {
+				monthlyInterest = -monthlyInterest;
+				yearlyInterest = -yearlyInterest;
+			}
+		}
 
 		// 2. TAX PROJECTION VALUES: What actually pays out before April 5th?
+		// Only assets (positive balance) generate taxable interest income
 		let projectedForRestOfTaxYear = 0;
+		const absoluteYearlyInterest = Math.abs(yearlyInterest);
 
-		if (rate !== null && balance > 0) {
+		if (rate !== null && !isLiability && absoluteYearlyInterest > 0) {
 			if (account.maturityDate) {
 				// Fixed-term bond: only count if it matures THIS tax year
 				if (
@@ -162,13 +185,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 							millisecondsPerDay,
 					);
 					projectedForRestOfTaxYear = Math.round(
-						(yearlyInterest / 365) * daysToMaturity,
+						(absoluteYearlyInterest / 365) * daysToMaturity,
 					);
 				}
 			} else {
 				// Standard access account: prorate for the remaining days in the current tax year
 				projectedForRestOfTaxYear = Math.round(
-					(yearlyInterest / 365) * daysRemainingInTaxYear,
+					(absoluteYearlyInterest / 365) * daysRemainingInTaxYear,
 				);
 			}
 		}

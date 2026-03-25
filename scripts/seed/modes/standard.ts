@@ -15,6 +15,9 @@ interface AccountFixture {
 	excludedFromNetWorth: boolean;
 	closedAt: string | null;
 	maturityDate: string | null;
+	minimumPaymentType: (typeof schema.accounts.$inferInsert)["minimumPaymentType"];
+	minimumPaymentFlat: (typeof schema.accounts.$inferInsert)["minimumPaymentFlat"];
+	minimumPaymentPercentage: (typeof schema.accounts.$inferInsert)["minimumPaymentPercentage"];
 	balances: Array<{
 		balanceInCents: number;
 		daysAgo: number;
@@ -97,6 +100,9 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 				excludedFromNetWorth: a.excludedFromNetWorth,
 				closedAt: a.closedAt ? new Date(a.closedAt) : null,
 				maturityDate: a.maturityDate ? new Date(a.maturityDate) : null,
+				minimumPaymentType: a.minimumPaymentType,
+				minimumPaymentFlat: a.minimumPaymentFlat,
+				minimumPaymentPercentage: a.minimumPaymentPercentage,
 				createdAt: now,
 				updatedAt: now,
 			})

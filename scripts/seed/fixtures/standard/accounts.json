@@ -96,6 +96,9 @@
     "excludedFromNetWorth": false,
     "closedAt": null,
     "maturityDate": null,
+    "minimumPaymentType": "flat_or_percentage",
+    "minimumPaymentFlat": 2500,
+    "minimumPaymentPercentage": 100,
     "balances": [
       { "balanceInCents": -120000, "daysAgo": 90, "notes": "Monthly statement" },
       { "balanceInCents": -160000, "daysAgo": 60, "notes": "After purchases" },
@@ -113,6 +116,9 @@
     "excludedFromNetWorth": false,
     "closedAt": null,
     "maturityDate": null,
+    "minimumPaymentType": "flat_or_percentage",
+    "minimumPaymentFlat": 2500,
+    "minimumPaymentPercentage": 100,
     "balances": [
       { "balanceInCents": -80000, "daysAgo": 60, "notes": "Monthly statement" },
       { "balanceInCents": -65000, "daysAgo": 30, "notes": "After payment" },
@@ -129,6 +135,9 @@
     "excludedFromNetWorth": false,
     "closedAt": null,
     "maturityDate": null,
+    "minimumPaymentType": "flat",
+    "minimumPaymentFlat": 35000,
+    "minimumPaymentPercentage": 0,
     "maturityDate": null,
     "balances": [
       { "balanceInCents": -1200000, "daysAgo": 365, "notes": "Loan start" },
@@ -200,6 +209,9 @@
     "excludedFromNetWorth": false,
     "closedAt": null,
     "maturityDate": null,
+    "minimumPaymentType": "flat_or_percentage",
+    "minimumPaymentFlat": 2500,
+    "minimumPaymentPercentage": 100,
     "balances": [
       { "balanceInCents": -85000, "daysAgo": 90, "notes": "Monthly statement" },
       { "balanceInCents": -82000, "daysAgo": 60, "notes": "After payment" },
@@ -217,6 +229,9 @@
     "excludedFromNetWorth": false,
     "closedAt": null,
     "maturityDate": null,
+    "minimumPaymentType": "flat",
+    "minimumPaymentFlat": 38000,
+    "minimumPaymentPercentage": 0,
     "balances": [
       { "balanceInCents": -1235000, "daysAgo": 365, "notes": "Loan start - £15,000 at 8.5% APR" },
       { "balanceInCents": -1185000, "daysAgo": 270, "notes": "After payment" },
@@ -235,6 +250,9 @@
     "excludedFromNetWorth": false,
     "closedAt": null,
     "maturityDate": null,
+    "minimumPaymentType": "flat",
+    "minimumPaymentFlat": 148000,
+    "minimumPaymentPercentage": 0,
     "balances": [
       { "balanceInCents": -23800000, "daysAgo": 365, "notes": "Initial mortgage - £250,000" },
       { "balanceInCents": -23750000, "daysAgo": 270, "notes": "After payment" },
@@ -253,6 +271,9 @@
     "excludedFromNetWorth": false,
     "closedAt": null,
     "maturityDate": null,
+    "minimumPaymentType": "flat_or_percentage",
+    "minimumPaymentFlat": 2500,
+    "minimumPaymentPercentage": 100,
     "balances": [
       { "balanceInCents": -98000, "daysAgo": 90, "notes": "Monthly statement - 98% utilization" },
       { "balanceInCents": -97500, "daysAgo": 60, "notes": "After minimum payment" },
