@@ -16,7 +16,7 @@
 </script>
 
 <!-- Header -->
-<div class="border-y-2 border-black bg-gray-100 p-2 font-bold flex justify-between items-center">
+<div class="border-y border-black bg-gray-100 p-2 font-bold flex justify-between items-center">
   <h1>LIABILITIES</h1>
   <a href="/accounts" class="bracket-link text-xs">← Back to Accounts</a>
 </div>
@@ -32,7 +32,7 @@
 
 <!-- Revolving Section -->
 {#if data.revolving.length > 0}
-  <div class="border-y-2 border-black bg-gray-100 p-2 font-bold">REVOLVING DEBT</div>
+  <div class="border-y border-black bg-gray-100 p-2 font-bold">REVOLVING DEBT</div>
   <div class="divide-y divide-gray-200">
     {#each data.revolving as liability}
       <div class="border-b border-black p-3">
@@ -59,7 +59,7 @@
 
 <!-- Installment Section -->
 {#if data.installment.length > 0}
-  <div class="border-y-2 border-black bg-gray-100 p-2 font-bold">INSTALLMENT DEBT</div>
+  <div class="border- border-black bg-gray-100 p-2 font-bold">INSTALLMENT DEBT</div>
   <div class="divide-y divide-gray-200">
     {#each data.installment as liability}
       <div class="border-b border-black p-3">

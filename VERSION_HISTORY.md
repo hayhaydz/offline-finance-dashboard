@@ -1,3 +1,56 @@
+## [Unreleased] — Account Detail Page: Phase 2 Light Builds
+
+**Summary:** Four additive UI improvements to the `/accounts/[slug]` page. No schema changes. One server-side addition (overpayment scenarios); all others client-side `$derived` expressions.
+
+**Transaction Monthly Grouping (all accounts):**
+- Ledger now groups paginated transactions by calendar month with a header row per group
+- Header shows: `<Month> <Year> — N transactions · Net: ±£X (£Y in, £Z out)`
+- Net positive = green, negative = red; header row uses `bg-gray-100`
+
+**PSA Burn Rate Projection (non-ISA savings):**
+- Interest summary widget now shows PSA usage and breach projection
+- Suppressed when < 50% used and no breach projected within the tax year
+- Shows `PSA exceeded — £X taxable` in red if already over; breach month projection if approaching; "On track" if high usage but safe
+
+**ISA Allowance Fill Projection (ISA/LISA/Premium Bonds):**
+- ISA widget now projects when the allowance will be fully subscribed
+- Cadence = average of last 3 months' positive balance deltas
+- Shows fill month, "No recent deposits", "Allowance full", or fill month + tax year end caveat
+
+**Overpayment Scenario Comparison Table (liability accounts):**
+- Debt projection section now shows a compact 3-column table: Minimum, +25%, +50%
+- Rows: Payment, Months to clear, Total interest, Debt-free date
+- Pre-computed server-side via three `calculateTTZ()` calls; stored as `data.overpaymentScenarios`
+- Only shown when TTZ is non-null (hidden for CRITICAL accounts)
+
+**Suggested commit:** `feat(accounts): phase 2 — ledger grouping, PSA projection, ISA fill projection, overpayment scenarios`
+
+---
+
+## [Unreleased] — Account Detail Page: Phase 1 UI Enhancements
+
+**Summary:** Six additive UI improvements to the `/accounts/[slug]` page. All changes are client-side only — no schema or server changes required.
+
+**Balance Delta Strip (all accounts):**
+- Added trajectory line below current balance in account header
+- Shows ▲/▼ change vs last month and 12 months ago
+- Direction-aware framing: rising liability balance = red; falling = green (inverted from asset logic)
+- Guards for sparse history — shows `—` when 12-month data unavailable, hidden entirely for < 2 months
+
+**Debt Projection Enhancements (liability accounts):**
+- **Daily interest velocity:** Monthly interest now shows `(£X.XX/day)` alongside the monthly figure
+- **Payment efficiency metric:** "Payment breakdown: £X interest (Y%) · £Z principal" line in summary
+- **Minimum payment trap warning:** Red `[WARNING]` block shown when TTZ > 10 years (120 months); suppressed for CRITICAL (never pays off) accounts
+- **Cumulative interest column:** `Total Int.` column added to expanded projection table (running sum per row)
+- **Interest:principal lifetime ratio:** "Of total repayment: X% is interest (£Y of £Z)" in summary; amber when > 30%
+
+**Test fix:**
+- Updated stale assertion in `page.server.test.ts` to expect 24 projection rows (server was already sending 24; test was outdated)
+
+**Suggested commit:** `feat: account detail page phase 1 - balance delta strip and debt projection metrics`
+
+---
+
 ## [Unreleased] — Liabilities Section Redesign
 
 **Summary:** Comprehensive redesign of the liabilities section with terminal aesthetic, unified visual language across Interest/ISA/Liabilities sections, and enhanced debt management features.

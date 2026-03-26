@@ -298,6 +298,13 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	let ttz: { months: number | null; years: number | null; totalInterest: number | null } | null = null;
 	let debtHealthStatus: { label: string; class: string } | null = null;
 	let paymentSuggestion: { suggestedPayment: number; monthsSaved: number; interestSaved: number } | null = null;
+	let overpaymentScenarios: Array<{
+		label: string;
+		payment: number;
+		ttzMonths: number | null;
+		totalInterest: number | null;
+		debtFreeDate: string | null;
+	}> | null = null;
 
 	if (account.category === 'liability') {
 		// Use derived balance from transactions (source of truth)
@@ -313,7 +320,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 				percentage: account.minimumPaymentPercentage
 			};
 			const ttzResult = calculateTTZ(balanceForTTZ, rate, rule);
-			projection = ttzResult.projection.slice(0, 12); // 12 months only
+			projection = ttzResult.projection.slice(0, 24); // 24 months for toggle support
 			ttz = {
 				months: ttzResult.months,
 				years: ttzResult.years,
@@ -333,6 +340,21 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 					{ type: account.minimumPaymentType, flat: account.minimumPaymentFlat, percentage: account.minimumPaymentPercentage }
 				);
 				paymentSuggestion = calculatePaymentSuggestion(balanceForTTZ, rate, currentPayment, ttz);
+
+				// Pre-compute overpayment scenarios: minimum, +25%, +50%
+				const now = new Date();
+				overpaymentScenarios = ([1, 1.25, 1.5] as const).map((mult, i) => {
+					const label = i === 0 ? 'Minimum' : i === 1 ? '+25%' : '+50%';
+					const payment = Math.round(currentPayment * mult);
+					const result = calculateTTZ(balanceForTTZ, rate, { type: 'flat', flat: payment });
+					let debtFreeDate: string | null = null;
+					if (result.months !== null) {
+						const d = new Date(now);
+						d.setMonth(d.getMonth() + result.months);
+						debtFreeDate = d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+					}
+					return { label, payment, ttzMonths: result.months, totalInterest: result.totalInterest, debtFreeDate };
+				});
 			}
 		}
 	}
@@ -363,6 +385,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		notes,
 		debtHealthStatus,
 		paymentSuggestion,
+		overpaymentScenarios,
 		breadcrumbOverrides: [
 			{ segmentIndex: 1, label: account.name, skipLink: false },
 		],

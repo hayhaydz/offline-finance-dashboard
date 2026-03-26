@@ -52,7 +52,7 @@ describe('Account page load - liability projections', () => {
 
 		expect(result.ttz).toBeDefined();
 		expect(result.ttz.months).toBeGreaterThan(0);
-		expect(result.projection).toHaveLength(12); // 12 months
+		expect(result.projection).toHaveLength(24); // server sends 24 months
 	});
 
 	it('should calculate utilization for revolving debt', async () => {
