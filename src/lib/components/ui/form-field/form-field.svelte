@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { ValidationRule } from '$lib/validation/types';
+	import type { HTMLInputAttributes } from 'svelte/elements';
 	import { cn } from '$lib/utils';
 
 	interface Props {
@@ -16,7 +17,7 @@
 		/** Placeholder text */
 		placeholder?: string;
 		/** Autocomplete attribute */
-		autocomplete?: string;
+		autocomplete?: HTMLInputAttributes['autocomplete'];
 		/** Input mode for mobile keyboards */
 		inputmode?: 'numeric' | 'text' | 'email';
 		/** Disabled state */
@@ -36,7 +37,7 @@
 		value = $bindable(),
 		rules,
 		placeholder = '',
-		autocomplete = '',
+		autocomplete,
 		inputmode,
 		disabled = false,
 		filter,
@@ -105,7 +106,7 @@
 		{type}
 		{name}
 		{placeholder}
-		autocomplete={autocomplete ? (autocomplete as any) : undefined}
+		autocomplete={autocomplete}
 		{inputmode}
 		{disabled}
 		{value}

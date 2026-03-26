@@ -34,7 +34,7 @@
 		currentIndex > 0 ? data.availableTaxYears[currentIndex - 1] : null
 	);
 
-	let transactionPage = $state(data.transactionPagination.page);
+	let transactionPage = $state(0);
 
 	// Interest rates pagination state
 	let ratesPage = $state(0);
@@ -204,6 +204,12 @@
 	let isUpdatingTransactionPage = $state(false);
 	let isUpdatingRatesPage = $state(false);
 	let isUpdatingBalancesPage = $state(false);
+
+	// Sync pagination from server data
+	$effect(() => {
+		if (isUpdatingTransactionPage) return;
+		transactionPage = data.transactionPagination.page;
+	});
 
 	// Sync pagination state with URL (1-indexed)
 	$effect(() => {
@@ -454,13 +460,15 @@
 	);
 
 	// ISA tolerance status badge
-	const isaStatus = $derived(() => {
-		if (!data.isaSummary) return { label: '', class: '' };
-		const util = data.isaSummary.utilizationPercent;
-		if (util < 50) return { label: '[OK]', class: 'text-green-700' };
-		if (util < 90) return { label: '[WARNING]', class: 'text-amber-700' };
-		return { label: '[NEAR LIMIT]', class: 'text-red-700' };
-	});
+	const isaStatus = $derived(
+		!data.isaSummary
+			? { label: '', class: '' }
+			: data.isaSummary.utilizationPercent < 50
+				? { label: '[OK]', class: 'text-green-700' }
+				: data.isaSummary.utilizationPercent < 90
+					? { label: '[WARNING]', class: 'text-amber-700' }
+					: { label: '[NEAR LIMIT]', class: 'text-red-700' }
+	);
 </script>
 
 <!-- ACCOUNT INFO HEADER -->

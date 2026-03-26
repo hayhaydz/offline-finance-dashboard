@@ -4,16 +4,25 @@ import type { Snapshot } from "$lib/db/schema";
 import { accounts, goals, snapshots } from "$lib/db/schema";
 import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
 import { calculateAssetsAndLiabilities } from "$lib/server/finance";
-import { calculateISAAllowanceBreakdown, calculateInterestBreakdown, type ISAAllowanceBreakdown, type InterestBreakdownDetail } from "$lib/server/snapshotBreakdowns";
+import {
+	calculateInterestBreakdown,
+	calculateISAAllowanceBreakdown,
+} from "$lib/server/snapshotBreakdowns";
 import { devLog } from "$lib/utils/logger";
 
 /**
  * Calculate current snapshot data from accounts and goals
  * Returns net worth, totals, and JSON breakdowns for point-in-time preservation
  */
-export async function calculateSnapshotData(userId: number, snapshotDate?: Date) {
+export async function calculateSnapshotData(
+	userId: number,
+	snapshotDate?: Date,
+) {
 	const effectiveDate = snapshotDate ?? new Date();
-	devLog("calculateSnapshotData", "Calculating snapshot data", { userId, snapshotDate: effectiveDate });
+	devLog("calculateSnapshotData", "Calculating snapshot data", {
+		userId,
+		snapshotDate: effectiveDate,
+	});
 
 	// Fetch all user accounts
 	const allAccounts = await db.query.accounts.findMany({
@@ -22,7 +31,9 @@ export async function calculateSnapshotData(userId: number, snapshotDate?: Date)
 			isNull(accounts.closedAt), // Only open accounts
 		),
 	});
-	const balanceMap = await getCurrentBalancesForAccounts(allAccounts.map((a) => a.id));
+	const balanceMap = await getCurrentBalancesForAccounts(
+		allAccounts.map((a) => a.id),
+	);
 
 	// Fetch all active goals
 	const allGoals = await db.query.goals.findMany({
@@ -103,7 +114,7 @@ export async function calculateSnapshotData(userId: number, snapshotDate?: Date)
 		accountsBreakdown,
 		goalsBreakdown,
 		isaBreakdown: isaData,
-		interestBreakdownDetail: interestData
+		interestBreakdownDetail: interestData,
 	};
 }
 

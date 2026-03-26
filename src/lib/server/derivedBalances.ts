@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { accountTransactions } from "$lib/db/schema";
 
@@ -9,7 +9,9 @@ export interface MonthlyBalancePoint {
 	closingBalance: number;
 }
 
-export async function getCurrentBalanceForAccount(accountId: number): Promise<number> {
+export async function getCurrentBalanceForAccount(
+	accountId: number,
+): Promise<number> {
 	const balances = await getCurrentBalancesForAccounts([accountId]);
 	return balances.get(accountId) ?? 0;
 }
@@ -22,15 +24,16 @@ export async function getCurrentBalancesForAccounts(
 	const rows = await db
 		.select({
 			accountId: accountTransactions.accountId,
-			amount: accountTransactions.amount,
+			total: sql<number>`coalesce(sum(${accountTransactions.amount}), 0)`,
 		})
 		.from(accountTransactions)
-		.where(inArray(accountTransactions.accountId, accountIds));
+		.where(inArray(accountTransactions.accountId, accountIds))
+		.groupBy(accountTransactions.accountId);
 
 	const result = new Map<number, number>();
 	for (const id of accountIds) result.set(id, 0);
 	for (const row of rows) {
-		result.set(row.accountId, (result.get(row.accountId) ?? 0) + row.amount);
+		result.set(row.accountId, Number(row.total ?? 0));
 	}
 	return result;
 }
@@ -43,19 +46,17 @@ export async function getLatestTransactionDateForAccounts(
 	const rows = await db
 		.select({
 			accountId: accountTransactions.accountId,
-			transactionDate: accountTransactions.transactionDate,
+			latest: sql<Date | null>`max(${accountTransactions.transactionDate})`,
 		})
 		.from(accountTransactions)
-		.where(inArray(accountTransactions.accountId, accountIds));
+		.where(inArray(accountTransactions.accountId, accountIds))
+		.groupBy(accountTransactions.accountId);
 
 	const result = new Map<number, Date | null>();
 	for (const id of accountIds) result.set(id, null);
 
 	for (const row of rows) {
-		const current = result.get(row.accountId);
-		if (!current || row.transactionDate > current) {
-			result.set(row.accountId, row.transactionDate);
-		}
+		result.set(row.accountId, row.latest ?? null);
 	}
 
 	return result;

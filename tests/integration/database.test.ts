@@ -9,7 +9,7 @@ vi.hoisted(() => {
 import { sql } from "drizzle-orm";
 import { createDb } from "$lib/db/client";
 import { runMigrations } from "$lib/db/migrate";
-import { accountTransactions, accounts, users } from "$lib/db/schema";
+import { accounts, accountTransactions, users } from "$lib/db/schema";
 
 describe("Database Integration & Migrations", () => {
 	const createdFiles: string[] = [];

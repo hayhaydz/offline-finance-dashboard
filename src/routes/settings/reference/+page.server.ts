@@ -39,12 +39,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// Fetch user's current tax band
 	const user = await db.query.users.findFirst({
 		where: eq(users.id, locals.user.id),
-		columns: { taxBand: true }
+		columns: { taxBand: true },
 	});
 
 	return {
 		monthlyExpensesInPence,
-		taxBand: user?.taxBand ?? 'basic',
+		taxBand: user?.taxBand ?? "basic",
 	};
 };
 
@@ -155,7 +155,10 @@ export const actions: Actions = {
 	 */
 	updateTaxBand: async ({ request, locals }) => {
 		if (!locals.user) {
-			logError("settings-reference", "Authentication required for tax band update");
+			logError(
+				"settings-reference",
+				"Authentication required for tax band update",
+			);
 			return fail(401, { error: "Authentication required" });
 		}
 
@@ -165,20 +168,23 @@ export const actions: Actions = {
 		const taxBand = formData.get("taxBand") as string;
 
 		// Validate
-		const validBands = ['basic', 'higher', 'additional'];
+		const validBands = ["basic", "higher", "additional"];
 		if (!validBands.includes(taxBand)) {
-			devLog("settings-reference", "Validation failed: invalid tax band", { taxBand });
+			devLog("settings-reference", "Validation failed: invalid tax band", {
+				taxBand,
+			});
 			return fail(400, { error: "Invalid tax band" });
 		}
 
 		try {
-			await db.update(users)
-				.set({ taxBand: taxBand as 'basic' | 'higher' | 'additional' })
+			await db
+				.update(users)
+				.set({ taxBand: taxBand as "basic" | "higher" | "additional" })
 				.where(eq(users.id, locals.user.id));
 
 			devLog("settings-reference", "Tax band updated", {
 				userId: locals.user.id,
-				taxBand
+				taxBand,
 			});
 
 			return { success: true };

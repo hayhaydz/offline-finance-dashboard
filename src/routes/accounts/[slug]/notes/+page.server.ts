@@ -2,7 +2,7 @@ import { error, redirect } from "@sveltejs/kit";
 import { desc, eq } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
-import { accounts, accountNotes } from "$lib/db/schema";
+import { accountNotes, accounts } from "$lib/db/schema";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {

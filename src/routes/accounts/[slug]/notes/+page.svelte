@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { formatDateTime, truncateDisplay } from '$lib/utils/currency';
-	import { DISPLAY_LIMITS } from '$lib/utils/fieldLimits';
+	import { formatDateTime } from '$lib/utils/currency';
+	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 
 	let { data }: { data: PageData } = $props();
 </script>

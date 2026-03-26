@@ -41,5 +41,7 @@ export async function wipeUserData(db: DB, userId: number): Promise<void> {
 	}
 	await db.delete(schema.accounts).where(eq(schema.accounts.userId, userId));
 
-	console.log("  ✓ Wiped accounts, transactions, rates, goals, allocations, snapshots");
+	console.log(
+		"  ✓ Wiped accounts, transactions, rates, goals, allocations, snapshots",
+	);
 }

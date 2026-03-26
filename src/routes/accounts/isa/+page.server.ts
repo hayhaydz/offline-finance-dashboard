@@ -3,10 +3,13 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
-import { getUkTaxYearBounds, ISA_ALLOWANCE_IN_CENTS } from "$lib/server/calculations";
+import {
+	getUkTaxYearBounds,
+	ISA_ALLOWANCE_IN_CENTS,
+} from "$lib/server/calculations";
 import type { PageServerLoad } from "./$types";
 
-function getTaxYearLabel(date: Date): string {
+function _getTaxYearLabel(date: Date): string {
 	const bounds = getUkTaxYearBounds(date);
 	const startYear = bounds.start.getUTCFullYear();
 	const endYear = bounds.end.getUTCFullYear();
@@ -89,11 +92,18 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			});
 		}
 
-		const yearData = taxYearsMap.get(label)!;
+		const yearData = taxYearsMap.get(label);
+		if (!yearData) continue;
 		yearData.totalSubscribed += tx.amount;
 		yearData.allowanceUsed += tx.amount;
-		yearData.allowanceRemaining = Math.max(0, ISA_ALLOWANCE_IN_CENTS - yearData.allowanceUsed);
-		yearData.utilizationPercent = Math.min(100, Math.round((yearData.allowanceUsed / ISA_ALLOWANCE_IN_CENTS) * 100));
+		yearData.allowanceRemaining = Math.max(
+			0,
+			ISA_ALLOWANCE_IN_CENTS - yearData.allowanceUsed,
+		);
+		yearData.utilizationPercent = Math.min(
+			100,
+			Math.round((yearData.allowanceUsed / ISA_ALLOWANCE_IN_CENTS) * 100),
+		);
 		yearData.transactionCount++;
 		yearData.overAllowance = yearData.allowanceUsed > ISA_ALLOWANCE_IN_CENTS;
 	}

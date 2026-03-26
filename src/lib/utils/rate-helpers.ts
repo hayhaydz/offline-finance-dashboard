@@ -1,6 +1,6 @@
-import { db } from '$lib/db/client';
-import { interestRates } from '$lib/db/schema';
-import { eq, and, lte, desc } from 'drizzle-orm';
+import { and, desc, eq, lte } from "drizzle-orm";
+import { db } from "$lib/db/client";
+import { interestRates } from "$lib/db/schema";
 
 /**
  * Get the current effective interest rate for an account
@@ -16,9 +16,9 @@ export async function getCurrentRate(accountId: number): Promise<number> {
 	const result = await db.query.interestRates.findFirst({
 		where: and(
 			eq(interestRates.accountId, accountId),
-			lte(interestRates.effectiveFrom, today)
+			lte(interestRates.effectiveFrom, today),
 		),
-		orderBy: [desc(interestRates.effectiveFrom)]
+		orderBy: [desc(interestRates.effectiveFrom)],
 	});
 
 	return result?.rate ?? 0;

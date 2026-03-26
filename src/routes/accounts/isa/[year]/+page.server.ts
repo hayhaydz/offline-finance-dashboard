@@ -2,7 +2,7 @@ import { redirect } from "@sveltejs/kit";
 import { eq, inArray } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
-import { accounts, accountTransactions, users } from "$lib/db/schema";
+import { accounts, accountTransactions } from "$lib/db/schema";
 import { getUkTaxYearBounds } from "$lib/server/calculations";
 import { getISABreakdownReport } from "$lib/server/isaBreakdown";
 import { devLog, logError } from "$lib/utils/logger";
@@ -93,11 +93,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			availableTaxYears: sortedTaxYears,
 		};
 	} catch (error) {
-		logError(
-			"accountsIsa",
-			"Failed to generate ISA breakdown report",
-			error,
-		);
+		logError("accountsIsa", "Failed to generate ISA breakdown report", error);
 		throw error;
 	}
 };

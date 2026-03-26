@@ -1,13 +1,11 @@
 import { fail, redirect } from "@sveltejs/kit";
-import { asc, count, desc, eq } from "drizzle-orm";
+import { asc, count, eq } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, goals, users } from "$lib/db/schema";
 import {
 	getAccountInterestEarned,
-	getActualInterestEarned,
 	getISAAllowanceUsed,
-	getProjectedInterest,
 	getTaxFreeStatus,
 	getUkTaxYearBounds,
 	ISA_ALLOWANCE_IN_CENTS,

@@ -14,25 +14,24 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { redirect } from "@sveltejs/kit";
 import { db } from "$lib/db/client";
 import { load } from "../../src/routes/accounts/interest/[year]/+page.server";
 
 // Mock all dependencies
-	vi.mock("$lib/db/client", () => ({
-		db: {
-			query: {
-				accounts: {
-					findMany: vi.fn(),
-				},
-				accountTransactions: {
-					findMany: vi.fn(),
-				},
-				users: {
-					findFirst: vi.fn(),
-				},
+vi.mock("$lib/db/client", () => ({
+	db: {
+		query: {
+			accounts: {
+				findMany: vi.fn(),
+			},
+			accountTransactions: {
+				findMany: vi.fn(),
+			},
+			users: {
+				findFirst: vi.fn(),
 			},
 		},
+	},
 }));
 
 vi.mock("$lib/server/interestBreakdown", () => ({
@@ -82,7 +81,9 @@ describe("/accounts/interest/[year] page load", () => {
 	async function callLoad(locals: any) {
 		const result = await load(createMockLoadEvent(locals));
 		if (!result) {
-			throw new Error("Load returned undefined - expected redirect to have been thrown");
+			throw new Error(
+				"Load returned undefined - expected redirect to have been thrown",
+			);
 		}
 		return result;
 	}
@@ -195,7 +196,8 @@ describe("/accounts/interest/[year] page load", () => {
 				taxBand: "basic",
 				taxYearStart: expect.any(Date),
 				taxYearEnd: expect.any(Date),
-			});		});
+			});
+		});
 
 		it("should use default tax band of 'basic' when user has no tax band", async () => {
 			(db.query.users.findFirst as any).mockResolvedValue({
@@ -213,7 +215,8 @@ describe("/accounts/interest/[year] page load", () => {
 				taxBand: "basic",
 				taxYearStart: expect.any(Date),
 				taxYearEnd: expect.any(Date),
-			});		});
+			});
+		});
 
 		it("should use higher tax band when user has higher tax band", async () => {
 			(db.query.users.findFirst as any).mockResolvedValue({
@@ -231,7 +234,8 @@ describe("/accounts/interest/[year] page load", () => {
 				taxBand: "higher",
 				taxYearStart: expect.any(Date),
 				taxYearEnd: expect.any(Date),
-			});		});
+			});
+		});
 	});
 
 	describe("Data consistency and reconciliation", () => {
@@ -287,7 +291,7 @@ describe("/accounts/interest/[year] page load", () => {
 			// Sum all transaction amounts
 			const transactionSum = result.actual.transactions.reduce(
 				(sum: number, tx: any) => sum + tx.amount,
-				0
+				0,
 			);
 
 			// Transaction sum should equal headline actual
@@ -309,7 +313,7 @@ describe("/accounts/interest/[year] page load", () => {
 			// Sum all account breakdowns
 			const accountSum = result.actual.byAccount.reduce(
 				(sum: number, acc: any) => sum + acc.total,
-				0
+				0,
 			);
 
 			// Account breakdown sum should equal headline actual
@@ -330,7 +334,7 @@ describe("/accounts/interest/[year] page load", () => {
 			// Sum all month breakdowns
 			const monthSum = result.actual.byMonth.reduce(
 				(sum: number, month: any) => sum + month.total,
-				0
+				0,
 			);
 
 			// Month breakdown sum should equal headline actual
@@ -387,7 +391,7 @@ describe("/accounts/interest/[year] page load", () => {
 
 			// Forecast PSA should use more allowance than actual alone
 			expect(result.forecast.psaStatusForecast.used).toBeGreaterThanOrEqual(
-				result.forecast.psaStatusNow.used
+				result.forecast.psaStatusNow.used,
 			);
 		});
 	});
@@ -406,19 +410,25 @@ describe("/accounts/interest/[year] page load", () => {
 			const result = await callLoad(mockLocals);
 
 			// Check that tax-free wrappers are marked correctly
-			const isaWrapper = result.actual.byTaxWrapper.find((w: any) => w.taxWrapper === "isa");
+			const isaWrapper = result.actual.byTaxWrapper.find(
+				(w: any) => w.taxWrapper === "isa",
+			);
 			expect(isaWrapper?.isTaxFree).toBe(true);
 
-			const lisaWrapper = result.actual.byTaxWrapper.find((w: any) => w.taxWrapper === "lisa");
+			const lisaWrapper = result.actual.byTaxWrapper.find(
+				(w: any) => w.taxWrapper === "lisa",
+			);
 			expect(lisaWrapper?.isTaxFree).toBe(true);
 
 			const pbWrapper = result.actual.byTaxWrapper.find(
-				(w: any) => w.taxWrapper === "premium-bonds"
+				(w: any) => w.taxWrapper === "premium-bonds",
 			);
 			expect(pbWrapper?.isTaxFree).toBe(true);
 
 			// Non-taxable wrapper should not be marked as tax-free
-			const noneWrapper = result.actual.byTaxWrapper.find((w: any) => w.taxWrapper === "none");
+			const noneWrapper = result.actual.byTaxWrapper.find(
+				(w: any) => w.taxWrapper === "none",
+			);
 			expect(noneWrapper?.isTaxFree).toBe(false);
 		});
 
@@ -531,14 +541,16 @@ function getTaxWrapperForIndex(index: number): string {
 /**
  * Helper function to create mock interest breakdown report
  */
-function createMockReport(options: {
-	actualTotal?: number;
-	transactionCount?: number;
-	projectedTotal?: number;
-	includeReconciliationFlags?: boolean;
-	includeTaxFreeWrappers?: boolean;
-	includeEmptyBreakdowns?: boolean;
-} = {}) {
+function createMockReport(
+	options: {
+		actualTotal?: number;
+		transactionCount?: number;
+		projectedTotal?: number;
+		includeReconciliationFlags?: boolean;
+		includeTaxFreeWrappers?: boolean;
+		includeEmptyBreakdowns?: boolean;
+	} = {},
+) {
 	const {
 		actualTotal = 60000,
 		transactionCount = 3,
@@ -571,7 +583,9 @@ function createMockReport(options: {
 				accountName: `Savings Account ${i + 1}`,
 				accountType: "savings",
 				accountInstitution: "Test Bank",
-				accountTaxWrapper: includeTaxFreeWrappers ? getTaxWrapperForIndex(i) : "none",
+				accountTaxWrapper: includeTaxFreeWrappers
+					? getTaxWrapperForIndex(i)
+					: "none",
 			});
 
 			byAccount.push({
@@ -580,7 +594,9 @@ function createMockReport(options: {
 				accountName: `Savings Account ${i + 1}`,
 				accountType: "savings",
 				accountInstitution: "Test Bank",
-				accountTaxWrapper: includeTaxFreeWrappers ? getTaxWrapperForIndex(i) : "none",
+				accountTaxWrapper: includeTaxFreeWrappers
+					? getTaxWrapperForIndex(i)
+					: "none",
 				total: amountPerTransaction,
 				transactionCount: 1,
 			});
@@ -608,10 +624,16 @@ function createMockReport(options: {
 			const amountPerWrapper = Math.floor(actualTotal / taxWrappers.length);
 
 			taxWrappers.forEach((wrapper, index) => {
-				const isTaxFree = wrapper === "isa" || wrapper === "lisa" || wrapper === "premium-bonds";
+				const isTaxFree =
+					wrapper === "isa" ||
+					wrapper === "lisa" ||
+					wrapper === "premium-bonds";
 				byTaxWrapper.push({
 					taxWrapper: wrapper,
-					total: index === taxWrappers.length - 1 ? actualTotal - (amountPerWrapper * (taxWrappers.length - 1)) : amountPerWrapper,
+					total:
+						index === taxWrappers.length - 1
+							? actualTotal - amountPerWrapper * (taxWrappers.length - 1)
+							: amountPerWrapper,
 					transactionCount: 1,
 					isTaxFree,
 				});
@@ -672,10 +694,12 @@ function createMockReport(options: {
 		taxFreeActual = 0;
 	}
 	const taxableForecast = taxableActual + projectedTotal;
-	const taxFreeForecast = taxFreeActual; // Assuming no projected tax-free for simplicity
+	const _taxFreeForecast = taxFreeActual; // Assuming no projected tax-free for simplicity
 
 	// Update transactions with type
-	transactions.forEach(tx => tx.type = 'interest');
+	transactions.forEach((tx) => {
+		tx.type = "interest";
+	});
 
 	return {
 		meta: {

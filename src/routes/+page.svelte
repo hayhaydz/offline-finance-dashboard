@@ -17,14 +17,24 @@
 	// Pagination state with scroll targets
 	let accountsSectionRef: HTMLElement | null = $state(null);
 	let goalsSectionRef: HTMLElement | null = $state(null);
-	let accountsPage = $state(data.accountsPagination.page);
-	let goalsPage = $state(data.goalsPagination.page);
+	let accountsPage = $state(0);
+	let goalsPage = $state(0);
 
 	// Track if we're updating to prevent loops
 	let isUpdatingAccountsPage = $state(false);
 	let isUpdatingGoalsPage = $state(false);
 
 	// Sync pagination state with URL (1-indexed)
+	$effect(() => {
+		if (isUpdatingAccountsPage) return;
+		accountsPage = data.accountsPagination.page;
+	});
+
+	$effect(() => {
+		if (isUpdatingGoalsPage) return;
+		goalsPage = data.goalsPagination.page;
+	});
+
 	$effect(() => {
 		if (isUpdatingAccountsPage) return;
 		const urlAccountsPage = Number(pageState.url.searchParams.get('accountsPage')) || 1;

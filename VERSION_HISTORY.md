@@ -1,4 +1,19 @@
-## [Unreleased] — Account Detail Page: Phase 2 Light Builds
+## [2026-03-26] — Performance: Batch Interest & Balances
+
+**Summary:** Batched interest rate and balance lookups for projections, reduced per-account queries, and added unit coverage for new aggregations.
+
+**Changes:**
+- Added batched rate lookup helper for interest projections
+- Aggregated balance/latest-date queries now use SQL group-by
+- Projected interest breakdown uses preloaded balances/rates
+- New unit tests for derived balance aggregation and rate batching
+- QA: `npm run check` and `npm test` executed (clean run)
+
+**Suggested commit:** `perf(server): batch interest projections and balance aggregation`
+
+---
+
+## [2026-03-26] — Account Detail Page: Phase 2 Light Builds
 
 **Summary:** Four additive UI improvements to the `/accounts/[slug]` page. No schema changes. One server-side addition (overpayment scenarios); all others client-side `$derived` expressions.
 
@@ -27,7 +42,7 @@
 
 ---
 
-## [Unreleased] — Account Detail Page: Phase 1 UI Enhancements
+## [2026-03-26] — Account Detail Page: Phase 1 UI Enhancements
 
 **Summary:** Six additive UI improvements to the `/accounts/[slug]` page. All changes are client-side only — no schema or server changes required.
 
@@ -51,7 +66,7 @@
 
 ---
 
-## [Unreleased] — Liabilities Section Redesign
+## [2026-03-26] — Liabilities Section Redesign
 
 **Summary:** Comprehensive redesign of the liabilities section with terminal aesthetic, unified visual language across Interest/ISA/Liabilities sections, and enhanced debt management features.
 
@@ -96,7 +111,7 @@ feat(liabilities): redesign section with terminal aesthetic
 - Added Liabilities entry to Accounts navigation dropdown
 ```
 
-## [Unreleased] — Add Liability Transaction Types to Schema
+## [2026-03-26] — Add Liability Transaction Types to Schema
 
 **Summary:** Added liability-specific transaction types to the accountTransactions schema enum to support credit cards, loans, and mortgages.
 
@@ -128,7 +143,7 @@ feat(schema): add liability transaction types
 Add charge, payment, loan_disbursement, mortgage_disbursement, and interest_charge types to accountTransactions enum for liability account support.
 ```
 
-## [Unreleased] — Fix Liability Account Interest Display and Balances
+## [2026-03-26] — Fix Liability Account Interest Display and Balances
 
 **Summary:** Fixed two issues preventing liability accounts from showing monthly/yearly interest costs and correct balances on the /accounts page.
 
@@ -176,7 +191,7 @@ feat(accounts): display interest costs for liability accounts
 - Add missing seed transactions for Rewards Card, Home Mortgage, High-APR Card
 ```
 
-## [Unreleased] — Add Minimum Payment Rules to Liability Accounts in Seed Data
+## [2026-03-26] — Add Minimum Payment Rules to Liability Accounts in Seed Data
 
 **Summary:** Added minimum payment fields (minimumPaymentType, minimumPaymentFlat, minimumPaymentPercentage) to all liability accounts in the seed data. These fields were defined in the schema but missing from the fixture, causing all liability accounts to use defaults (flat/0/0) which made TTZ calculations invalid.
 
@@ -213,7 +228,7 @@ feat(accounts): display interest costs for liability accounts
 - All amounts correctly formatted in cents and basis points as required
 - Seed data now supports accurate TTZ calculations for debt projections
 
-## [Unreleased] — Add Missing Credit Card Rates to Seed Data
+## [2026-03-26] — Add Missing Credit Card Rates to Seed Data
 
 **Summary:** Added missing Visa Gold and Mastercard interest rates to seed data. The interest_rates.json fixture was missing entries for these liability accounts, causing incomplete interest rate data in the database.
 
@@ -232,7 +247,7 @@ feat(accounts): display interest costs for liability accounts
   - Visa Gold: 1990 (19.9% APR), 2190 (21.9% APR) - with rate history
 - All 15 accounts now have appropriate interest rates for accurate debt projections
 
-## [Unreleased] — Fix Undefined account.balance Bug (Account Detail)
+## [2026-03-26] — Fix Undefined account.balance Bug (Account Detail)
 
 **Summary:** Fixed critical bug in account detail page where debt projection (TTZ calculation) referenced non-existent `account.balance` property. The accounts table has no balance column - balances are derived from transactions. Changed to use `currentBalance` which is correctly computed from transactions at line 79.
 
@@ -274,7 +289,7 @@ const balanceForTTZ = Math.abs(currentBalance);
 
 ---
 
-## [Unreleased] — Fix Interest Rate Fetching for Liability Accounts (Accounts Index)
+## [2026-03-26] — Fix Interest Rate Fetching for Liability Accounts (Accounts Index)
 
 **Summary:** Modified accounts index page to fetch and display interest rates for liability accounts (credit-card, loan, mortgage). Previously only savings/investment accounts showed rates in the Rate column.
 
@@ -304,7 +319,7 @@ const balanceForTTZ = Math.abs(currentBalance);
 
 ---
 
-## [Unreleased] — Account Notes Feature
+## [2026-03-26] — Account Notes Feature
 
 **Summary:** Add contextual notes to accounts for recording information like "Opened this for the 5.1% rate, will review when it drops" or "Fixed until March 2027, set reminder".
 

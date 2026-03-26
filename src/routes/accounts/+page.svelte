@@ -16,10 +16,16 @@
 
 	// Pagination state - use a ref to avoid race conditions
 	let accountsSectionRef: HTMLElement | null = $state(null);
-	let currentPage = $state(data.accountsPagination.page);
+	let currentPage = $state(0);
 
 	// Track if we're updating to prevent loops
 	let isUpdatingPage = $state(false);
+
+  // Sync from server data (initial + navigation)
+  $effect(() => {
+    if (isUpdatingPage) return;
+    currentPage = data.accountsPagination.page;
+  });
 
   // Sync from URL (handles browser back/forward and direct links)
   $effect(() => {

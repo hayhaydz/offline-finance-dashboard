@@ -35,6 +35,12 @@
 		integrity: false
 	});
 
+	const stringKeyList = ['category', 'status', 'exclusion', 'stale'] as const;
+
+	function isStringKey(key: keyof typeof filters): key is (typeof stringKeyList)[number] {
+		return stringKeyList.includes(key as (typeof stringKeyList)[number]);
+	}
+
 	function toggleSection(section: string) {
 		openSections[section] = !openSections[section];
 	}
@@ -104,7 +110,10 @@
 				}
 			}
 		} else {
-			filters[key] = (filters[key] === value ? '' : value) as any;
+			const nextValue = current === value ? '' : value;
+			if (isStringKey(key)) {
+				filters[key] = nextValue;
+			}
 		}
 	}
 

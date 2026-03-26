@@ -1,9 +1,9 @@
-import { eq, desc } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { accountNotes } from "$lib/db/schema";
-import { devLog, logError } from "$lib/utils/logger";
 import { FIELD_LIMITS } from "$lib/utils/fieldLimits";
+import { devLog } from "$lib/utils/logger";
 
 export interface CreateNoteData {
 	accountId: number;
@@ -15,7 +15,9 @@ export async function createNote(
 ): Promise<{ success: boolean; noteSlug: string }> {
 	// Validate content length
 	if (data.content.length > FIELD_LIMITS.NOTE_CONTENT) {
-		throw new Error(`Note content exceeds maximum length of ${FIELD_LIMITS.NOTE_CONTENT} characters`);
+		throw new Error(
+			`Note content exceeds maximum length of ${FIELD_LIMITS.NOTE_CONTENT} characters`,
+		);
 	}
 
 	if (data.content.trim().length === 0) {

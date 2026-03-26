@@ -2,12 +2,21 @@ import { error, fail, redirect } from "@sveltejs/kit";
 import { count, desc, eq, inArray } from "drizzle-orm";
 import { validateUserAccess, withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
-import { accounts, accountTransactions, interestRates, accountNotes } from "$lib/db/schema";
-import { getUkTaxYearBounds, ISA_ALLOWANCE_IN_CENTS } from "$lib/server/calculations";
+import {
+	accountNotes,
+	accounts,
+	accountTransactions,
+	interestRates,
+} from "$lib/db/schema";
+import {
+	getUkTaxYearBounds,
+	ISA_ALLOWANCE_IN_CENTS,
+} from "$lib/server/calculations";
 import {
 	getCurrentBalanceForAccount,
 	getMonthlyBalanceHistory,
 } from "$lib/server/derivedBalances";
+import { getAccountInterestSummary } from "$lib/server/interestBreakdown";
 import {
 	createInterestRate,
 	deleteInterestRate,
@@ -15,21 +24,16 @@ import {
 	getInterestRateById,
 	parseRateToBasisPoints,
 } from "$lib/server/interestRates";
-import { getAccountInterestSummary } from "$lib/server/interestBreakdown";
 import { getISABreakdownReport } from "$lib/server/isaBreakdown";
+import { createNote, deleteNote, getNoteBySlug } from "$lib/server/notes";
 import {
 	createTransaction,
 	deleteTransaction,
 	getTransactionBySlug,
 	type TransactionType,
 } from "$lib/server/transactions";
-import {
-	createNote,
-	deleteNote,
-	getNoteBySlug,
-} from "$lib/server/notes";
-import { devLog, logError } from "$lib/utils/logger";
 import { calculateTTZ } from "$lib/utils/debt-calculator";
+import { devLog, logError } from "$lib/utils/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 function formatTaxYearStartParam(date: Date): string {
@@ -59,14 +63,17 @@ function parseTaxYearStart(value: string | null): Date | null {
  * WARNING: Pays off in 5+ years
  * CRITICAL: Never pays off
  */
-function getDebtHealthStatus(ttz: { months: number | null; years: number | null }): { label: string; class: string } {
+function getDebtHealthStatus(ttz: {
+	months: number | null;
+	years: number | null;
+}): { label: string; class: string } {
 	if (ttz.months === null) {
-		return { label: '[CRITICAL]', class: 'text-red-700' };
+		return { label: "[CRITICAL]", class: "text-red-700" };
 	}
 	if (ttz.years !== null && ttz.years >= 5) {
-		return { label: '[WARNING]', class: 'text-amber-700' };
+		return { label: "[WARNING]", class: "text-amber-700" };
 	}
-	return { label: '[HEALTHY]', class: 'text-green-700' };
+	return { label: "[HEALTHY]", class: "text-green-700" };
 }
 
 /**
@@ -75,15 +82,15 @@ function getDebtHealthStatus(ttz: { months: number | null; years: number | null 
  */
 function calculateMinimumPayment(
 	balance: number,
-	rate: number,
-	rule: { type: string; flat: number | null; percentage: number | null }
+	_rate: number,
+	rule: { type: string; flat: number | null; percentage: number | null },
 ): number {
-	if (rule.type === 'flat' && rule.flat !== null) {
+	if (rule.type === "flat" && rule.flat !== null) {
 		return rule.flat;
 	}
-	if (rule.type === 'percentage' && rule.percentage !== null) {
+	if (rule.type === "percentage" && rule.percentage !== null) {
 		// percentage is in basis points: 100 = 1%, so divide by 10000
-		return Math.round(balance * rule.percentage / 10000);
+		return Math.round((balance * rule.percentage) / 10000);
 	}
 	// Default to 1% of balance
 	return Math.round(balance * 0.01);
@@ -97,8 +104,12 @@ function calculatePaymentSuggestion(
 	balance: number,
 	rate: number,
 	currentPayment: number,
-	ttz: { months: number | null; totalInterest: number | null }
-): { suggestedPayment: number; monthsSaved: number; interestSaved: number } | null {
+	ttz: { months: number | null; totalInterest: number | null },
+): {
+	suggestedPayment: number;
+	monthsSaved: number;
+	interestSaved: number;
+} | null {
 	// No suggestion if never pays off or already fast (< 6 months)
 	if (ttz.months === null || ttz.months < 6) {
 		return null;
@@ -109,9 +120,16 @@ function calculatePaymentSuggestion(
 
 	for (const mult of increments) {
 		const newPayment = Math.round(currentPayment * mult);
-		const newTtz = calculateTTZ(balance, rate, { type: 'flat', flat: newPayment });
+		const newTtz = calculateTTZ(balance, rate, {
+			type: "flat",
+			flat: newPayment,
+		});
 
-		if (newTtz.months !== null && newTtz.totalInterest !== null && ttz.totalInterest !== null) {
+		if (
+			newTtz.months !== null &&
+			newTtz.totalInterest !== null &&
+			ttz.totalInterest !== null
+		) {
 			const monthsSaved = ttz.months - newTtz.months;
 			const interestSaved = ttz.totalInterest - newTtz.totalInterest;
 
@@ -120,7 +138,7 @@ function calculatePaymentSuggestion(
 				return {
 					suggestedPayment: newPayment,
 					monthsSaved,
-					interestSaved
+					interestSaved,
 				};
 			}
 		}
@@ -161,7 +179,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const TRANSACTIONS_PER_PAGE = 20;
 	const pageParam = url.searchParams.get("txPage");
 	const parsedPage = pageParam ? Number.parseInt(pageParam, 10) : 1;
-	const validPage = Number.isFinite(parsedPage) && parsedPage >= 1 ? parsedPage : 1;
+	const validPage =
+		Number.isFinite(parsedPage) && parsedPage >= 1 ? parsedPage : 1;
 
 	// Get total transaction count for pagination
 	const [{ total }] = await db
@@ -170,7 +189,10 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		.where(eq(accountTransactions.accountId, account.id));
 	const totalTransactionPages = Math.ceil(total / TRANSACTIONS_PER_PAGE);
 	// Convert 1-indexed to 0-indexed and clamp to valid range
-	const safePage = Math.min(validPage - 1, Math.max(0, totalTransactionPages - 1));
+	const safePage = Math.min(
+		validPage - 1,
+		Math.max(0, totalTransactionPages - 1),
+	);
 	const safeOffset = safePage * TRANSACTIONS_PER_PAGE;
 
 	// Get paginated transactions for this account
@@ -214,7 +236,11 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		const endYear = bounds.end.getUTCFullYear();
 		const slug = `${startYear}-${String(endYear).slice(-2)}`;
 		if (!availableTaxYears.has(slug)) {
-			availableTaxYears.set(slug, { slug, start: bounds.start, end: bounds.end });
+			availableTaxYears.set(slug, {
+				slug,
+				start: bounds.start,
+				end: bounds.end,
+			});
 		}
 	}
 	const sortedTaxYears = Array.from(availableTaxYears.values()).sort(
@@ -259,7 +285,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		nextTaxYearParam: string;
 	} | null = null;
 
-	if (account.taxWrapper !== 'none') {
+	if (account.taxWrapper !== "none") {
 		const taxYear = getUkTaxYearBounds();
 		const isaReport = await getISABreakdownReport({
 			userId: locals.user.id,
@@ -268,18 +294,24 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		});
 
 		// Find this account's contribution
-		const accountContribution = isaReport.actual.byAccount.find(
-			a => a.accountId === account.id
-		)?.total ?? 0;
+		const accountContribution =
+			isaReport.actual.byAccount.find((a) => a.accountId === account.id)
+				?.total ?? 0;
 
 		isaSummary = {
 			taxYearStart: isaReport.meta.taxYearStart,
 			taxYearEnd: isaReport.meta.taxYearEnd,
 			subscribed: accountContribution,
 			remaining: Math.max(0, ISA_ALLOWANCE_IN_CENTS - accountContribution),
-			utilizationPercent: Math.round((accountContribution / ISA_ALLOWANCE_IN_CENTS) * 100),
-			prevTaxYearParam: new Date(Date.UTC(taxYear.start.getUTCFullYear() - 1, 3, 6)).toISOString(),
-			nextTaxYearParam: new Date(Date.UTC(taxYear.start.getUTCFullYear() + 1, 3, 6)).toISOString(),
+			utilizationPercent: Math.round(
+				(accountContribution / ISA_ALLOWANCE_IN_CENTS) * 100,
+			),
+			prevTaxYearParam: new Date(
+				Date.UTC(taxYear.start.getUTCFullYear() - 1, 3, 6),
+			).toISOString(),
+			nextTaxYearParam: new Date(
+				Date.UTC(taxYear.start.getUTCFullYear() + 1, 3, 6),
+			).toISOString(),
 		};
 	}
 
@@ -290,14 +322,27 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 				prevTaxYearParam,
 				nextTaxYearParam,
 				selectedTaxYearStart: formatTaxYearStartParam(taxYear.start),
-		  }
+			}
 		: null;
 
 	// Calculate TTZ and projection for liability accounts
-	let projection: Array<{ month: number; balance: number; interest: number; payment: number }> | null = null;
-	let ttz: { months: number | null; years: number | null; totalInterest: number | null } | null = null;
+	let projection: Array<{
+		month: number;
+		balance: number;
+		interest: number;
+		payment: number;
+	}> | null = null;
+	let ttz: {
+		months: number | null;
+		years: number | null;
+		totalInterest: number | null;
+	} | null = null;
 	let debtHealthStatus: { label: string; class: string } | null = null;
-	let paymentSuggestion: { suggestedPayment: number; monthsSaved: number; interestSaved: number } | null = null;
+	let paymentSuggestion: {
+		suggestedPayment: number;
+		monthsSaved: number;
+		interestSaved: number;
+	} | null = null;
 	let overpaymentScenarios: Array<{
 		label: string;
 		payment: number;
@@ -306,7 +351,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		debtFreeDate: string | null;
 	}> | null = null;
 
-	if (account.category === 'liability') {
+	if (account.category === "liability") {
 		// Use derived balance from transactions (source of truth)
 		// currentBalance is calculated at line 79 from transactions
 		// For liability accounts, balance is negative; convert to positive for debt calculator
@@ -317,14 +362,14 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			const rule = {
 				type: account.minimumPaymentType,
 				flat: account.minimumPaymentFlat,
-				percentage: account.minimumPaymentPercentage
+				percentage: account.minimumPaymentPercentage,
 			};
 			const ttzResult = calculateTTZ(balanceForTTZ, rate, rule);
 			projection = ttzResult.projection.slice(0, 24); // 24 months for toggle support
 			ttz = {
 				months: ttzResult.months,
 				years: ttzResult.years,
-				totalInterest: ttzResult.totalInterest
+				totalInterest: ttzResult.totalInterest,
 			};
 
 			// Calculate debt health status
@@ -334,26 +379,43 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
 			// Calculate payment suggestion
 			if (ttz && ttz.months !== null) {
-				const currentPayment = calculateMinimumPayment(
+				const currentPayment = calculateMinimumPayment(balanceForTTZ, rate, {
+					type: account.minimumPaymentType,
+					flat: account.minimumPaymentFlat,
+					percentage: account.minimumPaymentPercentage,
+				});
+				paymentSuggestion = calculatePaymentSuggestion(
 					balanceForTTZ,
 					rate,
-					{ type: account.minimumPaymentType, flat: account.minimumPaymentFlat, percentage: account.minimumPaymentPercentage }
+					currentPayment,
+					ttz,
 				);
-				paymentSuggestion = calculatePaymentSuggestion(balanceForTTZ, rate, currentPayment, ttz);
 
 				// Pre-compute overpayment scenarios: minimum, +25%, +50%
 				const now = new Date();
 				overpaymentScenarios = ([1, 1.25, 1.5] as const).map((mult, i) => {
-					const label = i === 0 ? 'Minimum' : i === 1 ? '+25%' : '+50%';
+					const label = i === 0 ? "Minimum" : i === 1 ? "+25%" : "+50%";
 					const payment = Math.round(currentPayment * mult);
-					const result = calculateTTZ(balanceForTTZ, rate, { type: 'flat', flat: payment });
+					const result = calculateTTZ(balanceForTTZ, rate, {
+						type: "flat",
+						flat: payment,
+					});
 					let debtFreeDate: string | null = null;
 					if (result.months !== null) {
 						const d = new Date(now);
 						d.setMonth(d.getMonth() + result.months);
-						debtFreeDate = d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+						debtFreeDate = d.toLocaleDateString("en-GB", {
+							month: "short",
+							year: "numeric",
+						});
 					}
-					return { label, payment, ttzMonths: result.months, totalInterest: result.totalInterest, debtFreeDate };
+					return {
+						label,
+						payment,
+						ttzMonths: result.months,
+						totalInterest: result.totalInterest,
+						debtFreeDate,
+					};
 				});
 			}
 		}
@@ -709,7 +771,9 @@ export const actions: Actions = {
 		}
 
 		if (content.length > 5000) {
-			return fail(400, { error: "Note content must be 5000 characters or less" });
+			return fail(400, {
+				error: "Note content must be 5000 characters or less",
+			});
 		}
 
 		try {

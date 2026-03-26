@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
-import { accountTransactions, accounts, type Account } from "$lib/db/schema";
+import { type Account, accounts, accountTransactions } from "$lib/db/schema";
 import { devLog, logError } from "$lib/utils/logger";
 
 export type TransactionType = (typeof accountTransactions.$inferInsert)["type"];
@@ -163,7 +163,9 @@ export async function updateTransaction(
 /**
  * Delete a transaction by slug.
  */
-export async function deleteTransaction(slug: string): Promise<{ success: boolean }> {
+export async function deleteTransaction(
+	slug: string,
+): Promise<{ success: boolean }> {
 	const transaction = await getTransactionBySlug(slug);
 
 	if (!transaction) {
@@ -171,7 +173,9 @@ export async function deleteTransaction(slug: string): Promise<{ success: boolea
 		throw new Error("Transaction not found");
 	}
 
-	await db.delete(accountTransactions).where(eq(accountTransactions.slug, slug));
+	await db
+		.delete(accountTransactions)
+		.where(eq(accountTransactions.slug, slug));
 
 	devLog("deleteTransaction", "Transaction deleted", { slug });
 

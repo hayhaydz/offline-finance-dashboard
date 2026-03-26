@@ -1,6 +1,6 @@
-import { and, desc, eq, lte } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, lte } from "drizzle-orm";
 import { db } from "$lib/db/client";
-import { interestRates, type Account } from "$lib/db/schema";
+import { type Account, interestRates } from "$lib/db/schema";
 import { devLog, logError } from "$lib/utils/logger";
 
 export interface CreateInterestRateData {
@@ -47,7 +47,9 @@ export async function createInterestRate(
  * Get the current (most recent effective) interest rate for an account.
  * Returns null if no rate is configured.
  */
-export async function getCurrentRate(accountId: number): Promise<number | null> {
+export async function getCurrentRate(
+	accountId: number,
+): Promise<number | null> {
 	const now = new Date();
 
 	const rate = await db.query.interestRates.findFirst({
@@ -62,9 +64,46 @@ export async function getCurrentRate(accountId: number): Promise<number | null> 
 }
 
 /**
+ * Get current (most recent effective) interest rates for multiple accounts.
+ * Returns a map of accountId -> rate (basis points) or null if no rate.
+ */
+export async function getCurrentRatesForAccounts(
+	accountIds: number[],
+	asOfDate?: Date,
+): Promise<Map<number, number | null>> {
+	if (accountIds.length === 0) return new Map();
+
+	const now = asOfDate ?? new Date();
+	const result = new Map<number, number | null>();
+	for (const id of accountIds) result.set(id, null);
+
+	const rows = await db.query.interestRates.findMany({
+		where: and(
+			inArray(interestRates.accountId, accountIds),
+			lte(interestRates.effectiveFrom, now),
+		),
+		orderBy: [asc(interestRates.accountId), desc(interestRates.effectiveFrom)],
+		columns: {
+			accountId: true,
+			rate: true,
+		},
+	});
+
+	for (const row of rows) {
+		if (result.get(row.accountId) === null) {
+			result.set(row.accountId, row.rate);
+		}
+	}
+
+	return result;
+}
+
+/**
  * Get the current rate as a percentage (e.g., 4.50 instead of 450).
  */
-export async function getCurrentRatePercent(accountId: number): Promise<number | null> {
+export async function getCurrentRatePercent(
+	accountId: number,
+): Promise<number | null> {
 	const basisPoints = await getCurrentRate(accountId);
 	return basisPoints !== null ? basisPoints / 100 : null;
 }
@@ -165,7 +204,9 @@ export async function updateInterestRate(
 /**
  * Delete an interest rate entry.
  */
-export async function deleteInterestRate(id: number): Promise<{ success: boolean }> {
+export async function deleteInterestRate(
+	id: number,
+): Promise<{ success: boolean }> {
 	const rate = await getInterestRateById(id);
 
 	if (!rate) {

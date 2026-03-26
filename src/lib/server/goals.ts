@@ -294,7 +294,9 @@ async function getOpenAssetAccountsWithLatestBalances(userId: number) {
 		),
 	});
 	const openAccounts = userAccounts.filter((account) => !account.closedAt);
-	const balances = await getCurrentBalancesForAccounts(openAccounts.map((a) => a.id));
+	const balances = await getCurrentBalancesForAccounts(
+		openAccounts.map((a) => a.id),
+	);
 
 	return openAccounts.map((account) => ({
 		...account,

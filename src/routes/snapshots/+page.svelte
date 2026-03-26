@@ -7,7 +7,7 @@
 	let { data } = $props();
 
 	let tableRef: HTMLElement | null = $state(null);
-	let currentPage = $state(data.page);
+	let currentPage = $state(0);
 	let isUpdatingPage = $state(false);
 
 	async function updatePage(newPage: number) {
@@ -23,6 +23,11 @@
 		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
 		isUpdatingPage = false;
 	}
+
+	$effect(() => {
+		if (isUpdatingPage) return;
+		currentPage = data.page;
+	});
 
 	$effect(() => {
 		if (isUpdatingPage) return;

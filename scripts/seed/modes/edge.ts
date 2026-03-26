@@ -231,7 +231,8 @@ export async function seedEdge(db: DB, userId: number): Promise<void> {
 		},
 		{
 			accountName: "Visa Gold",
-			content: "Special chars: <script>alert('xss')</script> & \"quotes\" and 'apostrophes' — dashes –",
+			content:
+				"Special chars: <script>alert('xss')</script> & \"quotes\" and 'apostrophes' — dashes –",
 			description: "XSS attempt & special chars",
 		},
 		{
@@ -254,7 +255,9 @@ export async function seedEdge(db: DB, userId: number): Promise<void> {
 	for (const edgeCase of edgeCases) {
 		const account = accountByName.get(edgeCase.accountName);
 		if (!account) {
-			console.log(`  ⚠ Account "${edgeCase.accountName}" not found, skipping note`);
+			console.log(
+				`  ⚠ Account "${edgeCase.accountName}" not found, skipping note`,
+			);
 			continue;
 		}
 

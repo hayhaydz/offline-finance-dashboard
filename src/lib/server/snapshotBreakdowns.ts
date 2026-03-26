@@ -10,18 +10,18 @@
  */
 
 import type { Account } from "$lib/db/schema";
-import { and, eq, gte, inArray, lte } from "drizzle-orm";
-import { db } from "$lib/db/client";
-import { accounts, accountTransactions } from "$lib/db/schema";
 import {
-	getISAAllowanceUsed,
-	getUkTaxYearBounds,
 	getCumulativeISADeposits,
-	ISA_ALLOWANCE_IN_CENTS,
+	getISAAllowanceUsed,
 	getTaxFreeStatus,
+	getUkTaxYearBounds,
+	ISA_ALLOWANCE_IN_CENTS,
 	type TaxBand,
 } from "$lib/server/calculations";
-import { getActualInterestBreakdown, getProjectedInterestBreakdown } from "$lib/server/interestBreakdown";
+import {
+	getActualInterestBreakdown,
+	getProjectedInterestBreakdown,
+} from "$lib/server/interestBreakdown";
 import { devLog } from "$lib/utils/logger";
 
 /**
@@ -137,7 +137,8 @@ export async function calculateISAAllowanceBreakdown(
 	});
 
 	// Get tax year bounds for snapshot date
-	const { start: taxYearStart, end: taxYearEnd } = getUkTaxYearBounds(snapshotDate);
+	const { start: taxYearStart, end: taxYearEnd } =
+		getUkTaxYearBounds(snapshotDate);
 
 	// Get deposits made this tax year
 	const totalISAUsed = await getISAAllowanceUsed(
@@ -147,7 +148,10 @@ export async function calculateISAAllowanceBreakdown(
 	);
 
 	// Get cumulative deposits since account opening
-	const usedThisSnapshotDate = await getCumulativeISADeposits(userId, snapshotDate);
+	const usedThisSnapshotDate = await getCumulativeISADeposits(
+		userId,
+		snapshotDate,
+	);
 
 	// Generate tax year label
 	const label = `${taxYearStart.getUTCFullYear()}-${String(taxYearEnd.getUTCFullYear()).slice(-2)}`;
@@ -159,18 +163,18 @@ export async function calculateISAAllowanceBreakdown(
 
 	return {
 		snapshotTakenAt: new Date().toISOString(),
-		snapshotDate: snapshotDate.toISOString().split('T')[0],
+		snapshotDate: snapshotDate.toISOString().split("T")[0],
 		taxYear: {
-			start: taxYearStart.toISOString().split('T')[0],
-			end: taxYearEnd.toISOString().split('T')[0],
-			label
+			start: taxYearStart.toISOString().split("T")[0],
+			end: taxYearEnd.toISOString().split("T")[0],
+			label,
 		},
 		allowance: {
 			usedThisTaxYear: totalISAUsed,
 			limit: ISA_ALLOWANCE_IN_CENTS,
 			remaining: Math.max(0, ISA_ALLOWANCE_IN_CENTS - totalISAUsed),
-			usedThisSnapshotDate
-		}
+			usedThisSnapshotDate,
+		},
 	};
 }
 
@@ -187,7 +191,7 @@ export async function calculateISAAllowanceBreakdown(
  */
 export async function calculateInterestBreakdown(
 	userId: number,
-	accounts: Account[],
+	_accounts: Account[],
 	snapshotDate: Date,
 	taxBand: TaxBand,
 ): Promise<InterestBreakdownDetail> {
@@ -198,10 +202,15 @@ export async function calculateInterestBreakdown(
 	});
 
 	// Get tax year bounds for snapshot date
-	const { start: taxYearStart, end: taxYearEnd } = getUkTaxYearBounds(snapshotDate);
+	const { start: taxYearStart, end: taxYearEnd } =
+		getUkTaxYearBounds(snapshotDate);
 
 	// Get actual interest breakdown (evaluated relative to snapshot date)
-	const actual = await getActualInterestBreakdown(userId, taxYearStart, taxYearEnd);
+	const actual = await getActualInterestBreakdown(
+		userId,
+		taxYearStart,
+		taxYearEnd,
+	);
 
 	// Get projected interest breakdown (from snapshot date to tax year end)
 	const projected = await getProjectedInterestBreakdown(
@@ -225,7 +234,9 @@ export async function calculateInterestBreakdown(
 	const psaAllowance = psaStatus.allowance;
 
 	// Build per-account breakdown with snapshot-time balances and rates
-	const actualByAccount = new Map(actual.byAccount.map((account) => [account.accountId, account]));
+	const actualByAccount = new Map(
+		actual.byAccount.map((account) => [account.accountId, account]),
+	);
 	const perAccountBreakdown: SnapshotAccountInterest[] = [];
 
 	// Match projected account validity rules (exclude invalid accounts)
@@ -240,7 +251,8 @@ export async function calculateInterestBreakdown(
 			accountId: projectedAccount.accountId,
 			accountSlug: projectedAccount.accountSlug,
 			name: actualAccount?.accountName ?? projectedAccount.accountName,
-			taxWrapper: (actualAccount?.accountTaxWrapper ?? projectedAccount.accountTaxWrapper) as
+			taxWrapper: (actualAccount?.accountTaxWrapper ??
+				projectedAccount.accountTaxWrapper) as
 				| "none"
 				| "isa"
 				| "lisa"
@@ -253,7 +265,12 @@ export async function calculateInterestBreakdown(
 	}
 
 	// Sort by total interest (actual + projected) descending
-	perAccountBreakdown.sort((a, b) => (b.actualInterestEarned + b.projectedInterest) - (a.actualInterestEarned + a.projectedInterest));
+	perAccountBreakdown.sort(
+		(a, b) =>
+			b.actualInterestEarned +
+			b.projectedInterest -
+			(a.actualInterestEarned + a.projectedInterest),
+	);
 
 	// Generate tax year label
 	const label = `${taxYearStart.getUTCFullYear()}-${String(taxYearEnd.getUTCFullYear()).slice(-2)}`;
@@ -266,38 +283,39 @@ export async function calculateInterestBreakdown(
 
 	return {
 		snapshotTakenAt: new Date().toISOString(),
-		snapshotDate: snapshotDate.toISOString().split('T')[0],
+		snapshotDate: snapshotDate.toISOString().split("T")[0],
 		taxYear: {
-			start: taxYearStart.toISOString().split('T')[0],
-			end: taxYearEnd.toISOString().split('T')[0],
-			label
+			start: taxYearStart.toISOString().split("T")[0],
+			end: taxYearEnd.toISOString().split("T")[0],
+			label,
 		},
 		actualInterest: {
 			taxFree: actualTaxFree,
 			taxable: actualTaxable,
-			total: actualTaxFree + actualTaxable
+			total: actualTaxFree + actualTaxable,
 		},
 		projectedInterest: {
 			taxFree: projectedTaxFree,
 			taxable: projectedTaxable,
-			total: projectedTaxFree + projectedTaxable
+			total: projectedTaxFree + projectedTaxable,
 		},
 		totalExpected: {
 			taxFree: actualTaxFree + projectedTaxFree,
 			taxable: actualTaxable + projectedTaxable,
-			total: actualTaxFree + actualTaxable + projectedTaxFree + projectedTaxable
+			total:
+				actualTaxFree + actualTaxable + projectedTaxFree + projectedTaxable,
 		},
 		taxPosition: {
-			taxBand: taxBand || 'basic',
+			taxBand: taxBand || "basic",
 			personalSavingsAllowance: {
 				allowance: psaAllowance,
 				used: actualTaxable,
 				remaining: Math.max(0, psaAllowance - actualTaxable),
 				overAllowance: actualTaxable > psaAllowance,
-				taxableAmount: Math.max(0, actualTaxable - psaAllowance)
-			}
+				taxableAmount: Math.max(0, actualTaxable - psaAllowance),
+			},
 		},
-		byAccount: perAccountBreakdown
+		byAccount: perAccountBreakdown,
 	};
 }
 
@@ -334,5 +352,3 @@ export function getTaxYearBoundsForSnapshot(date: Date): {
 		},
 	};
 }
-
-export {};

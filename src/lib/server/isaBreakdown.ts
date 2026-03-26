@@ -12,12 +12,15 @@
  * even if withdrawn. Transfers between ISAs should not double-count.
  */
 
-import { and, asc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lte } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
-import { getUkTaxYearBounds, ISA_ALLOWANCE_IN_CENTS } from "$lib/server/calculations";
-import { devLog, logError } from "$lib/utils/logger";
+import {
+	getUkTaxYearBounds,
+	ISA_ALLOWANCE_IN_CENTS,
+} from "$lib/server/calculations";
+import { devLog } from "$lib/utils/logger";
 
 /**
  * ISA subscription transaction with account details
@@ -186,7 +189,10 @@ async function getISATransactions(params: {
 			gte(accountTransactions.transactionDate, taxYearStart),
 			lte(accountTransactions.transactionDate, taxYearEnd),
 		),
-		orderBy: [asc(accountTransactions.transactionDate), asc(accountTransactions.id)],
+		orderBy: [
+			asc(accountTransactions.transactionDate),
+			asc(accountTransactions.id),
+		],
 		columns: {
 			id: true,
 			slug: true,
@@ -280,8 +286,18 @@ function getISABreakdownByMonth(
 ): ISAMonthBreakdown[] {
 	const byMonth = new Map<string, ISAMonthBreakdown>();
 	const monthNames = [
-		"January", "February", "March", "April", "May", "June",
-		"July", "August", "September", "October", "November", "December"
+		"January",
+		"February",
+		"March",
+		"April",
+		"May",
+		"June",
+		"July",
+		"August",
+		"September",
+		"October",
+		"November",
+		"December",
 	];
 
 	for (const tx of transactions) {
@@ -397,7 +413,9 @@ export async function getISABreakdownReport(params: {
 	const asOfDate = new Date();
 	const daysRemainingInTaxYear = Math.max(
 		0,
-		Math.ceil((taxYearEnd.getTime() - asOfDate.getTime()) / (24 * 60 * 60 * 1000))
+		Math.ceil(
+			(taxYearEnd.getTime() - asOfDate.getTime()) / (24 * 60 * 60 * 1000),
+		),
 	);
 
 	// Fetch all ISA transactions
@@ -409,13 +427,16 @@ export async function getISABreakdownReport(params: {
 
 	// Calculate total allowance used (sum of deposits only)
 	const allowanceUsed = transactions
-		.filter(tx => tx.type === "deposit")
+		.filter((tx) => tx.type === "deposit")
 		.reduce((sum, tx) => sum + tx.amount, 0);
 
-	const allowanceRemaining = Math.max(0, ISA_ALLOWANCE_IN_CENTS - allowanceUsed);
+	const allowanceRemaining = Math.max(
+		0,
+		ISA_ALLOWANCE_IN_CENTS - allowanceUsed,
+	);
 	const utilizationPercent = Math.min(
 		100,
-		Math.round((allowanceUsed / ISA_ALLOWANCE_IN_CENTS) * 100)
+		Math.round((allowanceUsed / ISA_ALLOWANCE_IN_CENTS) * 100),
 	);
 
 	const meta: ISAMeta = {
@@ -447,11 +468,15 @@ export async function getISABreakdownReport(params: {
 	};
 
 	// Reconciliation checks
-	const totalVsByAccountDelta = allowanceUsed - byAccount.reduce((sum, a) => sum + a.total, 0);
-	const totalVsByMonthDelta = allowanceUsed - byMonth.reduce((sum, m) => sum + m.total, 0);
-	const totalVsTransactionsDelta = allowanceUsed - transactions
-		.filter(tx => tx.type === "deposit")
-		.reduce((sum, tx) => sum + tx.amount, 0);
+	const totalVsByAccountDelta =
+		allowanceUsed - byAccount.reduce((sum, a) => sum + a.total, 0);
+	const totalVsByMonthDelta =
+		allowanceUsed - byMonth.reduce((sum, m) => sum + m.total, 0);
+	const totalVsTransactionsDelta =
+		allowanceUsed -
+		transactions
+			.filter((tx) => tx.type === "deposit")
+			.reduce((sum, tx) => sum + tx.amount, 0);
 
 	const flags: Array<{ type: "warning" | "error"; message: string }> = [];
 
@@ -534,7 +559,10 @@ export async function getISAAvailableTaxYears(
 	});
 
 	// Build available tax years from transactions
-	const availableTaxYears = new Map<string, { slug: string; start: Date; end: Date }>();
+	const availableTaxYears = new Map<
+		string,
+		{ slug: string; start: Date; end: Date }
+	>();
 
 	for (const tx of transactions) {
 		const bounds = getUkTaxYearBounds(tx.transactionDate);

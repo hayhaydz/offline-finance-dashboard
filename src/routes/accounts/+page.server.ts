@@ -66,7 +66,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const taxYearParam = url.searchParams.get("taxYearStart");
 	const requestedDate = taxYearParam ? new Date(taxYearParam) : new Date();
 	// Validate date if param provided
-	const validDate = !isNaN(requestedDate.getTime())
+	const validDate = !Number.isNaN(requestedDate.getTime())
 		? requestedDate
 		: new Date();
 	const taxYear = getUkTaxYearBounds(validDate);

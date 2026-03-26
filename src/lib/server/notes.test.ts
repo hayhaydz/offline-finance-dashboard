@@ -1,38 +1,48 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { createNote, getNotesByAccountId, getNoteBySlug, deleteNote } from './notes';
-import { db } from '$lib/db/client';
-import { accountNotes, accounts, users } from '$lib/db/schema';
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray } from "drizzle-orm";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { db } from "$lib/db/client";
+import { accountNotes, accounts, users } from "$lib/db/schema";
+import {
+	createNote,
+	deleteNote,
+	getNoteBySlug,
+	getNotesByAccountId,
+} from "./notes";
 
-describe('Account Notes CRUD', () => {
+describe("Account Notes CRUD", () => {
 	let testUserId: number;
 	let testAccountId: number;
-	let testNoteSlug: string;
 	let createdUserIds: number[] = [];
 	let createdAccountIds: number[] = [];
 
 	beforeEach(async () => {
 		// Create test user
-		const [user] = await db.insert(users).values({
-			username: `test-user-notes-${Date.now()}`,
-			passwordHash: 'hash',
-			totpSecret: 'secret',
-			totpSecretIV: 'iv',
-			passwordSalt: 'salt',
-			taxBand: 'basic'
-		}).returning();
+		const [user] = await db
+			.insert(users)
+			.values({
+				username: `test-user-notes-${Date.now()}`,
+				passwordHash: "hash",
+				totpSecret: "secret",
+				totpSecretIV: "iv",
+				passwordSalt: "salt",
+				taxBand: "basic",
+			})
+			.returning();
 		testUserId = user.id;
 		createdUserIds.push(user.id);
 
 		// Create test account
-		const [account] = await db.insert(accounts).values({
-			slug: `test-account-notes-${Date.now()}`,
-			userId: testUserId,
-			name: 'Test Account',
-			type: 'savings',
-			taxWrapper: 'none',
-			category: 'asset'
-		}).returning();
+		const [account] = await db
+			.insert(accounts)
+			.values({
+				slug: `test-account-notes-${Date.now()}`,
+				userId: testUserId,
+				name: "Test Account",
+				type: "savings",
+				taxWrapper: "none",
+				category: "asset",
+			})
+			.returning();
 		testAccountId = account.id;
 		createdAccountIds.push(account.id);
 	});
@@ -41,7 +51,9 @@ describe('Account Notes CRUD', () => {
 	afterEach(async () => {
 		// Delete notes first (foreign key constraint)
 		if (createdAccountIds.length > 0) {
-			await db.delete(accountNotes).where(inArray(accountNotes.accountId, createdAccountIds));
+			await db
+				.delete(accountNotes)
+				.where(inArray(accountNotes.accountId, createdAccountIds));
 		}
 		// Delete accounts
 		for (const accountId of createdAccountIds) {
@@ -56,39 +68,39 @@ describe('Account Notes CRUD', () => {
 		createdAccountIds = [];
 	});
 
-	it('should create a note with unique slug', async () => {
+	it("should create a note with unique slug", async () => {
 		const result = await createNote({
 			accountId: testAccountId,
-			content: 'Test note content'
+			content: "Test note content",
 		});
 		expect(result.noteSlug).toBeDefined();
 		expect(result.noteSlug).toHaveLength(21);
 	});
 
-	it('should retrieve notes for account ordered by date desc', async () => {
-		await createNote({ accountId: testAccountId, content: 'First note' });
-		await createNote({ accountId: testAccountId, content: 'Second note' });
+	it("should retrieve notes for account ordered by date desc", async () => {
+		await createNote({ accountId: testAccountId, content: "First note" });
+		await createNote({ accountId: testAccountId, content: "Second note" });
 
 		const notes = await getNotesByAccountId(testAccountId);
 		expect(notes).toHaveLength(2);
-		expect(notes[0].content).toBe('Second note'); // Most recent first
+		expect(notes[0].content).toBe("Second note"); // Most recent first
 	});
 
-	it('should retrieve note by slug', async () => {
+	it("should retrieve note by slug", async () => {
 		const created = await createNote({
 			accountId: testAccountId,
-			content: 'Find me by slug'
+			content: "Find me by slug",
 		});
 
 		const found = await getNoteBySlug(created.noteSlug);
 		expect(found).toBeDefined();
-		expect(found?.content).toBe('Find me by slug');
+		expect(found?.content).toBe("Find me by slug");
 	});
 
-	it('should delete note by slug', async () => {
+	it("should delete note by slug", async () => {
 		const created = await createNote({
 			accountId: testAccountId,
-			content: 'Delete me'
+			content: "Delete me",
 		});
 
 		await deleteNote(created.noteSlug);
@@ -97,17 +109,21 @@ describe('Account Notes CRUD', () => {
 		expect(found).toBeNull();
 	});
 
-	it('should validate content length', async () => {
-		await expect(createNote({
-			accountId: testAccountId,
-			content: 'x'.repeat(5001) // exceeds limit
-		})).rejects.toThrow();
+	it("should validate content length", async () => {
+		await expect(
+			createNote({
+				accountId: testAccountId,
+				content: "x".repeat(5001), // exceeds limit
+			}),
+		).rejects.toThrow();
 	});
 
-	it('should validate content not empty', async () => {
-		await expect(createNote({
-			accountId: testAccountId,
-			content: '   '
-		})).rejects.toThrow();
+	it("should validate content not empty", async () => {
+		await expect(
+			createNote({
+				accountId: testAccountId,
+				content: "   ",
+			}),
+		).rejects.toThrow();
 	});
 });

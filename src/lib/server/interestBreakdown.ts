@@ -7,7 +7,7 @@
  * UK tax year: 6 April to 5 April (inclusive)
  */
 
-import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lte } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
@@ -20,8 +20,14 @@ import {
 	type TaxBand,
 	type TaxFreeStatus,
 } from "$lib/server/calculations";
-import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
-import { getCurrentRate } from "$lib/server/interestRates";
+import {
+	getCurrentBalanceForAccount,
+	getCurrentBalancesForAccounts,
+} from "$lib/server/derivedBalances";
+import {
+	getCurrentRate,
+	getCurrentRatesForAccounts,
+} from "$lib/server/interestRates";
 import { devLog, logError } from "$lib/utils/logger";
 
 /**
@@ -333,13 +339,7 @@ export async function getInterestTransactions(
 
 	// Calculate running total
 	let runningTotal = 0;
-	// Sort transactions to ensure correct running total calculation
-	const sortedTransactions = [...transactions].sort(
-		(a, b) =>
-			a.transactionDate.getTime() - b.transactionDate.getTime() || a.id - b.id,
-	);
-
-	for (const tx of sortedTransactions) {
+	for (const tx of transactions) {
 		runningTotal += tx.amount;
 		result.push({
 			id: tx.id,
@@ -585,8 +585,11 @@ function checkProjectionEligibility(
 	currentBalance: number,
 	currentRate: number | null,
 	now: Date,
-	taxYearEnd: Date
-): { eligible: boolean; exclusionReason: ProjectedAccountBreakdown["exclusionReason"] } {
+	taxYearEnd: Date,
+): {
+	eligible: boolean;
+	exclusionReason: ProjectedAccountBreakdown["exclusionReason"];
+} {
 	// Check if account is closed
 	if (account.closedAt) {
 		return { eligible: false, exclusionReason: "closed_account" };
@@ -663,6 +666,12 @@ export async function getProjectedInterestBreakdown(
 	const userAccounts = await db.query.accounts.findMany({
 		where: withUserFilter(userId, accounts),
 	});
+	const accountIds = userAccounts.map((account) => account.id);
+
+	const [balancesByAccount, ratesByAccount] = await Promise.all([
+		getCurrentBalancesForAccounts(accountIds),
+		getCurrentRatesForAccounts(accountIds, now),
+	]);
 
 	// Calculate projection for each account
 	const byAccount: ProjectedAccountBreakdown[] = [];
@@ -672,106 +681,25 @@ export async function getProjectedInterestBreakdown(
 
 	for (const account of userAccounts) {
 		const accountId = account.id;
+		const currentBalance = balancesByAccount.get(accountId) ?? 0;
+		const currentRate = ratesByAccount.get(accountId) ?? null;
+		const rateBasisPoints = currentRate ?? 0;
 
-		// Check if account is closed
-		if (account.closedAt) {
-			byAccount.push({
-				accountId,
-				accountSlug: account.slug,
-				accountName: account.name,
-				accountType: account.type,
-				accountInstitution: account.institution,
-				accountTaxWrapper: account.taxWrapper,
-				balanceInCents: 0,
-				rateBasisPoints: null,
-				maturityDate: account.maturityDate,
-				daysUntilMaturity: null,
-				daysUntilTaxYearEnd: daysRemainingInTaxYear,
-				projectedInterest: 0,
-				exclusionReason: "closed_account",
-			});
-			continue;
-		}
-
-		// Check if account type is interest-bearing
-		if (account.type !== "savings" && account.type !== "investment") {
-			byAccount.push({
-				accountId,
-				accountSlug: account.slug,
-				accountName: account.name,
-				accountType: account.type,
-				accountInstitution: account.institution,
-				accountTaxWrapper: account.taxWrapper,
-				balanceInCents: 0,
-				rateBasisPoints: null,
-				maturityDate: account.maturityDate,
-				daysUntilMaturity: null,
-				daysUntilTaxYearEnd: daysRemainingInTaxYear,
-				projectedInterest: 0,
-				exclusionReason: "non_interest_bearing",
-			});
-			continue;
-		}
-
-		// Get current balance
-		const currentBalance = await getCurrentBalanceForAccount(accountId);
-		if (currentBalance <= 0) {
-			byAccount.push({
-				accountId,
-				accountSlug: account.slug,
-				accountName: account.name,
-				accountType: account.type,
-				accountInstitution: account.institution,
-				accountTaxWrapper: account.taxWrapper,
-				balanceInCents: currentBalance,
-				rateBasisPoints: null,
-				maturityDate: account.maturityDate,
-				daysUntilMaturity: null,
-				daysUntilTaxYearEnd: daysRemainingInTaxYear,
-				projectedInterest: 0,
-				exclusionReason: "no_balance",
-			});
-			continue;
-		}
-
-		// Get current rate
-		const currentRate = await getCurrentRate(accountId);
-		if (currentRate === null || currentRate === 0) {
-			byAccount.push({
-				accountId,
-				accountSlug: account.slug,
-				accountName: account.name,
-				accountType: account.type,
-				accountInstitution: account.institution,
-				accountTaxWrapper: account.taxWrapper,
-				balanceInCents: currentBalance,
-				rateBasisPoints: currentRate,
-				maturityDate: account.maturityDate,
-				daysUntilMaturity: null,
-				daysUntilTaxYearEnd: daysRemainingInTaxYear,
-				projectedInterest: 0,
-				exclusionReason: "no_rate",
-			});
-			continue;
-		}
+		const { eligible, exclusionReason } = checkProjectionEligibility(
+			account,
+			currentBalance,
+			currentRate,
+			now,
+			taxYearEnd,
+		);
 
 		// Handle fixed-term maturity
 		let projected = 0;
-		let exclusionReason: ProjectedAccountBreakdown["exclusionReason"] = null;
 		let daysUntilMaturity: number | null = null;
 
-		if (account.maturityDate) {
-			// Fixed-term bond
-			if (account.maturityDate > taxYearEnd) {
-				// Matures after tax year end - no payout this tax year
-				exclusionReason = "matures_after_tax_year";
-				projected = 0;
-			} else if (account.maturityDate <= now) {
-				// Already matured
-				exclusionReason = "already_matured";
-				projected = 0;
-			} else {
-				// Matures within this tax year - project only until maturity
+		if (eligible) {
+			if (account.maturityDate) {
+				// Fixed-term bond - project only until maturity
 				daysUntilMaturity = Math.max(
 					0,
 					Math.ceil(
@@ -780,19 +708,19 @@ export async function getProjectedInterestBreakdown(
 				);
 				projected = calculateProjectedInterestInCents({
 					balanceInCents: currentBalance,
-					rateBasisPoints: currentRate,
+					rateBasisPoints,
 					fromDate: now,
 					toDate: account.maturityDate,
 				});
+			} else {
+				// Standard access account - project until tax year end
+				projected = calculateProjectedInterestInCents({
+					balanceInCents: currentBalance,
+					rateBasisPoints,
+					fromDate: now,
+					toDate: taxYearEnd,
+				});
 			}
-		} else {
-			// Standard access account - project until tax year end
-			projected = calculateProjectedInterestInCents({
-				balanceInCents: currentBalance,
-				rateBasisPoints: currentRate,
-				fromDate: now,
-				toDate: taxYearEnd,
-			});
 		}
 
 		byAccount.push({
@@ -1063,7 +991,13 @@ export async function getAccountInterestSummary(params: {
 	asOfDate?: Date;
 	taxBand?: TaxBand;
 }): Promise<AccountInterestSummary | null> {
-	const { accountId, taxYearStart, taxYearEnd, asOfDate, taxBand = "basic" } = params;
+	const {
+		accountId,
+		taxYearStart,
+		taxYearEnd,
+		asOfDate,
+		taxBand = "basic",
+	} = params;
 
 	devLog("getAccountInterestSummary", "Fetching account interest summary", {
 		accountId,
@@ -1083,17 +1017,25 @@ export async function getAccountInterestSummary(params: {
 
 	// Return null for non-interest-bearing account types
 	if (account.type !== "savings" && account.type !== "investment") {
-		devLog("getAccountInterestSummary", "Account is not interest-bearing type", {
-			accountId,
-			accountType: account.type,
-		});
+		devLog(
+			"getAccountInterestSummary",
+			"Account is not interest-bearing type",
+			{
+				accountId,
+				accountType: account.type,
+			},
+		);
 		return null;
 	}
 
 	const now = asOfDate ?? new Date();
 
 	// Get actual interest earned (use the single-account query)
-	const actualInterest = await getAccountInterestEarned(accountId, taxYearStart, taxYearEnd);
+	const actualInterest = await getAccountInterestEarned(
+		accountId,
+		taxYearStart,
+		taxYearEnd,
+	);
 
 	// Get current balance and rate for eligibility check
 	const [currentBalance, currentRate] = await Promise.all([
@@ -1107,10 +1049,11 @@ export async function getAccountInterestSummary(params: {
 		currentBalance,
 		currentRate,
 		now,
-		taxYearEnd
+		taxYearEnd,
 	);
 
 	let projectedInterest = 0;
+	const rateBasisPoints = currentRate ?? 0;
 
 	if (eligible) {
 		// Calculate projection using the same formula as multi-account breakdown
@@ -1118,7 +1061,7 @@ export async function getAccountInterestSummary(params: {
 			// Fixed-term bond - project only until maturity
 			projectedInterest = calculateProjectedInterestInCents({
 				balanceInCents: currentBalance,
-				rateBasisPoints: currentRate!,
+				rateBasisPoints,
 				fromDate: now,
 				toDate: account.maturityDate,
 			});
@@ -1126,7 +1069,7 @@ export async function getAccountInterestSummary(params: {
 			// Standard access account - project until tax year end
 			projectedInterest = calculateProjectedInterestInCents({
 				balanceInCents: currentBalance,
-				rateBasisPoints: currentRate!,
+				rateBasisPoints,
 				fromDate: now,
 				toDate: taxYearEnd,
 			});

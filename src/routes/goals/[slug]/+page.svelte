@@ -12,8 +12,8 @@
 
   let allocTableRef: HTMLElement | null = $state(null);
   let srcAccountsRef: HTMLElement | null = $state(null);
-  let allocPage = $state(data.allocPage);
-  let srcPage = $state(data.srcPage);
+  let allocPage = $state(0);
+  let srcPage = $state(0);
   let isUpdatingAllocPage = $state(false);
   let isUpdatingSrcPage = $state(false);
 
@@ -44,6 +44,16 @@
     await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
     isUpdatingSrcPage = false;
   }
+
+  $effect(() => {
+    if (isUpdatingAllocPage) return;
+    allocPage = data.allocPage;
+  });
+
+  $effect(() => {
+    if (isUpdatingSrcPage) return;
+    srcPage = data.srcPage;
+  });
 
   $effect(() => {
     if (isUpdatingAllocPage) return;

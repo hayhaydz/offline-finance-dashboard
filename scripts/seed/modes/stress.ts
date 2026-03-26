@@ -211,7 +211,9 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 		const now = new Date();
 		// Stagger note creation over time
 		const daysOffset = Math.floor(Math.random() * 365);
-		const createdAt = new Date(now.getTime() - daysOffset * 24 * 60 * 60 * 1000);
+		const createdAt = new Date(
+			now.getTime() - daysOffset * 24 * 60 * 60 * 1000,
+		);
 
 		await db.insert(schema.accountNotes).values({
 			slug: slug(),
@@ -232,7 +234,9 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 		for (let j = 0; j < noteCount; j++) {
 			const now = new Date();
 			const daysOffset = randomBetween(1, 180);
-			const createdAt = new Date(now.getTime() - daysOffset * 24 * 60 * 60 * 1000);
+			const createdAt = new Date(
+				now.getTime() - daysOffset * 24 * 60 * 60 * 1000,
+			);
 
 			await db.insert(schema.accountNotes).values({
 				slug: slug(),
@@ -245,7 +249,9 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 		}
 	}
 
-	console.log(`  ✓ ${totalNotes} notes created (50+ on one account for pagination)`);
+	console.log(
+		`  ✓ ${totalNotes} notes created (50+ on one account for pagination)`,
+	);
 
 	// ─── Account Transactions ──────────────────────────────────────────────────
 
@@ -526,14 +532,14 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 					taxYear: {
 						start: `${y}-04-06`,
 						end: `${y + 1}-04-05`,
-						label: `${y}-${String(y + 1).slice(-2)}`
+						label: `${y}-${String(y + 1).slice(-2)}`,
 					},
 					allowance: {
 						usedThisTaxYear: isaUsed,
 						limit: 20_000_00,
 						remaining: Math.max(0, 20_000_00 - isaUsed),
-						usedThisSnapshotDate: isaUsed
-					}
+						usedThisSnapshotDate: isaUsed,
+					},
 				},
 				interestBreakdownDetail: {
 					snapshotTakenAt: new Date().toISOString(),
@@ -541,14 +547,26 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 					taxYear: {
 						start: `${y}-04-06`,
 						end: `${y + 1}-04-05`,
-						label: `${y}-${String(y + 1).slice(-2)}`
+						label: `${y}-${String(y + 1).slice(-2)}`,
 					},
-					actualInterest: { taxFree: actualTaxFree, taxable: actualTaxable, total: actualTaxFree + actualTaxable },
-					projectedInterest: { taxFree: projectedTaxFree, taxable: projectedTaxable, total: projectedTaxFree + projectedTaxable },
+					actualInterest: {
+						taxFree: actualTaxFree,
+						taxable: actualTaxable,
+						total: actualTaxFree + actualTaxable,
+					},
+					projectedInterest: {
+						taxFree: projectedTaxFree,
+						taxable: projectedTaxable,
+						total: projectedTaxFree + projectedTaxable,
+					},
 					totalExpected: {
 						taxFree: actualTaxFree + projectedTaxFree,
 						taxable: actualTaxable + projectedTaxable,
-						total: actualTaxFree + actualTaxable + projectedTaxFree + projectedTaxable
+						total:
+							actualTaxFree +
+							actualTaxable +
+							projectedTaxFree +
+							projectedTaxable,
 					},
 					taxPosition: {
 						taxBand: "basic",
@@ -557,10 +575,10 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 							used: actualTaxable,
 							remaining: Math.max(0, 1_000_00 - actualTaxable),
 							overAllowance: actualTaxable > 1_000_00,
-							taxableAmount: Math.max(0, actualTaxable - 1_000_00)
-						}
+							taxableAmount: Math.max(0, actualTaxable - 1_000_00),
+						},
 					},
-					byAccount: []
+					byAccount: [],
 				},
 				notes,
 			});

@@ -65,9 +65,13 @@ export function doctorDatabase(dbPath: string): DoctorReport {
 			: 0;
 
 		const hasAppTables = tableNames.some((name) =>
-			["users", "accounts", "account_transactions", "goals", "sessions"].includes(
-				name,
-			),
+			[
+				"users",
+				"accounts",
+				"account_transactions",
+				"goals",
+				"sessions",
+			].includes(name),
 		);
 
 		if (hasAppTables && !hasMigrationsTable) {

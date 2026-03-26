@@ -15,13 +15,6 @@ function isTaxFree(taxWrapper: string): boolean {
 	);
 }
 
-function getTaxYearLabel(date: Date): string {
-	const bounds = getUkTaxYearBounds(date);
-	const startYear = bounds.start.getUTCFullYear();
-	const endYear = bounds.end.getUTCFullYear();
-	return `${startYear}/${String(endYear).slice(-2)}`;
-}
-
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
 		redirect(302, "/login");
@@ -88,15 +81,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			});
 		}
 
-		const yearData = taxYearsMap.get(label)!;
+		const yearData = taxYearsMap.get(label);
+		if (!yearData) continue;
 		const account = accountMap.get(tx.accountId);
 
 		// Filter out transactions from accounts that mature after this tax year
-		if (
-			account &&
-			account.maturityDate &&
-			account.maturityDate > yearData.end
-		) {
+		if (account?.maturityDate && account.maturityDate > yearData.end) {
 			continue; // Skip this transaction
 		}
 

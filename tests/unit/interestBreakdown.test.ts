@@ -10,19 +10,16 @@
  * 6. Tax wrapper handling (ISA/LISA/Premium Bonds excluded from PSA)
  */
 
-import { describe, it, expect, beforeEach, vi } from "vitest";
 import { eq } from "drizzle-orm";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Account } from "$lib/db/schema";
 import {
-	getInterestTransactions,
 	getActualInterestBreakdown,
-	getProjectedInterestBreakdown,
-	getInterestReconciliationReport,
 	getInterestBreakdownReport,
+	getInterestReconciliationReport,
+	getInterestTransactions,
+	getProjectedInterestBreakdown,
 	type InterestTransaction,
-	type AccountBreakdown,
-	type MonthBreakdown,
-	type InstitutionBreakdown,
-	type TaxWrapperBreakdown,
 } from "$lib/server/interestBreakdown";
 
 // Mock all dependencies
@@ -46,55 +43,95 @@ vi.mock("$lib/utils/logger", () => ({
 	logError: vi.fn(),
 }));
 
-vi.mock("$lib/server/derivedBalances", () => ({
-	getCurrentBalanceForAccount: vi.fn(),
-}));
+vi.mock("$lib/server/derivedBalances", () => {
+	const getCurrentBalanceForAccount = vi.fn();
+	const getCurrentBalancesForAccounts = vi.fn(async (accountIds: number[]) => {
+		const result = new Map<number, number>();
+		for (const accountId of accountIds) {
+			const balance = await getCurrentBalanceForAccount(accountId);
+			result.set(accountId, balance ?? 0);
+		}
+		return result;
+	});
+	return { getCurrentBalanceForAccount, getCurrentBalancesForAccounts };
+});
 
-vi.mock("$lib/server/interestRates", () => ({
-	getCurrentRate: vi.fn(),
-}));
+vi.mock("$lib/server/interestRates", () => {
+	const getCurrentRate = vi.fn();
+	const getCurrentRatesForAccounts = vi.fn(async (accountIds: number[]) => {
+		const result = new Map<number, number | null>();
+		for (const accountId of accountIds) {
+			const rate = await getCurrentRate(accountId);
+			result.set(accountId, rate ?? null);
+		}
+		return result;
+	});
+	return { getCurrentRate, getCurrentRatesForAccounts };
+});
 
 vi.mock("$lib/server/calculations", () => ({
 	calculateProjectedInterestInCents: vi.fn(),
 	getAccountInterestEarned: vi.fn(),
 	getActualInterestEarned: vi.fn(),
-	getUkTaxYearBounds: vi.fn((date) => ({
+	getUkTaxYearBounds: vi.fn((_date) => ({
 		start: new Date("2025-04-06T00:00:00.000Z"),
 		end: new Date("2026-04-05T23:59:59.999Z"),
 	})),
 	getTaxFreeStatus: vi.fn((amount, band) => ({
 		allowance: band === "basic" ? 100000 : band === "higher" ? 50000 : 0,
 		used: amount,
-		remaining: band === "basic" ? 100000 - amount : band === "higher" ? Math.max(0, 50000 - amount) : 0,
-		overAllowance: band === "additional" ? true : amount > (band === "basic" ? 100000 : 50000),
-		taxableAmount: band === "additional" ? amount : Math.max(0, amount - (band === "basic" ? 100000 : 50000)),
+		remaining:
+			band === "basic"
+				? 100000 - amount
+				: band === "higher"
+					? Math.max(0, 50000 - amount)
+					: 0,
+		overAllowance:
+			band === "additional"
+				? true
+				: amount > (band === "basic" ? 100000 : 50000),
+		taxableAmount:
+			band === "additional"
+				? amount
+				: Math.max(0, amount - (band === "basic" ? 100000 : 50000)),
 	})),
 }));
 
 import { db } from "$lib/db/client";
-import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
-import { getCurrentRate } from "$lib/server/interestRates";
 import {
 	calculateProjectedInterestInCents,
 	getActualInterestEarned,
-	getUkTaxYearBounds,
 	getTaxFreeStatus,
+	getUkTaxYearBounds,
 } from "$lib/server/calculations";
+import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
+import { getCurrentRate } from "$lib/server/interestRates";
+
+const mockFindAccounts = vi.mocked(db.query.accounts.findMany);
+const mockGetActualInterestEarned = vi.mocked(getActualInterestEarned);
+const mockGetCurrentBalanceForAccount = vi.mocked(getCurrentBalanceForAccount);
+const mockGetCurrentRate = vi.mocked(getCurrentRate);
+const mockCalculateProjectedInterestInCents = vi.mocked(
+	calculateProjectedInterestInCents,
+);
+const mockGetTaxFreeStatus = vi.mocked(getTaxFreeStatus);
 
 // Helper to create mock transaction chain
-function createMockTransactions(transactions: Array<{
-	id: number;
-	slug: string;
-	date: Date;
-	amount: number;
-	description: string | null;
-	accountId: number;
-	accountSlug: string;
-	accountName: string;
-	accountType: string;
-	accountInstitution: string | null;
-	accountTaxWrapper: string;
-}>) {
+function createMockTransactions(
+	transactions: Array<{
+		id: number;
+		slug: string;
+		date: Date;
+		amount: number;
+		description: string | null;
+		accountId: number;
+		accountSlug: string;
+		accountName: string;
+		accountType: string;
+		accountInstitution: string | null;
+		accountTaxWrapper: string;
+	}>,
+) {
 	let runningTotal = 0;
 	return transactions.map((tx) => {
 		runningTotal += tx.amount;
@@ -118,7 +155,7 @@ function createMockTransactions(transactions: Array<{
 
 // Helper to setup db.select mock for transactions
 function setupDbSelectMock(transactions: InterestTransaction[]) {
-	const mockDb = db as any;
+	const mockDb = db as unknown as { select: ReturnType<typeof vi.fn> };
 	const selectMock = vi.fn();
 	const fromMock = vi.fn();
 	const innerJoinMock = vi.fn();
@@ -131,13 +168,40 @@ function setupDbSelectMock(transactions: InterestTransaction[]) {
 	whereMock.mockReturnValue({ orderBy: orderByMock });
 	orderByMock.mockResolvedValue(transactions);
 
-	mockDb.select.mockImplementation((columns: any) => {
+	mockDb.select.mockImplementation((columns: unknown) => {
 		// Return columns for inspection if needed
 		return selectMock(columns);
 	});
 
 	return { selectMock, fromMock, innerJoinMock, whereMock, orderByMock };
 }
+
+const baseAccount: Account = {
+	id: 0,
+	userId: 1,
+	slug: "base-account",
+	name: "Base Account",
+	institution: null,
+	type: "savings",
+	taxWrapper: "none",
+	category: "asset",
+	liquidity: "instant",
+	excludedFromNetWorth: false,
+	closedAt: null,
+	maturityDate: null,
+	createdAt: new Date("2025-01-01T00:00:00.000Z"),
+	updatedAt: new Date("2025-01-01T00:00:00.000Z"),
+	minimumPaymentType: "flat",
+	minimumPaymentFlat: 0,
+	minimumPaymentPercentage: 0,
+	creditLimit: null,
+	originalPrincipal: null,
+};
+
+const createAccount = (overrides: Partial<Account>): Account => ({
+	...baseAccount,
+	...overrides,
+});
 
 describe("getInterestTransactions", () => {
 	const mockUserId = 1;
@@ -147,7 +211,7 @@ describe("getInterestTransactions", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		// Setup default empty accounts to avoid crashes in functions calling db.query.accounts
-		(db.query.accounts.findMany as any).mockResolvedValue([]);
+		mockFindAccounts.mockResolvedValue([]);
 	});
 
 	it("should fetch interest transactions with running totals ordered by date", async () => {
@@ -193,10 +257,15 @@ describe("getInterestTransactions", () => {
 			},
 		];
 
-		const transactionsWithRunningTotals = createMockTransactions(rawTransactions);
+		const transactionsWithRunningTotals =
+			createMockTransactions(rawTransactions);
 		setupDbSelectMock(transactionsWithRunningTotals);
 
-		const result = await getInterestTransactions(mockUserId, mockTaxYearStart, mockTaxYearEnd);
+		const result = await getInterestTransactions(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+		);
 
 		expect(result).toHaveLength(3);
 		expect(result[0].runningTotal).toBe(10000);
@@ -207,7 +276,11 @@ describe("getInterestTransactions", () => {
 	it("should handle empty result set", async () => {
 		setupDbSelectMock([]);
 
-		const result = await getInterestTransactions(mockUserId, mockTaxYearStart, mockTaxYearEnd);
+		const result = await getInterestTransactions(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+		);
 
 		expect(result).toEqual([]);
 	});
@@ -229,11 +302,12 @@ describe("getInterestTransactions", () => {
 			},
 		];
 
-		setupDbSelectMock(createMockTransactions(transactions));
+		const { orderByMock } = setupDbSelectMock(
+			createMockTransactions(transactions),
+		);
 
 		await getInterestTransactions(mockUserId, mockTaxYearStart, mockTaxYearEnd);
 
-		const orderByMock = (db as any).select.mock.results[0].value.from.mock.results[0].value.innerJoin.mock.results[0].value.where.mock.results[0].value.orderBy;
 		expect(orderByMock).toHaveBeenCalled();
 	});
 
@@ -256,7 +330,11 @@ describe("getInterestTransactions", () => {
 
 		setupDbSelectMock(createMockTransactions(transactions));
 
-		const result = await getInterestTransactions(mockUserId, mockTaxYearStart, mockTaxYearEnd);
+		const result = await getInterestTransactions(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+		);
 
 		expect(result).toHaveLength(1);
 		expect(result[0].amount).toBe(5000);
@@ -271,7 +349,7 @@ describe("getActualInterestBreakdown", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		// Setup default empty accounts to avoid crashes in functions calling db.query.accounts
-		(db.query.accounts.findMany as any).mockResolvedValue([]);
+		mockFindAccounts.mockResolvedValue([]);
 	});
 
 	it("should calculate breakdown by account, month, institution, and tax wrapper", async () => {
@@ -331,9 +409,13 @@ describe("getActualInterestBreakdown", () => {
 		];
 
 		setupDbSelectMock(createMockTransactions(transactions));
-		(getActualInterestEarned as any).mockResolvedValue(53000);
+		mockGetActualInterestEarned.mockResolvedValue(53000);
 
-		const result = await getActualInterestBreakdown(mockUserId, mockTaxYearStart, mockTaxYearEnd);
+		const result = await getActualInterestBreakdown(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+		);
 
 		// Verify total
 		expect(result.total).toBe(53000);
@@ -355,7 +437,9 @@ describe("getActualInterestBreakdown", () => {
 
 		// Verify by institution breakdown
 		expect(result.byInstitution).toHaveLength(2);
-		const testBankInstitution = result.byInstitution.find((i) => i.institution === "Test Bank");
+		const testBankInstitution = result.byInstitution.find(
+			(i) => i.institution === "Test Bank",
+		);
 		expect(testBankInstitution?.total).toBe(45000);
 
 		// Verify by tax wrapper breakdown
@@ -364,10 +448,14 @@ describe("getActualInterestBreakdown", () => {
 		expect(isaWrapper?.total).toBe(20000);
 		expect(isaWrapper?.isTaxFree).toBe(true);
 
-		const pbWrapper = result.byTaxWrapper.find((w) => w.taxWrapper === "premium-bonds");
+		const pbWrapper = result.byTaxWrapper.find(
+			(w) => w.taxWrapper === "premium-bonds",
+		);
 		expect(pbWrapper?.isTaxFree).toBe(true);
 
-		const noneWrapper = result.byTaxWrapper.find((w) => w.taxWrapper === "none");
+		const noneWrapper = result.byTaxWrapper.find(
+			(w) => w.taxWrapper === "none",
+		);
 		expect(noneWrapper?.isTaxFree).toBe(false);
 	});
 
@@ -402,9 +490,13 @@ describe("getActualInterestBreakdown", () => {
 		];
 
 		setupDbSelectMock(createMockTransactions([transactions[0]]));
-		(getActualInterestEarned as any).mockResolvedValue(10000);
+		mockGetActualInterestEarned.mockResolvedValue(10000);
 
-		const result = await getActualInterestBreakdown(mockUserId, mockTaxYearStart, mockTaxYearEnd);
+		const result = await getActualInterestBreakdown(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+		);
 
 		// Only April 5 transaction should be included
 		expect(result.total).toBe(10000);
@@ -415,9 +507,13 @@ describe("getActualInterestBreakdown", () => {
 
 	it("should return empty breakdown for no transactions", async () => {
 		setupDbSelectMock([]);
-		(getActualInterestEarned as any).mockResolvedValue(0);
+		mockGetActualInterestEarned.mockResolvedValue(0);
 
-		const result = await getActualInterestBreakdown(mockUserId, mockTaxYearStart, mockTaxYearEnd);
+		const result = await getActualInterestBreakdown(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+		);
 
 		expect(result.total).toBe(0);
 		expect(result.transactions).toEqual([]);
@@ -437,29 +533,30 @@ describe("getProjectedInterestBreakdown", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		// Setup default empty accounts to avoid crashes in functions calling db.query.accounts
-		(db.query.accounts.findMany as any).mockResolvedValue([]);
+		mockFindAccounts.mockResolvedValue([]);
 	});
 
 	it("should calculate projected interest for remaining tax year", async () => {
 		const mockAccounts = [
-			{
+			createAccount({
 				id: 10,
 				slug: "savings-1",
 				name: "Easy Access Savings",
-				type: "savings",
 				institution: "Test Bank",
-				taxWrapper: "none",
-				closedAt: null,
-				maturityDate: null,
-			},
+			}),
 		];
 
-		(db.query.accounts.findMany as any).mockResolvedValue(mockAccounts);
-		(getCurrentBalanceForAccount as any).mockResolvedValue(1000000); // £10,000
-		(getCurrentRate as any).mockResolvedValue(450); // 4.5%
-		(calculateProjectedInterestInCents as any).mockReturnValue(50000); // £500 projected
+		mockFindAccounts.mockResolvedValue(mockAccounts);
+		mockGetCurrentBalanceForAccount.mockResolvedValue(1000000); // £10,000
+		mockGetCurrentRate.mockResolvedValue(450); // 4.5%
+		mockCalculateProjectedInterestInCents.mockReturnValue(50000); // £500 projected
 
-		const result = await getProjectedInterestBreakdown(mockUserId, mockTaxYearStart, mockTaxYearEnd, mockAsOfDate);
+		const result = await getProjectedInterestBreakdown(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+			mockAsOfDate,
+		);
 
 		expect(result.total).toBe(50000);
 		expect(result.byAccount).toHaveLength(1);
@@ -472,7 +569,12 @@ describe("getProjectedInterestBreakdown", () => {
 	it("should return zero projected when tax year has ended", async () => {
 		const pastDate = new Date("2026-04-06T00:00:00.000Z"); // After tax year end
 
-		const result = await getProjectedInterestBreakdown(mockUserId, mockTaxYearStart, mockTaxYearEnd, pastDate);
+		const result = await getProjectedInterestBreakdown(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+			pastDate,
+		);
 
 		expect(result.total).toBe(0);
 		expect(result.byAccount).toEqual([]);
@@ -481,22 +583,23 @@ describe("getProjectedInterestBreakdown", () => {
 
 	it("should exclude accounts with no balance", async () => {
 		const mockAccounts = [
-			{
+			createAccount({
 				id: 10,
 				slug: "savings-1",
 				name: "Empty Savings",
-				type: "savings",
 				institution: "Test Bank",
-				taxWrapper: "none",
-				closedAt: null,
-				maturityDate: null,
-			},
+			}),
 		];
 
-		(db.query.accounts.findMany as any).mockResolvedValue(mockAccounts);
-		(getCurrentBalanceForAccount as any).mockResolvedValue(0);
+		mockFindAccounts.mockResolvedValue(mockAccounts);
+		mockGetCurrentBalanceForAccount.mockResolvedValue(0);
 
-		const result = await getProjectedInterestBreakdown(mockUserId, mockTaxYearStart, mockTaxYearEnd, mockAsOfDate);
+		const result = await getProjectedInterestBreakdown(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+			mockAsOfDate,
+		);
 
 		expect(result.total).toBe(0);
 		expect(result.byAccount).toHaveLength(1);
@@ -506,23 +609,24 @@ describe("getProjectedInterestBreakdown", () => {
 
 	it("should exclude accounts with no rate", async () => {
 		const mockAccounts = [
-			{
+			createAccount({
 				id: 10,
 				slug: "savings-1",
 				name: "Savings",
-				type: "savings",
 				institution: "Test Bank",
-				taxWrapper: "none",
-				closedAt: null,
-				maturityDate: null,
-			},
+			}),
 		];
 
-		(db.query.accounts.findMany as any).mockResolvedValue(mockAccounts);
-		(getCurrentBalanceForAccount as any).mockResolvedValue(1000000);
-		(getCurrentRate as any).mockResolvedValue(null);
+		mockFindAccounts.mockResolvedValue(mockAccounts);
+		mockGetCurrentBalanceForAccount.mockResolvedValue(1000000);
+		mockGetCurrentRate.mockResolvedValue(null);
 
-		const result = await getProjectedInterestBreakdown(mockUserId, mockTaxYearStart, mockTaxYearEnd, mockAsOfDate);
+		const result = await getProjectedInterestBreakdown(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+			mockAsOfDate,
+		);
 
 		expect(result.total).toBe(0);
 		expect(result.byAccount).toHaveLength(1);
@@ -531,21 +635,23 @@ describe("getProjectedInterestBreakdown", () => {
 
 	it("should exclude closed accounts", async () => {
 		const mockAccounts = [
-			{
+			createAccount({
 				id: 10,
 				slug: "savings-1",
 				name: "Closed Savings",
-				type: "savings",
 				institution: "Test Bank",
-				taxWrapper: "none",
 				closedAt: new Date("2025-11-01T00:00:00.000Z"),
-				maturityDate: null,
-			},
+			}),
 		];
 
-		(db.query.accounts.findMany as any).mockResolvedValue(mockAccounts);
+		mockFindAccounts.mockResolvedValue(mockAccounts);
 
-		const result = await getProjectedInterestBreakdown(mockUserId, mockTaxYearStart, mockTaxYearEnd, mockAsOfDate);
+		const result = await getProjectedInterestBreakdown(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+			mockAsOfDate,
+		);
 
 		expect(result.total).toBe(0);
 		expect(result.byAccount).toHaveLength(1);
@@ -554,21 +660,23 @@ describe("getProjectedInterestBreakdown", () => {
 
 	it("should exclude non-interest-bearing accounts", async () => {
 		const mockAccounts = [
-			{
+			createAccount({
 				id: 10,
 				slug: "checking-1",
 				name: "Current Account",
-				type: "checking",
+				type: "current",
 				institution: "Test Bank",
-				taxWrapper: "none",
-				closedAt: null,
-				maturityDate: null,
-			},
+			}),
 		];
 
-		(db.query.accounts.findMany as any).mockResolvedValue(mockAccounts);
+		mockFindAccounts.mockResolvedValue(mockAccounts);
 
-		const result = await getProjectedInterestBreakdown(mockUserId, mockTaxYearStart, mockTaxYearEnd, mockAsOfDate);
+		const result = await getProjectedInterestBreakdown(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+			mockAsOfDate,
+		);
 
 		expect(result.total).toBe(0);
 		expect(result.byAccount).toHaveLength(1);
@@ -577,23 +685,25 @@ describe("getProjectedInterestBreakdown", () => {
 
 	it("should handle maturity after tax year end (projected = 0)", async () => {
 		const mockAccounts = [
-			{
+			createAccount({
 				id: 10,
 				slug: "bond-1",
 				name: "Fixed Term Bond",
-				type: "savings",
 				institution: "Test Bank",
-				taxWrapper: "none",
-				closedAt: null,
 				maturityDate: new Date("2026-06-01T00:00:00.000Z"), // After tax year end
-			},
+			}),
 		];
 
-		(db.query.accounts.findMany as any).mockResolvedValue(mockAccounts);
-		(getCurrentBalanceForAccount as any).mockResolvedValue(1000000);
-		(getCurrentRate as any).mockResolvedValue(500);
+		mockFindAccounts.mockResolvedValue(mockAccounts);
+		mockGetCurrentBalanceForAccount.mockResolvedValue(1000000);
+		mockGetCurrentRate.mockResolvedValue(500);
 
-		const result = await getProjectedInterestBreakdown(mockUserId, mockTaxYearStart, mockTaxYearEnd, mockAsOfDate);
+		const result = await getProjectedInterestBreakdown(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+			mockAsOfDate,
+		);
 
 		expect(result.total).toBe(0);
 		expect(result.byAccount).toHaveLength(1);
@@ -604,24 +714,26 @@ describe("getProjectedInterestBreakdown", () => {
 	it("should handle maturity within tax year (project to maturity only)", async () => {
 		const maturityDate = new Date("2026-02-01T00:00:00.000Z"); // Within tax year
 		const mockAccounts = [
-			{
+			createAccount({
 				id: 10,
 				slug: "bond-1",
 				name: "Fixed Term Bond",
-				type: "savings",
 				institution: "Test Bank",
-				taxWrapper: "none",
-				closedAt: null,
 				maturityDate,
-			},
+			}),
 		];
 
-		(db.query.accounts.findMany as any).mockResolvedValue(mockAccounts);
-		(getCurrentBalanceForAccount as any).mockResolvedValue(1000000);
-		(getCurrentRate as any).mockResolvedValue(500);
-		(calculateProjectedInterestInCents as any).mockReturnValue(25000);
+		mockFindAccounts.mockResolvedValue(mockAccounts);
+		mockGetCurrentBalanceForAccount.mockResolvedValue(1000000);
+		mockGetCurrentRate.mockResolvedValue(500);
+		mockCalculateProjectedInterestInCents.mockReturnValue(25000);
 
-		const result = await getProjectedInterestBreakdown(mockUserId, mockTaxYearStart, mockTaxYearEnd, mockAsOfDate);
+		const result = await getProjectedInterestBreakdown(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+			mockAsOfDate,
+		);
 
 		expect(result.total).toBe(25000);
 		expect(result.byAccount).toHaveLength(1);
@@ -640,23 +752,25 @@ describe("getProjectedInterestBreakdown", () => {
 
 	it("should handle already matured accounts", async () => {
 		const mockAccounts = [
-			{
+			createAccount({
 				id: 10,
 				slug: "bond-1",
 				name: "Matured Bond",
-				type: "savings",
 				institution: "Test Bank",
-				taxWrapper: "none",
-				closedAt: null,
 				maturityDate: new Date("2025-11-01T00:00:00.000Z"), // Already matured
-			},
+			}),
 		];
 
-		(db.query.accounts.findMany as any).mockResolvedValue(mockAccounts);
-		(getCurrentBalanceForAccount as any).mockResolvedValue(1000000);
-		(getCurrentRate as any).mockResolvedValue(500);
+		mockFindAccounts.mockResolvedValue(mockAccounts);
+		mockGetCurrentBalanceForAccount.mockResolvedValue(1000000);
+		mockGetCurrentRate.mockResolvedValue(500);
 
-		const result = await getProjectedInterestBreakdown(mockUserId, mockTaxYearStart, mockTaxYearEnd, mockAsOfDate);
+		const result = await getProjectedInterestBreakdown(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+			mockAsOfDate,
+		);
 
 		expect(result.total).toBe(0);
 		expect(result.byAccount).toHaveLength(1);
@@ -665,41 +779,40 @@ describe("getProjectedInterestBreakdown", () => {
 
 	it("should sort accounts by projected interest descending", async () => {
 		const mockAccounts = [
-			{
+			createAccount({
 				id: 10,
 				slug: "savings-1",
 				name: "Savings 1",
-				type: "savings",
 				institution: "Bank A",
-				taxWrapper: "none",
-				closedAt: null,
-				maturityDate: null,
-			},
-			{
+			}),
+			createAccount({
 				id: 11,
 				slug: "savings-2",
 				name: "Savings 2",
-				type: "savings",
 				institution: "Bank B",
-				taxWrapper: "none",
-				closedAt: null,
-				maturityDate: null,
-			},
+			}),
 		];
 
-		(db.query.accounts.findMany as any).mockResolvedValue(mockAccounts);
-		(getCurrentBalanceForAccount as any)
+		mockFindAccounts.mockResolvedValue(mockAccounts);
+		mockGetCurrentBalanceForAccount
 			.mockResolvedValueOnce(1000000)
 			.mockResolvedValueOnce(500000);
-		(getCurrentRate as any).mockResolvedValue(450);
-		(calculateProjectedInterestInCents as any)
+		mockGetCurrentRate.mockResolvedValue(450);
+		mockCalculateProjectedInterestInCents
 			.mockReturnValueOnce(30000)
 			.mockReturnValueOnce(15000);
 
-		const result = await getProjectedInterestBreakdown(mockUserId, mockTaxYearStart, mockTaxYearEnd, mockAsOfDate);
+		const result = await getProjectedInterestBreakdown(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+			mockAsOfDate,
+		);
 
 		expect(result.byAccount).toHaveLength(2);
-		expect(result.byAccount[0].projectedInterest).toBeGreaterThanOrEqual(result.byAccount[1].projectedInterest);
+		expect(result.byAccount[0].projectedInterest).toBeGreaterThanOrEqual(
+			result.byAccount[1].projectedInterest,
+		);
 	});
 });
 
@@ -712,7 +825,7 @@ describe("getInterestReconciliationReport", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		// Setup default empty accounts to avoid crashes in functions calling db.query.accounts
-		(db.query.accounts.findMany as any).mockResolvedValue([]);
+		mockFindAccounts.mockResolvedValue([]);
 	});
 
 	it("should return zero deltas for balanced data", async () => {
@@ -746,9 +859,14 @@ describe("getInterestReconciliationReport", () => {
 		];
 
 		setupDbSelectMock(createMockTransactions(transactions));
-		(getActualInterestEarned as any).mockResolvedValue(25000);
+		mockGetActualInterestEarned.mockResolvedValue(25000);
 
-		const result = await getInterestReconciliationReport(mockUserId, mockTaxYearStart, mockTaxYearEnd, mockAsOfDate);
+		const result = await getInterestReconciliationReport(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+			mockAsOfDate,
+		);
 
 		expect(result.actualVsTransactionsDelta).toBe(0);
 		expect(result.actualVsByAccountDelta).toBe(0);
@@ -774,14 +892,21 @@ describe("getInterestReconciliationReport", () => {
 		];
 
 		setupDbSelectMock(createMockTransactions(transactions));
-		(getActualInterestEarned as any).mockResolvedValue(15000); // Mismatch: 10000 vs 15000
+		mockGetActualInterestEarned.mockResolvedValue(15000); // Mismatch: 10000 vs 15000
 
-		const result = await getInterestReconciliationReport(mockUserId, mockTaxYearStart, mockTaxYearEnd, mockAsOfDate);
+		const result = await getInterestReconciliationReport(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+			mockAsOfDate,
+		);
 
 		expect(result.actualVsTransactionsDelta).toBe(5000); // 15000 - 10000
 		expect(result.flags.length).toBeGreaterThan(0);
 
-		const transactionFlag = result.flags.find((f) => f.category === "transactions");
+		const transactionFlag = result.flags.find(
+			(f) => f.category === "transactions",
+		);
 		expect(transactionFlag?.type).toBe("error");
 		expect(transactionFlag?.delta).toBe(5000);
 	});
@@ -819,9 +944,14 @@ describe("getInterestReconciliationReport", () => {
 		];
 
 		setupDbSelectMock(createMockTransactions(transactions));
-		(getActualInterestEarned as any).mockResolvedValue(25000);
+		mockGetActualInterestEarned.mockResolvedValue(25000);
 
-		const result = await getInterestReconciliationReport(mockUserId, mockTaxYearStart, mockTaxYearEnd, mockAsOfDate);
+		const result = await getInterestReconciliationReport(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+			mockAsOfDate,
+		);
 
 		// Month breakdown should sum correctly
 		expect(result.actualVsByMonthDelta).toBe(0);
@@ -858,9 +988,14 @@ describe("getInterestReconciliationReport", () => {
 		];
 
 		setupDbSelectMock(createMockTransactions(transactions));
-		(getActualInterestEarned as any).mockResolvedValue(25000);
+		mockGetActualInterestEarned.mockResolvedValue(25000);
 
-		const result = await getInterestReconciliationReport(mockUserId, mockTaxYearStart, mockTaxYearEnd, mockAsOfDate);
+		const result = await getInterestReconciliationReport(
+			mockUserId,
+			mockTaxYearStart,
+			mockTaxYearEnd,
+			mockAsOfDate,
+		);
 
 		// Account breakdown should sum correctly
 		expect(result.actualVsByAccountDelta).toBe(0);
@@ -876,7 +1011,7 @@ describe("getInterestBreakdownReport", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		// Setup default empty accounts to avoid crashes in functions calling db.query.accounts
-		(db.query.accounts.findMany as any).mockResolvedValue([]);
+		mockFindAccounts.mockResolvedValue([]);
 	});
 
 	it("should combine actual, projected, forecast, and reconciliation data", async () => {
@@ -910,25 +1045,21 @@ describe("getInterestBreakdownReport", () => {
 		];
 
 		setupDbSelectMock(createMockTransactions(transactions));
-		(getActualInterestEarned as any).mockResolvedValue(50000);
+		mockGetActualInterestEarned.mockResolvedValue(50000);
 
 		const mockAccounts = [
-			{
+			createAccount({
 				id: 10,
 				slug: "savings-1",
 				name: "Taxable Savings",
-				type: "savings",
 				institution: "Bank",
-				taxWrapper: "none",
-				closedAt: null,
-				maturityDate: null,
-			},
+			}),
 		];
 
-		(db.query.accounts.findMany as any).mockResolvedValue(mockAccounts);
-		(getCurrentBalanceForAccount as any).mockResolvedValue(1000000);
-		(getCurrentRate as any).mockResolvedValue(450);
-		(calculateProjectedInterestInCents as any).mockReturnValue(10000);
+		mockFindAccounts.mockResolvedValue(mockAccounts);
+		mockGetCurrentBalanceForAccount.mockResolvedValue(1000000);
+		mockGetCurrentRate.mockResolvedValue(450);
+		mockCalculateProjectedInterestInCents.mockReturnValue(10000);
 
 		const result = await getInterestBreakdownReport({
 			userId: mockUserId,
@@ -995,40 +1126,33 @@ describe("getInterestBreakdownReport", () => {
 		];
 
 		setupDbSelectMock(createMockTransactions(transactions));
-		(getActualInterestEarned as any).mockResolvedValue(110000);
+		mockGetActualInterestEarned.mockResolvedValue(110000);
 
 		const mockAccounts = [
-			{
+			createAccount({
 				id: 10,
 				slug: "isa-1",
 				name: "Cash ISA",
-				type: "savings",
 				institution: "Bank",
 				taxWrapper: "isa",
-				closedAt: null,
-				maturityDate: null,
-			},
-			{
+			}),
+			createAccount({
 				id: 11,
 				slug: "savings-1",
 				name: "Taxable Savings",
-				type: "savings",
 				institution: "Bank",
-				taxWrapper: "none",
-				closedAt: null,
-				maturityDate: null,
-			},
+			}),
 		];
 
-		(db.query.accounts.findMany as any).mockResolvedValue(mockAccounts);
-		(getCurrentBalanceForAccount as any).mockResolvedValue(1000000);
-		(getCurrentRate as any).mockResolvedValue(450);
-		(calculateProjectedInterestInCents as any).mockReturnValue(5000);
+		mockFindAccounts.mockResolvedValue(mockAccounts);
+		mockGetCurrentBalanceForAccount.mockResolvedValue(1000000);
+		mockGetCurrentRate.mockResolvedValue(450);
+		mockCalculateProjectedInterestInCents.mockReturnValue(5000);
 
 		// Mock getTaxFreeStatus to track what amounts are passed
 		let actualTaxablePassed = 0;
 		let totalTaxablePassed = 0;
-		(getTaxFreeStatus as any).mockImplementation((amount: number) => {
+		mockGetTaxFreeStatus.mockImplementation((amount: number) => {
 			if (actualTaxablePassed === 0) {
 				actualTaxablePassed = amount;
 			} else {
@@ -1043,7 +1167,7 @@ describe("getInterestBreakdownReport", () => {
 			};
 		});
 
-		const result = await getInterestBreakdownReport({
+		const _result = await getInterestBreakdownReport({
 			userId: mockUserId,
 			taxYearStart: mockTaxYearStart,
 			taxYearEnd: mockTaxYearEnd,
@@ -1088,11 +1212,11 @@ describe("getInterestBreakdownReport", () => {
 		];
 
 		setupDbSelectMock(createMockTransactions(transactions));
-		(getActualInterestEarned as any).mockResolvedValue(50000);
+		mockGetActualInterestEarned.mockResolvedValue(50000);
 
-		const mockAccounts: any[] = [];
+		const mockAccounts: Account[] = [];
 
-		(db.query.accounts.findMany as any).mockResolvedValue(mockAccounts);
+		mockFindAccounts.mockResolvedValue(mockAccounts);
 
 		const result = await getInterestBreakdownReport({
 			userId: mockUserId,
@@ -1103,10 +1227,14 @@ describe("getInterestBreakdownReport", () => {
 		});
 
 		// Both LISA and premium-bonds should be marked as tax-free in breakdown
-		const lisaWrapper = result.actual.byTaxWrapper.find((w) => w.taxWrapper === "lisa");
+		const lisaWrapper = result.actual.byTaxWrapper.find(
+			(w) => w.taxWrapper === "lisa",
+		);
 		expect(lisaWrapper?.isTaxFree).toBe(true);
 
-		const pbWrapper = result.actual.byTaxWrapper.find((w) => w.taxWrapper === "premium-bonds");
+		const pbWrapper = result.actual.byTaxWrapper.find(
+			(w) => w.taxWrapper === "premium-bonds",
+		);
 		expect(pbWrapper?.isTaxFree).toBe(true);
 	});
 
@@ -1128,8 +1256,8 @@ describe("getInterestBreakdownReport", () => {
 		];
 
 		setupDbSelectMock(createMockTransactions(transactions));
-		(getActualInterestEarned as any).mockResolvedValue(10000);
-		(db.query.accounts.findMany as any).mockResolvedValue([]);
+		mockGetActualInterestEarned.mockResolvedValue(10000);
+		mockFindAccounts.mockResolvedValue([]);
 
 		const result = await getInterestBreakdownReport({
 			userId: mockUserId,
@@ -1141,8 +1269,12 @@ describe("getInterestBreakdownReport", () => {
 		expect(getUkTaxYearBounds).toHaveBeenCalledWith(mockAsOfDate);
 
 		// Verify the calculated bounds are used
-		expect(result.meta.taxYearStart).toEqual(new Date("2025-04-06T00:00:00.000Z"));
-		expect(result.meta.taxYearEnd).toEqual(new Date("2026-04-05T23:59:59.999Z"));
+		expect(result.meta.taxYearStart).toEqual(
+			new Date("2025-04-06T00:00:00.000Z"),
+		);
+		expect(result.meta.taxYearEnd).toEqual(
+			new Date("2026-04-05T23:59:59.999Z"),
+		);
 	});
 
 	it("should use default tax band of 'basic' when not provided", async () => {
@@ -1163,10 +1295,10 @@ describe("getInterestBreakdownReport", () => {
 		];
 
 		setupDbSelectMock(createMockTransactions(transactions));
-		(getActualInterestEarned as any).mockResolvedValue(10000);
-		(db.query.accounts.findMany as any).mockResolvedValue([]);
+		mockGetActualInterestEarned.mockResolvedValue(10000);
+		mockFindAccounts.mockResolvedValue([]);
 
-		const result = await getInterestBreakdownReport({
+		const _result = await getInterestBreakdownReport({
 			userId: mockUserId,
 			taxYearStart: mockTaxYearStart,
 			taxYearEnd: mockTaxYearEnd,
@@ -1196,10 +1328,10 @@ describe("getInterestBreakdownReport", () => {
 		];
 
 		setupDbSelectMock(createMockTransactions(transactions));
-		(getActualInterestEarned as any).mockResolvedValue(60000);
-		(db.query.accounts.findMany as any).mockResolvedValue([]);
+		mockGetActualInterestEarned.mockResolvedValue(60000);
+		mockFindAccounts.mockResolvedValue([]);
 
-		const result = await getInterestBreakdownReport({
+		const _result = await getInterestBreakdownReport({
 			userId: mockUserId,
 			taxYearStart: mockTaxYearStart,
 			taxYearEnd: mockTaxYearEnd,
@@ -1229,8 +1361,8 @@ describe("getInterestBreakdownReport", () => {
 		];
 
 		setupDbSelectMock(createMockTransactions(transactions));
-		(getActualInterestEarned as any).mockResolvedValue(10000);
-		(db.query.accounts.findMany as any).mockResolvedValue([]);
+		mockGetActualInterestEarned.mockResolvedValue(10000);
+		mockFindAccounts.mockResolvedValue([]);
 
 		const asOfDate = new Date("2025-12-01T00:00:00.000Z");
 		const result = await getInterestBreakdownReport({

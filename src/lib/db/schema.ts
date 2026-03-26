@@ -84,7 +84,9 @@ export const accounts = sqliteTable(
 				"mortgage",
 			],
 		}).notNull(),
-		taxWrapper: text("tax_wrapper", { enum: ["none", "isa", "lisa", "premium-bonds"] })
+		taxWrapper: text("tax_wrapper", {
+			enum: ["none", "isa", "lisa", "premium-bonds"],
+		})
 			.notNull()
 			.default("none"),
 		category: text("category", { enum: ["asset", "liability"] }).notNull(),
@@ -103,12 +105,18 @@ export const accounts = sqliteTable(
 			.notNull()
 			.default(sql`CURRENT_TIMESTAMP`),
 		// Minimum payment rules
-		minimumPaymentType: text('minimumPaymentType', { enum: ['flat', 'percentage', 'flat_or_percentage'] }).notNull().default('flat'),
-		minimumPaymentFlat: integer('minimumPaymentFlat').default(0).notNull(),
-		minimumPaymentPercentage: integer('minimumPaymentPercentage').default(0).notNull(),
+		minimumPaymentType: text("minimumPaymentType", {
+			enum: ["flat", "percentage", "flat_or_percentage"],
+		})
+			.notNull()
+			.default("flat"),
+		minimumPaymentFlat: integer("minimumPaymentFlat").default(0).notNull(),
+		minimumPaymentPercentage: integer("minimumPaymentPercentage")
+			.default(0)
+			.notNull(),
 		// Credit and loan tracking
-		creditLimit: integer('creditLimit'), // NULL for installment debt
-		originalPrincipal: integer('originalPrincipal'), // NULL for revolving debt
+		creditLimit: integer("creditLimit"), // NULL for installment debt
+		originalPrincipal: integer("originalPrincipal"), // NULL for revolving debt
 	},
 	(table) => ({
 		userClosedIdx: index("idx_accounts_user_closed").on(
@@ -152,7 +160,9 @@ export const accountTransactions = sqliteTable(
 		amount: integer("amount").notNull(), // Signed cents: + for additions, - for deductions
 		category: text("category"), // Nullable, for future budgeting
 		description: text("description"),
-		transactionDate: integer("transaction_date", { mode: "timestamp" }).notNull(),
+		transactionDate: integer("transaction_date", {
+			mode: "timestamp",
+		}).notNull(),
 		createdAt: integer("created_at", { mode: "timestamp" })
 			.notNull()
 			.default(sql`CURRENT_TIMESTAMP`),
@@ -340,7 +350,9 @@ export const snapshots = sqliteTable(
 		}>(),
 
 		// Detailed interest breakdown with PSA status
-		interestBreakdownDetail: text("interest_breakdown_detail", { mode: "json" }).$type<{
+		interestBreakdownDetail: text("interest_breakdown_detail", {
+			mode: "json",
+		}).$type<{
 			snapshotTakenAt: string;
 			snapshotDate: string;
 			taxYear: {
@@ -385,7 +397,9 @@ export const snapshots = sqliteTable(
 			}>;
 		}>(),
 
-		isaAndInterestBreakdown: text("isa_and_interest_breakdown", { mode: "json" }).$type<{
+		isaAndInterestBreakdown: text("isa_and_interest_breakdown", {
+			mode: "json",
+		}).$type<{
 			snapshotTakenAt: string;
 			snapshotDate: string;
 			taxYear: {

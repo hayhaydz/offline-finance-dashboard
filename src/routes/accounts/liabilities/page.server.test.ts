@@ -1,57 +1,55 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { db } from '$lib/db/client';
-import { accounts, interestRates, accountTransactions } from '$lib/db/schema';
-import { nanoid } from 'nanoid';
-import { eq } from 'drizzle-orm';
-import { load } from './+page.server';
+import { nanoid } from "nanoid";
+import { beforeEach, describe, expect, it } from "vitest";
+import { db } from "$lib/db/client";
+import type { User } from "$lib/db/schema";
+import { accounts, accountTransactions, interestRates } from "$lib/db/schema";
+import { load } from "./+page.server";
 
-describe('Liabilities dashboard load', () => {
+describe("Liabilities dashboard load", () => {
 	let userId: number;
+	type LoadInput = Parameters<typeof load>[0];
 
 	beforeEach(async () => {
 		userId = 1;
 	});
 
-	it('should group debts into revolving and installment sections', async () => {
+	it("should group debts into revolving and installment sections", async () => {
 		// Create revolving debt
-		const [card] = await db.insert(accounts).values({
-			slug: nanoid(21),
-			name: 'Test Card',
-			type: 'credit-card',
-			category: 'liability',
-			creditLimit: 100000,
-			minimumPaymentType: 'percentage',
-			minimumPaymentPercentage: 250,
-			currency: 'GBP',
-			country: 'GB',
-			userId
-		}).returning({ id: accounts.id });
+		const [card] = await db
+			.insert(accounts)
+			.values({
+				slug: nanoid(21),
+				name: "Test Card",
+				type: "credit-card",
+				category: "liability",
+				creditLimit: 100000,
+				minimumPaymentType: "percentage",
+				minimumPaymentPercentage: 250,
+				userId,
+			})
+			.returning({ id: accounts.id });
 
 		// Add transaction to establish balance
-		const txResult = await db.insert(accountTransactions).values({
+		await db.insert(accountTransactions).values({
 			slug: nanoid(21),
 			accountId: card.id,
-			type: 'withdrawal',
+			type: "withdrawal",
 			amount: -50000, // -£500
-			transactionDate: new Date()
-		}).returning({ id: accountTransactions.id });
-
-		console.log('Created transaction for card:', card.id, 'tx:', txResult[0]?.id);
+			transactionDate: new Date(),
+		});
 
 		// Create installment debt
 		const [loan] = await db
 			.insert(accounts)
 			.values({
 				slug: nanoid(21),
-				name: 'Test Loan',
-				type: 'loan',
-				category: 'liability',
+				name: "Test Loan",
+				type: "loan",
+				category: "liability",
 				originalPrincipal: 1000000,
-				minimumPaymentType: 'flat',
+				minimumPaymentType: "flat",
 				minimumPaymentFlat: 10000,
-				currency: 'GBP',
-				country: 'GB',
-				userId
+				userId,
 			})
 			.returning({ id: accounts.id });
 
@@ -59,44 +57,53 @@ describe('Liabilities dashboard load', () => {
 		await db.insert(accountTransactions).values({
 			slug: nanoid(21),
 			accountId: loan.id,
-			type: 'withdrawal',
+			type: "withdrawal",
 			amount: -500000, // -£5,000
-			transactionDate: new Date()
+			transactionDate: new Date(),
 		});
 
 		await db.insert(interestRates).values({
 			accountId: loan.id,
 			rate: 500, // 5%
-			effectiveFrom: new Date()
+			effectiveFrom: new Date(),
 		});
 
-		const result = await load({ locals: { user: { id: userId } } });
+		const locals: LoadInput["locals"] = { user: { id: userId } as User };
+		const input = {
+			locals,
+			url: new URL("http://localhost"),
+		} as unknown as LoadInput;
+		const result = await load(input);
+		if (!result) throw new Error("Expected load data");
+		const data = result;
 
 		// Check that our test accounts are in the results
-		const testCard = result.revolving.find((a: any) => a.name === 'Test Card');
-		const testLoan = result.installment.find((a: any) => a.name === 'Test Loan');
+		const testCard = data.revolving.find(
+			(a: { name: string }) => a.name === "Test Card",
+		);
+		const testLoan = data.installment.find(
+			(a: { name: string }) => a.name === "Test Loan",
+		);
 
 		expect(testCard).toBeDefined();
 		expect(testLoan).toBeDefined();
 		// Don't check exact balance since tests share database and may have seed data
-		expect(testCard).toHaveProperty('balance');
-		expect(testLoan).toHaveProperty('balance');
+		expect(testCard).toHaveProperty("balance");
+		expect(testLoan).toHaveProperty("balance");
 	});
 
-	it('should calculate TTZ for all liability accounts', async () => {
+	it("should calculate TTZ for all liability accounts", async () => {
 		const [account] = await db
 			.insert(accounts)
 			.values({
 				slug: nanoid(21),
-				name: 'Test Debt',
-				type: 'loan',
-				category: 'liability',
+				name: "Test Debt",
+				type: "loan",
+				category: "liability",
 				originalPrincipal: 100000,
-				minimumPaymentType: 'flat',
+				minimumPaymentType: "flat",
 				minimumPaymentFlat: 10000,
-				currency: 'GBP',
-				country: 'GB',
-				userId
+				userId,
 			})
 			.returning({ id: accounts.id });
 
@@ -104,24 +111,33 @@ describe('Liabilities dashboard load', () => {
 		await db.insert(accountTransactions).values({
 			slug: nanoid(21),
 			accountId: account.id,
-			type: 'withdrawal',
+			type: "withdrawal",
 			amount: -100000, // -£1,000
-			transactionDate: new Date()
+			transactionDate: new Date(),
 		});
 
 		await db.insert(interestRates).values({
 			accountId: account.id,
 			rate: 1000,
-			effectiveFrom: new Date()
+			effectiveFrom: new Date(),
 		});
 
-		const result = await load({ locals: { user: { id: userId } } });
+		const locals: LoadInput["locals"] = { user: { id: userId } as User };
+		const input = {
+			locals,
+			url: new URL("http://localhost"),
+		} as unknown as LoadInput;
+		const result = await load(input);
+		if (!result) throw new Error("Expected load data");
+		const data = result;
 
 		// Find our test account in the results
-		const testAccount = result.installment.find((a: any) => a.name === 'Test Debt');
+		const testAccount = data.installment.find(
+			(a: { name: string }) => a.name === "Test Debt",
+		);
 		expect(testAccount).toBeDefined();
 		// The TTZ calculation should work (not be null/undefined if balance exists and rate exists)
 		// Don't check exact months since it depends on balance
-		expect(testAccount).toHaveProperty('months');
+		expect(testAccount).toHaveProperty("months");
 	});
 });

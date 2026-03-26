@@ -1,7 +1,7 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
-import { accountTransactions, accounts } from "$lib/db/schema";
+import { accounts, accountTransactions } from "$lib/db/schema";
 import { parseCurrency } from "$lib/utils/currency";
 import { devLog, logError, logFormData } from "$lib/utils/logger";
 import type { Actions, PageServerLoad } from "./$types";

@@ -1,8 +1,8 @@
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import * as schema from "../../../src/lib/db/schema.js";
+import { calculateProjectedInterestInCents } from "../../../src/lib/server/calculations.js";
 import type { DB } from "./db.js";
 import { slug } from "./helpers.js";
-import { calculateProjectedInterestInCents } from "../../../src/lib/server/calculations.js";
 
 export interface SnapshotOptions {
 	/** Override goalsBreakdown to empty array */
@@ -12,10 +12,13 @@ export interface SnapshotOptions {
 	/** Account slugs to mark as includedInTotal: false in the breakdown */
 	forceExcludeAccountSlugs?: string[];
 	/** Override using account names (not slugs) since slugs are randomly generated */
-	interestOverrideByName?: Record<string, {
-		actualInterest?: number;
-		projectedInterest?: number;
-	}>;
+	interestOverrideByName?: Record<
+		string,
+		{
+			actualInterest?: number;
+			projectedInterest?: number;
+		}
+	>;
 	isaAllowanceOverride?: {
 		usedThisTaxYear?: number;
 	};
@@ -47,18 +50,28 @@ export async function createSnapshot(
 
 	// Fetch interest rates for all user accounts
 	const allInterestRates = await db.query.interestRates.findMany({
-		where: accountIds.length > 0 ? inArray(schema.interestRates.accountId, accountIds) : undefined,
+		where:
+			accountIds.length > 0
+				? inArray(schema.interestRates.accountId, accountIds)
+				: undefined,
 	});
 
 	// Build map of most recent rate per account
-	const latestRateByAccount = new Map<number, { rate: number; effectiveFrom: Date }>();
+	const latestRateByAccount = new Map<
+		number,
+		{ rate: number; effectiveFrom: Date }
+	>();
 	if (allInterestRates.length > 0) {
 		// Group by account and find most recent rate for each
 		for (const accountId of accountIds) {
-			const accountRates = allInterestRates.filter((r) => r.accountId === accountId);
+			const accountRates = allInterestRates.filter(
+				(r) => r.accountId === accountId,
+			);
 			if (accountRates.length > 0) {
 				// Sort by effectiveFrom descending to get most recent
-				accountRates.sort((a, b) => b.effectiveFrom.getTime() - a.effectiveFrom.getTime());
+				accountRates.sort(
+					(a, b) => b.effectiveFrom.getTime() - a.effectiveFrom.getTime(),
+				);
 				latestRateByAccount.set(accountId, {
 					rate: accountRates[0].rate,
 					effectiveFrom: accountRates[0].effectiveFrom,
@@ -76,9 +89,7 @@ export async function createSnapshot(
 
 	const accountsWithBalance = openAccounts.map((a) => ({
 		...a,
-		adjustedBalance: Math.round(
-			(balanceByAccount.get(a.id) ?? 0) * multiplier,
-		),
+		adjustedBalance: Math.round((balanceByAccount.get(a.id) ?? 0) * multiplier),
 	}));
 
 	// Preserve existing behaviour: totals include all open accounts (including excluded ones)
@@ -121,7 +132,9 @@ export async function createSnapshot(
 
 	// Build ISA and interest breakdown for seed script
 	// Note: This is simplified - uses current rates, not historical
-	const isaAccounts = openAccounts.filter((a) => a.taxWrapper === "isa" || a.taxWrapper === "lisa");
+	const isaAccounts = openAccounts.filter(
+		(a) => a.taxWrapper === "isa" || a.taxWrapper === "lisa",
+	);
 	const snapshotDateObj = new Date(date);
 	const taxYearStartYear =
 		snapshotDateObj.getUTCMonth() < 3 ||
@@ -132,7 +145,10 @@ export async function createSnapshot(
 	const isaTaxYearEnd = new Date(Date.UTC(taxYearStartYear + 1, 3, 5)); // April 5
 
 	// Simplified ISA calculation for seed (no actual transaction history)
-	const isaUsedThisYear = isaAccounts.reduce((sum, a) => sum + Math.max(0, (balanceByAccount.get(a.id) ?? 0)), 0);
+	const isaUsedThisYear = isaAccounts.reduce(
+		(sum, a) => sum + Math.max(0, balanceByAccount.get(a.id) ?? 0),
+		0,
+	);
 
 	// Build interest breakdown for seed using realistic calculations
 	// Approximates actual interest from tax year start to snapshot date,
@@ -150,7 +166,11 @@ export async function createSnapshot(
 
 	// Helper to check if tax wrapper is tax-free
 	const isTaxFree = (taxWrapper: string): boolean => {
-		return taxWrapper === "isa" || taxWrapper === "lisa" || taxWrapper === "premium-bonds";
+		return (
+			taxWrapper === "isa" ||
+			taxWrapper === "lisa" ||
+			taxWrapper === "premium-bonds"
+		);
 	};
 
 	for (const account of openAccounts) {
@@ -243,9 +263,11 @@ export async function createSnapshot(
 
 	// Apply overrides by account name if provided
 	if (opts.interestOverrideByName) {
-		const accountMapByName = new Map(interestByAccount.map(a => [a.name, a]));
+		const accountMapByName = new Map(interestByAccount.map((a) => [a.name, a]));
 
-		for (const [accountName, override] of Object.entries(opts.interestOverrideByName)) {
+		for (const [accountName, override] of Object.entries(
+			opts.interestOverrideByName,
+		)) {
 			const account = accountMapByName.get(accountName);
 			if (account) {
 				if (override.actualInterest !== undefined) {
@@ -323,7 +345,8 @@ export async function createSnapshot(
 		totalExpected: {
 			taxFree: actualTaxFree + projectedTaxFree,
 			taxable: actualTaxable + projectedTaxable,
-			total: actualTaxFree + actualTaxable + projectedTaxFree + projectedTaxable,
+			total:
+				actualTaxFree + actualTaxable + projectedTaxFree + projectedTaxable,
 		},
 		taxPosition: {
 			taxBand: "basic",

@@ -42,10 +42,13 @@ interface SnapshotFixture {
 	date: string;
 	multiplier: number;
 	notes: string | null;
-	interestOverrideByName?: Record<string, {
-		actualInterest?: number;
-		projectedInterest?: number;
-	}>;
+	interestOverrideByName?: Record<
+		string,
+		{
+			actualInterest?: number;
+			projectedInterest?: number;
+		}
+	>;
 	isaAllowanceOverride?: {
 		usedThisTaxYear?: number;
 	};
@@ -77,8 +80,12 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 	const accounts = loadFixture<AccountFixture[]>("standard/accounts.json");
 	const goals = loadFixture<GoalFixture[]>("standard/goals.json");
 	const snapshots = loadFixture<SnapshotFixture[]>("standard/snapshots.json");
-	const transactions = loadFixture<TransactionFixture[]>("standard/transactions.json");
-	const interestRates = loadFixture<InterestRateFixture[]>("standard/interest_rates.json");
+	const transactions = loadFixture<TransactionFixture[]>(
+		"standard/transactions.json",
+	);
+	const interestRates = loadFixture<InterestRateFixture[]>(
+		"standard/interest_rates.json",
+	);
 
 	// --- Accounts ---
 	console.log("\n📊 Creating accounts...");
@@ -167,7 +174,9 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 	for (const t of transactions) {
 		const account = accountByName.get(t.accountName);
 		if (!account) {
-			console.log(`  ⚠ Account "${t.accountName}" not found, skipping transactions`);
+			console.log(
+				`  ⚠ Account "${t.accountName}" not found, skipping transactions`,
+			);
 			continue;
 		}
 
@@ -255,7 +264,9 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 			const now = new Date();
 			// Stagger note creation times for realism
 			const daysOffset = Math.floor(Math.random() * 90);
-			const createdAt = new Date(now.getTime() - daysOffset * 24 * 60 * 60 * 1000);
+			const createdAt = new Date(
+				now.getTime() - daysOffset * 24 * 60 * 60 * 1000,
+			);
 
 			await db.insert(schema.accountNotes).values({
 				slug: slug(),
@@ -284,7 +295,9 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 	const allTransactions = await db.query.accountTransactions.findMany({
 		columns: { amount: true },
 	});
-	const netWorth = formatGBP(allTransactions.reduce((sum, tx) => sum + tx.amount, 0));
+	const netWorth = formatGBP(
+		allTransactions.reduce((sum, tx) => sum + tx.amount, 0),
+	);
 
 	console.log("\n✅ [standard] Seed complete!");
 	console.log(

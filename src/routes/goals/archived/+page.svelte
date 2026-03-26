@@ -10,10 +10,16 @@
 
 	// Pagination state with scroll target
 	let tableSectionRef: HTMLElement | null = $state(null);
-	let currentPage = $state(data.goalsPagination.page);
+	let currentPage = $state(0);
 
 	// Track if we're updating to prevent loops
 	let isUpdatingPage = $state(false);
+
+	// Sync from server data (initial + navigation)
+	$effect(() => {
+		if (isUpdatingPage) return;
+		currentPage = data.goalsPagination.page;
+	});
 
 	// Sync from URL (1-indexed)
 	$effect(() => {
