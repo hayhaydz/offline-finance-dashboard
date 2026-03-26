@@ -1,3 +1,14 @@
+## [2026-03-26] — Fix: Normalize Latest Transaction Date
+
+**Summary:** Coerced aggregated transaction dates to `Date` objects before downstream use to prevent `getTime` crashes on the homepage.
+
+**Changes:**
+- Normalized `max(transaction_date)` results to `Date | null` in derived balance aggregation
+
+**Suggested commit:** `fix(server): normalize latest transaction date aggregation`
+
+---
+
 ## [2026-03-26] — Performance: Batch Interest & Balances
 
 **Summary:** Batched interest rate and balance lookups for projections, reduced per-account queries, and added unit coverage for new aggregations.

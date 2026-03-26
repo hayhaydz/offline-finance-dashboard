@@ -56,7 +56,19 @@ export async function getLatestTransactionDateForAccounts(
 	for (const id of accountIds) result.set(id, null);
 
 	for (const row of rows) {
-		result.set(row.accountId, row.latest ?? null);
+		const latestRaw = row.latest as unknown;
+		let latest: Date | null = null;
+
+		if (latestRaw instanceof Date) {
+			latest = latestRaw;
+		} else if (typeof latestRaw === "number" || typeof latestRaw === "string") {
+			const parsed = new Date(latestRaw);
+			if (!Number.isNaN(parsed.getTime())) {
+				latest = parsed;
+			}
+		}
+
+		result.set(row.accountId, latest);
 	}
 
 	return result;
