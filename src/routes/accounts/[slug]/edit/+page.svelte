@@ -30,12 +30,16 @@
 	const getInitialTaxWrapper = () => data.account.taxWrapper;
 	const getInitialInstitution = () => data.account.institution || '';
 	const getInitialLiquidity = () => data.account.liquidity || '';
+	const getInitialOpenedAt = () => data.account.openedAt
+		? new Date(data.account.openedAt).toISOString().split('T')[0]
+		: '';
 
 	let name = $state(getInitialName());
 	let type = $state<string>(getInitialType());
 	let taxWrapper = $state<string>(getInitialTaxWrapper());
 	let institution = $state(getInitialInstitution());
 	let liquidityValue = $state(getInitialLiquidity());
+	let openedAt = $state(getInitialOpenedAt());
 
 	// Log form value changes for debugging
 	$effect(() => {
@@ -221,6 +225,18 @@
 				<option value={option.value}>{option.label}</option>
 			{/each}
 		</select>
+	</div>
+
+	<div class="mb-1">
+		<label for="openedAt" class="font-bold text-xs block mb-1">Opened Date (optional)</label>
+		<input
+			type="date"
+			id="openedAt"
+			name="openedAt"
+			bind:value={openedAt}
+			class="border border-black p-1 w-full font-terminal text-sm focus:outline-none"
+		/>
+		<p class="text-xs text-gray-500 mt-1">The real-world date this account was opened (not the date added to the dashboard).</p>
 	</div>
 
 	{#if form?.error}

@@ -1,4 +1,39 @@
-## [2026-03-26] — Fix: Normalize Latest Transaction Date
+## [2026-03-29] — Feature: Accounts Page Phase 3
+
+**Summary:** Implemented all 22 tasks from OpenSpec change `accounts-page-phase-3`. Adds inline overpayment simulator (client-side, debounced), account age display from `openedAt`, and BoE base rate spread context to debt/savings accounts.
+
+**Changes:**
+- `src/routes/accounts/[slug]/+page.svelte` — account age header display; BoE spread line with colour coding; overpayment simulator (input + live TTZ/interest/debt-free result + savings diff); scenario table gated by simulator visibility
+- `src/routes/accounts/[slug]/+page.server.ts` — BoE rate query from `settings`; `rateSpread` computation; both returned to page
+- `src/routes/accounts/[slug]/edit/+page.svelte` — `openedAt` date input
+- `src/routes/accounts/[slug]/edit/+page.server.ts` — `openedAt` parse + update
+- `scripts/seed/modes/standard.ts` — `openedAt` in account inserts; BoE rate settings row
+- `scripts/seed/fixtures/standard/accounts.json` — `openedAt` dates on all 15 accounts
+- `tests/unit/interestBreakdown.test.ts` — added `openedAt: null` to `baseAccount` mock
+
+**Suggested commit:** `feat(accounts): phase 3 — overpayment simulator, account age, BoE spread`
+
+---
+
+## [2026-03-29] — Fix: DB Migration Workflow
+
+**Summary:** Fixed broken `db:push` workflow by switching to the proper `db:generate` + `db:migrate` pattern. `drizzle.config.ts` and `scripts/db-doctor.ts` now load dotenv so `APP_ENV` is always resolved from `.env`. Rogue un-journalled migration file archived. `scripts/reset.ts` updated to use `db:migrate`. Generated tracked migration `0004_known_makkari` for Phase 3 schema (`openedAt` on accounts, new `settings` table).
+
+**Changes:**
+- `drizzle.config.ts` — added `import 'dotenv/config'` (fixes wrong DB path fallback)
+- `scripts/reset.ts` — replaced `db:push` with `db:migrate`; updated comments
+- `scripts/db-doctor.ts` — added `import 'dotenv/config'`
+- `scripts/seed/lib/db.ts` — updated error message to reference `db:migrate`
+- `src/lib/db/migrations/0003_manual_add_columns.sql` — archived to `_archived_0003_manual_add_columns.bak` (was not in journal, caused push confusion)
+- `src/lib/db/migrations/meta/CLAUDE.md` — moved out of `meta/` folder (drizzle-kit was trying to parse it as JSON)
+- `src/lib/db/migrations/0004_known_makkari.sql` — new tracked migration: `settings` table + `accounts.opened_at`
+- `src/lib/db/schema.ts` — `openedAt` nullable timestamp on accounts; new `settings` table; `Settings` type export
+
+**Suggested commit:** `fix(db): switch to generate+migrate workflow, add Phase 3 schema`
+
+---
+
+
 
 **Summary:** Coerced aggregated transaction dates to `Date` objects before downstream use to prevent `getTime` crashes on the homepage.
 

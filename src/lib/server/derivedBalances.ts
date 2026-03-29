@@ -61,7 +61,10 @@ export async function getLatestTransactionDateForAccounts(
 
 		if (latestRaw instanceof Date) {
 			latest = latestRaw;
-		} else if (typeof latestRaw === "number" || typeof latestRaw === "string") {
+		} else if (typeof latestRaw === "number") {
+			// SQLite stores timestamps as Unix seconds; JS Date expects milliseconds
+			latest = new Date(latestRaw * 1000);
+		} else if (typeof latestRaw === "string") {
 			const parsed = new Date(latestRaw);
 			if (!Number.isNaN(parsed.getTime())) {
 				latest = parsed;

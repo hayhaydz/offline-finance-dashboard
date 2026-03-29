@@ -187,6 +187,7 @@ const baseAccount: Account = {
 	category: "asset",
 	liquidity: "instant",
 	excludedFromNetWorth: false,
+	openedAt: null,
 	closedAt: null,
 	maturityDate: null,
 	createdAt: new Date("2025-01-01T00:00:00.000Z"),

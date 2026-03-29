@@ -98,6 +98,7 @@ export const actions: Actions = {
 		const taxWrapper = formData.get("taxWrapper") as string;
 		const institution = formData.get("institution") as string | null;
 		const liquidity = formData.get("liquidity") as string;
+		const openedAtStr = formData.get("openedAt") as string | null;
 
 		// Validation
 		if (!name?.trim()) {
@@ -143,6 +144,15 @@ export const actions: Actions = {
 			return fail(400, { error: "Invalid liquidity value" });
 		}
 
+		// Parse openedAt — empty string means null (field not set)
+		let openedAt: Date | null = null;
+		if (openedAtStr && openedAtStr.trim()) {
+			const parsed = new Date(`${openedAtStr.trim()}T00:00:00.000Z`);
+			if (!Number.isNaN(parsed.getTime())) {
+				openedAt = parsed;
+			}
+		}
+
 		// Category: auto-calculated from type (assets vs liabilities)
 		const assetTypes = new Set(["current", "savings", "investment"]);
 		const category = assetTypes.has(type) ? "asset" : "liability";
@@ -173,6 +183,7 @@ export const actions: Actions = {
 				category: category as "asset" | "liability",
 				institution: institution?.trim() || null,
 				liquidity: liquidity as "instant" | "delayed" | "locked" | null,
+				openedAt,
 				updatedAt: new Date(),
 			})
 			.where(eq(accounts.id, account.id));

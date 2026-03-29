@@ -15,7 +15,7 @@ export function setupDb() {
 
 	if (!fs.existsSync(dbPath)) {
 		console.error(`❌ Database not found: ${dbPath}`);
-		console.error("Run: npm run db:push");
+		console.error("Run: npm run db:migrate");
 		process.exit(1);
 	}
 

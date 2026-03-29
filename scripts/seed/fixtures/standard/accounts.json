@@ -9,13 +9,29 @@
     "excludedFromNetWorth": false,
     "closedAt": null,
     "maturityDate": null,
-    "maturityDate": null,
     "balances": [
-      { "balanceInCents": 245000, "daysAgo": 90, "notes": "Monthly statement" },
-      { "balanceInCents": 280000, "daysAgo": 60, "notes": "Salary credited" },
-      { "balanceInCents": 310000, "daysAgo": 30, "notes": "After bills payment" },
-      { "balanceInCents": 320000, "daysAgo": 0, "notes": "Current balance" }
-    ]
+      {
+        "balanceInCents": 245000,
+        "daysAgo": 90,
+        "notes": "Monthly statement"
+      },
+      {
+        "balanceInCents": 280000,
+        "daysAgo": 60,
+        "notes": "Salary credited"
+      },
+      {
+        "balanceInCents": 310000,
+        "daysAgo": 30,
+        "notes": "After bills payment"
+      },
+      {
+        "balanceInCents": 320000,
+        "daysAgo": 0,
+        "notes": "Current balance"
+      }
+    ],
+    "openedAt": "2018-03-01"
   },
   {
     "name": "Bills Current",
@@ -28,10 +44,23 @@
     "closedAt": null,
     "maturityDate": null,
     "balances": [
-      { "balanceInCents": 85000, "daysAgo": 60, "notes": "Monthly statement" },
-      { "balanceInCents": 95000, "daysAgo": 30, "notes": "After direct debits" },
-      { "balanceInCents": 110000, "daysAgo": 0, "notes": "Current balance" }
-    ]
+      {
+        "balanceInCents": 85000,
+        "daysAgo": 60,
+        "notes": "Monthly statement"
+      },
+      {
+        "balanceInCents": 95000,
+        "daysAgo": 30,
+        "notes": "After direct debits"
+      },
+      {
+        "balanceInCents": 110000,
+        "daysAgo": 0,
+        "notes": "Current balance"
+      }
+    ],
+    "openedAt": "2020-06-15"
   },
   {
     "name": "Emergency Fund",
@@ -44,11 +73,28 @@
     "closedAt": null,
     "maturityDate": null,
     "balances": [
-      { "balanceInCents": 1500000, "daysAgo": 365, "notes": "Initial deposit" },
-      { "balanceInCents": 1650000, "daysAgo": 180, "notes": "After contribution" },
-      { "balanceInCents": 1780000, "daysAgo": 90, "notes": "Monthly interest" },
-      { "balanceInCents": 1850000, "daysAgo": 0, "notes": "Current balance" }
-    ]
+      {
+        "balanceInCents": 1500000,
+        "daysAgo": 365,
+        "notes": "Initial deposit"
+      },
+      {
+        "balanceInCents": 1650000,
+        "daysAgo": 180,
+        "notes": "After contribution"
+      },
+      {
+        "balanceInCents": 1780000,
+        "daysAgo": 90,
+        "notes": "Monthly interest"
+      },
+      {
+        "balanceInCents": 1850000,
+        "daysAgo": 0,
+        "notes": "Current balance"
+      }
+    ],
+    "openedAt": "2021-01-10"
   },
   {
     "name": "ISA Saver",
@@ -61,12 +107,33 @@
     "closedAt": null,
     "maturityDate": null,
     "balances": [
-      { "balanceInCents": 820000, "daysAgo": 365, "notes": "ISA opening balance" },
-      { "balanceInCents": 950000, "daysAgo": 270, "notes": "After contribution" },
-      { "balanceInCents": 1080000, "daysAgo": 180, "notes": "Monthly interest" },
-      { "balanceInCents": 1150000, "daysAgo": 90, "notes": "After contribution" },
-      { "balanceInCents": 1200000, "daysAgo": 0, "notes": "Current balance" }
-    ]
+      {
+        "balanceInCents": 820000,
+        "daysAgo": 365,
+        "notes": "ISA opening balance"
+      },
+      {
+        "balanceInCents": 950000,
+        "daysAgo": 270,
+        "notes": "After contribution"
+      },
+      {
+        "balanceInCents": 1080000,
+        "daysAgo": 180,
+        "notes": "Monthly interest"
+      },
+      {
+        "balanceInCents": 1150000,
+        "daysAgo": 90,
+        "notes": "After contribution"
+      },
+      {
+        "balanceInCents": 1200000,
+        "daysAgo": 0,
+        "notes": "Current balance"
+      }
+    ],
+    "openedAt": "2022-04-06"
   },
   {
     "name": "Stocks & Shares ISA",
@@ -79,12 +146,33 @@
     "closedAt": null,
     "maturityDate": null,
     "balances": [
-      { "balanceInCents": 2500000, "daysAgo": 365, "notes": "Initial investment" },
-      { "balanceInCents": 2750000, "daysAgo": 270, "notes": "Market growth" },
-      { "balanceInCents": 2900000, "daysAgo": 180, "notes": "Dividend reinvested" },
-      { "balanceInCents": 3050000, "daysAgo": 90, "notes": "Market growth" },
-      { "balanceInCents": 3200000, "daysAgo": 0, "notes": "Current valuation" }
-    ]
+      {
+        "balanceInCents": 2500000,
+        "daysAgo": 365,
+        "notes": "Initial investment"
+      },
+      {
+        "balanceInCents": 2750000,
+        "daysAgo": 270,
+        "notes": "Market growth"
+      },
+      {
+        "balanceInCents": 2900000,
+        "daysAgo": 180,
+        "notes": "Dividend reinvested"
+      },
+      {
+        "balanceInCents": 3050000,
+        "daysAgo": 90,
+        "notes": "Market growth"
+      },
+      {
+        "balanceInCents": 3200000,
+        "daysAgo": 0,
+        "notes": "Current valuation"
+      }
+    ],
+    "openedAt": "2023-04-06"
   },
   {
     "name": "Visa Gold",
@@ -100,11 +188,28 @@
     "minimumPaymentFlat": 2500,
     "minimumPaymentPercentage": 100,
     "balances": [
-      { "balanceInCents": -120000, "daysAgo": 90, "notes": "Monthly statement" },
-      { "balanceInCents": -160000, "daysAgo": 60, "notes": "After purchases" },
-      { "balanceInCents": -210000, "daysAgo": 30, "notes": "After holiday spending" },
-      { "balanceInCents": -240000, "daysAgo": 0, "notes": "Current balance" }
-    ]
+      {
+        "balanceInCents": -120000,
+        "daysAgo": 90,
+        "notes": "Monthly statement"
+      },
+      {
+        "balanceInCents": -160000,
+        "daysAgo": 60,
+        "notes": "After purchases"
+      },
+      {
+        "balanceInCents": -210000,
+        "daysAgo": 30,
+        "notes": "After holiday spending"
+      },
+      {
+        "balanceInCents": -240000,
+        "daysAgo": 0,
+        "notes": "Current balance"
+      }
+    ],
+    "openedAt": "2019-09-01"
   },
   {
     "name": "Mastercard",
@@ -120,10 +225,23 @@
     "minimumPaymentFlat": 2500,
     "minimumPaymentPercentage": 100,
     "balances": [
-      { "balanceInCents": -80000, "daysAgo": 60, "notes": "Monthly statement" },
-      { "balanceInCents": -65000, "daysAgo": 30, "notes": "After payment" },
-      { "balanceInCents": -45000, "daysAgo": 0, "notes": "Current balance (being paid down)" }
-    ]
+      {
+        "balanceInCents": -80000,
+        "daysAgo": 60,
+        "notes": "Monthly statement"
+      },
+      {
+        "balanceInCents": -65000,
+        "daysAgo": 30,
+        "notes": "After payment"
+      },
+      {
+        "balanceInCents": -45000,
+        "daysAgo": 0,
+        "notes": "Current balance (being paid down)"
+      }
+    ],
+    "openedAt": "2021-11-20"
   },
   {
     "name": "Tesco Car Loan",
@@ -138,14 +256,34 @@
     "minimumPaymentType": "flat",
     "minimumPaymentFlat": 35000,
     "minimumPaymentPercentage": 0,
-    "maturityDate": null,
     "balances": [
-      { "balanceInCents": -1200000, "daysAgo": 365, "notes": "Loan start" },
-      { "balanceInCents": -1180000, "daysAgo": 270, "notes": "After payment" },
-      { "balanceInCents": -1160000, "daysAgo": 180, "notes": "After payment" },
-      { "balanceInCents": -1140000, "daysAgo": 90, "notes": "After payment" },
-      { "balanceInCents": -1120000, "daysAgo": 0, "notes": "Current balance (being paid down)" }
-    ]
+      {
+        "balanceInCents": -1200000,
+        "daysAgo": 365,
+        "notes": "Loan start"
+      },
+      {
+        "balanceInCents": -1180000,
+        "daysAgo": 270,
+        "notes": "After payment"
+      },
+      {
+        "balanceInCents": -1160000,
+        "daysAgo": 180,
+        "notes": "After payment"
+      },
+      {
+        "balanceInCents": -1140000,
+        "daysAgo": 90,
+        "notes": "After payment"
+      },
+      {
+        "balanceInCents": -1120000,
+        "daysAgo": 0,
+        "notes": "Current balance (being paid down)"
+      }
+    ],
+    "openedAt": "2023-07-01"
   },
   {
     "name": "1-Year Fixed Bond",
@@ -156,12 +294,20 @@
     "liquidity": "locked",
     "excludedFromNetWorth": false,
     "closedAt": null,
-    "maturityDate": null,
     "maturityDate": "2027-03-05",
     "balances": [
-      { "balanceInCents": 5000000, "daysAgo": 365, "notes": "Bond opening - 5.0% fixed" },
-      { "balanceInCents": 5062500, "daysAgo": 0, "notes": "Interest accrued" }
-    ]
+      {
+        "balanceInCents": 5000000,
+        "daysAgo": 365,
+        "notes": "Bond opening - 5.0% fixed"
+      },
+      {
+        "balanceInCents": 5062500,
+        "daysAgo": 0,
+        "notes": "Interest accrued"
+      }
+    ],
+    "openedAt": "2025-06-01"
   },
   {
     "name": "2-Year Fixed Rate Bond",
@@ -172,13 +318,25 @@
     "liquidity": "locked",
     "excludedFromNetWorth": false,
     "closedAt": null,
-    "maturityDate": null,
     "maturityDate": "2028-03-05",
     "balances": [
-      { "balanceInCents": 3000000, "daysAgo": 365, "notes": "Bond opening - 4.75% fixed" },
-      { "balanceInCents": 3048750, "daysAgo": 180, "notes": "Interest accrued" },
-      { "balanceInCents": 3097500, "daysAgo": 0, "notes": "Current balance with interest" }
-    ]
+      {
+        "balanceInCents": 3000000,
+        "daysAgo": 365,
+        "notes": "Bond opening - 4.75% fixed"
+      },
+      {
+        "balanceInCents": 3048750,
+        "daysAgo": 180,
+        "notes": "Interest accrued"
+      },
+      {
+        "balanceInCents": 3097500,
+        "daysAgo": 0,
+        "notes": "Current balance with interest"
+      }
+    ],
+    "openedAt": "2024-03-15"
   },
   {
     "name": "5-Year Growth Bond",
@@ -189,15 +347,35 @@
     "liquidity": "locked",
     "excludedFromNetWorth": false,
     "closedAt": null,
-    "maturityDate": null,
     "maturityDate": "2031-03-05",
     "balances": [
-      { "balanceInCents": 1500000, "daysAgo": 365, "notes": "ISA Bond opening - 4.25% fixed" },
-      { "balanceInCents": 1552500, "daysAgo": 270, "notes": "Interest accrued" },
-      { "balanceInCents": 1605000, "daysAgo": 180, "notes": "Interest accrued" },
-      { "balanceInCents": 1657500, "daysAgo": 90, "notes": "Interest accrued" },
-      { "balanceInCents": 1710000, "daysAgo": 0, "notes": "Current balance with interest" }
-    ]
+      {
+        "balanceInCents": 1500000,
+        "daysAgo": 365,
+        "notes": "ISA Bond opening - 4.25% fixed"
+      },
+      {
+        "balanceInCents": 1552500,
+        "daysAgo": 270,
+        "notes": "Interest accrued"
+      },
+      {
+        "balanceInCents": 1605000,
+        "daysAgo": 180,
+        "notes": "Interest accrued"
+      },
+      {
+        "balanceInCents": 1657500,
+        "daysAgo": 90,
+        "notes": "Interest accrued"
+      },
+      {
+        "balanceInCents": 1710000,
+        "daysAgo": 0,
+        "notes": "Current balance with interest"
+      }
+    ],
+    "openedAt": "2023-01-01"
   },
   {
     "name": "Rewards Card",
@@ -213,11 +391,28 @@
     "minimumPaymentFlat": 2500,
     "minimumPaymentPercentage": 100,
     "balances": [
-      { "balanceInCents": -85000, "daysAgo": 90, "notes": "Monthly statement" },
-      { "balanceInCents": -82000, "daysAgo": 60, "notes": "After payment" },
-      { "balanceInCents": -87000, "daysAgo": 30, "notes": "New purchases" },
-      { "balanceInCents": -85000, "daysAgo": 0, "notes": "Current balance (0% promo until May 2026)" }
-    ]
+      {
+        "balanceInCents": -85000,
+        "daysAgo": 90,
+        "notes": "Monthly statement"
+      },
+      {
+        "balanceInCents": -82000,
+        "daysAgo": 60,
+        "notes": "After payment"
+      },
+      {
+        "balanceInCents": -87000,
+        "daysAgo": 30,
+        "notes": "New purchases"
+      },
+      {
+        "balanceInCents": -85000,
+        "daysAgo": 0,
+        "notes": "Current balance (0% promo until May 2026)"
+      }
+    ],
+    "openedAt": "2020-02-14"
   },
   {
     "name": "Car Loan",
@@ -233,12 +428,33 @@
     "minimumPaymentFlat": 38000,
     "minimumPaymentPercentage": 0,
     "balances": [
-      { "balanceInCents": -1235000, "daysAgo": 365, "notes": "Loan start - £15,000 at 8.5% APR" },
-      { "balanceInCents": -1185000, "daysAgo": 270, "notes": "After payment" },
-      { "balanceInCents": -1135000, "daysAgo": 180, "notes": "After payment" },
-      { "balanceInCents": -1085000, "daysAgo": 90, "notes": "After payment" },
-      { "balanceInCents": -1235000, "daysAgo": 0, "notes": "Current balance (fixed rate)" }
-    ]
+      {
+        "balanceInCents": -1235000,
+        "daysAgo": 365,
+        "notes": "Loan start - \u00a315,000 at 8.5% APR"
+      },
+      {
+        "balanceInCents": -1185000,
+        "daysAgo": 270,
+        "notes": "After payment"
+      },
+      {
+        "balanceInCents": -1135000,
+        "daysAgo": 180,
+        "notes": "After payment"
+      },
+      {
+        "balanceInCents": -1085000,
+        "daysAgo": 90,
+        "notes": "After payment"
+      },
+      {
+        "balanceInCents": -1235000,
+        "daysAgo": 0,
+        "notes": "Current balance (fixed rate)"
+      }
+    ],
+    "openedAt": "2024-01-15"
   },
   {
     "name": "Home Mortgage",
@@ -254,12 +470,33 @@
     "minimumPaymentFlat": 148000,
     "minimumPaymentPercentage": 0,
     "balances": [
-      { "balanceInCents": -23800000, "daysAgo": 365, "notes": "Initial mortgage - £250,000" },
-      { "balanceInCents": -23750000, "daysAgo": 270, "notes": "After payment" },
-      { "balanceInCents": -23700000, "daysAgo": 180, "notes": "After payment" },
-      { "balanceInCents": -23650000, "daysAgo": 90, "notes": "After payment" },
-      { "balanceInCents": -23800000, "daysAgo": 0, "notes": "Current balance (tracker rate 6.25%)" }
-    ]
+      {
+        "balanceInCents": -23800000,
+        "daysAgo": 365,
+        "notes": "Initial mortgage - \u00a3250,000"
+      },
+      {
+        "balanceInCents": -23750000,
+        "daysAgo": 270,
+        "notes": "After payment"
+      },
+      {
+        "balanceInCents": -23700000,
+        "daysAgo": 180,
+        "notes": "After payment"
+      },
+      {
+        "balanceInCents": -23650000,
+        "daysAgo": 90,
+        "notes": "After payment"
+      },
+      {
+        "balanceInCents": -23800000,
+        "daysAgo": 0,
+        "notes": "Current balance (tracker rate 6.25%)"
+      }
+    ],
+    "openedAt": "2022-09-01"
   },
   {
     "name": "High-APR Card",
@@ -275,10 +512,27 @@
     "minimumPaymentFlat": 2500,
     "minimumPaymentPercentage": 100,
     "balances": [
-      { "balanceInCents": -98000, "daysAgo": 90, "notes": "Monthly statement - 98% utilization" },
-      { "balanceInCents": -97500, "daysAgo": 60, "notes": "After minimum payment" },
-      { "balanceInCents": -98500, "daysAgo": 30, "notes": "New purchases" },
-      { "balanceInCents": -98000, "daysAgo": 0, "notes": "Current balance - maxed out at 98% (£1,000 limit)" }
-    ]
+      {
+        "balanceInCents": -98000,
+        "daysAgo": 90,
+        "notes": "Monthly statement - 98% utilization"
+      },
+      {
+        "balanceInCents": -97500,
+        "daysAgo": 60,
+        "notes": "After minimum payment"
+      },
+      {
+        "balanceInCents": -98500,
+        "daysAgo": 30,
+        "notes": "New purchases"
+      },
+      {
+        "balanceInCents": -98000,
+        "daysAgo": 0,
+        "notes": "Current balance - maxed out at 98% (\u00a31,000 limit)"
+      }
+    ],
+    "openedAt": null
   }
 ]

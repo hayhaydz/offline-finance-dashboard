@@ -2,13 +2,13 @@
 /**
  * Dev Database Reset Script
  *
- * Wipes the dev database and re-seeds it from scratch.
+ * Wipes the dev database, applies all tracked migrations, and re-seeds.
  * ONLY for development — never run against production.
  *
  * Usage:
- *   npm run db:reset                     # wipe + push schema + seed:standard
- *   npm run db:reset -- --mode=edge      # wipe + push schema + seed:edge
- *   npm run db:reset -- --mode=stress    # wipe + push schema + seed:stress
+ *   npm run db:reset                     # wipe + migrate + seed:standard
+ *   npm run db:reset -- --mode=edge      # wipe + migrate + seed:edge
+ *   npm run db:reset -- --mode=stress    # wipe + migrate + seed:stress
  */
 import { execSync } from "node:child_process";
 import { existsSync, unlinkSync } from "node:fs";
@@ -42,9 +42,9 @@ if (existsSync(DB_PATH)) {
 
 const env = { ...process.env, APP_ENV: appEnv };
 
-// 2. Push schema
-console.log("⟳  Pushing schema...");
-execSync("npm run db:push", { stdio: "inherit", env });
+// 2. Apply all tracked migrations
+console.log("⟳  Applying migrations...");
+execSync("npm run db:migrate", { stdio: "inherit", env });
 
 // 3. Seed
 console.log(`⟳  Seeding (mode: ${mode})...`);

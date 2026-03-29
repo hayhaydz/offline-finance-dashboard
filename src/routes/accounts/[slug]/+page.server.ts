@@ -7,6 +7,7 @@ import {
 	accounts,
 	accountTransactions,
 	interestRates,
+	settings,
 } from "$lib/db/schema";
 import {
 	getUkTaxYearBounds,
@@ -428,6 +429,18 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		limit: 10, // Show 10 most recent notes
 	});
 
+	// Get BoE base rate from settings (stored as basis points, e.g. "450" = 4.50%)
+	const boeRow = await db.query.settings.findFirst({
+		where: eq(settings.key, "boeBaseRate"),
+	});
+	const boeBaseRate = boeRow ? parseInt(boeRow.value, 10) : null;
+
+	// Compute rate spread: accountRate - boeBaseRate (signed, basis points)
+	const rateSpread =
+		boeBaseRate !== null && currentRate !== null
+			? currentRate - boeBaseRate
+			: null;
+
 	return {
 		account,
 		monthlyBalances: monthlyBalances.toReversed(),
@@ -448,6 +461,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		debtHealthStatus,
 		paymentSuggestion,
 		overpaymentScenarios,
+		boeBaseRate,
+		rateSpread,
 		breadcrumbOverrides: [
 			{ segmentIndex: 1, label: account.name, skipLink: false },
 		],

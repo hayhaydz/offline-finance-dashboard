@@ -96,6 +96,7 @@ export const accounts = sqliteTable(
 		})
 			.notNull()
 			.default(false),
+		openedAt: integer("opened_at", { mode: "timestamp" }), // Real-world account opening date (nullable)
 		closedAt: integer("closed_at", { mode: "timestamp" }), // Soft-delete - NULL means open
 		maturityDate: integer("maturity_date", { mode: "timestamp" }), // For fixed terms/bonds
 		createdAt: integer("created_at", { mode: "timestamp" })
@@ -275,6 +276,14 @@ export const goalAllocations = sqliteTable(
 export const systemMetadata = sqliteTable("system_metadata", {
 	key: text("key").primaryKey(),
 	value: text("value").notNull(),
+});
+
+export const settings = sqliteTable("settings", {
+	key: text("key").primaryKey(),
+	value: text("value").notNull(),
+	updatedAt: integer("updated_at", { mode: "timestamp" })
+		.notNull()
+		.default(sql`CURRENT_TIMESTAMP`),
 });
 
 export const snapshots = sqliteTable(
@@ -559,3 +568,4 @@ export type Goal = typeof goals.$inferSelect;
 export type GoalAllocation = typeof goalAllocations.$inferSelect;
 export type Snapshot = typeof snapshots.$inferSelect;
 export type SystemMetadata = typeof systemMetadata.$inferSelect;
+export type Settings = typeof settings.$inferSelect;

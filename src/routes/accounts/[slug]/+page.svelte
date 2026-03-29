@@ -9,6 +9,7 @@
 	import type { TransactionType } from '$lib/server/transactions';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import { devLogClient, logComponentLifecycle } from '$lib/utils/client-logger';
+	import { calculateTTZ } from '$lib/utils/debt-calculator';
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
@@ -469,6 +470,96 @@
 					? { label: '[WARNING]', class: 'text-amber-700' }
 					: { label: '[NEAR LIMIT]', class: 'text-red-700' }
 	);
+
+	// Account age derived from openedAt
+	const accountAge = $derived.by(() => {
+		if (!data.account.openedAt) return null;
+		const opened = new Date(data.account.openedAt);
+		const now = new Date();
+		const totalMonths =
+			(now.getFullYear() - opened.getFullYear()) * 12 +
+			(now.getMonth() - opened.getMonth());
+		if (totalMonths < 0) return null;
+		const years = Math.floor(totalMonths / 12);
+		const months = totalMonths % 12;
+		const monthLabel = opened.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+		return { years, months, monthLabel };
+	});
+
+	// BoE rate spread colour
+	const spreadColour = $derived.by(() => {
+		if (data.rateSpread === null) return '';
+		if (data.account.category === 'liability') {
+			return data.rateSpread > 0 ? 'text-red-700' : 'text-green-700';
+		}
+		// asset
+		return data.rateSpread >= 0 ? 'text-green-700' : 'text-amber-700';
+	});
+
+	// Overpayment simulator — effective minimum payment in pence
+	const effectiveMinPayment = $derived.by(() => {
+		if (!data.ttz || data.ttz.months === null) return 0;
+		const b = Math.abs(data.currentBalance);
+		const rule = {
+			type: data.account.minimumPaymentType,
+			flat: data.account.minimumPaymentFlat,
+			percentage: data.account.minimumPaymentPercentage
+		};
+		if (rule.type === 'flat' && rule.flat) return rule.flat;
+		if (rule.type === 'percentage' && rule.percentage)
+			return Math.round((b * rule.percentage) / 10000);
+		if (rule.type === 'flat_or_percentage' && rule.flat && rule.percentage)
+			return Math.max(rule.flat, Math.round((b * rule.percentage) / 10000));
+		return Math.round(b * 0.01);
+	});
+
+	// Simulator raw input (£, string for input binding)
+	let simulatorInputStr = $state('');
+	// Debounced payment amount (pence)
+	let simulatorPayment = $state(0);
+
+	// Initialise simulator when effectiveMinPayment becomes available
+	$effect(() => {
+		if (effectiveMinPayment > 0 && simulatorPayment === 0) {
+			simulatorPayment = effectiveMinPayment;
+			simulatorInputStr = (effectiveMinPayment / 100).toFixed(2);
+		}
+	});
+
+	// Debounce: update simulatorPayment 200ms after the user stops typing
+	$effect(() => {
+		const raw = simulatorInputStr;
+		const t = setTimeout(() => {
+			const parsed = Math.round(parseFloat(raw) * 100);
+			if (!Number.isNaN(parsed) && parsed > 0) simulatorPayment = parsed;
+		}, 200);
+		return () => clearTimeout(t);
+	});
+
+	const simulatorResult = $derived.by(() => {
+		if (!data.ttz || data.ttz.months === null || simulatorPayment <= 0) return null;
+		const balance = Math.abs(data.currentBalance);
+		const rate = data.currentRate ?? 0;
+		const result = calculateTTZ(balance, rate, { type: 'flat', flat: simulatorPayment });
+		if (result.months === null) return null;
+		const d = new Date();
+		d.setMonth(d.getMonth() + result.months);
+		const debtFreeDate = d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+		return { months: result.months, totalInterest: result.totalInterest, debtFreeDate };
+	});
+
+	const simulatorDiff = $derived.by(() => {
+		if (!simulatorResult || !data.ttz?.months || !data.ttz.totalInterest) return null;
+		if (simulatorPayment === effectiveMinPayment) return null;
+		const monthsSaved = data.ttz.months - simulatorResult.months;
+		const interestSaved = (data.ttz.totalInterest ?? 0) - (simulatorResult.totalInterest ?? 0);
+		if (monthsSaved <= 0 && interestSaved <= 0) return null;
+		return { monthsSaved, interestSaved };
+	});
+
+	const showSimulator = $derived(
+		data.account.category === 'liability' && !!data.ttz && data.ttz.months !== null
+	);
 </script>
 
 <!-- ACCOUNT INFO HEADER -->
@@ -500,7 +591,20 @@
 		<div class="capitalize">{data.account.liquidity}</div>
 		<div>Current Balance:</div>
 		<div class="font-bold {data.currentBalance >= 0 ? 'text-green-700' : 'text-red-700'}">{formatCurrency(data.currentBalance)}</div>
+		{#if accountAge}
+			<div>Opened:</div>
+			<div>{accountAge.monthLabel} · Age: {accountAge.years}y {accountAge.months}m</div>
+		{/if}
 	</div>
+	{#if data.rateSpread !== null && data.currentRate !== null && data.boeBaseRate !== null}
+		<div class="text-xs mt-1 text-gray-600">
+			Rate: {(data.currentRate / 100).toFixed(2)}%
+			<span class="text-gray-400 mx-1">·</span>
+			BoE base: {(data.boeBaseRate / 100).toFixed(2)}%
+			<span class="text-gray-400 mx-1">·</span>
+			Spread: <span class={spreadColour}>{data.rateSpread >= 0 ? '+' : ''}{(data.rateSpread / 100).toFixed(2)}%</span>
+		</div>
+	{/if}
 	{#if balanceDelta1m !== null}
 		{@const isLiability = data.account.category === 'liability'}
 		{@const delta1mAbs = formatCurrency(Math.abs(balanceDelta1m))}
@@ -931,8 +1035,42 @@
 			</div>
 		{/if}
 
-		<!-- Overpayment Scenario Comparison -->
-		{#if data.overpaymentScenarios}
+		<!-- Inline Overpayment Simulator -->
+		{#if showSimulator}
+			<div class="mt-2 pt-2 border-t border-gray-300">
+				<div class="text-xs text-gray-500 mb-1">Overpayment simulator:</div>
+				<div class="flex items-baseline gap-2 flex-wrap">
+					<label for="simulatorInput" class="text-sm">Payment: £</label>
+					<input
+						id="simulatorInput"
+						type="number"
+						step="0.01"
+						min={(effectiveMinPayment / 100).toFixed(2)}
+						max={(Math.abs(data.currentBalance) / 100).toFixed(2)}
+						bind:value={simulatorInputStr}
+						class="border border-black px-1 py-0.5 text-sm font-mono w-24 focus:outline-none"
+					/>
+					<span class="text-xs text-gray-500">(minimum: £{(effectiveMinPayment / 100).toFixed(2)})</span>
+				</div>
+				{#if simulatorResult}
+					<div class="mt-1 text-xs tabular-nums">
+						TTZ: <span class="font-bold">{simulatorResult.months} months</span>
+						<span class="text-gray-400"> · </span>
+						Interest: <span class="font-bold text-amber-700">£{((simulatorResult.totalInterest ?? 0) / 100).toFixed(2)}</span>
+						<span class="text-gray-400"> · </span>
+						Debt-free: <span class="font-bold text-green-700">{simulatorResult.debtFreeDate}</span>
+					</div>
+					{#if simulatorDiff}
+						<div class="mt-1 text-xs text-green-700">
+							Saves {simulatorDiff.monthsSaved} month{simulatorDiff.monthsSaved !== 1 ? 's' : ''} and £{(simulatorDiff.interestSaved / 100).toFixed(2)} in interest
+						</div>
+					{/if}
+				{/if}
+			</div>
+		{/if}
+
+		<!-- Overpayment Scenario Comparison (hidden when simulator is shown) -->
+		{#if data.overpaymentScenarios && !showSimulator}
 			<div class="mt-2 pt-2 border-t border-gray-300">
 				<div class="text-xs text-gray-500 mb-1">Overpayment scenarios:</div>
 				<div class="overflow-x-auto">

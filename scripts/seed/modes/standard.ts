@@ -15,6 +15,7 @@ interface AccountFixture {
 	excludedFromNetWorth: boolean;
 	closedAt: string | null;
 	maturityDate: string | null;
+	openedAt: string | null;
 	minimumPaymentType: (typeof schema.accounts.$inferInsert)["minimumPaymentType"];
 	minimumPaymentFlat: (typeof schema.accounts.$inferInsert)["minimumPaymentFlat"];
 	minimumPaymentPercentage: (typeof schema.accounts.$inferInsert)["minimumPaymentPercentage"];
@@ -107,6 +108,7 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 				excludedFromNetWorth: a.excludedFromNetWorth,
 				closedAt: a.closedAt ? new Date(a.closedAt) : null,
 				maturityDate: a.maturityDate ? new Date(a.maturityDate) : null,
+				openedAt: a.openedAt ? new Date(a.openedAt) : null,
 				minimumPaymentType: a.minimumPaymentType,
 				minimumPaymentFlat: a.minimumPaymentFlat,
 				minimumPaymentPercentage: a.minimumPaymentPercentage,
@@ -291,6 +293,14 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 		});
 		console.log(`  ✓ ${snap.date}`);
 	}
+
+	// --- Settings ---
+	console.log("\n⚙️  Seeding settings...");
+	await db
+		.insert(schema.settings)
+		.values({ key: "boeBaseRate", value: "450" })
+		.onConflictDoUpdate({ target: schema.settings.key, set: { value: "450" } });
+	console.log("  ✓ boeBaseRate = 450 (4.50%)");
 
 	const allTransactions = await db.query.accountTransactions.findMany({
 		columns: { amount: true },
