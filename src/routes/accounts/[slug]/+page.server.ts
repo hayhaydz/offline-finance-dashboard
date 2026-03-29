@@ -1,5 +1,5 @@
 import { error, fail, redirect } from "@sveltejs/kit";
-import { count, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { validateUserAccess, withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import {
@@ -75,6 +75,67 @@ function getDebtHealthStatus(ttz: {
 		return { label: "[WARNING]", class: "text-amber-700" };
 	}
 	return { label: "[HEALTHY]", class: "text-green-700" };
+}
+
+type RecurringPattern = {
+	description: string;
+	approximateAmount: number;
+	lastDate: Date;
+};
+
+/**
+ * Detect recurring transaction patterns from full transaction history.
+ * Requires ≥ 3 occurrences, amounts within ±10% of median, and ≥ 2 gaps in 28–35 day range.
+ */
+function detectRecurringPatterns(
+	txs: Array<{ description: string | null; amount: number; transactionDate: Date }>,
+): RecurringPattern[] {
+	const groups = new Map<string, typeof txs>();
+
+	for (const tx of txs) {
+		if (!tx.description || tx.description.trim().length <= 3) continue;
+		const key = tx.description.toLowerCase().trim();
+		if (!groups.has(key)) groups.set(key, []);
+		groups.get(key)!.push(tx);
+	}
+
+	const patterns: RecurringPattern[] = [];
+
+	for (const group of groups.values()) {
+		if (group.length < 3) continue;
+
+		const sorted = [...group].sort(
+			(a, b) => a.transactionDate.getTime() - b.transactionDate.getTime(),
+		);
+
+		const amounts = sorted.map((t) => Math.abs(t.amount));
+		const sortedAmounts = [...amounts].sort((a, b) => a - b);
+		const median = sortedAmounts[Math.floor(sortedAmounts.length / 2)];
+
+		if (median === 0) continue;
+		const allWithinRange = amounts.every(
+			(a) => a >= median * 0.9 && a <= median * 1.1,
+		);
+		if (!allWithinRange) continue;
+
+		let monthlyGaps = 0;
+		for (let i = 1; i < sorted.length; i++) {
+			const daysDiff =
+				(sorted[i].transactionDate.getTime() -
+					sorted[i - 1].transactionDate.getTime()) /
+				(1000 * 60 * 60 * 24);
+			if (daysDiff >= 28 && daysDiff <= 35) monthlyGaps++;
+		}
+		if (monthlyGaps < 2) continue;
+
+		patterns.push({
+			description: group[0].description!.trim(),
+			approximateAmount: median,
+			lastDate: sorted[sorted.length - 1].transactionDate,
+		});
+	}
+
+	return patterns;
 }
 
 /**
@@ -351,6 +412,19 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		totalInterest: number | null;
 		debtFreeDate: string | null;
 	}> | null = null;
+	let rateScenarios: Array<{
+		label: string;
+		rate: number;
+		ttzMonths: number | null;
+		ttzDelta: number | null;
+		totalInterest: number | null;
+		debtFreeDate: string | null;
+	}> | null = null;
+	let liabilityContext: {
+		strategy: "avalanche" | "snowball" | null;
+		totalLiabilities: number;
+	} | null = null;
+	let breakEvenMonthIndex: number | null = null;
 
 	if (account.category === "liability") {
 		// Use derived balance from transactions (source of truth)
@@ -418,9 +492,100 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 						debtFreeDate,
 					};
 				});
+
+				// Rate change stress test: +2% and +5% scenarios
+				rateScenarios = [200, 500].map((delta) => {
+					const scenarioRate = rate + delta;
+					const result = calculateTTZ(balanceForTTZ, scenarioRate, rule);
+					const cappedMonths =
+						result.months !== null ? Math.min(result.months, 300) : null;
+					let debtFreeDate: string | null = null;
+					if (cappedMonths !== null) {
+						const d = new Date(now);
+						d.setMonth(d.getMonth() + cappedMonths);
+						debtFreeDate = d.toLocaleDateString("en-GB", {
+							month: "short",
+							year: "numeric",
+						});
+					}
+					const ttzDelta =
+						cappedMonths !== null ? cappedMonths - ttz!.months! : null;
+					return {
+						label: `+${delta / 100}%`,
+						rate: scenarioRate,
+						ttzMonths: cappedMonths,
+						ttzDelta,
+						totalInterest: result.totalInterest,
+						debtFreeDate,
+					};
+				});
+			}
+
+			// Break-even month: first row where cumulative interest ≥ originalPrincipal
+			if (account.originalPrincipal) {
+				let cumInterest = 0;
+				for (let i = 0; i < ttzResult.projection.length; i++) {
+					cumInterest += ttzResult.projection[i].interest;
+					if (cumInterest >= account.originalPrincipal) {
+						breakEvenMonthIndex = i;
+						break;
+					}
+				}
 			}
 		}
 	}
+
+	// Cross-account liability context for payoff strategy tip
+	if (account.category === "liability") {
+		const allLiabilities = await db.query.accounts.findMany({
+			where: and(
+				withUserFilter(locals.user.id, accounts),
+				eq(accounts.category, "liability"),
+			),
+			columns: { id: true },
+		});
+
+		if (allLiabilities.length > 1) {
+			const accountData = await Promise.all(
+				allLiabilities.map(async (a) => {
+					const [bal, r] = await Promise.all([
+						getCurrentBalanceForAccount(a.id),
+						getCurrentRate(a.id),
+					]);
+					return { id: a.id, balance: Math.abs(bal), rate: r };
+				}),
+			);
+
+			const ratedAccounts = accountData.filter((a) => a.rate !== null);
+			const maxRate =
+				ratedAccounts.length > 0
+					? Math.max(...ratedAccounts.map((a) => a.rate!))
+					: null;
+			const minBalance = Math.min(...accountData.map((a) => a.balance));
+
+			const current = accountData.find((a) => a.id === account.id);
+			let strategy: "avalanche" | "snowball" | null = null;
+			if (current?.rate !== null && current?.rate === maxRate) {
+				strategy = "avalanche";
+			} else if (current?.balance === minBalance) {
+				strategy = "snowball";
+			}
+
+			liabilityContext = {
+				strategy,
+				totalLiabilities: allLiabilities.length,
+			};
+		}
+	}
+
+	// Recurring transaction pattern detection (all account types, full history)
+	const allTransactionsForPatterns = await db.query.accountTransactions.findMany(
+		{
+			where: eq(accountTransactions.accountId, account.id),
+			columns: { description: true, amount: true, transactionDate: true },
+		},
+	);
+	const recurringPatterns = detectRecurringPatterns(allTransactionsForPatterns);
 
 	// Get notes for this account
 	const notes = await db.query.accountNotes.findMany({
@@ -461,6 +626,10 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		debtHealthStatus,
 		paymentSuggestion,
 		overpaymentScenarios,
+		rateScenarios,
+		liabilityContext,
+		breakEvenMonthIndex,
+		recurringPatterns,
 		boeBaseRate,
 		rateSpread,
 		breadcrumbOverrides: [

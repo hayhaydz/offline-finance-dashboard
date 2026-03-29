@@ -1114,7 +1114,67 @@
 			</div>
 		{/if}
 
-		<!-- Projection Length Toggle + Period Summary -->
+		<!-- Rate Change Stress Test -->
+		{#if data.rateScenarios && data.rateScenarios.length > 0}
+			<div class="mt-2 pt-2 border-t border-gray-300">
+				<div class="text-xs text-gray-500 mb-1">Rate stress test:</div>
+				<div class="overflow-x-auto">
+					<table class="w-full text-xs tabular-nums border-collapse">
+						<thead>
+							<tr class="bg-gray-100 border-b border-gray-300">
+								<th class="text-left py-1 pr-2 font-normal text-gray-500"></th>
+								<th class="text-right py-1 px-1 font-bold text-gray-500">Current</th>
+								{#each data.rateScenarios as scenario}
+									<th class="text-right py-1 px-1 font-bold text-amber-700">{scenario.label}</th>
+								{/each}
+							</tr>
+						</thead>
+						<tbody>
+							<tr class="border-b border-gray-200">
+								<td class="py-1 pr-2 text-gray-500">Rate</td>
+								<td class="text-right px-1">{data.currentRate !== null ? (data.currentRate / 100).toFixed(2) : '—'}%</td>
+								{#each data.rateScenarios as scenario}
+									<td class="text-right px-1 text-amber-700">{(scenario.rate / 100).toFixed(2)}%</td>
+								{/each}
+							</tr>
+							<tr class="border-b border-gray-200">
+								<td class="py-1 pr-2 text-gray-500">Months to clear</td>
+								<td class="text-right px-1">{data.ttz?.months !== null ? `${data.ttz?.months}m` : '—'}</td>
+								{#each data.rateScenarios as scenario}
+									<td class="text-right px-1">
+										{scenario.ttzMonths !== null ? `${scenario.ttzMonths}${scenario.ttzMonths >= 300 ? '+' : ''}m` : '—'}
+										{#if scenario.ttzDelta !== null && scenario.ttzDelta > 0}
+											<span class="text-amber-700">(+{scenario.ttzDelta})</span>
+										{/if}
+									</td>
+								{/each}
+							</tr>
+							<tr class="border-b border-gray-200">
+								<td class="py-1 pr-2 text-gray-500">Total interest</td>
+								<td class="text-right px-1">{data.ttz?.totalInterest !== null && data.ttz?.totalInterest !== undefined ? formatCurrency(data.ttz.totalInterest) : '—'}</td>
+								{#each data.rateScenarios as scenario}
+									<td class="text-right px-1 text-amber-700">{scenario.totalInterest !== null ? formatCurrency(scenario.totalInterest) : '—'}</td>
+								{/each}
+							</tr>
+							<tr>
+								<td class="py-1 pr-2 text-gray-500">Debt-free</td>
+								<td class="text-right px-1 text-green-700">{debtFreeDate ?? '—'}</td>
+								{#each data.rateScenarios as scenario}
+									<td class="text-right px-1 text-red-700">{scenario.debtFreeDate ?? '—'}</td>
+								{/each}
+							</tr>
+						</tbody>
+					</table>
+				</div>
+			</div>
+		{/if}
+
+		<!-- Debt Payoff Strategy Tip -->
+		{#if data.liabilityContext?.strategy && data.liabilityContext.totalLiabilities > 1}
+			<div class="mt-2 pt-2 border-t border-gray-300 text-xs text-gray-700">
+				[TIP] Pay this account first — {data.liabilityContext.strategy === 'avalanche' ? 'highest rate' : 'smallest balance'} across your {data.liabilityContext.totalLiabilities} debts ({data.liabilityContext.strategy} method)
+			</div>
+		{/if}
 		<div class="mt-2 pt-2 border-t border-gray-300">
 			<div class="flex items-center gap-3 text-xs mb-2">
 				<span class="text-gray-500">Period:</span>
@@ -1175,6 +1235,9 @@
 							</td>
 							<td class="text-right pr-2 text-sm tabular-nums py-2 whitespace-nowrap text-amber-700">
 								£{((cumulativeProjectionInterest[i] ?? 0) / 100).toFixed(2)}
+								{#if data.breakEvenMonthIndex === i}
+									<div class="text-xs text-red-700 font-normal whitespace-normal text-right">← crossover: cumulative interest now exceeds original principal</div>
+								{/if}
 							</td>
 						</tr>
 					{/each}
@@ -1452,6 +1515,17 @@
 					</button>
 				</div>
 			</form>
+		</div>
+	{/if}
+
+	<!-- Recurring Transaction Patterns -->
+	{#if data.recurringPatterns && data.recurringPatterns.length > 0}
+		<div class="border-b border-black px-2 py-1 bg-gray-50">
+			{#each data.recurringPatterns as pattern}
+				<div class="text-xs text-gray-600">
+					"{pattern.description}" appears monthly (~£{(pattern.approximateAmount / 100).toFixed(2)}). Last entry: {new Date(pattern.lastDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}.
+				</div>
+			{/each}
 		</div>
 	{/if}
 

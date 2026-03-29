@@ -1,4 +1,17 @@
-## [2026-03-29] — Feature: Accounts Page Phase 3
+## [2026-03-29] — Feature: Accounts Page Phase 4
+
+**Summary:** Implemented all 16 tasks from OpenSpec change `accounts-page-phase-4`. Adds rate stress test, cross-account debt payoff strategy tip, recurring transaction detection, and break-even month marker to the account detail page.
+
+**Changes:**
+- `src/routes/accounts/[slug]/+page.server.ts` — `rateScenarios` (+2%/+5% stress test via `calculateTTZ`); `liabilityContext` (cross-account avalanche/snowball query); `recurringPatterns` detection helper + query (full history, monthly cadence check); `breakEvenMonthIndex` computation from full projection; all returned in page data
+- `src/routes/accounts/[slug]/+page.svelte` — rate stress test table in debt projection section; payoff strategy one-line tip; recurring pattern notes above transaction ledger; break-even crossover annotation in projection table
+- `openspec/changes/accounts-page-phase-4/` — full artifact set created (proposal, design, specs, tasks)
+
+**Suggested commit:** `feat(accounts): phase 4 — rate stress test, payoff strategy tip, recurring detection, break-even marker`
+
+---
+
+
 
 **Summary:** Implemented all 22 tasks from OpenSpec change `accounts-page-phase-3`. Adds inline overpayment simulator (client-side, debounced), account age display from `openedAt`, and BoE base rate spread context to debt/savings accounts.
 
