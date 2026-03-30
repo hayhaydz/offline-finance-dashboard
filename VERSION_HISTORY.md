@@ -1,3 +1,83 @@
+## [2026-03-30] — Fix: Unambiguous rate alert titles + account type badge
+
+**Summary:** Rate change alerts now clearly state what type of account is affected and what the impact is on you, making it impossible to confuse "good" vs "bad" rate changes at a glance.
+
+**Changes:**
+- **MOD** `src/lib/types/alerts.ts` — added optional `accountType` and `accountCategory` fields to `Alert` interface
+- **MOD** `src/lib/server/alerts.ts` — `makeAccountAlert` now populates `accountType`/`accountCategory` from the account row; rate alert titles changed:
+  - `RATE_DECREASED_SAVINGS`: "Savings rate cut" / "Savings rate cut incoming" + message "…you will earn less interest"
+  - `RATE_INCREASED_LIABILITY`: "Liability rate rise" / "Liability rate rise incoming" + message "…your repayments will increase"
+- **MOD** `src/lib/components/AlertBadge.svelte` — collapsed row now shows a bordered type badge `[SAVINGS]` / `[MORTGAGE]` / `[CREDIT CARD]` / `[LOAN]` etc., styled red-border for liabilities, grey for assets
+- **MOD** `src/lib/components/AlertGroup.svelte` — multi-account expanded rows also show the type badge per account
+
+**Severity model (clarified):**
+- `[!!] CRITICAL (red)` = liability rate rises — your costs are going up
+- `[!] WARNINGS (amber)` = savings rate cuts — your income is going down
+- Asset rate increases / liability rate decreases are currently not alerted (they are positive)
+
+**Suggested commit:** `fix(alerts): unambiguous rate titles, account type badges, impact messages`
+
+---
+
+## [2026-03-30] — Feature: Expandable alerts + title grouping + rate direction icons
+
+**Summary:** Overhauled the alerts UI with three improvements: expandable alert rows (message + View link hidden until clicked), same-title alerts grouped into a single collapsible row, and ↑/↓ directional icons on rate change alerts.
+
+**Changes:**
+- **MOD** `src/lib/types/alerts.ts` — added `AlertGroup` interface; added `groupAlertsByTitle()` export that groups a pre-sorted flat alert list by title, preserving order of first occurrence
+- **MOD** `src/lib/components/AlertBadge.svelte` — now expandable: collapsed shows severity prefix + title + account name; expanded reveals message text + `[View]` link. Directional ↑ icon for `RATE_INCREASED_LIABILITY`, ↓ for `RATE_DECREASED_SAVINGS`, coloured to match severity
+- **NEW** `src/lib/components/AlertGroup.svelte` — renders a single `AlertBadge` for one-account groups; for multi-account groups shows `Title (N accounts) [+]` header, expands to indented list of account name + message + `[View]` per account
+- **MOD** `src/lib/components/AlertsSection.svelte` — uses `groupAlertsByTitle` + `AlertGroup` instead of flat `AlertBadge` iteration; `maxItems` now counts groups not raw alerts
+- **MOD** `src/routes/alerts/+page.svelte` — uses `groupAlertsByTitle` + `AlertGroup` within each severity tier
+
+**Suggested commit:** `feat(alerts): expandable rows, title grouping, rate direction icons`
+
+---
+
+## [2026-03-30] — Fix: Rate change alert messages + alerts page severity grouping
+
+**Summary:** Fixed negative-day message bug for future-dated rate changes, added upcoming savings rate cut to seed, and restructured the `/alerts` page to group by severity tier instead of by account.
+
+**Changes:**
+- **MOD** `src/lib/server/alerts.ts` — added `rateChangeLabel()` helper; `checkRateChangeAlerts` now branches on `effectiveFrom > now`: shows `"in Xd — effective DD/MM/YYYY"` for upcoming, `"Xd ago"` for past; titles use "Rate increasing/decreasing" vs "Rate increased/decreased" accordingly
+- **MOD** `scripts/seed/fixtures/standard/interest_rates.json` — added `daysAgo: -14` future rate cut to Emergency Fund (3.75% effective ~13 Apr 2026) to exercise `RATE_DECREASED_SAVINGS` upcoming path
+- **MOD** `src/routes/alerts/+page.server.ts` — replaced user/account groupMap with flat `{ redAlerts, amberAlerts, infoAlerts, total }` severity split
+- **MOD** `src/routes/alerts/+page.svelte` — replaced USER ALERTS / per-account sections with `[!!] CRITICAL` → `[!] WARNINGS` → `[i] INFORMATION` sections; recency-ordered within each tier
+
+**Suggested commit:** `fix(alerts): upcoming rate labels + severity-grouped alerts page`
+
+---
+
+## [2026-03-30] — Seed: Upcoming maturity alert fixtures
+
+**Summary:** Updated bond maturity dates in `accounts.json` (standard mode) so that maturity-soon alerts fire at multiple severity levels.
+
+**Changes:**
+- **MOD** `scripts/seed/fixtures/standard/accounts.json`:
+  - **1-Year Fixed Bond (NS&I)**: maturityDate `2027-03-05` → `2026-04-24` (25 days away → `MATURITY_SOON_30` amber)
+  - **2-Year Fixed Rate Bond (Yorkshire BS)**: maturityDate `2028-03-05` → `2026-04-04` (5 days away → `MATURITY_SOON_7` amber)
+  - **5-Year Growth Bond**: unchanged at `2031-03-05`
+
+**Suggested commit:** `seed(standard): set bond maturity dates to trigger MATURITY_SOON_30 + MATURITY_SOON_7 alerts`
+
+---
+
+## [2026-03-30] — Seed: Alert-triggering fixture data
+
+**Summary:** Updated `interest_rates.json` (standard mode) to populate data that triggers all rate-related alert types and surfaces the promotional rate countdown UI.
+
+**Changes:**
+- **MOD** `scripts/seed/fixtures/standard/interest_rates.json` — rate changes within 30-day window to trigger alerts:
+  - **Emergency Fund**: 4.50% → 4.00% (20 days ago) → `RATE_DECREASED_SAVINGS`
+  - **ISA Saver**: 4.50% → 3.75% (12 days ago) → `RATE_DECREASED_SAVINGS`
+  - **Home Mortgage**: 6.25% → 6.75% (18 days ago) → `RATE_INCREASED_LIABILITY`
+  - **High-APR Card**: 24.9% → 29.9% (7 days ago) → `RATE_INCREASED_LIABILITY`
+  - **Rewards Card**: 0% current + 21.9% future-dated (1 May 2026 / `daysAgo(-32)`) → promo countdown `[FUTURE]` in account detail + `RATE_INCREASED_LIABILITY`
+
+**Suggested commit:** `seed(standard): trigger rate change alerts + promo rate countdown for 30/03/2026`
+
+---
+
 ## [2026-03-30] — Feature: Alerts System
 
 **Summary:** Implemented the full unified alerts system from `.docs/_refile/2026-03-30-alerts-system.md`. All 25 alert types computed live from existing data — no new DB table. Replaced the one-off maturity table on the homepage.

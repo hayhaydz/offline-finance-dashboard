@@ -2,18 +2,17 @@
   {
     "accountName": "Emergency Fund",
     "rates": [
-      { "rate": 300, "daysAgo": 800, "description": "Ancient rate 3.00% AER" },
-      { "rate": 425, "daysAgo": 365, "description": "Initial rate 4.25% AER" },
-      { "rate": 450, "daysAgo": 180, "description": "Rate increase to 4.50% AER" }
+      { "rate": 375, "daysAgo": -14, "description": "Scheduled cut to 3.75% AER — effective 13 Apr 2026, Nationwide following BoE" },
+      { "rate": 400, "daysAgo": 20, "description": "Rate cut to 4.00% AER — Nationwide passed on BoE rate reduction 10 Mar 2026" },
+      { "rate": 450, "daysAgo": 180, "description": "Previous rate 4.50% AER" }
     ]
   },
   {
     "accountName": "ISA Saver",
     "rates": [
-      { "rate": 350, "daysAgo": 800, "description": "Old rate 3.50% AER" },
-      { "rate": 400, "daysAgo": 365, "description": "Initial rate 4.00% AER" },
-      { "rate": 425, "daysAgo": 200, "description": "Rate increase to 4.25% AER" },
-      { "rate": 450, "daysAgo": 60, "description": "Rate increase to 4.50% AER" }
+      { "rate": 375, "daysAgo": 12, "description": "Rate cut to 3.75% AER — Santander reduction 18 Mar 2026" },
+      { "rate": 450, "daysAgo": 60, "description": "Previous rate 4.50% AER" },
+      { "rate": 425, "daysAgo": 200, "description": "Previous rate 4.25% AER" }
     ]
   },
   {
@@ -43,8 +42,8 @@
   {
     "accountName": "Rewards Card",
     "rates": [
-      { "rate": 0, "daysAgo": 90, "description": "0% promotional rate until May 2026" },
-      { "rate": 2190, "daysAgo": 60, "description": "Standard rate 21.9% APR after promo ends" }
+      { "rate": 2190, "daysAgo": -32, "description": "Standard rate 21.9% APR — effective 1 May 2026 when promotional period ends" },
+      { "rate": 0, "daysAgo": 90, "description": "0% promotional purchase rate — active since Jan 2026, expires 30 Apr 2026" }
     ]
   },
   {
@@ -56,13 +55,15 @@
   {
     "accountName": "Home Mortgage",
     "rates": [
-      { "rate": 625, "daysAgo": 365, "description": "Tracker mortgage rate 6.25% Bank of England + 0.25%" }
+      { "rate": 675, "daysAgo": 18, "description": "Tracker rate increased to 6.75% — BoE base rate rose 12 Mar 2026" },
+      { "rate": 625, "daysAgo": 365, "description": "Previous tracker rate 6.25% (BoE base + 0.25%)" }
     ]
   },
   {
     "accountName": "High-APR Card",
     "rates": [
-      { "rate": 2490, "daysAgo": 800, "description": "High APR 24.9% for maxed out credit card" }
+      { "rate": 2990, "daysAgo": 7, "description": "APR increased to 29.9% — Capital One rate review 23 Mar 2026" },
+      { "rate": 2490, "daysAgo": 800, "description": "Previous APR 24.9%" }
     ]
   },
   {

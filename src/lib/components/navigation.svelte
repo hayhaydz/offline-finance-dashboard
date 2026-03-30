@@ -65,6 +65,7 @@
       { href: '/goals/archived', label: 'Archived Goals' }
     ] },
     { href: '/snapshots', label: 'Snapshots', authRequired: true },
+    { href: '/alerts', label: 'Alerts', authRequired: true },
     {
       href: '/settings',
       label: 'Settings',

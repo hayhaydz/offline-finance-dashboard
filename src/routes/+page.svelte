@@ -263,8 +263,16 @@
 	</div>
 	{/if}
 
+
+	<AlertsSection
+		alerts={data.alerts}
+		title="ALERTS"
+		maxItems={5}
+		viewAllHref="/alerts"
+	/>
+
 	<!-- ACCOUNTS BY TYPE -->
-	<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
+	<div class="font-bold flex justify-between bg-gray-100 border-y border-black p-2">
 		<div class="flex items-center gap-2">
 			<span>ACCOUNTS ({activeAccountCount})</span>
 			<span class="text-xs font-bold text-gray-500">{data.staleness.label}</span>
@@ -336,13 +344,6 @@
 			</div>
 		{/if}
 	</div>
-
-	<AlertsSection
-		alerts={data.alerts}
-		title="ALERTS"
-		maxItems={5}
-		viewAllHref="/alerts"
-	/>
 
 	<!-- GOALS PREVIEW -->
 	{#if goals && goals.length > 0}

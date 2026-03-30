@@ -33,10 +33,19 @@ export interface Alert {
 	severity: AlertSeverity;
 	title: string;
 	message: string;
-	accountSlug?: string; // present for account-level alerts
+	accountSlug?: string;    // present for account-level alerts
 	accountName?: string;
-	href?: string;        // deep link to relevant page
-	triggeredAt: number;  // Unix ms timestamp — Date objects don't survive SvelteKit load serialization
+	accountType?: string;    // e.g. 'savings' | 'mortgage' | 'credit-card' | 'loan' | etc.
+	accountCategory?: string; // 'asset' | 'liability'
+	href?: string;           // deep link to relevant page
+	triggeredAt: number;     // Unix ms timestamp — Date objects don't survive SvelteKit load serialization
+}
+
+export interface AlertGroup {
+	title: string;
+	type: AlertType;
+	severity: AlertSeverity;
+	alerts: Alert[];
 }
 
 export const SEVERITY_ORDER: Record<AlertSeverity, number> = {
@@ -51,4 +60,18 @@ export function sortAlerts(alerts: Alert[]): Alert[] {
 		if (s !== 0) return s;
 		return b.triggeredAt - a.triggeredAt;
 	});
+}
+
+/** Group a pre-sorted flat alert list by title, preserving order of first occurrence. */
+export function groupAlertsByTitle(alerts: Alert[]): AlertGroup[] {
+	const map = new Map<string, AlertGroup>();
+	for (const alert of alerts) {
+		const existing = map.get(alert.title);
+		if (existing) {
+			existing.alerts.push(alert);
+		} else {
+			map.set(alert.title, { title: alert.title, type: alert.type, severity: alert.severity, alerts: [alert] });
+		}
+	}
+	return Array.from(map.values());
 }

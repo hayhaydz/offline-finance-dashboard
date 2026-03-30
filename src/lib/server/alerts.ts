@@ -64,6 +64,8 @@ function makeAccountAlert(
 		message,
 		accountSlug: account.slug,
 		accountName: account.name,
+		accountType: account.type,
+		accountCategory: account.category,
 		href: `/accounts/${account.slug}`,
 		triggeredAt: Date.now(),
 	};
@@ -154,6 +156,15 @@ function checkMaturityPassedAlerts(
 	return alerts;
 }
 
+function rateChangeLabel(effectiveFrom: Date, now: Date): string {
+	const isUpcoming = effectiveFrom > now;
+	if (isUpcoming) {
+		const days = daysUntil(effectiveFrom, now);
+		return `in ${days}d — effective ${effectiveFrom.toLocaleDateString('en-GB')}`;
+	}
+	return `${daysSince(effectiveFrom, now)}d ago`;
+}
+
 function checkRateChangeAlerts(
 	openAccounts: AccountRow[],
 	rateHistories: Map<number, RateRow[]>,
@@ -167,19 +178,22 @@ function checkRateChangeAlerts(
 		if (rates.length < 2) continue;
 
 		const [latest, previous] = rates;
-		if (latest.effectiveFrom.getTime() < cutoff) continue; // window expired
+		// Skip if the change is older than 30 days; always include future-dated changes
+		if (latest.effectiveFrom.getTime() < cutoff) continue;
+
+		const isUpcoming = latest.effectiveFrom > now;
+		const label = rateChangeLabel(latest.effectiveFrom, now);
 
 		if (account.category === 'asset' && account.type !== 'current') {
 			if (latest.rate < previous.rate) {
 				const from = (previous.rate / 100).toFixed(2);
 				const to = (latest.rate / 100).toFixed(2);
-				const daysAgo = daysSince(latest.effectiveFrom, now);
 				alerts.push(
 					makeAccountAlert(
 						'RATE_DECREASED_SAVINGS',
 						'amber',
-						'Rate decreased',
-						`${from}% → ${to}% (${daysAgo}d ago)`,
+						isUpcoming ? 'Savings rate cut incoming' : 'Savings rate cut',
+						`${from}% → ${to}% (${label}) — you will earn less interest`,
 						account,
 					),
 				);
@@ -188,13 +202,12 @@ function checkRateChangeAlerts(
 			if (latest.rate > previous.rate) {
 				const from = (previous.rate / 100).toFixed(2);
 				const to = (latest.rate / 100).toFixed(2);
-				const daysAgo = daysSince(latest.effectiveFrom, now);
 				alerts.push(
 					makeAccountAlert(
 						'RATE_INCREASED_LIABILITY',
 						'red',
-						'Rate increased',
-						`${from}% → ${to}% (${daysAgo}d ago)`,
+						isUpcoming ? 'Liability rate rise incoming' : 'Liability rate rise',
+						`${from}% → ${to}% (${label}) — your repayments will increase`,
 						account,
 					),
 				);

@@ -655,7 +655,10 @@
 	</div>
 {/if}
 
+<div class="border-t border-black">
 <AlertsSection alerts={data.alerts} title="ALERTS FOR THIS ACCOUNT" />
+</div>
+
 
 <!-- INTEREST RATES SECTION -->
 {#if data.account.category === 'liability' || data.interestSummary || data.rates.length > 0}

@@ -294,7 +294,7 @@
     "liquidity": "locked",
     "excludedFromNetWorth": false,
     "closedAt": null,
-    "maturityDate": "2027-03-05",
+    "maturityDate": "2026-04-24",
     "balances": [
       {
         "balanceInCents": 5000000,
@@ -318,7 +318,7 @@
     "liquidity": "locked",
     "excludedFromNetWorth": false,
     "closedAt": null,
-    "maturityDate": "2028-03-05",
+    "maturityDate": "2026-04-04",
     "balances": [
       {
         "balanceInCents": 3000000,
