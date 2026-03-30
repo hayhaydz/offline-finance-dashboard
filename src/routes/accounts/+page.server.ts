@@ -1,6 +1,7 @@
 import { redirect } from "@sveltejs/kit";
 import { count, eq } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
+import { getAccountListAlerts } from "$lib/server/alerts";
 import { db } from "$lib/db/client";
 import { accounts, users } from "$lib/db/schema";
 import {
@@ -285,5 +286,6 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			limit: ISA_ALLOWANCE_IN_CENTS,
 			remaining: Math.max(0, ISA_ALLOWANCE_IN_CENTS - isaAllowanceUsed),
 		},
+		alerts: await getAccountListAlerts(locals.user.id),
 	};
 };

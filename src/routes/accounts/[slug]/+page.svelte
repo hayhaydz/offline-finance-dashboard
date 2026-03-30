@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import AlertsSection from '$lib/components/AlertsSection.svelte';
 	import { formatCurrency, formatDateShorthand, formatDateTime } from '$lib/utils/currency';
 	import { invalidateAll } from '$app/navigation';
 	import { goto } from '$app/navigation';
@@ -653,6 +654,8 @@
 		{@html form.error.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="bracket-link text-xs">$1</a>')}
 	</div>
 {/if}
+
+<AlertsSection alerts={data.alerts} title="ALERTS FOR THIS ACCOUNT" />
 
 <!-- INTEREST RATES SECTION -->
 {#if data.account.category === 'liability' || data.interestSummary || data.rates.length > 0}

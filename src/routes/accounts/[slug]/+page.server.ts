@@ -1,6 +1,7 @@
 import { error, fail, redirect } from "@sveltejs/kit";
 import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { validateUserAccess, withUserFilter } from "$lib/auth/row-security";
+import { getAlertsForAccount } from "$lib/server/alerts";
 import { db } from "$lib/db/client";
 import {
 	accountNotes,
@@ -635,6 +636,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		breadcrumbOverrides: [
 			{ segmentIndex: 1, label: account.name, skipLink: false },
 		],
+		alerts: await getAlertsForAccount(account.id, locals.user.id),
 	};
 };
 

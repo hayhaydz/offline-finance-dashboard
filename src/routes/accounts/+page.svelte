@@ -1,4 +1,5 @@
 <script lang="ts">
+	import AlertsSection from '$lib/components/AlertsSection.svelte';
 	import { page } from '$app/state';
 	import { goto } from '$app/navigation';
 	import { formatCurrency, formatAccountType as commonFormatAccountType, formatDateShorthand as commonFormatDateShorthand } from '$lib/utils/currency';
@@ -307,6 +308,7 @@
 			</tbody>
 		</table>
 	{:else}
+		<AlertsSection alerts={data.alerts} title="ACCOUNT ALERTS" viewAllHref="/alerts" />
 		<div class="overflow-x-auto">
 		<table class="min-w-[900px] w-full">
 			<thead>

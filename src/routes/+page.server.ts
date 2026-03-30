@@ -1,6 +1,7 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { asc, count, eq } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
+import { getAlerts } from "$lib/server/alerts";
 import { db } from "$lib/db/client";
 import { accounts, goals, users } from "$lib/db/schema";
 import {
@@ -188,33 +189,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	);
 	const exclusionCount = excludedTypes.size;
 
-	// Maturity alerts: open accounts maturing in the next 90 days
+	const alerts = await getAlerts(locals.user.id);
+
 	const today = new Date();
 	today.setUTCHours(0, 0, 0, 0);
-	const ninetyDaysAhead = new Date(today);
-	ninetyDaysAhead.setUTCDate(ninetyDaysAhead.getUTCDate() + 90);
-	const msPerDay = 24 * 60 * 60 * 1000;
-
-	const maturingSoon = accountsWithDerivedBalances
-		.filter(
-			(a) =>
-				!a.closedAt &&
-				a.maturityDate &&
-				a.maturityDate >= today &&
-				a.maturityDate <= ninetyDaysAhead,
-		)
-		.map((a) => ({
-			id: a.id,
-			slug: a.slug,
-			name: a.name,
-			type: a.type,
-			maturityDate: a.maturityDate as Date,
-			daysToMaturity: Math.ceil(
-				((a.maturityDate as Date).getTime() - today.getTime()) / msPerDay,
-			),
-			currentBalance: a.currentBalance ?? 0,
-		}))
-		.sort((a, b) => a.maturityDate.getTime() - b.maturityDate.getTime());
 
 	// ISA tracker for current UK tax year (6 Apr -> 5 Apr)
 	const taxYear = getUkTaxYearBounds(new Date());
@@ -375,7 +353,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			page: safeAccountsPage,
 			totalPages: totalAccountPages,
 		},
-		maturingSoon,
+		alerts,
 		isaTracker,
 		interestSummary,
 		goals: activeGoals,

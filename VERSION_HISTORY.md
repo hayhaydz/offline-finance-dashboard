@@ -1,3 +1,24 @@
+## [2026-03-30] — Feature: Alerts System
+
+**Summary:** Implemented the full unified alerts system from `.docs/_refile/2026-03-30-alerts-system.md`. All 25 alert types computed live from existing data — no new DB table. Replaced the one-off maturity table on the homepage.
+
+**Changes:**
+- **NEW** `src/lib/types/alerts.ts` — `Alert` interface, `AlertType` union (25 types), `AlertSeverity`, `sortAlerts()`
+- **NEW** `src/lib/server/alerts.ts` — batched-query architecture; `getAlerts()`, `getAccountListAlerts()`, `getAlertsForAccount()`; all sync + async helpers
+- **NEW** `src/lib/components/AlertBadge.svelte` — single alert row (severity prefix, title, message, optional link)
+- **NEW** `src/lib/components/AlertsSection.svelte` — collapsible container; starts open; red/amber count badges; `maxItems` + `viewAllHref`
+- **NEW** `src/routes/alerts/+page.server.ts` + `+page.svelte` — full grouped alerts page (user-level + per-account sections)
+- **MOD** `src/routes/+page.server.ts` — removed `maturingSoon` block; added `getAlerts()` call
+- **MOD** `src/routes/+page.svelte` — replaced maturity table with `<AlertsSection maxItems={5} viewAllHref="/alerts">`
+- **MOD** `src/routes/accounts/+page.server.ts` — added `getAccountListAlerts()` to returned data
+- **MOD** `src/routes/accounts/+page.svelte` — added `<AlertsSection>` above the accounts table
+- **MOD** `src/routes/accounts/[slug]/+page.server.ts` — added `getAlertsForAccount()` to returned data
+- **MOD** `src/routes/accounts/[slug]/+page.svelte` — added `<AlertsSection>` after form feedback, before interest rates
+
+**Suggested commit:** `feat(alerts): unified computed alerts system — 25 alert types, no DB storage`
+
+---
+
 ## [2026-03-29] — Feature: Accounts Page Phase 4
 
 **Summary:** Implemented all 16 tasks from OpenSpec change `accounts-page-phase-4`. Adds rate stress test, cross-account debt payoff strategy tip, recurring transaction detection, and break-even month marker to the account detail page.

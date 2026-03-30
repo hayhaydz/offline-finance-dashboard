@@ -1,4 +1,5 @@
 <script lang="ts">
+	import AlertsSection from '$lib/components/AlertsSection.svelte';
 	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
 	import IsaAllowanceWidget from '$lib/components/IsaAllowanceWidget.svelte';
 	import TaxYearProgress from '$lib/components/TaxYearProgress.svelte';
@@ -336,40 +337,12 @@
 		{/if}
 	</div>
 
-	{#if data.maturingSoon.length > 0}
-		<div class="font-bold flex justify-between bg-amber-50 border-y border-black p-2">
-			<span>MATURITY ALERTS ({data.maturingSoon.length})</span>
-			<a href="/accounts" class="bracket-link text-xs">Review Accounts</a>
-		</div>
-		<div class="p-0">
-			<table>
-				<thead>
-					<tr>
-						<th class="pl-2 text-left">Account</th>
-						<th class="pl-2 text-left">Type</th>
-						<th class="text-right pr-1">Maturity</th>
-						<th class="text-right pr-1">In</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each data.maturingSoon as account}
-						<tr class="border-b border-gray-200 last:border-b-0">
-							<td class="pl-2 py-2">
-								<a href="/accounts/{account.slug}" class="bracket-link">
-									{account.name}
-								</a>
-							</td>
-							<td class="pl-2 py-2">{formatAccountType(account.type)}</td>
-							<td class="text-right pr-1 tabular-nums py-2">{formatDateShorthand(account.maturityDate)}</td>
-							<td class="text-right pr-1 tabular-nums py-2 text-amber-700 font-bold">
-								{account.daysToMaturity === 0 ? 'today' : `${account.daysToMaturity}d`}
-							</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		</div>
-	{/if}
+	<AlertsSection
+		alerts={data.alerts}
+		title="ALERTS"
+		maxItems={5}
+		viewAllHref="/alerts"
+	/>
 
 	<!-- GOALS PREVIEW -->
 	{#if goals && goals.length > 0}
