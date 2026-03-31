@@ -5,6 +5,7 @@ import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
 import { getUkTaxYearBounds } from "$lib/server/calculations";
 import { getISABreakdownReport } from "$lib/server/isaBreakdown";
+import { calculateISAPacing } from "$lib/server/isaPacing";
 import { devLog, logError } from "$lib/utils/logger";
 import type { PageServerLoad } from "./$types";
 
@@ -72,6 +73,14 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			taxYearEnd: taxYear.end,
 		});
 
+		// Only calculate pacing for the current tax year
+		const currentTaxYear = getUkTaxYearBounds(new Date());
+		const isCurrentTaxYear =
+			taxYear.start.getTime() === currentTaxYear.start.getTime();
+		const pacing = isCurrentTaxYear
+			? await calculateISAPacing(locals.user.id)
+			: null;
+
 		devLog("accountsIsa", "ISA breakdown report generated", {
 			userId: locals.user.id,
 			allowanceUsed: report.meta.allowanceUsed,
@@ -91,6 +100,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			actual: report.actual,
 			reconciliation: report.reconciliation,
 			availableTaxYears: sortedTaxYears,
+			pacing,
 		};
 	} catch (error) {
 		logError("accountsIsa", "Failed to generate ISA breakdown report", error);

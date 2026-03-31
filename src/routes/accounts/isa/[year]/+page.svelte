@@ -340,6 +340,73 @@
 	</div>
 </div>
 
+<!-- ISA PACING (current tax year only) -->
+{#if data.pacing}
+	{@const p = data.pacing}
+	<div class="border-b border-black">
+		<div class="font-bold bg-gray-100 border-b border-black p-2 text-xs uppercase flex justify-between">
+			<span>ISA Pacing — {p.taxYearLabel}</span>
+			<span
+				class="font-bold"
+				class:text-green-700={p.status === 'full' || p.status === 'on-track'}
+				class:text-amber-700={p.status === 'behind'}
+				class:text-gray-400={p.status === 'no-data'}
+			>
+				{p.status === 'full' ? 'FULL' : p.status === 'on-track' ? 'ON TRACK' : p.status === 'behind' ? 'BEHIND' : 'NO DATA'}
+			</span>
+		</div>
+		{#if p.status === 'no-data'}
+			<div class="p-2 text-xs text-gray-500">No ISA deposits recorded this tax year yet.</div>
+		{:else if p.status === 'full'}
+			<div class="p-2 text-xs text-green-700 font-bold">ISA allowance fully used — well done!</div>
+		{:else}
+			<div class="grid grid-cols-2 md:grid-cols-4">
+				<div class="border-r border-black p-2">
+					<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Avg / Month</div>
+					<div class="text-lg font-bold">{formatCurrency(p.actualMonthlyAvgInCents)}</div>
+					<div class="text-[10px] text-gray-500">actual so far</div>
+				</div>
+				<div class="border-r border-black p-2">
+					<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">{p.isLastMonth ? 'Required Total' : 'Required / Month'}</div>
+					<div
+						class="text-lg font-bold"
+						class:text-amber-700={p.status === 'behind'}
+						class:text-green-700={p.status === 'on-track'}
+					>
+						{formatCurrency(p.requiredMonthlyInCents)}
+					</div>
+					<div class="text-[10px] text-gray-500">to reach £20k</div>
+				</div>
+				<div class="border-r border-black p-2">
+					<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Months Elapsed</div>
+					<div class="text-lg font-bold">{p.monthsElapsed}</div>
+					<div class="text-[10px] text-gray-500">
+						{#if p.isLastMonth && p.daysRemainingInTaxYear > 0}
+							{p.daysRemainingInTaxYear}d remaining
+						{:else}
+							{p.monthsRemaining} remaining
+						{/if}
+					</div>
+				</div>
+				<div class="p-2">
+					<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Remaining</div>
+					<div class="text-lg font-bold text-green-700">{formatCurrency(p.allowanceRemainingInCents)}</div>
+					<div class="text-[10px] text-gray-500">{p.daysRemainingInTaxYear}d left</div>
+				</div>
+			</div>
+			{#if p.status === 'behind'}
+				<div class="border-t border-black p-2 text-xs text-amber-700">
+					{#if p.isLastMonth}
+						You need to deposit {formatCurrency(p.allowanceRemainingInCents)} in the next {p.daysRemainingInTaxYear} days to use the full allowance.
+					{:else}
+						You need to deposit an extra {formatCurrency(p.requiredMonthlyInCents - p.actualMonthlyAvgInCents)} / month above your current average to use the full allowance.
+					{/if}
+				</div>
+			{/if}
+		{/if}
+	</div>
+{/if}
+
 <!-- BREAKDOWN SECTIONS -->
 <div class="border-b border-black">
 	<div class="p-2 font-bold uppercase">Breakdowns</div>

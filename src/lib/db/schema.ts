@@ -273,6 +273,35 @@ export const goalAllocations = sqliteTable(
 	}),
 );
 
+export const monthlyReviews = sqliteTable(
+	"monthly_reviews",
+	{
+		id: integer("id").primaryKey({ autoIncrement: true }),
+		slug: text("slug").notNull().unique(),
+		userId: integer("user_id")
+			.notNull()
+			.references(() => users.id),
+		yearMonth: text("year_month").notNull(), // "YYYY-MM" e.g. "2026-03"
+		completedItems: text("completed_items", { mode: "json" })
+			.$type<string[]>()
+			.notNull()
+			.default(sql`'[]'`),
+		notes: text("notes"),
+		createdAt: integer("created_at", { mode: "timestamp" })
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+		updatedAt: integer("updated_at", { mode: "timestamp" })
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+	},
+	(table) => ({
+		userYearMonthIdx: index("idx_monthly_reviews_user_year_month").on(
+			table.userId,
+			table.yearMonth,
+		),
+	}),
+);
+
 export const systemMetadata = sqliteTable("system_metadata", {
 	key: text("key").primaryKey(),
 	value: text("value").notNull(),
@@ -482,6 +511,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 	accounts: many(accounts),
 	goals: many(goals),
 	snapshots: many(snapshots),
+	monthlyReviews: many(monthlyReviews),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -557,6 +587,13 @@ export const snapshotsRelations = relations(snapshots, ({ one }) => ({
 	}),
 }));
 
+export const monthlyReviewsRelations = relations(monthlyReviews, ({ one }) => ({
+	user: one(users, {
+		fields: [monthlyReviews.userId],
+		references: [users.id],
+	}),
+}));
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type BackupCode = typeof backupCodes.$inferSelect;
@@ -569,3 +606,4 @@ export type GoalAllocation = typeof goalAllocations.$inferSelect;
 export type Snapshot = typeof snapshots.$inferSelect;
 export type SystemMetadata = typeof systemMetadata.$inferSelect;
 export type Settings = typeof settings.$inferSelect;
+export type MonthlyReview = typeof monthlyReviews.$inferSelect;

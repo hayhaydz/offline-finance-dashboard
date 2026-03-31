@@ -65,6 +65,7 @@
       { href: '/goals/archived', label: 'Archived Goals' }
     ] },
     { href: '/snapshots', label: 'Snapshots', authRequired: true },
+    { href: '/review', label: 'Review', authRequired: true },
     { href: '/alerts', label: 'Alerts', authRequired: true },
     {
       href: '/settings',
@@ -117,6 +118,7 @@
         goals: 'Goals',
         snapshots: 'Snapshots',
         settings: 'Settings',
+        review: 'Review',
         profile: 'Profile',
         create: 'Create',
         isa: 'ISA',

@@ -1,3 +1,34 @@
+## [2026-03-31] — Feat: Monthly Review checklist + streak tracking + ISA pacing indicator
+
+**Summary:** Adds a structured Monthly Review habit page (`/review`) with a fixed 6-item checklist, streak tracking, goal progress overview, and per-month notes — all persisted to the database. Also adds an ISA pacing indicator to the homepage ISA widget and the `/accounts/isa/[year]` breakdown page.
+
+**Schema:**
+- **NEW** `monthly_reviews` table: `slug`, `userId`, `yearMonth` (YYYY-MM), `completedItems` (JSON string[]), `notes`, timestamps
+- **NEW** `src/lib/db/migrations/0005_add_monthly_reviews.sql` — migration for future `db:reset`
+
+**New files:**
+- **NEW** `src/lib/server/reviews.ts` — `CHECKLIST_ITEMS`, `getOrCreateReview`, `toggleChecklistItem`, `updateReviewNotes`, `getReviewHistory`, `calculateStreak`, `formatYearMonth`, `isValidYearMonth`
+- **NEW** `src/lib/server/isaPacing.ts` — `calculateISAPacing` → status (`full`/`on-track`/`behind`/`no-data`), monthly avg, required monthly, months remaining
+- **NEW** `src/routes/review/+page.server.ts` + `+page.svelte` — review index: streak banner, history table, link to current month
+- **NEW** `src/routes/review/[yearMonth]/+page.server.ts` + `+page.svelte` — month page: checklist with optimistic toggle, goal progress table with MoM delta, notes save
+
+**Modified files:**
+- **MOD** `src/lib/db/schema.ts` — `monthlyReviews` table, relations, `MonthlyReview` type export
+- **MOD** `src/lib/components/navigation.svelte` — added "Review" top-level nav item; `review` breadcrumb label
+- **MOD** `src/lib/components/IsaAllowanceWidget.svelte` — added compact pacing section (avg/month, target/month, status, days remaining)
+- **MOD** `src/routes/+page.server.ts` — calls `calculateISAPacing` and passes into `isaTracker.pacing`
+- **MOD** `src/routes/accounts/isa/[year]/+page.server.ts` — calls `calculateISAPacing` for current tax year only
+- **MOD** `src/routes/accounts/isa/[year]/+page.svelte` — new ISA pacing section with 4-col grid (avg/month, required/month, months, remaining) + behind-warning row
+- **MOD** `scripts/seed/modes/standard.ts` — inserts 5 monthly review records (Nov 2025 – Mar 2026) with a 5-month streak
+
+**Checklist items (fixed, 6 total):** `snapshot`, `balances`, `isa-contributions`, `goal-allocations`, `interest-rates`, `alerts`
+
+**Streak rule:** Month counts if ≥1 item completed; streak = consecutive calendar months backwards from most recent active month.
+
+**Suggested commit:** `feat(review): monthly checklist, streak tracking, ISA pacing indicator`
+
+---
+
 ## [2026-03-30] — Fix: Unambiguous rate alert titles + account type badge
 
 **Summary:** Rate change alerts now clearly state what type of account is affected and what the impact is on you, making it impossible to confuse "good" vs "bad" rate changes at a glance.

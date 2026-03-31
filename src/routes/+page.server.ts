@@ -17,6 +17,7 @@ import {
 } from "$lib/server/derivedBalances";
 import { updateTypeExclusions } from "$lib/server/exclusions";
 import { calculateAssetsAndLiabilities } from "$lib/server/finance";
+import { calculateISAPacing } from "$lib/server/isaPacing";
 import { getCurrentRate } from "$lib/server/interestRates";
 import { devLog, isVerboseDebug, logError } from "$lib/utils/logger";
 import { getStaleness } from "$lib/utils/staleness";
@@ -207,6 +208,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		remaining: Math.max(0, ISA_ALLOWANCE_IN_CENTS - isaUsed),
 		taxYearStart: taxYear.start,
 		taxYearEnd: taxYear.end,
+		pacing: await calculateISAPacing(locals.user.id),
 	};
 
 	// Calculate interest summary (same logic as accounts page)

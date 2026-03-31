@@ -302,6 +302,69 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 		.onConflictDoUpdate({ target: schema.settings.key, set: { value: "450" } });
 	console.log("  ✓ boeBaseRate = 450 (4.50%)");
 
+	// --- Monthly Reviews ---
+	console.log("\n📋 Creating monthly reviews...");
+
+	const CHECKLIST_ALL = [
+		"snapshot",
+		"balances",
+		"isa-contributions",
+		"goal-allocations",
+		"interest-rates",
+		"alerts",
+	];
+
+	const reviewFixtures: Array<{
+		yearMonth: string;
+		completedItems: string[];
+		notes: string | null;
+	}> = [
+		{
+			yearMonth: "2026-03",
+			completedItems: ["snapshot", "balances"],
+			notes: "Good start to the month — still need to review goals and rates.",
+		},
+		{
+			yearMonth: "2026-02",
+			completedItems: CHECKLIST_ALL,
+			notes: "Full review done. ISA pacing on track for the year.",
+		},
+		{
+			yearMonth: "2026-01",
+			completedItems: CHECKLIST_ALL,
+			notes: "Happy new year reset — cleared all alerts and topped up emergency fund.",
+		},
+		{
+			yearMonth: "2025-12",
+			completedItems: [
+				"snapshot",
+				"balances",
+				"isa-contributions",
+				"goal-allocations",
+			],
+			notes: null,
+		},
+		{
+			yearMonth: "2025-11",
+			completedItems: ["snapshot", "balances", "interest-rates"],
+			notes: "Rate dropped on main savings — updated.",
+		},
+	];
+
+	for (const r of reviewFixtures) {
+		const createdAt = new Date(`${r.yearMonth}-05T12:00:00Z`);
+		await db.insert(schema.monthlyReviews).values({
+			slug: slug(),
+			userId,
+			yearMonth: r.yearMonth,
+			completedItems: r.completedItems,
+			notes: r.notes,
+			createdAt,
+			updatedAt: createdAt,
+		});
+		console.log(`  ✓ ${r.yearMonth} (${r.completedItems.length}/6 items)`);
+	}
+
 	const allTransactions = await db.query.accountTransactions.findMany({
 		columns: { amount: true },
 	});
@@ -311,7 +374,7 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 
 	console.log("\n✅ [standard] Seed complete!");
 	console.log(
-		`   ${accounts.length} accounts | ${goals.length} goals | ${totalTransactions} transactions | ${totalRates} rates | ${snapshots.length} snapshots | ${totalNotes} notes`,
+		`   ${accounts.length} accounts | ${goals.length} goals | ${totalTransactions} transactions | ${totalRates} rates | ${snapshots.length} snapshots | ${totalNotes} notes | ${reviewFixtures.length} reviews`,
 	);
 	console.log(`   Net worth (latest balances): ${netWorth}`);
 }
