@@ -1,3 +1,14 @@
+## [2026-04-01] — Chore: Add CLAUDE.md cleanup script
+
+**Summary:** Adds `scripts/cleanup-claude-md.sh` to delete `CLAUDE.md`/`claude.md` files case-insensitively across the repo while preserving the root `CLAUDE.md`, with a `--dry-run` preview option.
+
+**New files:**
+- **NEW** `scripts/cleanup-claude-md.sh` — removes non-root `claude.md` variants; supports `--dry-run`
+
+**Suggested commit:** `chore: add claude.md cleanup script`
+
+---
+
 ## [2026-03-31] — Feat: Monthly Review checklist + streak tracking + ISA pacing indicator
 
 **Summary:** Adds a structured Monthly Review habit page (`/review`) with a fixed 6-item checklist, streak tracking, goal progress overview, and per-month notes — all persisted to the database. Also adds an ISA pacing indicator to the homepage ISA widget and the `/accounts/isa/[year]` breakdown page.
