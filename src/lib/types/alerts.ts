@@ -25,7 +25,8 @@ export type AlertType =
 	| 'GOAL_DEADLINE_APPROACHING'
 	| 'GOAL_NEGATIVE_BALANCE'
 	| 'NO_SNAPSHOT_RECENTLY'
-	| 'ADDITIONAL_RATE_PSA_ZERO';
+	| 'ADDITIONAL_RATE_PSA_ZERO'
+	| 'NO_MONTHLY_REVIEW';
 
 export interface Alert {
 	id: string;           // deterministic: `${type}:${accountSlug ?? 'global'}`

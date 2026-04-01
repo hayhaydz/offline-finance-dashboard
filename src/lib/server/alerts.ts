@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import { withUserFilter } from '$lib/auth/row-security';
 import { db } from '$lib/db/client';
-import { accountTransactions, accounts, goals, interestRates, snapshots, users } from '$lib/db/schema';
+import { accountTransactions, accounts, goals, interestRates, monthlyReviews, snapshots, users } from '$lib/db/schema';
 import {
 	getActualInterestEarned,
 	getISAAllowanceUsed,
@@ -600,6 +600,39 @@ async function checkSnapshotAlerts(userId: number): Promise<Alert[]> {
 	return [];
 }
 
+async function checkMonthlyReviewAlerts(userId: number): Promise<Alert[]> {
+	const now = new Date();
+	const yearMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+
+	const existing = await db.query.monthlyReviews.findFirst({
+		where: and(
+			withUserFilter(userId, monthlyReviews),
+			eq(monthlyReviews.yearMonth, yearMonth),
+		),
+	});
+
+	if (existing) return [];
+
+	const dayOfMonth = now.getUTCDate();
+	const monthLabel = now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
+	let severity: AlertSeverity;
+	let message: string;
+
+	if (dayOfMonth <= 7) {
+		severity = 'info';
+		message = `No review yet for ${monthLabel}`;
+	} else if (dayOfMonth <= 14) {
+		severity = 'amber';
+		message = `Review overdue for ${monthLabel}`;
+	} else {
+		severity = 'red';
+		message = `Review urgently needed for ${monthLabel}`;
+	}
+
+	return [makeGlobalAlert('NO_MONTHLY_REVIEW', severity, 'Monthly review', message, '/reviews')];
+}
+
 // ─── Bulk data fetcher ────────────────────────────────────────────────────────
 
 async function fetchBulkData(userId: number) {
@@ -726,14 +759,15 @@ export async function getAlerts(userId: number): Promise<Alert[]> {
 		];
 
 		// User-level (async, parallel)
-		const [isaAlerts, psaAlerts, goalAlerts, snapshotAlerts] = await Promise.all([
+		const [isaAlerts, psaAlerts, goalAlerts, snapshotAlerts, reviewAlerts] = await Promise.all([
 			checkIsaAlerts(userId, taxYear),
 			checkPsaAlerts(userId, taxYear, taxBand, hasSavingsAccounts),
 			checkGoalAlerts(userId),
 			checkSnapshotAlerts(userId),
+			checkMonthlyReviewAlerts(userId),
 		]);
 
-		return [...accountAlerts, ...isaAlerts, ...psaAlerts, ...goalAlerts, ...snapshotAlerts];
+		return [...accountAlerts, ...isaAlerts, ...psaAlerts, ...goalAlerts, ...snapshotAlerts, ...reviewAlerts];
 	} catch (err) {
 		logError('getAlerts', 'Failed to compute alerts', { userId, err });
 		return [];

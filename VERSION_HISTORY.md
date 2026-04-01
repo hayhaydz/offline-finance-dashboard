@@ -1,3 +1,15 @@
+## [2026-04-01] — Feat: Monthly review reminder alert with escalating severity
+
+**Summary:** Adds a `NO_MONTHLY_REVIEW` computed alert that reminds users to create a monthly review. Severity escalates through the month: `info` (days 1-7), `amber` (days 8-14), `red` (day 15+). Alert is suppressed when a review exists for the current month.
+
+**Modified files:**
+- **MOD** `src/lib/types/alerts.ts` — added `NO_MONTHLY_REVIEW` to `AlertType` union
+- **MOD** `src/lib/server/alerts.ts` — added `checkMonthlyReviewAlerts()` async checker, integrated into `getAlerts()` Promise.all
+
+**Suggested commit:** `feat(alerts): monthly review reminder alert with escalating severity`
+
+---
+
 ## [2026-04-01] — Chore: Add CLAUDE.md cleanup script
 
 **Summary:** Adds `scripts/cleanup-claude-md.sh` to delete `CLAUDE.md`/`claude.md` files case-insensitively across the repo while preserving the root `CLAUDE.md`, with a `--dry-run` preview option.
