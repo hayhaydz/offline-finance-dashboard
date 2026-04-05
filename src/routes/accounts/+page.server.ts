@@ -1,4 +1,4 @@
-import { redirect } from "@sveltejs/kit";
+import { fail, redirect } from "@sveltejs/kit";
 import { count, eq } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { getAccountListAlerts } from "$lib/server/alerts";
@@ -16,7 +16,10 @@ import {
 	getLatestTransactionDateForAccounts,
 } from "$lib/server/derivedBalances";
 import { getCurrentRate } from "$lib/server/interestRates";
-import type { PageServerLoad } from "./$types";
+import { updateTypeExclusions } from "$lib/server/exclusions";
+import { getNetWorthSummary } from "$lib/server/finance";
+import { devLog, logError } from "$lib/utils/logger";
+import type { Actions, PageServerLoad } from "./$types";
 
 // Helper: Check if account tax wrapper is tax-free (excluded from Personal Savings Allowance)
 function isTaxFree(taxWrapper: string): boolean {
@@ -253,7 +256,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		new Set(userAccounts.map((a) => a.institution).filter(Boolean)),
 	) as string[];
 
+	// Calculate net worth summary (shared utility)
+	const netWorthSummary = await getNetWorthSummary(locals.user.id);
+
 	return {
+		netWorthSummary,
 		accounts: accountsWithInterest,
 		accountsPagination: {
 			page: safePage,
@@ -288,4 +295,46 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		},
 		alerts: await getAccountListAlerts(locals.user.id),
 	};
+};
+
+export const actions: Actions = {
+	updateExclusions: async ({ request, locals }) => {
+		if (!locals.user) {
+			logError("updateExclusions", "Authentication required");
+			return fail(401, { error: "Authentication required" });
+		}
+
+		const formData = await request.formData();
+		const typeUpdates: Map<string, boolean> = new Map();
+
+		for (const [key, value] of formData.entries()) {
+			if (key.startsWith("type_")) {
+				const accountType = key.replace("type_", "");
+				const excluded = value === "1";
+				typeUpdates.set(accountType, excluded);
+			}
+		}
+
+		if (typeUpdates.size === 0) {
+			devLog("updateExclusions", "No valid type updates in form data");
+			return fail(400, { error: "No account types selected" });
+		}
+
+		try {
+			const result = await updateTypeExclusions({
+				userId: locals.user.id,
+				typeUpdates,
+			});
+
+			devLog("updateExclusions", "Type-based bulk update successful", {
+				userId: locals.user.id,
+				affectedRows: result.affectedRows,
+			});
+
+			return { success: result.message };
+		} catch (error) {
+			logError("updateExclusions", "Database error during bulk update", error);
+			return fail(500, { error: "Failed to update exclusions" });
+		}
+	},
 };

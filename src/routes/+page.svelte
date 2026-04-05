@@ -179,14 +179,7 @@
 {:else}
 	<!-- Net worth display with server-side data -->
 	<NetWorthDisplay
-		netWorth={data.netWorth}
-		totalAssets={data.totalAssets}
-		totalLiabilities={data.totalLiabilities}
-		excludedAssets={data.excludedAssets}
-		excludedLiabilities={data.excludedLiabilities}
-		dateRange={data.dateRange}
-		hasStaleData={data.hasStaleData}
-		exclusionCount={data.exclusionCount}
+		summary={data.netWorthSummary}
 		accounts={data.accounts}
 	/>
 

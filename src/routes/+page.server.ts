@@ -16,7 +16,7 @@ import {
 	getLatestTransactionDateForAccounts,
 } from "$lib/server/derivedBalances";
 import { updateTypeExclusions } from "$lib/server/exclusions";
-import { calculateAssetsAndLiabilities } from "$lib/server/finance";
+import { getNetWorthSummary } from "$lib/server/finance";
 import { calculateISAPacing } from "$lib/server/isaPacing";
 import { getCurrentRate } from "$lib/server/interestRates";
 import { devLog, isVerboseDebug, logError } from "$lib/utils/logger";
@@ -118,77 +118,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	devLog("homePage", "Fetched user goals", { goalCount: activeGoals.length });
 
-	// Calculate net worth totals
-	// Filter included accounts: not excluded AND not closed
-	const includedAccounts = accountsWithDerivedBalances.filter(
-		(a) => !a.excludedFromNetWorth && !a.closedAt,
-	);
-
-	// Filter excluded accounts: excluded AND not closed
-	const excludedAccounts = accountsWithDerivedBalances.filter(
-		(a) => a.excludedFromNetWorth && !a.closedAt,
-	);
-
-	const includedTotals = calculateAssetsAndLiabilities(includedAccounts);
-	const excludedTotals = calculateAssetsAndLiabilities(excludedAccounts);
-	const totalAssets = includedTotals.totalAssets;
-	const totalLiabilities = includedTotals.totalLiabilities;
-	const excludedAssets = excludedTotals.totalAssets;
-	const excludedLiabilities = excludedTotals.totalLiabilities;
-	const netWorth = includedTotals.netWorth;
-
-	// Determine date range from transaction recency.
-	const allDates = accountsWithDerivedBalances
-		.map((a) => a.lastUpdated)
-		.filter((d): d is Date => Boolean(d));
-	let oldestDate = new Date();
-	let newestDate = new Date();
-
-	if (allDates.length > 0) {
-		const dates = allDates.map((d) => d.getTime());
-		oldestDate = new Date(Math.min(...dates));
-		newestDate = new Date(Math.max(...dates));
-	}
-
-	devLog("homePage", "Calculated date range", {
-		oldest: oldestDate.toISOString(),
-		newest: newestDate.toISOString(),
-	});
-
-	// Check for stale data (30+ days old)
-	const thirtyDaysAgo = new Date();
-	thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-	thirtyDaysAgo.setUTCHours(0, 0, 0, 0);
-
-	const staleAccounts = includedAccounts.filter(
-		(a) => a.lastUpdated && a.lastUpdated < thirtyDaysAgo,
-	);
-
-	const hasStaleData = staleAccounts.length > 0;
-
-	if (hasStaleData) {
-		devLog("homePage", "Found stale accounts", {
-			staleCount: staleAccounts.length,
-		});
-	}
-
-	// Count excluded TYPES (not individual accounts)
-	// A type is "excluded" only when ALL open accounts of that type are excluded
-	// (matches the modal's all-or-nothing toggle logic; closed accounts are ignored)
-	const openAccounts = accountsWithDerivedBalances.filter((a) => !a.closedAt);
-	const typeMap = new Map<string, { total: number; excluded: number }>();
-	for (const a of openAccounts) {
-		const entry = typeMap.get(a.type) ?? { total: 0, excluded: 0 };
-		entry.total++;
-		if (a.excludedFromNetWorth) entry.excluded++;
-		typeMap.set(a.type, entry);
-	}
-	const excludedTypes = new Set(
-		Array.from(typeMap.entries())
-			.filter(([, { total, excluded }]) => total > 0 && excluded === total)
-			.map(([type]) => type),
-	);
-	const exclusionCount = excludedTypes.size;
+	// Calculate net worth summary (shared utility)
+	const netWorthSummary = await getNetWorthSummary(locals.user.id);
 
 	const alerts = await getAlerts(locals.user.id);
 
@@ -315,23 +246,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		daysRemainingInTaxYear,
 	};
 
-	devLog("homePage", "Exclusion count calculated", {
-		excludedTypes: Array.from(excludedTypes),
-		exclusionCount,
-	});
-
-	devLog("homePage", "Net worth calculation complete", {
-		netWorth,
-		totalAssets,
-		totalLiabilities,
-		excludedAssets,
-		excludedLiabilities,
-		hasStaleData,
-		exclusionCount,
-	});
-
 	// Calculate staleness based on newest balance date
-	const staleness = getStaleness(newestDate);
+	const staleness = getStaleness(netWorthSummary.dateRange.newest);
 
 	return {
 		user: {
@@ -339,17 +255,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			username: locals.user.username,
 			createdAt: locals.user.createdAt,
 		},
-		netWorth,
-		totalAssets,
-		totalLiabilities,
-		excludedAssets,
-		excludedLiabilities,
-		dateRange: {
-			oldest: oldestDate,
-			newest: newestDate,
-		},
-		hasStaleData,
-		exclusionCount,
+		netWorthSummary,
 		accounts: accountsWithDerivedBalances,
 		accountsPagination: {
 			page: safeAccountsPage,

@@ -1,3 +1,23 @@
+## [2026-04-05] — Consistent net worth across homepage, accounts, and goals pages
+
+**Summary:** Created shared `getNetWorthSummary()` server utility so net worth, total assets, and total liabilities display consistently across all pages. Refactored `NetWorthDisplay` component to accept a `NetWorthSummary` interface instead of 9 individual props. Fixed accounts page bug where client-side net worth only used paginated accounts. Added exclusions modal to accounts and goals pages.
+
+**Modified files:**
+- **MOD** `src/lib/server/finance.ts` — added `NetWorthSummary` interface and `getNetWorthSummary()` shared utility
+- **MOD** `src/lib/components/NetWorthDisplay.svelte` — simplified props to `summary` + `accounts`, added excluded type names to footnote
+- **MOD** `src/routes/+page.server.ts` — replaced 70-line inline calculation with `getNetWorthSummary()` call
+- **MOD** `src/routes/+page.svelte` — updated `NetWorthDisplay` to use `summary` prop
+- **MOD** `src/routes/accounts/+page.server.ts` — added `getNetWorthSummary()` call and `updateExclusions` action
+- **MOD** `src/routes/accounts/+page.svelte` — replaced client-side net worth with `NetWorthDisplay` component
+- **MOD** `src/routes/goals/+page.server.ts` — added `getNetWorthSummary()` call, account fetch, and `updateExclusions` action
+- **MOD** `src/routes/goals/+page.svelte` — added `NetWorthDisplay` above "Ready to Assign" section
+- **NEW** `tests/unit/netWorthSummary.test.ts` — 5 baseline tests for `calculateAssetsAndLiabilities`
+- **MOD** `tests/integration/goals-page.test.ts` — added mocks for `getNetWorthSummary` and `db.query.accounts`
+
+**Suggested commit:** `fix: consistent net worth across homepage, accounts, and goals pages`
+
+---
+
 ## [2026-04-01] — Feat: Monthly review reminder alert with escalating severity
 
 **Summary:** Adds a `NO_MONTHLY_REVIEW` computed alert that reminds users to create a monthly review. Severity escalates through the month: `info` (days 1-7), `amber` (days 8-14), `red` (day 15+). Alert is suppressed when a review exists for the current month.

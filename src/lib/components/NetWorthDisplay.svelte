@@ -11,52 +11,48 @@
 		taxWrapper: string;
 	}
 
-	interface DateRange {
-		oldest: Date;
-		newest: Date;
-	}
-
-	interface Props {
+	interface NetWorthSummary {
 		netWorth: number;
 		totalAssets: number;
 		totalLiabilities: number;
 		excludedAssets: number;
 		excludedLiabilities: number;
-		dateRange: DateRange;
-		hasStaleData: boolean;
 		exclusionCount: number;
+		excludedTypeNames: string[];
+		hasStaleData: boolean;
+		dateRange: { oldest: Date; newest: Date };
+	}
+
+	interface Props {
+		summary: NetWorthSummary;
 		accounts: Account[];
 	}
 
-	let {
-		netWorth,
-		totalAssets,
-		totalLiabilities,
-		excludedAssets,
-		excludedLiabilities,
-		dateRange,
-		hasStaleData,
-		exclusionCount,
-		accounts
-	}: Props = $props();
+	let { summary, accounts }: Props = $props();
 
 	let modalOpen = $state(false);
 
 	const netWorthColor = $derived(
-		(netWorth === 0 && totalAssets === 0 && totalLiabilities === 0)
+		(summary.netWorth === 0 && summary.totalAssets === 0 && summary.totalLiabilities === 0)
 			? ''
-			: (netWorth >= 0 ? 'text-green-700' : 'text-red-700')
+			: (summary.netWorth >= 0 ? 'text-green-700' : 'text-red-700')
 	);
 
-	const totalAssetsColor = $derived(totalAssets >= 0 ? 'text-green-700' : 'text-red-700');
+	const totalAssetsColor = $derived(summary.totalAssets >= 0 ? 'text-green-700' : 'text-red-700');
 
-	const formattedDateRange = $derived(formatDateRange(dateRange.oldest, dateRange.newest));
+	const formattedDateRange = $derived(
+		formatDateRange(summary.dateRange.oldest, summary.dateRange.newest)
+	);
 
 	const showNeutralColor = $derived(
-		netWorth === 0 && totalAssets === 0 && totalLiabilities === 0
+		summary.netWorth === 0 && summary.totalAssets === 0 && summary.totalLiabilities === 0
 	);
 
-	const allExcluded = $derived(showNeutralColor && exclusionCount > 0);
+	const allExcluded = $derived(showNeutralColor && summary.exclusionCount > 0);
+
+	const hasExclusions = $derived(
+		summary.excludedAssets > 0 || Math.abs(summary.excludedLiabilities) > 0
+	);
 
 	function openModal() {
 		modalOpen = true;
@@ -79,7 +75,7 @@
 <div class="border-b border-black p-2">
 	<div class="flex justify-between my-1">
 		<span class="text-lg font-bold">NET WORTH</span>
-		<span class="text-lg font-bold {netWorthColor}">{formatCurrency(netWorth)}</span>
+		<span class="text-lg font-bold {netWorthColor}">{formatCurrency(summary.netWorth)}</span>
 	</div>
 	<div class="flex justify-between my-1 text-gray-600 text-xs">
 		<button
@@ -88,14 +84,14 @@
 			onclick={openModal}
 			onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(); } }}
 		>
-			Exclusions: {exclusionCount}
+			Exclusions: {summary.exclusionCount}
 		</button>
 		<span>{formattedDateRange}</span>
 	</div>
-	{#if hasStaleData}
+	{#if summary.hasStaleData}
 		<div class="flex justify-between my-1 text-amber-700 text-xs">
 			<span></span>
-			<span>⚠ Some balances >30 days old</span>
+			<span>Some balances >30 days old</span>
 		</div>
 	{/if}
 	{#if showNeutralColor}
@@ -114,22 +110,22 @@
 <div class="border-b border-black p-2">
 	<div class="flex justify-between my-1">
 		<span>Total Assets</span>
-		<span class="{totalAssetsColor} font-bold">{formatCurrency(totalAssets)}</span>
+		<span class="{totalAssetsColor} font-bold">{formatCurrency(summary.totalAssets)}</span>
 	</div>
-	{#if excludedAssets > 0}
-		<div class="flex justify-between my-1 text-gray-600">
-			<span>Assets excluded</span>
-			<span>{formatCurrency(excludedAssets)}</span>
+	{#if summary.excludedAssets > 0}
+		<div class="flex justify-between my-1 text-gray-600 text-xs">
+			<span>Assets excluded ({summary.excludedTypeNames.join(', ')})</span>
+			<span>{formatCurrency(summary.excludedAssets)}</span>
 		</div>
 	{/if}
 	<div class="flex justify-between my-1">
 		<span>Total Liabilities</span>
-		<span class="text-red-700 font-bold">{formatCurrency(Math.abs(totalLiabilities))}</span>
+		<span class="text-red-700 font-bold">{formatCurrency(Math.abs(summary.totalLiabilities))}</span>
 	</div>
-	{#if Math.abs(excludedLiabilities) > 0}
-		<div class="flex justify-between my-1 text-gray-600">
-			<span>Liabilities excluded</span>
-			<span>{formatCurrency(Math.abs(excludedLiabilities))}</span>
+	{#if Math.abs(summary.excludedLiabilities) > 0}
+		<div class="flex justify-between my-1 text-gray-600 text-xs">
+			<span>Liabilities excluded ({summary.excludedTypeNames.join(', ')})</span>
+			<span>{formatCurrency(Math.abs(summary.excludedLiabilities))}</span>
 		</div>
 	{/if}
 </div>

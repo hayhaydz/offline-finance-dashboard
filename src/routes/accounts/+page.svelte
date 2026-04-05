@@ -6,6 +6,7 @@
 	import IsaAllowanceWidget from '$lib/components/IsaAllowanceWidget.svelte';
 	import AccountFiltersModal from '$lib/components/AccountFiltersModal.svelte';
 	import AccountSortModal from '$lib/components/AccountSortModal.svelte';
+	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 
@@ -193,47 +194,13 @@
 	const maturingSoonAccounts = $derived(
 		data.accounts.filter((a) => !a.closedAt && a.daysToMaturity !== null && a.daysToMaturity >= 0 && a.daysToMaturity <= 90)
 	);
-
-	// Calculate net worth — asset accounts with negative balance reclassify as liabilities
-	const totalAssets = $derived.by(() => {
-		let sum = 0;
-		for (const a of data.accounts) {
-			if (a.excludedFromNetWorth || a.closedAt) continue;
-			const bal = a.currentBalance ?? 0;
-			if (a.category === 'asset' && bal > 0) sum += bal;
-		}
-		return sum;
-	});
-
-	const totalLiabilities = $derived.by(() => {
-		let sum = 0;
-		for (const a of data.accounts) {
-			if (a.excludedFromNetWorth || a.closedAt) continue;
-			const bal = a.currentBalance ?? 0;
-			if (a.category === 'liability') sum += bal;
-			else if (a.category === 'asset' && bal < 0) sum += bal;
-		}
-		return sum;
-	});
-
-	const netWorth = $derived(totalAssets + totalLiabilities);
 </script>
 
 <!-- NET WORTH SECTION -->
-<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-	<span>NET WORTH</span>
-	<span class="{netWorth >= 0 ? 'text-green-700' : 'text-red-700'} font-bold">{formatCurrency(netWorth)}</span>
-</div>
-<div class="border-b border-black p-2">
-	<div class="flex justify-between my-1">
-		<span>Assets</span>
-		<span class="text-green-700 font-bold">{formatCurrency(totalAssets)}</span>
-	</div>
-	<div class="flex justify-between my-1">
-		<span>Liabilities</span>
-		<span class="text-red-700 font-bold">{formatCurrency(Math.abs(totalLiabilities))}</span>
-	</div>
-</div>
+<NetWorthDisplay
+	summary={data.netWorthSummary}
+	accounts={data.accounts}
+/>
 
 <!-- SUMMARY SECTION -->
 <div class="border-b border-black p-2">

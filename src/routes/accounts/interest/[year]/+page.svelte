@@ -44,7 +44,7 @@
 
 	// Pagination state for transactions
 	let transactionsPage = $state(0);
-	const TRANSACTIONS_PER_PAGE = 25;
+	const TRANSACTIONS_PER_PAGE = 10;
 
 	// Filtering state for transactions
 	let filterAccountId = $state<number | null>(null);

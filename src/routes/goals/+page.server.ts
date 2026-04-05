@@ -2,8 +2,10 @@ import { fail, redirect } from "@sveltejs/kit";
 import { and, asc, count, desc, eq, gt, isNull, lt } from "drizzle-orm";
 import { validateUserAccess, withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
-import { goals } from "$lib/db/schema";
+import { accounts, goals } from "$lib/db/schema";
 import { calculateReadyToAssign } from "$lib/server/goals";
+import { updateTypeExclusions } from "$lib/server/exclusions";
+import { getNetWorthSummary } from "$lib/server/finance";
 import {
 	devLog,
 	isVerboseDebug,
@@ -60,7 +62,25 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const mostRecentGoalDate = getMostRecentDate(goalDates);
 	const staleness = getStaleness(mostRecentGoalDate);
 
+	// Calculate net worth summary (shared utility)
+	const netWorthSummary = await getNetWorthSummary(locals.user.id);
+
+	// Fetch all open accounts for the exclusions modal
+	const allOpenAccounts = await db.query.accounts.findMany({
+		where: and(withUserFilter(locals.user.id, accounts), isNull(accounts.closedAt)),
+		columns: {
+			id: true,
+			name: true,
+			type: true,
+			category: true,
+			excludedFromNetWorth: true,
+			taxWrapper: true,
+		},
+	});
+
 	return {
+		netWorthSummary,
+		accounts: allOpenAccounts,
 		goals: userGoals,
 		page: safePage,
 		totalPages,
@@ -77,6 +97,46 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 };
 
 export const actions: Actions = {
+	updateExclusions: async ({ request, locals }) => {
+		if (!locals.user) {
+			logError("updateExclusions", "Authentication required");
+			return fail(401, { error: "Authentication required" });
+		}
+
+		const formData = await request.formData();
+		const typeUpdates: Map<string, boolean> = new Map();
+
+		for (const [key, value] of formData.entries()) {
+			if (key.startsWith("type_")) {
+				const accountType = key.replace("type_", "");
+				const excluded = value === "1";
+				typeUpdates.set(accountType, excluded);
+			}
+		}
+
+		if (typeUpdates.size === 0) {
+			devLog("updateExclusions", "No valid type updates in form data");
+			return fail(400, { error: "No account types selected" });
+		}
+
+		try {
+			const result = await updateTypeExclusions({
+				userId: locals.user.id,
+				typeUpdates,
+			});
+
+			devLog("updateExclusions", "Type-based bulk update successful", {
+				userId: locals.user.id,
+				affectedRows: result.affectedRows,
+			});
+
+			return { success: result.message };
+		} catch (error) {
+			logError("updateExclusions", "Database error during bulk update", error);
+			return fail(500, { error: "Failed to update exclusions" });
+		}
+	},
+
 	// Move a goal to a specific index in the sort order
 	moveTo: async ({ request, locals }) => {
 		if (!locals.user) {

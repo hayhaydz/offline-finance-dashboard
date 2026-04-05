@@ -4,6 +4,7 @@
 	import { formatCurrency } from '$lib/utils/currency';
 	import { getStaleness } from '$lib/utils/staleness';
 	import GoalRow from '$lib/components/GoalRow.svelte';
+	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import type { Goal } from '$lib/db/schema';
 
@@ -150,6 +151,12 @@
 		];
 	}
 </script>
+
+<!-- NET WORTH SECTION -->
+<NetWorthDisplay
+	summary={data.netWorthSummary}
+	accounts={data.accounts}
+/>
 
 <!-- READY TO ASSIGN SECTION -->
 <div class="border-b border-black bg-gray-50 p-2">
