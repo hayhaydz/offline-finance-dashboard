@@ -16,7 +16,7 @@
 		const nowTime = now.getTime();
 		
 		const daysElapsed = Math.floor((nowTime - startTime) / (1000 * 60 * 60 * 24));
-		const daysRemaining = Math.floor((endTime - nowTime) / (1000 * 60 * 60 * 24));
+		const daysRemaining = Math.ceil((endTime - nowTime) / (1000 * 60 * 60 * 24));
 		
 		const endDay = end.getDate();
 		const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

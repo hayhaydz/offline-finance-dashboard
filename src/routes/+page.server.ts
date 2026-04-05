@@ -5,8 +5,9 @@ import { getAlerts } from "$lib/server/alerts";
 import { db } from "$lib/db/client";
 import { accounts, goals, users } from "$lib/db/schema";
 import {
-	getAccountInterestEarned,
+	getActualInterestByTaxWrapper,
 	getISAAllowanceUsed,
+	getProjectedInterestByTaxWrapper,
 	getTaxFreeStatus,
 	getUkTaxYearBounds,
 	ISA_ALLOWANCE_IN_CENTS,
@@ -18,14 +19,9 @@ import {
 import { updateTypeExclusions } from "$lib/server/exclusions";
 import { getNetWorthSummary } from "$lib/server/finance";
 import { calculateISAPacing } from "$lib/server/isaPacing";
-import { getCurrentRate } from "$lib/server/interestRates";
 import { devLog, isVerboseDebug, logError } from "$lib/utils/logger";
 import { getStaleness } from "$lib/utils/staleness";
 import type { Actions, PageServerLoad } from "./$types";
-
-function isTaxFree(taxWrapper: string): boolean {
-	return ["ISA", "LISA"].includes(taxWrapper);
-}
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
@@ -142,78 +138,25 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		pacing: await calculateISAPacing(locals.user.id),
 	};
 
-	// Calculate interest summary (same logic as accounts page)
-	// Separate actual interest by tax-free vs taxable accounts
-	// Exclude accounts that mature after the tax year (interest not yet available)
-	let actualInterestTaxFree = 0;
-	let actualInterestTaxable = 0;
-	for (const account of userAccounts) {
-		if (account.type === "savings" || account.type === "investment") {
-			// Skip accounts that mature after the tax year - interest not yet available
-			if (account.maturityDate && account.maturityDate > taxYear.end) {
-				continue;
-			}
-			const accountInterest = await getAccountInterestEarned(
-				account.id,
-				taxYear.start,
-				taxYear.end,
-			);
-			if (isTaxFree(account.taxWrapper)) {
-				actualInterestTaxFree += accountInterest;
-			} else {
-				actualInterestTaxable += accountInterest;
-			}
-		}
-	}
-
-	// Transform data for display
-	// (today already declared above)
-	const millisecondsPerDay = 24 * 60 * 60 * 1000;
-
-	// Calculate days remaining in tax year
-	const daysRemainingInTaxYear = Math.max(
-		0,
-		Math.ceil((taxYear.end.getTime() - today.getTime()) / millisecondsPerDay),
+	// Calculate interest summary — uses ALL accounts (not paginated)
+	const interestActual = await getActualInterestByTaxWrapper(
+		locals.user.id,
+		taxYear.start,
+		taxYear.end,
 	);
+	const actualInterestTaxFree = interestActual.taxFree;
+	const actualInterestTaxable = interestActual.taxable;
 
-	// Calculate projected interest for each account
-	let totalProjectedTaxable = 0;
-	let totalProjectedTaxFree = 0;
-
-	for (const account of userAccounts) {
-		const rate = await getCurrentRate(account.id);
-		const balance = currentBalances.get(account.id) ?? 0;
-
-		// Skip if no rate or zero balance
-		if (rate === null || balance <= 0) continue;
-
-		const yearlyInterest = Math.round((balance * rate) / 10000);
-		let projectedForRestOfTaxYear = 0;
-
-		if (account.maturityDate) {
-			// Fixed-term bond: only count if it matures THIS tax year
-			if (account.maturityDate <= taxYear.end && account.maturityDate > today) {
-				const daysToMaturity = Math.ceil(
-					(account.maturityDate.getTime() - today.getTime()) /
-						millisecondsPerDay,
-				);
-				projectedForRestOfTaxYear = Math.round(
-					(yearlyInterest / 365) * daysToMaturity,
-				);
-			}
-		} else {
-			// Standard access account: prorate for remaining days
-			projectedForRestOfTaxYear = Math.round(
-				(yearlyInterest / 365) * daysRemainingInTaxYear,
-			);
-		}
-
-		if (isTaxFree(account.taxWrapper)) {
-			totalProjectedTaxFree += projectedForRestOfTaxYear;
-		} else {
-			totalProjectedTaxable += projectedForRestOfTaxYear;
-		}
-	}
+	// Projected interest for remaining tax year — uses ALL accounts
+	const interestProjected = await getProjectedInterestByTaxWrapper(
+		locals.user.id,
+		taxYear.start,
+		taxYear.end,
+		today,
+	);
+	const totalProjectedTaxFree = interestProjected.taxFree;
+	const totalProjectedTaxable = interestProjected.taxable;
+	const daysRemainingInTaxYear = interestProjected.daysRemaining;
 
 	// Get user's tax band for allowance calculation
 	const userWithTaxBand = await db.query.users.findFirst({

@@ -1,7 +1,10 @@
 import { and, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
-import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
+import {
+	getCurrentBalanceForAccount,
+	getCurrentBalancesForAccounts,
+} from "$lib/server/derivedBalances";
 import { getCurrentRate } from "$lib/server/interestRates";
 
 export const ISA_ALLOWANCE_IN_CENTS = 20_000_00;
@@ -141,6 +144,126 @@ export async function getActualInterestEarned(
 		);
 
 	return Number(result?.total ?? 0);
+}
+
+/**
+ * Sum of interest transactions in a tax year, split by tax wrapper.
+ * Returns totals for ISA/LISA (tax-free) vs everything else (taxable).
+ * Queries ALL user accounts — no pagination.
+ */
+export async function getActualInterestByTaxWrapper(
+	userId: number,
+	taxYearStart: Date,
+	taxYearEnd: Date,
+): Promise<{ taxFree: number; taxable: number }> {
+	const results = await db
+		.select({
+			taxWrapper: accounts.taxWrapper,
+			total: sql<number>`coalesce(sum(${accountTransactions.amount}), 0)`,
+		})
+		.from(accountTransactions)
+		.innerJoin(accounts, eq(accountTransactions.accountId, accounts.id))
+		.where(
+			and(
+				eq(accounts.userId, userId),
+				eq(accountTransactions.type, "interest"),
+				gte(accountTransactions.transactionDate, taxYearStart),
+				lte(accountTransactions.transactionDate, taxYearEnd),
+				or(
+					isNull(accounts.maturityDate),
+					lte(accounts.maturityDate, taxYearEnd),
+				),
+			),
+		)
+		.groupBy(accounts.taxWrapper);
+
+	let taxFree = 0;
+	let taxable = 0;
+	for (const row of results) {
+		if (row.taxWrapper === "isa" || row.taxWrapper === "lisa") {
+			taxFree += Number(row.total);
+		} else {
+			taxable += Number(row.total);
+		}
+	}
+	return { taxFree, taxable };
+}
+
+/**
+ * Projected interest for remaining tax year, split by tax wrapper.
+ * Queries ALL user savings/investment accounts — no pagination.
+ */
+export async function getProjectedInterestByTaxWrapper(
+	userId: number,
+	taxYearStart: Date,
+	taxYearEnd: Date,
+	today: Date,
+): Promise<{ taxFree: number; taxable: number; daysRemaining: number }> {
+	const millisecondsPerDay = 24 * 60 * 60 * 1000;
+	const daysRemaining = Math.max(
+		0,
+		Math.ceil(
+			(taxYearEnd.getTime() - today.getTime()) / millisecondsPerDay,
+		),
+	);
+
+	if (daysRemaining === 0) {
+		return { taxFree: 0, taxable: 0, daysRemaining: 0 };
+	}
+
+	// Fetch ALL savings/investment accounts for this user
+	const allAccounts = await db.query.accounts.findMany({
+		where: and(
+			eq(accounts.userId, userId),
+			or(eq(accounts.type, "savings"), eq(accounts.type, "investment")),
+		),
+	});
+
+	if (allAccounts.length === 0) {
+		return { taxFree: 0, taxable: 0, daysRemaining };
+	}
+
+	const accountIds = allAccounts.map((a) => a.id);
+	const balances = await getCurrentBalancesForAccounts(accountIds);
+
+	let taxFree = 0;
+	let taxable = 0;
+
+	for (const account of allAccounts) {
+		const balance = balances.get(account.id) ?? 0;
+		if (balance <= 0) continue;
+
+		const rate = await getCurrentRate(account.id);
+		if (rate === null) continue;
+
+		const yearlyInterest = Math.round((balance * rate) / 10000);
+		let projected = 0;
+
+		if (account.maturityDate) {
+			if (
+				account.maturityDate <= taxYearEnd &&
+				account.maturityDate > today
+			) {
+				const daysToMaturity = Math.ceil(
+					(account.maturityDate.getTime() - today.getTime()) /
+						millisecondsPerDay,
+				);
+				projected = Math.round(
+					(yearlyInterest / 365) * daysToMaturity,
+				);
+			}
+		} else {
+			projected = Math.round((yearlyInterest / 365) * daysRemaining);
+		}
+
+		if (account.taxWrapper === "isa" || account.taxWrapper === "lisa") {
+			taxFree += projected;
+		} else {
+			taxable += projected;
+		}
+	}
+
+	return { taxFree, taxable, daysRemaining };
 }
 
 /**

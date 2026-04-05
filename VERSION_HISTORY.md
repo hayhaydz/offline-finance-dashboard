@@ -1,3 +1,14 @@
+## [2026-04-05] — fix: homepage interest £0 pagination bug
+
+**Changed:**
+- **MOD** `src/lib/server/calculations.ts` — Added `getActualInterestByTaxWrapper()` and `getProjectedInterestByTaxWrapper()` that query ALL user accounts (not paginated) and split by ISA/non-ISA tax wrapper
+- **MOD** `src/routes/+page.server.ts` — Replaced inline paginated interest loops with the new all-accounts functions; removed `getAccountInterestEarned`, `getCurrentRate`, and `isTaxFree` helper
+- **NEW** `tests/unit/homepage-interest.test.ts` — 9 unit tests covering both functions, edge cases, and a pagination regression test
+
+**Suggested commit:** `fix: homepage interest section using paginated accounts instead of all accounts`
+
+---
+
 ## [2026-04-05] — Consistent net worth across homepage, accounts, and goals pages
 
 **Summary:** Created shared `getNetWorthSummary()` server utility so net worth, total assets, and total liabilities display consistently across all pages. Refactored `NetWorthDisplay` component to accept a `NetWorthSummary` interface instead of 9 individual props. Fixed accounts page bug where client-side net worth only used paginated accounts. Added exclusions modal to accounts and goals pages.
