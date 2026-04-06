@@ -2,7 +2,7 @@ import { error, fail, redirect } from "@sveltejs/kit";
 import { eq, desc } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
-import { goals, accountTransactions, goalMilestones } from "$lib/db/schema";
+import { goals, accountTransactions, goalMilestones, interestRates } from "$lib/db/schema";
 import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
 import { getDebtGoalProgress, checkMilestones } from "$lib/server/goals";
 import { devLog, logError } from "$lib/utils/logger";
@@ -14,7 +14,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     redirect(302, "/login");
   }
 
-  const goal = await db.query.goals.findFirst({
+  let goal = await db.query.goals.findFirst({
     where: eq(goals.slug, params.slug),
     with: {
       linkedAccount: true,
@@ -67,7 +67,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
       where: eq(goals.slug, params.slug),
       with: { milestones: true },
     });
-    if (updated) goal.milestones = updated.milestones;
+    if (updated) goal = { ...goal, milestones: updated.milestones };
   }
 
   let paymentHistory: typeof accountTransactions.$inferSelect[] = [];
@@ -101,6 +101,59 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     }
   }
 
+  // Fetch APR from interest rates for the linked account
+  let aprBasisPoints: number | null = null;
+  let minimumPaymentInCents = 0;
+
+  if (goal.linkedAccountId && goal.linkedAccount) {
+    const rates = await db.query.interestRates.findMany({
+      where: eq(interestRates.accountId, goal.linkedAccountId),
+      orderBy: [desc(interestRates.effectiveFrom)],
+      limit: 1,
+    });
+    aprBasisPoints = rates.length > 0 ? rates[0].rate : null;
+
+    // Get minimum payment from account config
+    minimumPaymentInCents = goal.linkedAccount.minimumPaymentFlat;
+  }
+
+  // Calculate interest cost scenarios
+  let interestIfMinOnly: number | null = null;
+  let interestIfOnPace: number | null = null;
+
+  if (aprBasisPoints !== null && aprBasisPoints > 0) {
+    // Min-only projection
+    if (minimumPaymentInCents > 0) {
+      const monthlyRate = aprBasisPoints / 10000 / 12;
+      const balance = progress.remainingInCents;
+      if (minimumPaymentInCents > balance * monthlyRate) {
+        const num = -Math.log(1 - (monthlyRate * balance) / minimumPaymentInCents);
+        const den = Math.log(1 + monthlyRate);
+        const months = Math.ceil(num / den);
+        interestIfMinOnly = Math.max(0, minimumPaymentInCents * months - balance);
+      }
+    }
+
+    // On-pace projection (using avg monthly payment)
+    if (avgMonthlyPayment > 0 && progress.remainingInCents > 0) {
+      const monthlyRate = aprBasisPoints / 10000 / 12;
+      if (avgMonthlyPayment > progress.remainingInCents * monthlyRate) {
+        const num = -Math.log(1 - (monthlyRate * progress.remainingInCents) / avgMonthlyPayment);
+        const den = Math.log(1 + monthlyRate);
+        const months = Math.ceil(num / den);
+        interestIfOnPace = Math.max(0, avgMonthlyPayment * months - progress.remainingInCents);
+      }
+    }
+  }
+
+  const interestSavedInCents = interestIfMinOnly !== null && interestIfOnPace !== null
+    ? Math.max(0, interestIfMinOnly - interestIfOnPace)
+    : null;
+
+  const onTrack = goal.targetDate && projectedPayoffDate
+    ? projectedPayoffDate <= new Date(goal.targetDate)
+    : null;
+
   devLog("debtGoalDetail", "Loaded debt goal detail", {
     goalId: goal.id,
     progress: progress.percent,
@@ -119,6 +172,14 @@ export const load: PageServerLoad = async ({ params, locals }) => {
       projectedPayoffDate,
       paymentCount: payments.length,
     },
+    interestData: {
+      aprBasisPoints,
+      minimumPaymentInCents,
+      interestIfMinOnly,
+      interestIfOnPace,
+      interestSavedInCents,
+    },
+    onTrack,
     breadcrumbOverrides: [
       { segmentIndex: 1, label: "Goals", skipLink: false },
       { segmentIndex: 2, label: goal.name, skipLink: false },

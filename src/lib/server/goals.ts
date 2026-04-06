@@ -311,6 +311,35 @@ export function getDebtGoalProgress(params: {
 	return { paidInCents, totalInCents, percent, remainingInCents, debtGrewBeyondStarting };
 }
 
+/**
+ * Project payoff date based on historical payment pace.
+ * Uses simple average monthly payment (no amortization/compounding).
+ */
+export function projectPayoffDate(params: {
+	remainingInCents: number;
+	totalPaidInCents: number;
+	firstPaymentDate: Date | null;
+}): Date | null {
+	const { remainingInCents, totalPaidInCents, firstPaymentDate } = params;
+
+	if (!firstPaymentDate || totalPaidInCents <= 0 || remainingInCents <= 0) {
+		return null;
+	}
+
+	const now = new Date();
+	const msPerMonth = 30 * 24 * 60 * 60 * 1000;
+	const monthsSinceFirst = Math.max(
+		1,
+		(now.getTime() - firstPaymentDate.getTime()) / msPerMonth,
+	);
+	const avgMonthlyPayment = Math.round(totalPaidInCents / monthsSinceFirst);
+
+	if (avgMonthlyPayment <= 0) return null;
+
+	const monthsUntilPayoff = remainingInCents / avgMonthlyPayment;
+	return new Date(now.getTime() + monthsUntilPayoff * msPerMonth);
+}
+
 export interface MilestoneTemplate {
 	label: string;
 	thresholdInCents: number;

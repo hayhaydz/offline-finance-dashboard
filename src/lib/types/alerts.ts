@@ -27,7 +27,9 @@ export type AlertType =
 	| 'NO_SNAPSHOT_RECENTLY'
 	| 'ADDITIONAL_RATE_PSA_ZERO'
 	| 'DEBT_GREW_BEYOND_STARTING'
-	| 'NO_MONTHLY_REVIEW';
+	| 'NO_MONTHLY_REVIEW'
+	| 'TAX_YEAR_INTEREST_REVIEW'
+	| 'TAX_YEAR_ISA_REVIEW';
 
 export interface Alert {
 	id: string;           // deterministic: `${type}:${accountSlug ?? 'global'}`

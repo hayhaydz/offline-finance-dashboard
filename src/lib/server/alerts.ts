@@ -553,9 +553,15 @@ async function checkGoalAlerts(userId: number): Promise<Alert[]> {
 
 	for (const goal of userGoals) {
 		if (goal.currentAllocation < 0 && goal.goalType !== 'debt') {
-			alerts.push(
-				makeGlobalAlert('GOAL_NEGATIVE_BALANCE', 'red', 'Goal has negative balance', `"${goal.name}" allocation has gone negative`, '/goals'),
-			);
+			alerts.push({
+				id: `GOAL_NEGATIVE_BALANCE:goal:${goal.slug}`,
+				type: 'GOAL_NEGATIVE_BALANCE',
+				severity: 'red',
+				title: 'Goal has negative balance',
+				message: `"${goal.name}" allocation has gone negative`,
+				href: '/goals',
+				triggeredAt: Date.now(),
+			});
 		}
 
 		if (goal.targetDate) {
@@ -576,15 +582,15 @@ async function checkGoalAlerts(userId: number): Promise<Alert[]> {
 				}
 				if (progress < 0.9) {
 					const pct = Math.round(progress * 100);
-					alerts.push(
-						makeGlobalAlert(
-							'GOAL_DEADLINE_APPROACHING',
-							'amber',
-							'Goal deadline approaching',
-							`"${goal.name}" — ${pct}% funded, deadline in ${days} day${days === 1 ? '' : 's'}`,
-							'/goals',
-						),
-					);
+					alerts.push({
+						id: `GOAL_DEADLINE_APPROACHING:goal:${goal.slug}`,
+						type: 'GOAL_DEADLINE_APPROACHING',
+						severity: 'amber',
+						title: 'Goal deadline approaching',
+						message: `"${goal.name}" — ${pct}% funded, deadline in ${days} day${days === 1 ? '' : 's'}`,
+						href: '/goals',
+						triggeredAt: Date.now(),
+					});
 				}
 			}
 		}
@@ -593,9 +599,15 @@ async function checkGoalAlerts(userId: number): Promise<Alert[]> {
 		if (goal.goalType === 'debt' && goal.startingBalanceInCents !== null && goal.linkedAccountId !== null) {
 			const currentBalance = debtBalances.get(goal.linkedAccountId);
 			if (currentBalance !== undefined && Math.abs(currentBalance) > Math.abs(goal.startingBalanceInCents)) {
-				alerts.push(
-					makeGlobalAlert('DEBT_GREW_BEYOND_STARTING', 'red', 'Debt increased', `"${goal.name}" balance has exceeded the starting balance`, '/goals'),
-				);
+				alerts.push({
+					id: `DEBT_GREW_BEYOND_STARTING:goal:${goal.slug}`,
+					type: 'DEBT_GREW_BEYOND_STARTING',
+					severity: 'red',
+					title: 'Debt increased',
+					message: `"${goal.name}" balance has exceeded the starting balance`,
+					href: '/goals',
+					triggeredAt: Date.now(),
+				});
 			}
 		}
 	}
@@ -628,6 +640,45 @@ async function checkSnapshotAlerts(userId: number): Promise<Alert[]> {
 	}
 
 	return [];
+}
+
+async function checkTaxYearReviewAlerts(now: Date): Promise<Alert[]> {
+	const taxYear = getUkTaxYearBounds(now);
+	const daysSinceNewTaxYear = daysSince(taxYear.start, now);
+
+	// Only show alerts in the first 30 days of the new tax year
+	if (daysSinceNewTaxYear < 0 || daysSinceNewTaxYear > 30) return [];
+
+	// Previous tax year slug: e.g. if current is 2026-27, previous is 2025-26
+	const prevStartYear = taxYear.start.getUTCFullYear() - 1;
+	const prevSlug = `${prevStartYear}-${String(prevStartYear + 1).slice(-2)}`;
+	const prevLabel = `${prevStartYear}/${String(prevStartYear + 1).slice(-2)}`;
+
+	let severity: AlertSeverity;
+	if (daysSinceNewTaxYear <= 7) {
+		severity = 'info';
+	} else if (daysSinceNewTaxYear <= 14) {
+		severity = 'amber';
+	} else {
+		severity = 'red';
+	}
+
+	return [
+		makeGlobalAlert(
+			'TAX_YEAR_INTEREST_REVIEW',
+			severity,
+			'Tax year interest summary',
+			`Review your ${prevLabel} interest — ${daysSinceNewTaxYear === 0 ? 'new tax year started today' : `${daysSinceNewTaxYear}d into new tax year`}`,
+			`/accounts/interest/${prevSlug}`,
+		),
+		makeGlobalAlert(
+			'TAX_YEAR_ISA_REVIEW',
+			severity,
+			'Tax year ISA summary',
+			`Review your ${prevLabel} ISA usage — ${daysSinceNewTaxYear === 0 ? 'new tax year started today' : `${daysSinceNewTaxYear}d into new tax year`}`,
+			`/accounts/isa/${prevSlug}`,
+		),
+	];
 }
 
 async function checkMonthlyReviewAlerts(userId: number): Promise<Alert[]> {
@@ -789,15 +840,16 @@ export async function getAlerts(userId: number): Promise<Alert[]> {
 		];
 
 		// User-level (async, parallel)
-		const [isaAlerts, psaAlerts, goalAlerts, snapshotAlerts, reviewAlerts] = await Promise.all([
+		const [isaAlerts, psaAlerts, goalAlerts, snapshotAlerts, reviewAlerts, taxYearReviewAlerts] = await Promise.all([
 			checkIsaAlerts(userId, taxYear),
 			checkPsaAlerts(userId, taxYear, taxBand, hasSavingsAccounts),
 			checkGoalAlerts(userId),
 			checkSnapshotAlerts(userId),
 			checkMonthlyReviewAlerts(userId),
+			checkTaxYearReviewAlerts(now),
 		]);
 
-		return [...accountAlerts, ...isaAlerts, ...psaAlerts, ...goalAlerts, ...snapshotAlerts, ...reviewAlerts];
+		return [...accountAlerts, ...isaAlerts, ...psaAlerts, ...goalAlerts, ...snapshotAlerts, ...reviewAlerts, ...taxYearReviewAlerts];
 	} catch (err) {
 		logError('getAlerts', 'Failed to compute alerts', { userId, err });
 		return [];

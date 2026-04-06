@@ -1,9 +1,9 @@
 import { fail, redirect } from "@sveltejs/kit";
-import { and, asc, count, eq, isNull } from "drizzle-orm";
+import { and, asc, count, eq, isNull, min, sum } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { getAlerts } from "$lib/server/alerts";
 import { db } from "$lib/db/client";
-import { accounts, goals, users } from "$lib/db/schema";
+import { accounts, accountTransactions, goals, users } from "$lib/db/schema";
 import {
 	getActualInterestByTaxWrapper,
 	getISAAllowanceUsed,
@@ -19,6 +19,7 @@ import {
 import { updateTypeExclusions } from "$lib/server/exclusions";
 import { getNetWorthSummary } from "$lib/server/finance";
 import { calculateISAPacing } from "$lib/server/isaPacing";
+import { getDebtGoalProgress, projectPayoffDate } from "$lib/server/goals";
 import { devLog, isVerboseDebug, logError } from "$lib/utils/logger";
 import { getStaleness } from "$lib/utils/staleness";
 import type { Actions, PageServerLoad } from "./$types";
@@ -83,6 +84,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 					amount: true,
 				},
 			},
+			linkedAccount: {
+				columns: { id: true, slug: true, name: true },
+			},
+			milestones: true,
 		},
 		columns: {
 			id: true,
@@ -94,11 +99,84 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			isEmergencyFund: true,
 			deletedAt: true,
 			updatedAt: true,
+			goalType: true,
+			startingBalanceInCents: true,
+			linkedAccountId: true,
 		},
 	});
 
 	// Filter out soft-deleted goals
 	const activeGoals = userGoals.filter((g) => !g.deletedAt);
+
+	// Enrich debt goals with progress data
+	const debtGoalAccountIds = activeGoals
+		.filter((g) => g.goalType === "debt" && g.linkedAccountId !== null)
+		.map((g) => g.linkedAccountId!)
+		.filter((id, i, arr) => arr.indexOf(id) === i);
+	const debtBalances =
+		debtGoalAccountIds.length > 0
+			? await getCurrentBalancesForAccounts(debtGoalAccountIds)
+			: new Map<number, number>();
+
+	type GoalWithProgress = (typeof activeGoals)[number] & {
+		progress: ReturnType<typeof getDebtGoalProgress> | null;
+	};
+
+	const goalsWithProgress: GoalWithProgress[] = activeGoals.map((goal) => {
+		if (goal.goalType === "debt" && goal.linkedAccountId !== null) {
+			const currentBalance = debtBalances.get(goal.linkedAccountId) ?? 0;
+			const progress = getDebtGoalProgress({
+				startingBalanceInCents: goal.startingBalanceInCents ?? 0,
+				currentBalanceInCents: currentBalance,
+			});
+			return { ...goal, progress };
+		}
+		return { ...goal, progress: null };
+	});
+
+	// Compute projected payoff dates for debt goals on the homepage
+	type GoalWithPayoff = (typeof goalsWithProgress)[number] & {
+		projectedPayoffDate: Date | null;
+	};
+
+	const goalsWithPayoff: GoalWithPayoff[] = await Promise.all(
+		goalsWithProgress.map(async (goal) => {
+			if (
+				goal.goalType !== "debt" ||
+				!goal.linkedAccountId ||
+				!goal.progress ||
+				goal.progress.remainingInCents <= 0
+			) {
+				return { ...goal, projectedPayoffDate: null as Date | null };
+			}
+
+			// Aggregate payment data: total paid and earliest payment date
+			const aggregated = await db
+				.select({
+					totalPaid: sum(accountTransactions.amount),
+					firstDate: min(accountTransactions.transactionDate),
+				})
+				.from(accountTransactions)
+				.where(
+					and(
+						eq(accountTransactions.accountId, goal.linkedAccountId),
+						eq(accountTransactions.type, "payment"),
+					),
+				);
+
+			const totalPaidInCents = Math.abs(Number(aggregated[0]?.totalPaid ?? 0));
+			const firstPaymentDate = aggregated[0]?.firstDate ?? null;
+
+			return {
+				...goal,
+				projectedPayoffDate: projectPayoffDate({
+					remainingInCents: goal.progress.remainingInCents,
+					totalPaidInCents,
+					firstPaymentDate,
+				}),
+			};
+		}),
+	);
 
 	devLog("homePage", "Fetched user goals", { goalCount: activeGoals.length });
 
@@ -191,7 +269,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		alerts,
 		isaTracker,
 		interestSummary,
-		goals: activeGoals,
+		goals: goalsWithPayoff,
 		goalsPagination: {
 			page: safeGoalsPage,
 			totalPages: totalGoalPages,

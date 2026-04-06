@@ -28,9 +28,10 @@
 		linkedAccountName?: string | null;
 		paidInCents?: number;
 		remainingInCents?: number;
+		nextMilestone?: { label: string; thresholdInCents: number; remainingInCents: number } | null;
 	}
 
-	let { goal, progress, progressColor, milestones, showActions = true, showArchivedDate = false, showStatus = false, isArchived = false, reorderMode = false, isSelected = false, isOtherSelected = false, onSelect, onPlaceHere, isDebtGoal = false, startingBalanceInCents, currentBalanceInCents, linkedAccountName, paidInCents, remainingInCents }: Props = $props();
+	let { goal, progress, progressColor, milestones, showActions = true, showArchivedDate = false, showStatus = false, isArchived = false, reorderMode = false, isSelected = false, isOtherSelected = false, onSelect, onPlaceHere, isDebtGoal = false, startingBalanceInCents, currentBalanceInCents, linkedAccountName, paidInCents, remainingInCents, nextMilestone }: Props = $props();
 
 	const staleness = $derived(getStaleness(goal.updatedAt));
 
@@ -59,6 +60,11 @@
 		<!-- Linked account for debt goals -->
 		{#if isDebtGoal && linkedAccountName}
 			<div class="text-xs text-gray-600 mt-1">{linkedAccountName}</div>
+		{/if}
+		{#if nextMilestone}
+			<div class="text-xs text-gray-500 mt-1">
+				next: {nextMilestone.label} ({formatCurrencyShorthand(nextMilestone.remainingInCents)} more)
+			</div>
 		{/if}
 		<!-- Reorder controls inline under name -->
 		{#if reorderMode && !isArchived}

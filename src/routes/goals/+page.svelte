@@ -7,6 +7,7 @@
 	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import AlertsSection from '$lib/components/AlertsSection.svelte';
+	import DebtStrategyPanel from '$lib/components/DebtStrategyPanel.svelte';
 	import type { Goal } from '$lib/db/schema';
 
 	let { data } = $props();
@@ -25,6 +26,7 @@
 
 	// Filter state: 'all', 'savings', or 'debt'
 	let filter = $state<'all' | 'savings' | 'debt'>('all');
+	let debtStrategy = $state<'snowball' | 'avalanche' | 'hybrid'>('snowball');
 
 	// Sync filter from URL query param
 	$effect(() => {
@@ -196,6 +198,24 @@
 			{ label: '12mo', achieved: current >= monthlyExpenses * 12 }
 		];
 	}
+
+	function getNextMilestone(goal: EnrichedGoal) {
+		if (goal.goalType !== 'debt') return null;
+		const milestones = (goal as any).milestones;
+		if (!milestones || !Array.isArray(milestones)) return null;
+		const unreached = milestones
+			.filter((m: any) => !m.reachedAt)
+			.sort((a: any, b: any) => a.thresholdInCents - b.thresholdInCents);
+		if (unreached.length === 0) return null;
+		const next = unreached[0];
+		const progress = (goal as any).progress;
+		const remaining = progress ? Math.max(0, progress.remainingInCents - (Math.abs(next.thresholdInCents))) : null;
+		return {
+			label: next.label,
+			thresholdInCents: next.thresholdInCents,
+			remainingInCents: remaining ?? 0,
+		};
+	}
 </script>
 
 <!-- NET WORTH SECTION -->
@@ -234,6 +254,15 @@
 
 {#if data.alerts.length > 0}
 	<AlertsSection alerts={data.alerts} title="GOAL ALERTS" viewAllHref="/alerts" />
+{/if}
+
+<!-- DEBT STRATEGY PANEL (shown when filtering by debt and strategy data exists) -->
+{#if filter === 'debt' && data.debtStrategyMetrics}
+	<DebtStrategyPanel
+		metrics={data.debtStrategyMetrics}
+		selectedStrategy={debtStrategy}
+		onStrategyChange={(s) => debtStrategy = s}
+	/>
 {/if}
 
 <!-- GOALS LIST SECTION -->
@@ -321,6 +350,7 @@
 						isOtherSelected={selectedSlug !== null && selectedSlug !== goal.slug}
 						onSelect={() => selectGoal(goal.slug)}
 						onPlaceHere={() => placeAt(goal.slug)}
+						nextMilestone={getNextMilestone(goal)}
 					/>
 				{/each}
 			</tbody>

@@ -14,6 +14,7 @@ import {
 	logFormData,
 } from "$lib/utils/logger";
 import { getGoalListAlerts } from "$lib/server/alerts";
+import { calculateDebtStrategyMetrics } from "$lib/server/debt-strategy";
 import { getMostRecentDate, getStaleness } from "$lib/utils/staleness";
 import type { Actions, PageServerLoad } from "./$types";
 
@@ -120,6 +121,53 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		filterType: validType,
 	});
 
+	// Compute debt strategy metrics (only when debt goals exist)
+	let debtStrategyMetrics = null;
+	if (validType === 'debt' || validType === 'all') {
+		// Fetch ALL debt goals (not just current page) for strategy computation
+		const allDebtGoals = await db.query.goals.findMany({
+			where: and(
+				eq(goals.userId, locals.user.id),
+				isNull(goals.deletedAt),
+				eq(goals.goalType, "debt"),
+			),
+			with: {
+				linkedAccount: {
+					columns: { id: true, name: true },
+				},
+			},
+		});
+
+		const debtGoalAccountIdsForStrategy = allDebtGoals
+			.filter(g => g.linkedAccountId !== null)
+			.map(g => g.linkedAccountId!);
+		const strategyBalances = debtGoalAccountIdsForStrategy.length > 0
+			? await getCurrentBalancesForAccounts(debtGoalAccountIdsForStrategy)
+			: new Map<number, number>();
+
+		const debtInputs = allDebtGoals
+			.filter(g => g.linkedAccountId !== null)
+			.map(g => {
+				const bal = Math.abs(strategyBalances.get(g.linkedAccountId!) ?? 0);
+				const linked = g.linkedAccount;
+				const minPayment = linked && 'minimumPaymentFlat' in linked
+					? (linked as any).minimumPaymentFlat ?? 0
+					: 0;
+				return {
+					goalId: g.id,
+					slug: g.slug,
+					name: g.name,
+					remainingInCents: bal,
+					aprBasisPoints: null as number | null,
+					minimumMonthlyInCents: Math.max(minPayment, 0),
+				};
+			});
+
+		if (debtInputs.length > 0) {
+			debtStrategyMetrics = calculateDebtStrategyMetrics(debtInputs);
+		}
+	}
+
 	// Calculate Ready to Assign (unallocated assets)
 	const {
 		readyToAssign,
@@ -173,6 +221,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		staleness,
 		alerts: await getGoalListAlerts(locals.user.id),
 		filterType: validType as 'all' | 'savings' | 'debt',
+		debtStrategyMetrics,
 	};
 };
 

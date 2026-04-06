@@ -4,6 +4,7 @@
 	import IsaAllowanceWidget from '$lib/components/IsaAllowanceWidget.svelte';
 	import TaxYearProgress from '$lib/components/TaxYearProgress.svelte';
 	import GoalCard from '$lib/components/GoalCard.svelte';
+	import DebtCard from '$lib/components/DebtCard.svelte';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import { formatCurrency, formatCurrencyShorthand, formatAccountType, formatDateShorthand } from '$lib/utils/currency';
 	import { goto } from '$app/navigation';
@@ -18,6 +19,7 @@
 	// Pagination state with scroll targets
 	let goalsSectionRef: HTMLElement | null = $state(null);
 	let goalsPage = $state(0);
+	let goalsFilter = $state<'all' | 'savings' | 'debt'>('all');
 
 	// Track if we're updating to prevent loops
 	let isUpdatingGoalsPage = $state(false);
@@ -115,6 +117,12 @@
 	const cappedAssetGroups = $derived(assetGroups.slice(0, ACCOUNTS_CAP));
 	const cappedLiabilityGroups = $derived(liabilityGroups.slice(0, Math.max(0, ACCOUNTS_CAP - assetGroups.length)));
 	const hiddenAccountGroupsCount = $derived(Math.max(0, (assetGroups.length + liabilityGroups.length) - ACCOUNTS_CAP));
+
+	const filteredGoals = $derived(() => {
+		if (goalsFilter === 'all') return goals;
+		if (goalsFilter === 'savings') return goals.filter((g) => g.goalType !== 'debt');
+		return goals.filter((g) => g.goalType === 'debt');
+	});
 </script>
 
 {#if !user}
@@ -313,24 +321,64 @@
 	<div bind:this={goalsSectionRef}>
 		<div class="font-bold flex justify-between bg-gray-100 border-y border-black p-2">
 			<div class="flex items-center gap-2">
-				<span>GOALS ({goals.length})</span>
+				<span>GOALS ({goalsFilter === 'all' ? goals.length : filteredGoals().length})</span>
 				<span class="text-xs font-bold text-gray-500">{data.staleness.label}</span>
+				<div class="flex gap-1">
+					<button
+						type="button"
+						onclick={() => goalsFilter = 'all'}
+						class="bracket-link text-xs font-bold"
+						class:text-green-700={goalsFilter === 'all'}
+					>All</button>
+					<button
+						type="button"
+						onclick={() => goalsFilter = 'savings'}
+						class="bracket-link text-xs font-bold"
+						class:text-green-700={goalsFilter === 'savings'}
+					>Savings</button>
+					<button
+						type="button"
+						onclick={() => goalsFilter = 'debt'}
+						class="bracket-link text-xs font-bold"
+						class:text-green-700={goalsFilter === 'debt'}
+					>Debt</button>
+				</div>
 			</div>
 			<a href="/goals" class="bracket-link text-xs">View All</a>
 		</div>
 		<div>
-			{#each goals as goal}
-				<div class="p-2 border-b border-black last:border-0 mb-2 last:mb-0">
-					<GoalCard {goal} />
-				</div>
-			{/each}
+			{#if filteredGoals().length === 0}
+				<p class="text-gray-600 text-xs p-2">
+					No {goalsFilter} goals.
+				</p>
+			{:else}
+				{#each filteredGoals() as goal}
+					<div class="p-2 border-b border-black last:border-0 mb-2 last:mb-0">
+						{#if goal.goalType === 'debt' && goal.progress}
+							<DebtCard
+								name={goal.name}
+								slug={goal.slug}
+								paidInCents={goal.progress.paidInCents}
+								remainingInCents={goal.progress.remainingInCents}
+								percent={goal.progress.percent}
+								projectedPayoffDate={goal.projectedPayoffDate}
+								updatedAt={goal.updatedAt}
+							/>
+						{:else}
+							<GoalCard {goal} />
+						{/if}
+					</div>
+				{/each}
+			{/if}
 		</div>
-		<PaginationClient
-      page={goalsPage}
-      totalPages={data.goalsPagination.totalPages}
-      onPageChange={updateGoalsPage}
-      scrollTarget={goalsSectionRef}
-    />
+		{#if goalsFilter === 'all'}
+			<PaginationClient
+				page={goalsPage}
+				totalPages={data.goalsPagination.totalPages}
+				onPageChange={updateGoalsPage}
+				scrollTarget={goalsSectionRef}
+			/>
+		{/if}
 	</div>
 	{/if}
 {/if}
