@@ -286,6 +286,70 @@ export function calculatePaceMetrics(params: {
 	};
 }
 
+export interface DebtGoalProgress {
+	paidInCents: number;
+	totalInCents: number;
+	percent: number;
+	remainingInCents: number;
+}
+
+export function getDebtGoalProgress(params: {
+	startingBalanceInCents: number;
+	currentBalanceInCents: number;
+}): DebtGoalProgress {
+	const { startingBalanceInCents, currentBalanceInCents } = params;
+
+	const totalInCents = Math.abs(startingBalanceInCents);
+	const remainingInCents = Math.abs(currentBalanceInCents);
+	const paidInCents = totalInCents - remainingInCents;
+	const percent = totalInCents > 0 ? (paidInCents / totalInCents) * 100 : 100;
+
+	return { paidInCents, totalInCents, percent, remainingInCents };
+}
+
+export interface MilestoneTemplate {
+	label: string;
+	thresholdInCents: number;
+}
+
+export function generateDefaultMilestones(params: {
+	startingBalanceInCents: number;
+}): MilestoneTemplate[] {
+	const { startingBalanceInCents } = params;
+	const absStarting = Math.abs(startingBalanceInCents);
+
+	return [
+		{ label: "25% paid off", thresholdInCents: Math.round(absStarting * 0.75) },
+		{ label: "Halfway there", thresholdInCents: Math.round(absStarting * 0.5) },
+		{ label: "75% paid off", thresholdInCents: Math.round(absStarting * 0.25) },
+		{ label: "Paid off", thresholdInCents: 0 },
+	];
+}
+
+export interface MilestoneWithReached {
+	id: number;
+	thresholdInCents: number;
+	reachedAt: Date | null;
+}
+
+export function checkMilestones(params: {
+	currentBalanceInCents: number;
+	milestones: MilestoneWithReached[];
+}): number[] {
+	const { currentBalanceInCents, milestones } = params;
+	const absCurrent = Math.abs(currentBalanceInCents);
+
+	const newlyReached: number[] = [];
+	for (const milestone of milestones) {
+		if (milestone.reachedAt !== null) continue;
+		if (absCurrent <= milestone.thresholdInCents) {
+			newlyReached.push(milestone.id);
+		}
+	}
+
+	return newlyReached;
+}
+
 async function getOpenAssetAccountsWithLatestBalances(userId: number) {
 	const userAccounts = await db.query.accounts.findMany({
 		where: and(

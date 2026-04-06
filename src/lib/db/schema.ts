@@ -236,6 +236,11 @@ export const goals = sqliteTable(
 			.default(false),
 		sortOrder: integer("sort_order").notNull().default(0), // Manual reordering
 		deletedAt: integer("deleted_at", { mode: "timestamp" }), // Soft delete support
+		goalType: text("goal_type", { enum: ["savings", "debt"] })
+			.notNull()
+			.default("savings"),
+		linkedAccountId: integer("linked_account_id").references(() => accounts.id),
+		startingBalanceInCents: integer("starting_balance_in_cents"),
 		createdAt: integer("created_at", { mode: "timestamp" })
 			.notNull()
 			.default(sql`CURRENT_TIMESTAMP`),
@@ -270,6 +275,25 @@ export const goalAllocations = sqliteTable(
 	(table) => ({
 		goalIdx: index("idx_goal_allocations_goal").on(table.goalId),
 		accountIdx: index("idx_goal_allocations_account").on(table.accountId),
+	}),
+);
+
+export const goalMilestones = sqliteTable(
+	"goal_milestones",
+	{
+		id: integer("id").primaryKey({ autoIncrement: true }),
+		goalId: integer("goal_id")
+			.notNull()
+			.references(() => goals.id),
+		label: text("label").notNull(),
+		thresholdInCents: integer("threshold_in_cents").notNull(),
+		reachedAt: integer("reached_at", { mode: "timestamp" }),
+		createdAt: integer("created_at", { mode: "timestamp" })
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+	},
+	(table) => ({
+		goalIdx: index("idx_goal_milestones_goal").on(table.goalId),
 	}),
 );
 
@@ -540,6 +564,11 @@ export const goalsRelations = relations(goals, ({ one, many }) => ({
 		references: [users.id],
 	}),
 	allocations: many(goalAllocations),
+	milestones: many(goalMilestones),
+	linkedAccount: one(accounts, {
+		fields: [goals.linkedAccountId],
+		references: [accounts.id],
+	}),
 }));
 
 export const goalAllocationsRelations = relations(
@@ -555,6 +584,13 @@ export const goalAllocationsRelations = relations(
 		}),
 	}),
 );
+
+export const goalMilestonesRelations = relations(goalMilestones, ({ one }) => ({
+	goal: one(goals, {
+		fields: [goalMilestones.goalId],
+		references: [goals.id],
+	}),
+}));
 
 export const accountTransactionsRelations = relations(
 	accountTransactions,
@@ -603,6 +639,7 @@ export type InterestRate = typeof interestRates.$inferSelect;
 export type AccountNote = typeof accountNotes.$inferSelect;
 export type Goal = typeof goals.$inferSelect;
 export type GoalAllocation = typeof goalAllocations.$inferSelect;
+export type GoalMilestone = typeof goalMilestones.$inferSelect;
 export type Snapshot = typeof snapshots.$inferSelect;
 export type SystemMetadata = typeof systemMetadata.$inferSelect;
 export type Settings = typeof settings.$inferSelect;

@@ -16,30 +16,16 @@
 	let interestExpanded = $state(false);
 
 	// Pagination state with scroll targets
-	let accountsSectionRef: HTMLElement | null = $state(null);
 	let goalsSectionRef: HTMLElement | null = $state(null);
-	let accountsPage = $state(0);
 	let goalsPage = $state(0);
 
 	// Track if we're updating to prevent loops
-	let isUpdatingAccountsPage = $state(false);
 	let isUpdatingGoalsPage = $state(false);
 
-	// Sync pagination state with URL (1-indexed)
-	$effect(() => {
-		if (isUpdatingAccountsPage) return;
-		accountsPage = data.accountsPagination.page;
-	});
-
+	// Sync goals pagination state with URL (1-indexed)
 	$effect(() => {
 		if (isUpdatingGoalsPage) return;
 		goalsPage = data.goalsPagination.page;
-	});
-
-	$effect(() => {
-		if (isUpdatingAccountsPage) return;
-		const urlAccountsPage = Number(pageState.url.searchParams.get('accountsPage')) || 1;
-		if (accountsPage !== urlAccountsPage - 1) accountsPage = urlAccountsPage - 1;
 	});
 
 	$effect(() => {
@@ -48,21 +34,7 @@
 		if (goalsPage !== urlGoalsPage - 1) goalsPage = urlGoalsPage - 1;
 	});
 
-	// Handle page changes
-	async function updateAccountsPage(newPage: number) {
-		if (isUpdatingAccountsPage) return;
-		isUpdatingAccountsPage = true;
-		accountsPage = newPage;
-		const url = new URL(pageState.url);
-		if (newPage + 1 !== 1) {
-			url.searchParams.set('accountsPage', String(newPage + 1));
-		} else {
-			url.searchParams.delete('accountsPage');
-		}
-		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
-		isUpdatingAccountsPage = false;
-	}
-
+	// Handle goals page changes
 	async function updateGoalsPage(newPage: number) {
 		if (isUpdatingGoalsPage) return;
 		isUpdatingGoalsPage = true;
@@ -101,8 +73,6 @@
 		}>();
 
 		for (const account of data.accounts) {
-			if (account.closedAt) continue;
-
 			const balance = account.currentBalance ?? 0;
 			if (balance === 0) continue; // skip zero-balance accounts
 			const updatedAt = account.lastUpdated ?? null;
@@ -138,7 +108,7 @@
 
 	const assetGroups = $derived(accountsByType.filter(g => g.displayCategory === 'asset'));
 	const liabilityGroups = $derived(accountsByType.filter(g => g.displayCategory === 'liability'));
-	const activeAccountCount = $derived(data.accounts.filter(a => !a.closedAt).length);
+	const activeAccountCount = $derived(data.accounts.length);
 
 	// Accounts hard cap (8 combined rows)
 	const ACCOUNTS_CAP = 8;

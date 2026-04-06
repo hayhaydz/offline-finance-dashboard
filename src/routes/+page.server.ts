@@ -1,5 +1,5 @@
 import { fail, redirect } from "@sveltejs/kit";
-import { asc, count, eq } from "drizzle-orm";
+import { and, asc, count, eq, isNull } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { getAlerts } from "$lib/server/alerts";
 import { db } from "$lib/db/client";
@@ -33,39 +33,27 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		userId: locals.user.id,
 	});
 
-	// Pagination for accounts and goals (1-indexed URL parameters)
-	const ACCOUNTS_PER_PAGE = 10;
+	// Pagination for goals (1-indexed URL parameters)
 	const GOALS_PER_PAGE = 10;
-	const accountsPageParam = Number(url.searchParams.get("accountsPage")) || 1;
 	const goalsPageParam = Number(url.searchParams.get("goalsPage")) || 1;
 
-	// Fetch total counts for pagination
-	const [{ totalAccounts }] = await db
-		.select({ totalAccounts: count() })
-		.from(accounts)
-		.where(withUserFilter(locals.user.id, accounts));
+	// Fetch total goal count for pagination
 	const [{ totalGoals }] = await db
 		.select({ totalGoals: count() })
 		.from(goals)
 		.where(withUserFilter(locals.user.id, goals));
 
-	const totalAccountPages = Math.ceil(totalAccounts / ACCOUNTS_PER_PAGE);
 	const totalGoalPages = Math.ceil(totalGoals / GOALS_PER_PAGE);
 	// Convert 1-indexed URL to 0-indexed internal and clamp to valid range
-	const safeAccountsPage = Math.min(
-		Math.max(0, accountsPageParam - 1),
-		Math.max(0, totalAccountPages - 1),
-	);
 	const safeGoalsPage = Math.min(
 		Math.max(0, goalsPageParam - 1),
 		Math.max(0, totalGoalPages - 1),
 	);
 
-	// Fetch paginated user accounts
+	// Fetch ALL open accounts for the homepage summary table.
+	// We group by type on the client, so pagination would hide types.
 	const userAccounts = await db.query.accounts.findMany({
-		where: withUserFilter(locals.user.id, accounts),
-		limit: ACCOUNTS_PER_PAGE,
-		offset: safeAccountsPage * ACCOUNTS_PER_PAGE,
+		where: and(withUserFilter(locals.user.id, accounts), isNull(accounts.closedAt)),
 	});
 	const accountIds = userAccounts.map((a) => a.id);
 	const [currentBalances, latestTransactionDates] = await Promise.all([
@@ -200,10 +188,6 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		},
 		netWorthSummary,
 		accounts: accountsWithDerivedBalances,
-		accountsPagination: {
-			page: safeAccountsPage,
-			totalPages: totalAccountPages,
-		},
 		alerts,
 		isaTracker,
 		interestSummary,

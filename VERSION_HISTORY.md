@@ -1,4 +1,52 @@
-## [2026-04-05] — fix: homepage interest £0 pagination bug
+## [2026-04-06] — feat: unify savings and debt goals into single page with filter toggle
+
+**Summary:** Merged `/goals` and `/goals/debt` into a unified `/goals` page with URL-based filtering (`?type=all|savings|debt`). Extended `GoalRow` component to conditionally render debt-specific columns (linked account, paid/remaining progress, starting balance). Updated navigation to remove debt sub-link and add archive link. Old debt routes now redirect to unified page with appropriate filter.
+
+**Modified files:**
+- **MOD** `src/routes/goals/+page.svelte` — added filter state (all/savings/debt) with URL sync, `setFilter()` function, and filter toggle UI buttons; updated `getProgress()` and `getProgressColor()` to handle debt goals; added `EnrichedGoal` type for server-enriched data; pass debt props to `GoalRow`
+- **MOD** `src/routes/goals/+page.server.ts` — parse `type` query param, build dynamic `whereConditions` array, fetch `linkedAccount` and `milestones` relations, enrich debt goals with progress calculation using `getDebtGoalProgress()`, return `filterType` to client
+- **MOD** `src/lib/components/GoalRow.svelte` — added debt-specific props (`isDebtGoal`, `startingBalanceInCents`, `currentBalanceInCents`, `linkedAccountName`, `paidInCents`, `remainingInCents`), added `debtProgress` derived value, conditionally render linked account name and paid/remaining progress for debt goals
+- **MOD** `src/lib/components/navigation.svelte` — updated goals nav from "Savings Goals"/"Debt Payoff" sub-links to single "All Goals" with "Create Goal" and "Archived Goals"
+- **MOD** `src/routes/goals/debt/+page.svelte` — replaced with client-side redirect to `/goals?type=debt`
+- **MOD** `src/routes/goals/debt/+page.server.ts` — replaced with server-side redirect (302) to `/goals?type=debt`
+- **MOD** `src/routes/goals/debt/[slug]/+page.server.ts` — updated archive redirect from `/goals/debt` to `/goals`
+- **MOD** `src/routes/goals/debt/[slug]/confirm-archive/+page.server.ts` — updated breadcrumb from "Debt Payoff" to "Goals"
+- **MOD** `src/routes/goals/debt/[slug]/confirm-archive/+page.svelte` — updated cancel link from `/goals/debt/{slug}` to `/goals/{slug}`
+
+**Suggested commit:** `feat: unify savings and debt goals into single page with filter toggle`
+
+---
+
+## [2026-04-06] — feat: debt payoff goals tracking system
+
+**Summary:** Implemented complete debt payoff tracking feature with read-only goals linked to liability accounts. Added `goalType` discriminator to goals table, created `goalMilestones` table, and built full CRUD UI for debt goals. Debt goals track progress DOWN toward £0 with milestones, pace metrics, and payment history visualization.
+
+**Modified files:**
+- **MOD** `src/lib/db/schema.ts` — added `goalType`, `linkedAccountId`, `startingBalanceInCents` to goals table; created `goalMilestones` table with relations and types
+- **MOD** `src/lib/components/navigation.svelte` — added "Debt Payoff" under Goals dropdown
+- **MOD** `src/lib/server/goals.ts` — added `DebtGoalProgress` interface, `getDebtGoalProgress()`, `generateDefaultMilestones()`, `checkMilestones()` functions
+- **MOD** `src/routes/goals/+page.server.ts` — filter out debt goals from savings list using `or(eq(goals.goalType, "savings"), isNull(goals.goalType))`
+- **MOD** `scripts/seed.ts` — added `seedDebtGoals()` function for sample debt goal with milestones
+- **NEW** `src/routes/goals/debt/+page.server.ts` — debt goals list loader with progress calculation and color coding
+- **NEW** `src/routes/goals/debt/+page.svelte` — debt goals list UI with progress bars, stats (PAID/REMAINING/STARTING)
+- **NEW** `src/routes/goals/debt/create/+page.server.ts` — debt goal creation with liability account selection, transaction for milestones
+- **NEW** `src/routes/goals/debt/create/+page.svelte` — debt goal creation form with account dropdown and optional target date
+- **NEW** `src/routes/goals/debt/[slug]/+page.server.ts` — detail page loader with milestone checking, pace metrics, payment history
+- **NEW** `src/routes/goals/debt/[slug]/+page.svelte` — detail page with progress bar, milestone markers, pace metrics, milestones list, payment history
+- **NEW** `src/routes/goals/debt/[slug]/confirm-archive/+page.server.ts` — archive confirmation page loader
+- **NEW** `src/routes/goals/debt/[slug]/confirm-archive/+page.svelte` — archive confirmation page UI
+- **NEW** `tests/integration/debt-goals-schema.test.ts` — schema validation tests
+- **NEW** `tests/unit/navigation-structure.test.ts` — navigation structure documentation test
+- **NEW** `tests/unit/debt-goal-progress.test.ts` — progress calculation tests (3 tests)
+- **NEW** `tests/unit/debt-goal-milestones.test.ts` — milestone generation and checking tests (2 tests)
+- **NEW** `tests/integration/debt-goals-page.test.ts` — debt goals list integration test
+- **NEW** `tests/integration/debt-goal-creation.test.ts` — debt goal creation integration test
+- **NEW** `tests/integration/debt-goal-detail.test.ts` — debt goal detail integration test
+- **NEW** `tests/integration/debt-goals-full-flow.test.ts` — full flow integration tests (6 tests)
+
+**Suggested commit:** `feat(goals): add debt payoff tracking with milestones and progress visualization`
+
+---
 
 **Changed:**
 - **MOD** `src/lib/server/calculations.ts` — Added `getActualInterestByTaxWrapper()` and `getProjectedInterestByTaxWrapper()` that query ALL user accounts (not paginated) and split by ISA/non-ISA tax wrapper

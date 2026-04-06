@@ -60,7 +60,7 @@
       ]
     },
     { href: '/goals', label: 'Goals', authRequired: true, children: [
-      { href: '/goals', label: 'All Goals' },
+      { href: '/goals', label: 'All Goals', includeChildRoutes: true },
       { href: '/goals/create', label: 'Create Goal' },
       { href: '/goals/archived', label: 'Archived Goals' }
     ] },
@@ -116,6 +116,7 @@
       const labelMap: Record<string, string> = {
         accounts: 'Accounts',
         goals: 'Goals',
+        debt: 'Debt Payoff',
         snapshots: 'Snapshots',
         settings: 'Settings',
         review: 'Review',

@@ -43,6 +43,13 @@
       "when": 1774976084426,
       "tag": "0005_add_monthly_reviews",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1775482499119,
+      "tag": "0006_secret_white_queen",
+      "breakpoints": true
     }
   ]
 }

@@ -1,9 +1,10 @@
 import { fail, redirect } from "@sveltejs/kit";
-import { and, asc, count, desc, eq, gt, isNull, lt } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, isNull, lt, or } from "drizzle-orm";
 import { validateUserAccess, withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, goals } from "$lib/db/schema";
-import { calculateReadyToAssign } from "$lib/server/goals";
+import { calculateReadyToAssign, getDebtGoalProgress } from "$lib/server/goals";
+import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
 import { updateTypeExclusions } from "$lib/server/exclusions";
 import { getNetWorthSummary } from "$lib/server/finance";
 import {
@@ -28,27 +29,89 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 	const page = validPage - 1;
 
+	// Parse goal type filter from URL parameter
+	const typeParam = url.searchParams.get("type");
+	const validType = typeParam === "savings" || typeParam === "debt" || typeParam === "all"
+		? typeParam
+		: "all";
+
+	// Build where clause based on filter
+	const goalTypeFilter = validType === "all"
+		? undefined
+		: validType === "savings"
+			? or(eq(goals.goalType, "savings"), isNull(goals.goalType))
+			: eq(goals.goalType, "debt");
+
+	const whereConditions = [
+		eq(goals.userId, locals.user.id),
+		isNull(goals.deletedAt),
+	];
+
+	if (goalTypeFilter) {
+		whereConditions.push(goalTypeFilter);
+	}
+
 	// Total count for pagination
 	const [{ total }] = await db
 		.select({ total: count() })
 		.from(goals)
-		.where(and(eq(goals.userId, locals.user.id), isNull(goals.deletedAt)));
+		.where(and(...whereConditions));
 
 	const totalPages = Math.ceil(total / PAGE_SIZE);
 	const safePage = Math.min(page, Math.max(0, totalPages - 1));
 
 	// Query user's active goals with row-level security
 	const userGoals = await db.query.goals.findMany({
-		where: and(withUserFilter(locals.user.id, goals), isNull(goals.deletedAt)),
+		where: and(...whereConditions),
 		orderBy: (goals, { asc }) => asc(goals.sortOrder),
 		limit: PAGE_SIZE,
 		offset: safePage * PAGE_SIZE,
+		with: {
+			linkedAccount: true, // Load linked account for debt goals
+			milestones: true, // Load milestones for all goals
+		},
+	});
+
+	// Get current balances for all debt goals (for progress calculation)
+	const debtGoalAccountIds = userGoals
+		.filter(g => g.goalType === 'debt' && g.linkedAccountId !== null)
+		.map(g => g.linkedAccountId!)
+		.filter((id, i, arr) => arr.indexOf(id) === i); // Deduplicate
+
+	const currentBalances = debtGoalAccountIds.length > 0
+		? await getCurrentBalancesForAccounts(debtGoalAccountIds)
+		: new Map<number, number>();
+
+	// Enrich goals with progress data for client-side rendering
+	const goalsWithProgress = userGoals.map((goal) => {
+		if (goal.goalType === 'debt' && goal.linkedAccountId !== null) {
+			const currentBalance = currentBalances.get(goal.linkedAccountId) ?? 0;
+			const progress = getDebtGoalProgress({
+				startingBalanceInCents: goal.startingBalanceInCents ?? 0,
+				currentBalanceInCents: currentBalance,
+			});
+
+			let color = 'red';
+			if (progress.percent >= 70) color = 'green';
+			else if (progress.percent >= 30) color = 'amber';
+
+			return {
+				...goal,
+				currentBalance,
+				progress,
+				color,
+			};
+		}
+
+		// Savings goal: use existing allocation data
+		return goal;
 	});
 
 	devLog("goals", "Loaded user goals", {
-		count: userGoals.length,
+		count: goalsWithProgress.length,
 		page: safePage,
 		totalPages,
+		filterType: validType,
 	});
 
 	// Calculate Ready to Assign (unallocated assets)
@@ -81,7 +144,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	return {
 		netWorthSummary,
 		accounts: allOpenAccounts,
-		goals: userGoals,
+		goals: goalsWithProgress,
 		page: safePage,
 		totalPages,
 		readyToAssign,
@@ -93,6 +156,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			createdAt: locals.user.createdAt,
 		},
 		staleness,
+		filterType: validType as 'all' | 'savings' | 'debt',
 	};
 };
 

@@ -21,11 +21,24 @@
 		isOtherSelected?: boolean;
 		onSelect?: () => void;
 		onPlaceHere?: () => void;
+		// Debt goal specific props
+		isDebtGoal?: boolean;
+		startingBalanceInCents?: number | null;
+		currentBalanceInCents?: number;
+		linkedAccountName?: string | null;
+		paidInCents?: number;
+		remainingInCents?: number;
 	}
 
-	let { goal, progress, progressColor, milestones, showActions = true, showArchivedDate = false, showStatus = false, isArchived = false, reorderMode = false, isSelected = false, isOtherSelected = false, onSelect, onPlaceHere }: Props = $props();
+	let { goal, progress, progressColor, milestones, showActions = true, showArchivedDate = false, showStatus = false, isArchived = false, reorderMode = false, isSelected = false, isOtherSelected = false, onSelect, onPlaceHere, isDebtGoal = false, startingBalanceInCents, currentBalanceInCents, linkedAccountName, paidInCents, remainingInCents }: Props = $props();
 
 	const staleness = $derived(getStaleness(goal.updatedAt));
+
+	// Debt-specific progress calculation
+	const debtProgress = $derived(isDebtGoal && paidInCents !== undefined && remainingInCents !== undefined
+		? Math.round((paidInCents / (paidInCents + remainingInCents)) * 100)
+		: null
+	);
 </script>
 
 <tr class="goal-row border-b border-gray-200 last:border-b-0 {isArchived ? 'bg-gray-50' : ''} {isSelected ? 'bg-amber-50' : ''}">
@@ -35,7 +48,7 @@
 			{#if reorderMode}
 				<span class="text-gray-400 select-none mr-1">⋮⋮</span>
 			{/if}
-      <span class={staleness.cssClass}>●</span>
+			<span class={staleness.cssClass}>●</span>
 			{#if isArchived}
 				<span>{truncateDisplay(goal.name, DISPLAY_LIMITS.GOAL_NAME)}</span>
 				<span class="text-xs text-red-700 ml-1">[ARCHIVED]</span>
@@ -43,6 +56,10 @@
 				<a href="/goals/{goal.slug}" class="bracket-link">{truncateDisplay(goal.name, DISPLAY_LIMITS.GOAL_NAME)}</a>
 			{/if}
 		</div>
+		<!-- Linked account for debt goals -->
+		{#if isDebtGoal && linkedAccountName}
+			<div class="text-xs text-gray-600 mt-1">{linkedAccountName}</div>
+		{/if}
 		<!-- Reorder controls inline under name -->
 		{#if reorderMode && !isArchived}
 			<div class="mt-1">
@@ -69,27 +86,57 @@
 		{/if}
 	</td>
 	<td class="text-right pr-4 text-sm py-2 whitespace-nowrap min-w-55">
-		<div class="font-bold {isArchived ? 'text-gray-600' : progressColor.text}">
-			{formatCurrencyShorthand(goal.currentAllocation)} / {formatCurrencyShorthand(goal.targetAmountInCents)}
-		</div>
-		<!-- Progress bar -->
-		<div class="flex items-center gap-1 text-xs leading-none mt-1">
-			<span>[</span>
-			<div class="flex-1 h-3 relative border-y border-gray-100">
-				<div
-					class="h-full {isArchived ? 'bg-gray-400' : progressColor.bg}"
-					style="width: {progress}%"
-				></div>
+		{#if isDebtGoal}
+			<!-- Debt goal: show paid/remaining -->
+			<div class="font-bold {isArchived ? 'text-gray-600' : progressColor.text}">
+				{#if paidInCents !== undefined && remainingInCents !== undefined}
+					{formatCurrencyShorthand(paidInCents)} / {formatCurrencyShorthand(remainingInCents)}
+				{:else}
+					{formatCurrencyShorthand(goal.currentAllocation)} / {formatCurrencyShorthand(goal.targetAmountInCents)}
+				{/if}
 			</div>
-			<span>]</span>
-			<span class="min-w-5 font-bold">{progress}%</span>
-		</div>
+			<!-- Progress bar -->
+			<div class="flex items-center gap-1 text-xs leading-none mt-1">
+				<span>[</span>
+				<div class="flex-1 h-3 relative border-y border-gray-100">
+					<div
+						class="h-full {isArchived ? 'bg-gray-400' : progressColor.bg}"
+						style="width: {debtProgress ?? progress}%"
+					></div>
+				</div>
+				<span>]</span>
+				<span class="min-w-5 font-bold">{debtProgress ?? progress}%</span>
+			</div>
+		{:else}
+			<!-- Savings goal: show current/target -->
+			<div class="font-bold {isArchived ? 'text-gray-600' : progressColor.text}">
+				{formatCurrencyShorthand(goal.currentAllocation)} / {formatCurrencyShorthand(goal.targetAmountInCents)}
+			</div>
+			<!-- Progress bar -->
+			<div class="flex items-center gap-1 text-xs leading-none mt-1">
+				<span>[</span>
+				<div class="flex-1 h-3 relative border-y border-gray-100">
+					<div
+						class="h-full {isArchived ? 'bg-gray-400' : progressColor.bg}"
+						style="width: {progress}%"
+					></div>
+				</div>
+				<span>]</span>
+				<span class="min-w-5 font-bold">{progress}%</span>
+			</div>
+		{/if}
 	</td>
 	<td class="text-right pr-1 text-sm py-2 whitespace-nowrap min-w-30">
-		{#if goal.targetDate}
-			<div class="text-xs text-gray-600">{formatDate(new Date(goal.targetDate))}</div>
+		{#if isDebtGoal && startingBalanceInCents !== null && startingBalanceInCents !== undefined}
+			<!-- Debt goal: show starting balance -->
+			<div class="text-sm">{formatCurrencyShorthand(Math.abs(startingBalanceInCents))}</div>
 		{:else}
-			<span class="text-gray-400 text-xs">No deadline</span>
+			<!-- Savings goal: show target date -->
+			{#if goal.targetDate}
+				<div class="text-xs text-gray-600">{formatDate(new Date(goal.targetDate))}</div>
+			{:else}
+				<span class="text-gray-400 text-xs">No deadline</span>
+			{/if}
 		{/if}
 	</td>
 	{#if showArchivedDate}

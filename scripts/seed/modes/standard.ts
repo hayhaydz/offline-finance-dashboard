@@ -365,6 +365,10 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 		console.log(`  ✓ ${r.yearMonth} (${r.completedItems.length}/6 items)`);
 	}
 
+	// --- Debt Goals ---
+	console.log("\n💳 Creating debt goals...");
+	await seedDebtGoals(db, userId);
+
 	const allTransactions = await db.query.accountTransactions.findMany({
 		columns: { amount: true },
 	});
@@ -377,4 +381,190 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 		`   ${accounts.length} accounts | ${goals.length} goals | ${totalTransactions} transactions | ${totalRates} rates | ${snapshots.length} snapshots | ${totalNotes} notes | ${reviewFixtures.length} reviews`,
 	);
 	console.log(`   Net worth (latest balances): ${netWorth}`);
+}
+
+async function seedDebtGoals(db: DB, userId: number): Promise<void> {
+	console.log("Seeding debt goals...");
+
+	const liabilityAccounts = await db.query.accounts.findMany({
+		where: eq(schema.accounts.category, "liability"),
+	});
+
+	console.log(`Found ${liabilityAccounts.length} liability accounts`);
+
+	if (liabilityAccounts.length === 0) {
+		console.log("No liability accounts found, skipping debt goals");
+		return;
+	}
+
+	const adminUser = await db.query.users.findFirst({
+		where: eq(schema.users.username, "admin"),
+	});
+
+	if (!adminUser) {
+		console.log("Admin user not found, skipping debt goals");
+		return;
+	}
+
+	// Helper to create debt goal with milestones
+	async function createDebtGoal(
+		name: string,
+		slug: string,
+		accountName: string,
+		startingBalance: number,
+		currentProgress: number,
+		sortOrder: number,
+		milestones: Array<{ label: string; threshold: number; reached: boolean }>,
+	) {
+		const account = liabilityAccounts.find((a) => a.name === accountName);
+		if (!account) {
+			console.log(`  ⚠ Account "${accountName}" not found, skipping goal`);
+			return null;
+		}
+
+		const now = new Date();
+		const [debtGoal] = await db
+			.insert(schema.goals)
+			.values({
+				userId: adminUser.id,
+				slug,
+				name,
+				goalType: "debt",
+				linkedAccountId: account.id,
+				startingBalanceInCents: startingBalance,
+				targetAmountInCents: 0,
+				currentAllocation: currentProgress,
+				sortOrder,
+				createdAt: now,
+				updatedAt: now,
+			})
+			.returning();
+
+		console.log(`  ✓ ${name} (${formatGBP(currentProgress)} / ${formatGBP(startingBalance)})`);
+
+		// Add milestones
+		for (const ms of milestones) {
+			await db.insert(schema.goalMilestones).values({
+				goalId: debtGoal.id,
+				label: ms.label,
+				thresholdInCents: ms.threshold,
+				reachedAt: ms.reached ? now : null,
+				createdAt: now,
+			});
+		}
+
+		return debtGoal;
+	}
+
+	// Create varied debt goals with different progress levels
+	await createDebtGoal(
+		"Pay off Visa Gold",
+		"pay-off-visa-gold",
+		"Visa Gold",
+		-250000, // Started at -£2,500
+		-100000, // Currently at -£2,400 (60% paid off)
+		1,
+		[
+			{ label: "25% paid off", threshold: -187500, reached: true },
+			{ label: "Halfway there", threshold: -125000, reached: true },
+			{ label: "75% paid off", threshold: -62500, reached: false },
+			{ label: "Debt-free!", threshold: 0, reached: false },
+		],
+	);
+
+	await createDebtGoal(
+		"Clear Mastercard",
+		"clear-mastercard",
+		"Mastercard",
+		-80000, // Started at -£800
+		-45000, // Currently at -£450 (44% paid off)
+		2,
+		[
+			{ label: "25% paid off", threshold: -60000, reached: true },
+			{ label: "Halfway there", threshold: -40000, reached: false },
+			{ label: "75% paid off", threshold: -20000, reached: false },
+			{ label: "Debt-free!", threshold: 0, reached: false },
+		],
+	);
+
+	await createDebtGoal(
+		"Eliminate High-APR Card",
+		"eliminate-high-apr-card",
+		"High-APR Card",
+		-100000, // Started at -£1,000
+		-98000, // Just started (2% paid off)
+		3,
+		[
+			{ label: "First £100", threshold: -90000, reached: false },
+			{ label: "25% paid off", threshold: -75000, reached: false },
+			{ label: "Halfway there", threshold: -50000, reached: false },
+			{ label: "75% paid off", threshold: -25000, reached: false },
+			{ label: "Debt-free!", threshold: 0, reached: false },
+		],
+	);
+
+	await createDebtGoal(
+		"Pay off Tesco Car Loan",
+		"pay-off-tesco-car-loan",
+		"Tesco Car Loan",
+		-1200000, // Started at -£12,000
+		-800000, // Currently at -£11,200 (33% paid off)
+		4,
+		[
+			{ label: "25% paid off", threshold: -900000, reached: true },
+			{ label: "Halfway there", threshold: -600000, reached: false },
+			{ label: "75% paid off", threshold: -300000, reached: false },
+			{ label: "Loan cleared!", threshold: 0, reached: false },
+		],
+	);
+
+	await createDebtGoal(
+		"Rewards Card 0% Payoff",
+		"rewards-card-zero-percent-payoff",
+		"Rewards Card",
+		-120000, // Started at -£1,200
+		-85000, // Currently at -£850 (29% paid off)
+		5,
+		[
+			{ label: "25% paid off", threshold: -90000, reached: true },
+			{ label: "Halfway there", threshold: -60000, reached: false },
+			{ label: "3/4 done", threshold: -30000, reached: false },
+			{ label: "Paid before promo ends!", threshold: 0, reached: false },
+		],
+	);
+
+	// Add a "nearly complete" debt goal
+	await createDebtGoal(
+		"Final Car Loan Push",
+		"final-car-loan-push",
+		"Car Loan",
+		-150000, // Started at -£1,500
+		-20000, // Currently at -£200 (87% paid off - nearly done!)
+		6,
+		[
+			{ label: "25% paid off", threshold: -112500, reached: true },
+			{ label: "Halfway there", threshold: -75000, reached: true },
+			{ label: "75% paid off", threshold: -37500, reached: true },
+			{ label: "Final £100!", threshold: -10000, reached: true },
+			{ label: "Debt-free!", threshold: 0, reached: false },
+		],
+	);
+
+	// Add a completed debt goal for variety
+	await createDebtGoal(
+		"Store Card - Paid Off!",
+		"store-card-paid-off",
+		"High-APR Card", // Using existing account, treating as a second goal
+		-50000, // Started at -£500
+		0, // Fully paid off!
+		7,
+		[
+			{ label: "25% paid off", threshold: -37500, reached: true },
+			{ label: "Halfway there", threshold: -25000, reached: true },
+			{ label: "75% paid off", threshold: -12500, reached: true },
+			{ label: "Debt-free!", threshold: 0, reached: true },
+		],
+	);
+
+	console.log(`  Created 7 debt goals with varied progress`);
 }

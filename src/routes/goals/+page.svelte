@@ -10,9 +10,41 @@
 
 	let { data } = $props();
 
+	// Type for enriched goal data from server (includes debt goal fields)
+	type EnrichedGoal = Goal & {
+		progress?: { percent: number; paidInCents: number; remainingInCents: number; totalInCents: number };
+		color?: string;
+		currentBalance?: number;
+		linkedAccount?: { name: string } | null;
+	};
+
 	let tableRef: HTMLElement | null = $state(null);
 	let currentPage = $state(0);
 	let isUpdatingPage = $state(false);
+
+	// Filter state: 'all', 'savings', or 'debt'
+	let filter = $state<'all' | 'savings' | 'debt'>('all');
+
+	// Sync filter from URL query param
+	$effect(() => {
+		const urlFilter = pageState.url.searchParams.get('type') as 'all' | 'savings' | 'debt' | null;
+		if (urlFilter === 'savings' || urlFilter === 'debt' || urlFilter === 'all') {
+			filter = urlFilter;
+		} else {
+			filter = 'all';
+		}
+	});
+
+	async function setFilter(newFilter: 'all' | 'savings' | 'debt') {
+		filter = newFilter;
+		const url = new URL(pageState.url);
+		if (newFilter === 'all') {
+			url.searchParams.delete('type');
+		} else {
+			url.searchParams.set('type', newFilter);
+		}
+		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
+	}
 
 	async function updatePage(newPage: number) {
 		if (isUpdatingPage) return;
@@ -42,7 +74,7 @@
 	});
 
 	// Reactive goals array for client-side reordering
-	let goals = $state<Goal[]>([]);
+	let goals = $state<EnrichedGoal[]>([]);
 	let selectedSlug = $state<string | null>(null);
 
 	// Sync goals with server data
@@ -123,21 +155,34 @@
 	}
 
 	// Calculate progress percentage for a goal
-	function getProgress(goal: Goal): number {
+	function getProgress(goal: EnrichedGoal): number {
+		if (goal.progress && typeof goal.progress === 'object' && 'percent' in goal.progress) {
+			// Debt goal with pre-calculated progress
+			return Math.round(goal.progress.percent);
+		}
+		// Savings goal
 		return goal.targetAmountInCents > 0
 			? Math.min(100, Math.round((goal.currentAllocation / goal.targetAmountInCents) * 100))
 			: 0;
 	}
 
 	// Get progress color class based on percentage
-	function getProgressColor(progress: number): { text: string; bg: string } {
+	function getProgressColor(goal: EnrichedGoal): { text: string; bg: string } {
+		const progress = getProgress(goal);
+		if (goal.color && typeof goal.color === 'string') {
+			// Debt goal with pre-calculated color
+			if (goal.color === 'green') return { text: 'text-green-700', bg: 'bg-green-700' };
+			if (goal.color === 'amber') return { text: 'text-amber-600', bg: 'bg-amber-600' };
+			return { text: 'text-red-600', bg: 'bg-red-600' };
+		}
+		// Savings goal: calculate from progress percentage
 		if (progress >= 70) return { text: 'text-green-700', bg: 'bg-green-700' };
 		if (progress >= 30) return { text: 'text-amber-600', bg: 'bg-amber-600' };
 		return { text: 'text-red-600', bg: 'bg-red-600' };
 	}
 
 	// Get emergency fund milestones display
-	function getEmergencyFundMilestones(goal: Goal) {
+	function getEmergencyFundMilestones(goal: EnrichedGoal) {
 		if (!goal.isEmergencyFund) return null;
 
 		const monthlyExpenses = goal.targetAmountInCents / 12;
@@ -170,11 +215,37 @@
 </div>
 
 <!-- GOALS LIST SECTION -->
-<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
+<div class="font-bold flex justify-between items-center bg-gray-100 border-b border-black p-2">
 	<div class="flex items-center gap-2">
 		{#if staleness}
 			<span class="text-xs text-gray-500">{staleness.label}</span>
 		{/if}
+		<div class="flex gap-1">
+			<button
+				type="button"
+				onclick={() => setFilter('all')}
+				class="bracket-link text-xs font-bold"
+				class:text-green-700={filter === 'all'}
+			>
+				All
+			</button>
+			<button
+				type="button"
+				onclick={() => setFilter('savings')}
+				class="bracket-link text-xs font-bold"
+				class:text-green-700={filter === 'savings'}
+			>
+				Savings
+			</button>
+			<button
+				type="button"
+				onclick={() => setFilter('debt')}
+				class="bracket-link text-xs font-bold"
+				class:text-green-700={filter === 'debt'}
+			>
+				Debt
+			</button>
+		</div>
 	</div>
 	<div class="flex gap-2">
 		<button
@@ -201,19 +272,28 @@
 				<tr>
 					<th class="pl-2 text-left whitespace-nowrap">Goal</th>
 					<th class="text-right pr-4 whitespace-nowrap min-w-55">Progress</th>
-					<th class="text-right pr-1 whitespace-nowrap min-w-30">Target</th>
+					<th class="text-right pr-1 whitespace-nowrap min-w-30">
+						{data.goals.find(g => g.goalType === 'debt') ? 'Starting/Deadline' : 'Target'}
+					</th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each goals as goal, index}
 					{@const progress = getProgress(goal)}
-					{@const progressColor = getProgressColor(progress)}
+					{@const progressColor = getProgressColor(goal)}
 					{@const milestones = getEmergencyFundMilestones(goal)}
+					{@const isDebtGoal = goal.goalType === 'debt'}
 					<GoalRow
 						{goal}
 						{progress}
 						{progressColor}
 						{milestones}
+						{isDebtGoal}
+						startingBalanceInCents={goal.startingBalanceInCents}
+						currentBalanceInCents={'currentBalance' in goal ? goal.currentBalance : undefined}
+						linkedAccountName={goal.linkedAccount?.name ?? null}
+						paidInCents={'progress' in goal && typeof goal.progress === 'object' && 'paidInCents' in goal.progress ? goal.progress.paidInCents : undefined}
+						remainingInCents={'progress' in goal && typeof goal.progress === 'object' && 'remainingInCents' in goal.progress ? goal.progress.remainingInCents : undefined}
 						reorderMode={reorderMode}
 						isSelected={selectedSlug === goal.slug}
 						isOtherSelected={selectedSlug !== null && selectedSlug !== goal.slug}
