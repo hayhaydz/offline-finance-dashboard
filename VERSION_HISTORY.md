@@ -1,3 +1,82 @@
+## [2026-04-06] — feat: contextual goal alerts on goals page
+
+**Summary:** Added `getGoalListAlerts()` entry point to the alerts server module and wired it into the `/goals` page. Goal-specific alerts (deadline approaching, negative balance, debt grew beyond starting) now render via `AlertsSection` above the goals list filter row.
+
+**Modified files:**
+- `src/lib/server/alerts.ts` — added `getGoalListAlerts()` export wrapping `checkGoalAlerts` with error handling
+- `src/routes/goals/+page.server.ts` — imported `getGoalListAlerts`, added `alerts` to return object
+- `src/routes/goals/+page.svelte` — imported `AlertsSection`, renders it above goals list header
+
+**New files:**
+- `tests/unit/goal-list-alerts.test.ts` — 5 tests for `getGoalListAlerts` (empty, negative balance, deadline, debt grew, error)
+- `tests/unit/goals-page-alerts-ui.test.ts` — 4 tests for alerts rendering (show/hide, title, viewAllHref)
+- `tests/integration/goals-page-alerts.test.ts` — 1 test verifying server load returns alerts
+
+**Suggested commit:** `feat: contextual goal alerts on goals page`
+
+---
+
+## [2026-04-06] — fix: clamp debt progress 0-100%, redesign ready-to-assign, fix debt alerts
+
+**Summary:** Fixed negative debt progress percentages (e.g., -647%) by clamping to 0-100%. Redesigned "Ready to Assign" to separate savings allocations from debt tracking. Fixed false GOAL_NEGATIVE_BALANCE alerts for debt goals, added DEBT_GREW_BEYOND_STARTING alert. Updated seed data to match UI creation flow.
+
+**Modified files:**
+- `scripts/seed/modes/standard.ts` — debt goals now use `currentAllocation: 0`, added target dates to 3 debt goals
+- `src/lib/server/goals.ts` — `getDebtGoalProgress()` clamps paidInCents>=0, percent 0-100, adds `debtGrewBeyondStarting` flag; `calculateReadyToAssign()` returns debt breakdown
+- `src/lib/components/GoalRow.svelte` — defensive clamp on inline `debtProgress` calculation
+- `src/routes/goals/+page.server.ts` — forces red color when debt grew beyond starting, passes new ready-to-assign fields
+- `src/routes/goals/+page.svelte` — redesigned Ready to Assign with debt tracking breakdown (tracked/untracked liabilities)
+- `src/routes/goals/archived/+page.server.ts` — updated for new `calculateReadyToAssign` return shape
+- `src/lib/server/alerts.ts` — skip GOAL_NEGATIVE_BALANCE for debt goals, add DEBT_GREW_BEYOND_STARTING alert, debt-aware deadline progress
+- `src/lib/types/alerts.ts` — added `DEBT_GREW_BEYOND_STARTING` alert type
+- `tests/unit/debt-goal-progress.test.ts` — updated for clamped behavior
+- `tests/integration/goals-reorder-atomicity.test.ts` — updated mock return shape
+
+**Suggested commit:** `fix: clamp debt goal progress to 0-100%, redesign ready-to-assign breakdown, fix debt goal alerts`
+
+## [2026-04-06] — feat: debt goals UI redesign — detail page + metrics + components
+
+**Summary:** Implemented debt-specific UI across goal detail page, GoalDetailCard, GoalRow, and PaginationClient. Debt goals now show PAID/STARTING/REMAINING labels, linked account info, interactive payoff projection slider, debt metrics, and payoff history. Savings goals unchanged.
+
+**Modified files:**
+- `src/lib/components/PaginationClient.svelte` — removed "No pages available" fallback, hidden when totalPages <= 1
+- `src/lib/components/GoalRow.svelte` — deadline column now shows target date for all goal types (not starting balance for debt)
+- `src/lib/components/GoalDetailCard.svelte` — added debt variant with PAID/STARTING/REMAINING labels, debt milestones block, "View Debt Account" action
+- `src/lib/server/debtMetrics.ts` — **NEW** server utility with calculatePayoffProjection, getDefaultMonthlyPayment, calculateRecentAveragePayment, getCurrentApr
+- `src/routes/goals/[slug]/+page.server.ts` — loads debt data (linked account, interest rates, transactions, APR, payoff history) when goal is debt type
+- `src/routes/goals/[slug]/+page.svelte` — conditional debt sections: linked account panel, debt metrics with payoff slider, payoff history table
+- `tests/unit/pagination-hiding.test.ts` — **NEW** 4 tests
+- `tests/unit/goal-row-deadline-display.test.ts` — **NEW** 4 tests
+- `tests/unit/goal-detail-card-debt-variant.test.ts` — **NEW** 9 tests
+- `tests/unit/debt-metrics-calculations.test.ts` — **NEW** 12 tests
+- `tests/integration/debt-goal-detail-page-ui.test.ts` — **NEW** 7 tests
+
+**Suggested commit:** `feat: debt goals UI redesign with debt metrics, payoff projection, and debt-specific components`
+
+---
+
+## [2026-04-06] — docs: debt goals UI redesign implementation plan
+
+**Summary:** Created detailed implementation plan for debt goals UI redesign. Plan includes 8 tasks with TDD approach, exact file paths, complete code snippets, and verification steps. Covers GoalRow deadline fix, GoalDetailCard debt variant, pagination hiding, debt metrics utilities, server load changes, and detail page sections.
+
+**Modified files:**
+- **NEW** `.docs/_refile/2026-04-06-debt-goals-ui-redesign-implementation-plan.md` — implementation plan with 8 tasks, 40+ steps, TDD workflow
+
+**Suggested commit:** `docs: add debt goals UI redesign implementation plan`
+
+---
+
+## [2026-04-06] — docs: debt goals UI redesign design spec
+
+**Summary:** Created comprehensive design document for debt goals UI improvements resolving confusion around debt goal display. Spec includes GoalRow deadline display fix, GoalDetailCard debt variant (Paid/Starting/Remaining), debt-specific detail page sections (Linked Account, Debt Metrics, Payoff History), interactive payoff projection calculator, and pagination improvements.
+
+**Modified files:**
+- **NEW** `.docs/_refile/2026-04-06-debt-goals-ui-redesign-design.md` — design spec with problem statement, component changes, data flow, resolved decisions
+
+**Suggested commit:** `docs: add debt goals UI redesign design spec`
+
+---
+
 ## [2026-04-06] — feat: unify savings and debt goals into single page with filter toggle
 
 **Summary:** Merged `/goals` and `/goals/debt` into a unified `/goals` page with URL-based filtering (`?type=all|savings|debt`). Extended `GoalRow` component to conditionally render debt-specific columns (linked account, paid/remaining progress, starting balance). Updated navigation to remove debt sub-link and add archive link. Old debt routes now redirect to unified page with appropriate filter.

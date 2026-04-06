@@ -412,9 +412,9 @@ async function seedDebtGoals(db: DB, userId: number): Promise<void> {
 		slug: string,
 		accountName: string,
 		startingBalance: number,
-		currentProgress: number,
 		sortOrder: number,
 		milestones: Array<{ label: string; threshold: number; reached: boolean }>,
+		targetDate?: Date,
 	) {
 		const account = liabilityAccounts.find((a) => a.name === accountName);
 		if (!account) {
@@ -433,14 +433,15 @@ async function seedDebtGoals(db: DB, userId: number): Promise<void> {
 				linkedAccountId: account.id,
 				startingBalanceInCents: startingBalance,
 				targetAmountInCents: 0,
-				currentAllocation: currentProgress,
+				currentAllocation: 0,
 				sortOrder,
+				...(targetDate ? { targetDate } : {}),
 				createdAt: now,
 				updatedAt: now,
 			})
 			.returning();
 
-		console.log(`  ✓ ${name} (${formatGBP(currentProgress)} / ${formatGBP(startingBalance)})`);
+		console.log(`  ✓ ${name} (starting: ${formatGBP(startingBalance)})`);
 
 		// Add milestones
 		for (const ms of milestones) {
@@ -457,12 +458,21 @@ async function seedDebtGoals(db: DB, userId: number): Promise<void> {
 	}
 
 	// Create varied debt goals with different progress levels
+	// Calculate target dates for specific goals
+	const threeMonthsFromNow = new Date();
+	threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
+
+	const oneMonthFromNow = new Date();
+	oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
+
+	const twelveMonthsFromNow = new Date();
+	twelveMonthsFromNow.setMonth(twelveMonthsFromNow.getMonth() + 12);
+
 	await createDebtGoal(
 		"Pay off Visa Gold",
 		"pay-off-visa-gold",
 		"Visa Gold",
 		-250000, // Started at -£2,500
-		-100000, // Currently at -£2,400 (60% paid off)
 		1,
 		[
 			{ label: "25% paid off", threshold: -187500, reached: true },
@@ -477,7 +487,6 @@ async function seedDebtGoals(db: DB, userId: number): Promise<void> {
 		"clear-mastercard",
 		"Mastercard",
 		-80000, // Started at -£800
-		-45000, // Currently at -£450 (44% paid off)
 		2,
 		[
 			{ label: "25% paid off", threshold: -60000, reached: true },
@@ -492,7 +501,6 @@ async function seedDebtGoals(db: DB, userId: number): Promise<void> {
 		"eliminate-high-apr-card",
 		"High-APR Card",
 		-100000, // Started at -£1,000
-		-98000, // Just started (2% paid off)
 		3,
 		[
 			{ label: "First £100", threshold: -90000, reached: false },
@@ -508,7 +516,6 @@ async function seedDebtGoals(db: DB, userId: number): Promise<void> {
 		"pay-off-tesco-car-loan",
 		"Tesco Car Loan",
 		-1200000, // Started at -£12,000
-		-800000, // Currently at -£11,200 (33% paid off)
 		4,
 		[
 			{ label: "25% paid off", threshold: -900000, reached: true },
@@ -516,6 +523,7 @@ async function seedDebtGoals(db: DB, userId: number): Promise<void> {
 			{ label: "75% paid off", threshold: -300000, reached: false },
 			{ label: "Loan cleared!", threshold: 0, reached: false },
 		],
+		twelveMonthsFromNow,
 	);
 
 	await createDebtGoal(
@@ -523,7 +531,6 @@ async function seedDebtGoals(db: DB, userId: number): Promise<void> {
 		"rewards-card-zero-percent-payoff",
 		"Rewards Card",
 		-120000, // Started at -£1,200
-		-85000, // Currently at -£850 (29% paid off)
 		5,
 		[
 			{ label: "25% paid off", threshold: -90000, reached: true },
@@ -531,6 +538,7 @@ async function seedDebtGoals(db: DB, userId: number): Promise<void> {
 			{ label: "3/4 done", threshold: -30000, reached: false },
 			{ label: "Paid before promo ends!", threshold: 0, reached: false },
 		],
+		threeMonthsFromNow,
 	);
 
 	// Add a "nearly complete" debt goal
@@ -539,7 +547,6 @@ async function seedDebtGoals(db: DB, userId: number): Promise<void> {
 		"final-car-loan-push",
 		"Car Loan",
 		-150000, // Started at -£1,500
-		-20000, // Currently at -£200 (87% paid off - nearly done!)
 		6,
 		[
 			{ label: "25% paid off", threshold: -112500, reached: true },
@@ -548,6 +555,7 @@ async function seedDebtGoals(db: DB, userId: number): Promise<void> {
 			{ label: "Final £100!", threshold: -10000, reached: true },
 			{ label: "Debt-free!", threshold: 0, reached: false },
 		],
+		oneMonthFromNow,
 	);
 
 	// Add a completed debt goal for variety
@@ -556,7 +564,6 @@ async function seedDebtGoals(db: DB, userId: number): Promise<void> {
 		"store-card-paid-off",
 		"High-APR Card", // Using existing account, treating as a second goal
 		-50000, // Started at -£500
-		0, // Fully paid off!
 		7,
 		[
 			{ label: "25% paid off", threshold: -37500, reached: true },

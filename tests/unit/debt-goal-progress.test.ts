@@ -27,7 +27,9 @@ describe("getDebtGoalProgress", () => {
       startingBalanceInCents: -320000,
       currentBalanceInCents: -350000, // Increased debt
     });
-    expect(result.paidInCents).toBe(-30000); // Negative = went backwards
-    expect(result.percent).toBeCloseTo(-9.38, 1);
+    expect(result.paidInCents).toBe(0); // Clamped to 0
+    expect(result.percent).toBe(0); // Clamped to 0%
+    expect(result.remainingInCents).toBe(350000);
+    expect(result.debtGrewBeyondStarting).toBe(true);
   });
 });

@@ -48,7 +48,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	});
 
 	// Calculate Ready to Assign (for context, though archived page is read-only)
-	const { readyToAssign, totalAssets, totalAllocated } =
+	const { readyToAssign, totalAssets, totalSavingsAllocated } =
 		await calculateReadyToAssign({
 			userId: locals.user.id,
 		});
@@ -62,7 +62,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		totalCount: total,
 		readyToAssign,
 		totalAssets,
-		totalAllocated,
+		totalSavingsAllocated,
 		user: {
 			id: locals.user.id,
 			username: locals.user.username,

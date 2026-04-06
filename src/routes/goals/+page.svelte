@@ -6,6 +6,7 @@
 	import GoalRow from '$lib/components/GoalRow.svelte';
 	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
+	import AlertsSection from '$lib/components/AlertsSection.svelte';
 	import type { Goal } from '$lib/db/schema';
 
 	let { data } = $props();
@@ -209,10 +210,31 @@
 		<span class="text-xs tracking-widest font-bold">READY TO ASSIGN</span>
 		<span class="text-xs font-bold text-gray-900">{formatCurrency(data.readyToAssign)}</span>
 	</div>
-	<div class="text-sm text-gray-800">
-		{formatCurrency(data.totalAssets)} assets - {formatCurrency(data.totalAllocated)} allocated
+	<div class="text-xs text-gray-600 mb-2">
+		{formatCurrency(data.totalAssets)} asset cash - {formatCurrency(data.totalSavingsAllocated)} allocated to savings
 	</div>
+	{#if data.totalLiabilities > 0}
+		<div class="border-t border-gray-300 pt-1">
+			<div class="flex justify-between items-center mb-1">
+				<span class="text-xs tracking-widest font-bold text-gray-700">DEBT TRACKING</span>
+			</div>
+			<div class="text-xs text-gray-600">
+				<div class="flex justify-between">
+					<span>Tracked by goals</span>
+					<span>{formatCurrency(data.totalDebtTracked)}</span>
+				</div>
+				<div class="flex justify-between">
+					<span>Untracked liabilities</span>
+					<span class="{data.totalDebtUntracked > 0 ? 'text-amber-700 font-bold' : ''}">{formatCurrency(data.totalDebtUntracked)}</span>
+				</div>
+			</div>
+		</div>
+	{/if}
 </div>
+
+{#if data.alerts.length > 0}
+	<AlertsSection alerts={data.alerts} title="GOAL ALERTS" viewAllHref="/alerts" />
+{/if}
 
 <!-- GOALS LIST SECTION -->
 <div class="font-bold flex justify-between items-center bg-gray-100 border-b border-black p-2">

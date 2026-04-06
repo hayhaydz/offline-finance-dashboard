@@ -26,6 +26,7 @@ export type AlertType =
 	| 'GOAL_NEGATIVE_BALANCE'
 	| 'NO_SNAPSHOT_RECENTLY'
 	| 'ADDITIONAL_RATE_PSA_ZERO'
+	| 'DEBT_GREW_BEYOND_STARTING'
 	| 'NO_MONTHLY_REVIEW';
 
 export interface Alert {

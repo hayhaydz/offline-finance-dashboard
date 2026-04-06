@@ -36,7 +36,7 @@
 
 	// Debt-specific progress calculation
 	const debtProgress = $derived(isDebtGoal && paidInCents !== undefined && remainingInCents !== undefined
-		? Math.round((paidInCents / (paidInCents + remainingInCents)) * 100)
+		? Math.max(0, Math.round((Math.max(0, paidInCents) / (Math.max(0, paidInCents) + remainingInCents)) * 100))
 		: null
 	);
 </script>
@@ -127,16 +127,10 @@
 		{/if}
 	</td>
 	<td class="text-right pr-1 text-sm py-2 whitespace-nowrap min-w-30">
-		{#if isDebtGoal && startingBalanceInCents !== null && startingBalanceInCents !== undefined}
-			<!-- Debt goal: show starting balance -->
-			<div class="text-sm">{formatCurrencyShorthand(Math.abs(startingBalanceInCents))}</div>
+		{#if goal.targetDate}
+			<div class="text-xs text-gray-600">{formatDate(new Date(goal.targetDate))}</div>
 		{:else}
-			<!-- Savings goal: show target date -->
-			{#if goal.targetDate}
-				<div class="text-xs text-gray-600">{formatDate(new Date(goal.targetDate))}</div>
-			{:else}
-				<span class="text-gray-400 text-xs">No deadline</span>
-			{/if}
+			<span class="text-gray-400 text-xs">No deadline</span>
 		{/if}
 	</td>
 	{#if showArchivedDate}

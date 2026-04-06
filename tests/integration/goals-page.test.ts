@@ -27,7 +27,10 @@ vi.mock("$lib/server/goals", () => ({
 	calculateReadyToAssign: vi.fn().mockResolvedValue({
 		readyToAssign: 0,
 		totalAssets: 0,
-		totalAllocated: 0,
+		totalSavingsAllocated: 0,
+		totalDebtTracked: 0,
+		totalDebtUntracked: 0,
+		totalLiabilities: 0,
 	}),
 }));
 

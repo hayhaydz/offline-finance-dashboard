@@ -13,6 +13,7 @@ import {
 	logError,
 	logFormData,
 } from "$lib/utils/logger";
+import { getGoalListAlerts } from "$lib/server/alerts";
 import { getMostRecentDate, getStaleness } from "$lib/utils/staleness";
 import type { Actions, PageServerLoad } from "./$types";
 
@@ -92,8 +93,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			});
 
 			let color = 'red';
-			if (progress.percent >= 70) color = 'green';
-			else if (progress.percent >= 30) color = 'amber';
+			if (progress.debtGrewBeyondStarting) {
+				color = 'red';
+			} else if (progress.percent >= 70) {
+				color = 'green';
+			} else if (progress.percent >= 30) {
+				color = 'amber';
+			}
 
 			return {
 				...goal,
@@ -115,10 +121,16 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	});
 
 	// Calculate Ready to Assign (unallocated assets)
-	const { readyToAssign, totalAssets, totalAllocated } =
-		await calculateReadyToAssign({
-			userId: locals.user.id,
-		});
+	const {
+		readyToAssign,
+		totalAssets,
+		totalSavingsAllocated,
+		totalDebtTracked,
+		totalDebtUntracked,
+		totalLiabilities,
+	} = await calculateReadyToAssign({
+		userId: locals.user.id,
+	});
 
 	// Calculate staleness based on most recent goal creation/update
 	const goalDates = userGoals.map((g) => new Date(g.createdAt));
@@ -149,13 +161,17 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		totalPages,
 		readyToAssign,
 		totalAssets,
-		totalAllocated,
+		totalSavingsAllocated,
+		totalDebtTracked,
+		totalDebtUntracked,
+		totalLiabilities,
 		user: {
 			id: locals.user.id,
 			username: locals.user.username,
 			createdAt: locals.user.createdAt,
 		},
 		staleness,
+		alerts: await getGoalListAlerts(locals.user.id),
 		filterType: validType as 'all' | 'savings' | 'debt',
 	};
 };

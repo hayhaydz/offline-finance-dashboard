@@ -124,10 +124,4 @@
       </button>
     {/if}
   </div>
-{:else}
-  {#if totalPages <= 0}
-    <div class="border-t border-black p-2 text-sm text-gray-400">
-      No pages available
-    </div>
-  {/if}
 {/if}

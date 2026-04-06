@@ -291,6 +291,7 @@ export interface DebtGoalProgress {
 	totalInCents: number;
 	percent: number;
 	remainingInCents: number;
+	debtGrewBeyondStarting: boolean;
 }
 
 export function getDebtGoalProgress(params: {
@@ -301,10 +302,13 @@ export function getDebtGoalProgress(params: {
 
 	const totalInCents = Math.abs(startingBalanceInCents);
 	const remainingInCents = Math.abs(currentBalanceInCents);
-	const paidInCents = totalInCents - remainingInCents;
-	const percent = totalInCents > 0 ? (paidInCents / totalInCents) * 100 : 100;
+	const rawPaidInCents = totalInCents - remainingInCents;
+	const paidInCents = Math.max(0, rawPaidInCents);
+	const debtGrewBeyondStarting = remainingInCents > totalInCents;
+	const rawPercent = totalInCents > 0 ? (paidInCents / totalInCents) * 100 : 100;
+	const percent = Math.max(0, Math.min(100, rawPercent));
 
-	return { paidInCents, totalInCents, percent, remainingInCents };
+	return { paidInCents, totalInCents, percent, remainingInCents, debtGrewBeyondStarting };
 }
 
 export interface MilestoneTemplate {
@@ -371,17 +375,25 @@ async function getOpenAssetAccountsWithLatestBalances(userId: number) {
 /**
  * Calculate Ready to Assign (unallocated assets)
  *
- * Ready to Assign = Total Assets - sum(all goal.current_allocation)
+ * Ready to Assign = Total Assets - sum(savings goal.current_allocation)
+ *
+ * Also computes debt tracking breakdown:
+ * - totalLiabilities: sum of abs(balance) for open liability accounts
+ * - totalDebtTracked: sum of abs(startingBalance) for linked debt goals
+ * - totalDebtUntracked: liabilities not yet tracked by any debt goal
  *
  * @param params - User ID and database instance
- * @returns Unallocated amount in cents
+ * @returns Ready to assign amount and debt breakdown, all in cents
  */
 export async function calculateReadyToAssign(params: {
 	userId: number;
 }): Promise<{
 	readyToAssign: number;
 	totalAssets: number;
-	totalAllocated: number;
+	totalSavingsAllocated: number;
+	totalDebtTracked: number;
+	totalDebtUntracked: number;
+	totalLiabilities: number;
 }> {
 	const { userId } = params;
 
@@ -392,27 +404,72 @@ export async function calculateReadyToAssign(params: {
 		return sum + (account.balances[0]?.balanceInCents || 0);
 	}, 0);
 
-	// Calculate total allocated (sum of all goal current_allocation)
+	// Query all active goals for savings allocation calculation
 	const userGoals = await db.query.goals.findMany({
 		where: and(withUserFilter(userId, goals), isNull(goals.deletedAt)),
 	});
 
-	const totalAllocated = userGoals.reduce(
-		(sum, goal) => sum + goal.currentAllocation,
+	// Only savings goals (or null goalType treated as savings) count toward allocation
+	const totalSavingsAllocated = userGoals.reduce(
+		(sum, goal) =>
+			goal.goalType === "debt" ? sum : sum + goal.currentAllocation,
 		0,
 	);
 
-	// Ready to Assign = Total Assets - Total Allocated
-	const readyToAssign = totalAssets - totalAllocated;
+	// Ready to Assign = Total Assets - Savings Allocated
+	const readyToAssign = totalAssets - totalSavingsAllocated;
+
+	// --- Debt tracking breakdown ---
+
+	// Get open liability accounts (category = 'liability', no closedAt)
+	const liabilityAccounts = await db.query.accounts.findMany({
+		where: and(
+			withUserFilter(userId, accounts),
+			eq(accounts.category, "liability"),
+			isNull(accounts.closedAt),
+		),
+	});
+
+	const liabilityAccountIds = liabilityAccounts.map((a) => a.id);
+	const liabilityBalances =
+		liabilityAccountIds.length > 0
+			? await getCurrentBalancesForAccounts(liabilityAccountIds)
+			: new Map<number, number>();
+
+	const totalLiabilities = liabilityAccounts.reduce(
+		(sum, account) => sum + Math.abs(liabilityBalances.get(account.id) ?? 0),
+		0,
+	);
+
+	// Sum abs(startingBalance) for debt goals that have a linked account
+	const totalDebtTracked = userGoals.reduce(
+		(sum, goal) =>
+			goal.goalType === "debt" && goal.linkedAccountId !== null
+				? sum + Math.abs(goal.startingBalanceInCents ?? 0)
+				: sum,
+		0,
+	);
+
+	const totalDebtUntracked = totalLiabilities - totalDebtTracked;
 
 	devLog("readyToAssign", "Calculated Ready to Assign", {
 		userId,
 		totalAssets,
-		totalAllocated,
+		totalSavingsAllocated,
 		readyToAssign,
+		totalLiabilities,
+		totalDebtTracked,
+		totalDebtUntracked,
 	});
 
-	return { readyToAssign, totalAssets, totalAllocated };
+	return {
+		readyToAssign,
+		totalAssets,
+		totalSavingsAllocated,
+		totalDebtTracked,
+		totalDebtUntracked,
+		totalLiabilities,
+	};
 }
 
 /**

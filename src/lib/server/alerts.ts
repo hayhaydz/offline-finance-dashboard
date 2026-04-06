@@ -13,6 +13,7 @@ import {
 	getCurrentBalancesForAccounts,
 	getLatestTransactionDateForAccounts,
 } from '$lib/server/derivedBalances';
+import { getDebtGoalProgress } from './goals';
 import type { Alert, AlertSeverity } from '$lib/types/alerts';
 import { logError } from '$lib/utils/logger';
 
@@ -541,8 +542,17 @@ async function checkGoalAlerts(userId: number): Promise<Alert[]> {
 		where: and(withUserFilter(userId, goals), isNull(goals.deletedAt)),
 	});
 
+	// Batch-fetch current balances for debt goals
+	const debtGoalAccountIds = userGoals
+		.filter(g => g.goalType === 'debt' && g.linkedAccountId !== null)
+		.map(g => g.linkedAccountId!);
+
+	const debtBalances = debtGoalAccountIds.length > 0
+		? await getCurrentBalancesForAccounts(debtGoalAccountIds)
+		: new Map<number, number>();
+
 	for (const goal of userGoals) {
-		if (goal.currentAllocation < 0) {
+		if (goal.currentAllocation < 0 && goal.goalType !== 'debt') {
 			alerts.push(
 				makeGlobalAlert('GOAL_NEGATIVE_BALANCE', 'red', 'Goal has negative balance', `"${goal.name}" allocation has gone negative`, '/goals'),
 			);
@@ -551,9 +561,19 @@ async function checkGoalAlerts(userId: number): Promise<Alert[]> {
 		if (goal.targetDate) {
 			const days = daysUntil(goal.targetDate, now);
 			if (days <= 30 && days > 0) {
-				const progress = goal.targetAmountInCents > 0
-					? goal.currentAllocation / goal.targetAmountInCents
-					: 1;
+				let progress: number;
+				if (goal.goalType === 'debt' && goal.linkedAccountId !== null) {
+					const currentBalance = debtBalances.get(goal.linkedAccountId) ?? 0;
+					const debtProgress = getDebtGoalProgress({
+						startingBalanceInCents: goal.startingBalanceInCents ?? 0,
+						currentBalanceInCents: currentBalance,
+					});
+					progress = debtProgress.percent / 100;
+				} else {
+					progress = goal.targetAmountInCents > 0
+						? goal.currentAllocation / goal.targetAmountInCents
+						: 1;
+				}
 				if (progress < 0.9) {
 					const pct = Math.round(progress * 100);
 					alerts.push(
@@ -566,6 +586,16 @@ async function checkGoalAlerts(userId: number): Promise<Alert[]> {
 						),
 					);
 				}
+			}
+		}
+
+		// Check for debt that grew beyond starting balance
+		if (goal.goalType === 'debt' && goal.startingBalanceInCents !== null && goal.linkedAccountId !== null) {
+			const currentBalance = debtBalances.get(goal.linkedAccountId);
+			if (currentBalance !== undefined && Math.abs(currentBalance) > Math.abs(goal.startingBalanceInCents)) {
+				alerts.push(
+					makeGlobalAlert('DEBT_GREW_BEYOND_STARTING', 'red', 'Debt increased', `"${goal.name}" balance has exceeded the starting balance`, '/goals'),
+				);
 			}
 		}
 	}
@@ -834,6 +864,19 @@ export async function getAlertsForAccount(accountId: number, userId: number): Pr
 		return allAccountAlerts.filter((a) => a.accountSlug === targetAccount.slug);
 	} catch (err) {
 		logError('getAlertsForAccount', 'Failed to compute account alerts', { accountId, userId, err });
+		return [];
+	}
+}
+
+/**
+ * Goal-specific alerts only — for the goals list page.
+ * Returns GOAL_DEADLINE_APPROACHING, GOAL_NEGATIVE_BALANCE, DEBT_GREW_BEYOND_STARTING.
+ */
+export async function getGoalListAlerts(userId: number): Promise<Alert[]> {
+	try {
+		return await checkGoalAlerts(userId);
+	} catch (err) {
+		logError('getGoalListAlerts', 'Failed to compute goal alerts', { userId, err });
 		return [];
 	}
 }

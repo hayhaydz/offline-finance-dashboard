@@ -15,8 +15,8 @@
 		const endTime = end.getTime();
 		const nowTime = now.getTime();
 		
-		const daysElapsed = Math.floor((nowTime - startTime) / (1000 * 60 * 60 * 24));
-		const daysRemaining = Math.ceil((endTime - nowTime) / (1000 * 60 * 60 * 24));
+		const daysElapsed = Math.max(1, Math.floor((nowTime - startTime) / (1000 * 60 * 60 * 24)) + 1);
+		const daysRemaining = 365 - daysElapsed;
 		
 		const endDay = end.getDate();
 		const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -39,7 +39,7 @@
 </div>
 <div class="border-b border-black p-2">
 	<div class="flex justify-between text-sm mb-1">
-		<span>{daysElapsed} of 365 days</span>
+		<span>Day {daysElapsed} of 365</span>
 		<span class="tabular-nums">Ends {endDateFormatted}</span>
 	</div>
 	<div class="h-2 border border-black bg-white mb-2">
