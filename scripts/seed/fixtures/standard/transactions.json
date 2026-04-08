@@ -64,13 +64,13 @@
     "accountName": "Main Current",
     "transactions": [
       { "type": "deposit", "amount": 350000, "daysAgo": 60, "description": "Salary" },
-      { "type": "withdrawal", "amount": -45000, "daysAgo": 58, "description": "Rent payment" },
-      { "type": "withdrawal", "amount": -15000, "daysAgo": 55, "description": "Groceries" },
+      { "type": "withdrawal", "amount": -45000, "daysAgo": 58, "description": "Rent payment", "categoryKey": "expenses" },
+      { "type": "withdrawal", "amount": -15000, "daysAgo": 55, "description": "Groceries", "categoryKey": "groceries" },
       { "type": "deposit", "amount": 350000, "daysAgo": 30, "description": "Salary" },
-      { "type": "withdrawal", "amount": -45000, "daysAgo": 28, "description": "Rent payment" },
+      { "type": "withdrawal", "amount": -45000, "daysAgo": 28, "description": "Rent payment", "categoryKey": "expenses" },
       { "type": "transfer_out", "amount": -50000, "daysAgo": 25, "description": "Transfer to Bills Current" },
-      { "type": "withdrawal", "amount": -12000, "daysAgo": 20, "description": "Groceries" },
-      { "type": "withdrawal", "amount": -8000, "daysAgo": 15, "description": "Utilities" },
+      { "type": "withdrawal", "amount": -12000, "daysAgo": 20, "description": "Groceries", "categoryKey": "groceries" },
+      { "type": "withdrawal", "amount": -8000, "daysAgo": 15, "description": "Utilities", "categoryKey": "bills" },
       { "type": "deposit", "amount": 350000, "daysAgo": 0, "description": "Salary" }
     ]
   },
@@ -78,25 +78,25 @@
     "accountName": "Bills Current",
     "transactions": [
       { "type": "transfer_in", "amount": 50000, "daysAgo": 25, "description": "Transfer from Main Current" },
-      { "type": "withdrawal", "amount": -8500, "daysAgo": 20, "description": "Council tax" },
-      { "type": "withdrawal", "amount": -12000, "daysAgo": 18, "description": "Energy bill" },
-      { "type": "withdrawal", "amount": -3500, "daysAgo": 15, "description": "Water bill" },
-      { "type": "withdrawal", "amount": -4500, "daysAgo": 10, "description": "Internet" }
+      { "type": "withdrawal", "amount": -8500, "daysAgo": 20, "description": "Council tax", "categoryKey": "bills" },
+      { "type": "withdrawal", "amount": -12000, "daysAgo": 18, "description": "Energy bill", "categoryKey": "bills" },
+      { "type": "withdrawal", "amount": -3500, "daysAgo": 15, "description": "Water bill", "categoryKey": "bills" },
+      { "type": "withdrawal", "amount": -4500, "daysAgo": 10, "description": "Internet", "categoryKey": "bills" }
     ]
   },
   {
     "accountName": "Visa Gold",
     "transactions": [
-      { "type": "charge", "amount": -120000, "daysAgo": 90, "description": "Monthly statement" },
-      { "type": "charge", "amount": -40000, "daysAgo": 60, "description": "After purchases" },
-      { "type": "charge", "amount": -50000, "daysAgo": 30, "description": "After holiday spending" },
-      { "type": "charge", "amount": -30000, "daysAgo": 0, "description": "Current balance" }
+      { "type": "charge", "amount": -120000, "daysAgo": 90, "description": "Monthly statement", "categoryKey": "groceries" },
+      { "type": "charge", "amount": -40000, "daysAgo": 60, "description": "After purchases", "categoryKey": "eating_out" },
+      { "type": "charge", "amount": -50000, "daysAgo": 30, "description": "After holiday spending", "categoryKey": "holidays" },
+      { "type": "charge", "amount": -30000, "daysAgo": 0, "description": "Current balance", "categoryKey": "shopping" }
     ]
   },
   {
     "accountName": "Mastercard",
     "transactions": [
-      { "type": "charge", "amount": -80000, "daysAgo": 60, "description": "Monthly statement" },
+      { "type": "charge", "amount": -80000, "daysAgo": 60, "description": "Monthly statement", "categoryKey": "general" },
       { "type": "payment", "amount": 15000, "daysAgo": 30, "description": "After payment" },
       { "type": "payment", "amount": 20000, "daysAgo": 0, "description": "Current balance (being paid down)" }
     ]
@@ -147,9 +147,9 @@
   {
     "accountName": "Rewards Card",
     "transactions": [
-      { "type": "charge", "amount": -85000, "daysAgo": 90, "description": "Monthly statement" },
+      { "type": "charge", "amount": -85000, "daysAgo": 90, "description": "Monthly statement", "categoryKey": "shopping" },
       { "type": "payment", "amount": 3000, "daysAgo": 60, "description": "After payment" },
-      { "type": "charge", "amount": -5000, "daysAgo": 30, "description": "New purchases" },
+      { "type": "charge", "amount": -5000, "daysAgo": 30, "description": "New purchases", "categoryKey": "entertainment" },
       { "type": "payment", "amount": 2000, "daysAgo": 0, "description": "Current balance (0% promo until May 2026)" }
     ]
   },
@@ -166,9 +166,9 @@
   {
     "accountName": "High-APR Card",
     "transactions": [
-      { "type": "charge", "amount": -98000, "daysAgo": 90, "description": "Monthly statement - 98% utilization" },
+      { "type": "charge", "amount": -98000, "daysAgo": 90, "description": "Monthly statement - 98% utilization", "categoryKey": "general" },
       { "type": "payment", "amount": 500, "daysAgo": 60, "description": "After minimum payment" },
-      { "type": "charge", "amount": -1000, "daysAgo": 30, "description": "New purchases" },
+      { "type": "charge", "amount": -1000, "daysAgo": 30, "description": "New purchases", "categoryKey": "transport" },
       { "type": "payment", "amount": 1000, "daysAgo": 0, "description": "Current balance - maxed out at 98% (£1,000 limit)" }
     ]
   }

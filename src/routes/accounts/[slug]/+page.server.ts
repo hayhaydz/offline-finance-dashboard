@@ -27,6 +27,7 @@ import {
 	parseRateToBasisPoints,
 } from "$lib/server/interestRates";
 import { getISABreakdownReport } from "$lib/server/isaBreakdown";
+import { getCategories } from "$lib/server/categories";
 import { createNote, deleteNote, getNoteBySlug } from "$lib/server/notes";
 import {
 	createTransaction,
@@ -264,6 +265,9 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		orderBy: desc(accountTransactions.transactionDate),
 		limit: TRANSACTIONS_PER_PAGE,
 		offset: safeOffset,
+		with: {
+			category: true,
+		},
 	});
 
 	// Get interest rate history for this account
@@ -607,6 +611,9 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			? currentRate - boeBaseRate
 			: null;
 
+	// Get spending categories for transaction form
+	const categories = await getCategories(locals.user.id);
+
 	return {
 		account,
 		monthlyBalances: monthlyBalances.toReversed(),
@@ -633,6 +640,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		recurringPatterns,
 		boeBaseRate,
 		rateSpread,
+		categories,
 		breadcrumbOverrides: [
 			{ segmentIndex: 1, label: account.name, skipLink: false },
 		],
@@ -671,7 +679,8 @@ export const actions: Actions = {
 		const type = formData.get("type") as TransactionType;
 		const amountStr = formData.get("amount") as string;
 		const description = formData.get("description") as string | null;
-		const category = formData.get("category") as string | null;
+		const categoryIdStr = formData.get("categoryId") as string | null;
+		const categoryId = categoryIdStr ? parseInt(categoryIdStr, 10) : null;
 		const transactionDateStr = formData.get("transactionDate") as string;
 
 		// Validate type
@@ -715,7 +724,7 @@ export const actions: Actions = {
 					type,
 					amount,
 					description: description ?? undefined,
-					category: category ?? undefined,
+					categoryId,
 					transactionDate,
 				},
 				account,

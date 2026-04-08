@@ -1490,14 +1490,19 @@
 						/>
 					</div>
 					<div>
-						<label for="category" class="block text-sm font-bold mb-1">Category (optional)</label>
-						<input
-							type="text"
-							id="category"
-							name="category"
-							placeholder="e.g., Salary, Rent"
-							class="w-full border border-black px-2 py-1 text-sm font-mono"
-						/>
+						<label for="categoryId" class="block text-sm font-bold mb-1">Category</label>
+						<select
+							id="categoryId"
+							name="categoryId"
+							class="w-full border border-black px-2 py-1 text-sm font-mono bg-white"
+						>
+							<option value="">None</option>
+							{#each data.categories as cat}
+								<option value={cat.id}>
+									{cat.name}
+								</option>
+							{/each}
+						</select>
 					</div>
 				</div>
 				<div>
@@ -1567,6 +1572,14 @@
 									<span class="px-1 text-xs {getTransactionTypeClass(transaction.type)}">
 										{getTransactionType(transaction.type)}
 									</span>
+									{#if transaction.category}
+										<span
+											class="px-1 text-xs border border-black"
+											style="background-color: {transaction.category.colour}20; color: {transaction.category.colour}"
+										>
+											{transaction.category.name}
+										</span>
+									{/if}
 								</td>
 								<td class="text-right pr-1 text-sm tabular-nums py-2 whitespace-nowrap">
 									<span class={transaction.amount >= 0 ? 'text-green-700' : 'text-red-700'}>

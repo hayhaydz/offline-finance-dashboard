@@ -11,7 +11,7 @@ export interface CreateTransactionData {
 	type: TransactionType;
 	amount: number; // in cents
 	description?: string;
-	category?: string;
+	categoryId?: number | null;
 	transactionDate: Date;
 }
 
@@ -40,7 +40,7 @@ export async function createTransaction(
 		type: data.type,
 		amount: data.amount,
 		description: data.description ?? null,
-		category: data.category ?? null,
+		categoryId: data.categoryId ?? null,
 		transactionDate: data.transactionDate,
 		createdAt: new Date(),
 	});
@@ -137,7 +137,7 @@ export async function updateTransaction(
 		type?: TransactionType;
 		amount?: number;
 		description?: string;
-		category?: string;
+		categoryId?: number | null;
 		transactionDate?: Date;
 	},
 ): Promise<{ success: boolean }> {

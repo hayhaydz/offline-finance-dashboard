@@ -159,7 +159,7 @@ export const accountTransactions = sqliteTable(
 			],
 		}).notNull(),
 		amount: integer("amount").notNull(), // Signed cents: + for additions, - for deductions
-		category: text("category"), // Nullable, for future budgeting
+		categoryId: integer("category_id"),
 		description: text("description"),
 		transactionDate: integer("transaction_date", {
 			mode: "timestamp",
@@ -330,6 +330,33 @@ export const systemMetadata = sqliteTable("system_metadata", {
 	key: text("key").primaryKey(),
 	value: text("value").notNull(),
 });
+
+export const spendingCategories = sqliteTable(
+	"spending_categories",
+	{
+		id: integer("id").primaryKey({ autoIncrement: true }),
+		slug: text("slug").notNull().unique(),
+		userId: integer("user_id")
+			.notNull()
+			.references(() => users.id),
+		name: text("name").notNull(), // Display label: "Groceries"
+		key: text("key").notNull(), // URL-safe identifier: "groceries"
+		colour: text("colour").notNull(), // Hex string: "#68D391"
+		isDefault: integer("is_default", { mode: "boolean" })
+			.notNull()
+			.default(false),
+		createdAt: integer("created_at", { mode: "timestamp" })
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+		deletedAt: integer("deleted_at", { mode: "timestamp" }),
+	},
+	(table) => ({
+		userKeyIdx: index("idx_spending_categories_user_key").on(
+			table.userId,
+			table.key,
+		),
+	}),
+);
 
 export const settings = sqliteTable("settings", {
 	key: text("key").primaryKey(),
@@ -536,6 +563,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 	goals: many(goals),
 	snapshots: many(snapshots),
 	monthlyReviews: many(monthlyReviews),
+	spendingCategories: many(spendingCategories),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -599,6 +627,10 @@ export const accountTransactionsRelations = relations(
 			fields: [accountTransactions.accountId],
 			references: [accounts.id],
 		}),
+		category: one(spendingCategories, {
+			fields: [accountTransactions.categoryId],
+			references: [spendingCategories.id],
+		}),
 	}),
 );
 
@@ -630,6 +662,13 @@ export const monthlyReviewsRelations = relations(monthlyReviews, ({ one }) => ({
 	}),
 }));
 
+export const spendingCategoriesRelations = relations(spendingCategories, ({ one }) => ({
+	user: one(users, {
+		fields: [spendingCategories.userId],
+		references: [users.id],
+	}),
+}));
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type BackupCode = typeof backupCodes.$inferSelect;
@@ -644,3 +683,4 @@ export type Snapshot = typeof snapshots.$inferSelect;
 export type SystemMetadata = typeof systemMetadata.$inferSelect;
 export type Settings = typeof settings.$inferSelect;
 export type MonthlyReview = typeof monthlyReviews.$inferSelect;
+export type SpendingCategory = typeof spendingCategories.$inferSelect;

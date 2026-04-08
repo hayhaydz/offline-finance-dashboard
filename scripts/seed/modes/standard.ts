@@ -55,6 +55,12 @@ interface SnapshotFixture {
 	};
 }
 
+interface CategoryFixture {
+	name: string;
+	key: string;
+	colour: string;
+}
+
 interface TransactionFixture {
 	accountName: string;
 	transactions: Array<{
@@ -62,6 +68,7 @@ interface TransactionFixture {
 		amount: number;
 		daysAgo: number;
 		description: string | null;
+		categoryKey?: string;
 	}>;
 }
 
@@ -81,6 +88,7 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 	const accounts = loadFixture<AccountFixture[]>("standard/accounts.json");
 	const goals = loadFixture<GoalFixture[]>("standard/goals.json");
 	const snapshots = loadFixture<SnapshotFixture[]>("standard/snapshots.json");
+	const categories = loadFixture<CategoryFixture[]>("standard/categories.json");
 	const transactions = loadFixture<TransactionFixture[]>(
 		"standard/transactions.json",
 	);
@@ -119,6 +127,32 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 
 		accountByName.set(a.name, account);
 		console.log(`  ✓ ${a.name} (${a.institution ?? "-"})`);
+	}
+
+	// --- Spending Categories ---
+	console.log("\n🏷️  Creating spending categories...");
+	const categoryMap = new Map<string, { id: number; slug: string }>();
+
+	for (const cat of categories) {
+		const categorySlug = slug();
+		await db.insert(schema.spendingCategories).values({
+			slug: categorySlug,
+			userId,
+			name: cat.name,
+			key: cat.key,
+			colour: cat.colour,
+			isDefault: true,
+			createdAt: new Date(),
+		});
+		// Get the ID of the inserted category
+		const inserted = await db.query.spendingCategories.findFirst({
+			where: eq(schema.spendingCategories.slug, categorySlug),
+			columns: { id: true, slug: true },
+		});
+		if (inserted) {
+			categoryMap.set(cat.key, { id: inserted.id, slug: inserted.slug });
+		}
+		console.log(`  ✓ ${cat.name} (${cat.key})`);
 	}
 
 	// --- Goals ---
@@ -183,11 +217,15 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 		}
 
 		for (const tx of t.transactions) {
+			const categoryId = tx.categoryKey
+				? categoryMap.get(tx.categoryKey)?.id ?? null
+				: null;
 			await db.insert(schema.accountTransactions).values({
 				slug: slug(),
 				accountId: account.id,
 				type: tx.type,
 				amount: tx.amount,
+				categoryId,
 				description: tx.description,
 				transactionDate: daysAgo(tx.daysAgo),
 				createdAt: new Date(),

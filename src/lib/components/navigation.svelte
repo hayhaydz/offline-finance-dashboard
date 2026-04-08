@@ -75,7 +75,7 @@
         { href: '/settings/data', label: 'Data' },
         { href: '/settings/profile', label: 'Profile' },
         { href: '/settings/security', label: 'Security' },
-        { href: '/settings/reference', label: 'Reference' }
+        { href: '/settings/general', label: 'General' }
       ]
     }
   ];

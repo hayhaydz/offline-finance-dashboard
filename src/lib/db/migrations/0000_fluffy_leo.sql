@@ -1,10 +1,21 @@
+CREATE TABLE `account_notes` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`slug` text NOT NULL,
+	`account_id` integer NOT NULL,
+	`content` text NOT NULL,
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	FOREIGN KEY (`account_id`) REFERENCES `accounts`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `account_notes_slug_unique` ON `account_notes` (`slug`);--> statement-breakpoint
+CREATE INDEX `idx_account_notes_account_created` ON `account_notes` (`account_id`,`created_at`);--> statement-breakpoint
 CREATE TABLE `account_transactions` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`slug` text NOT NULL,
 	`account_id` integer NOT NULL,
 	`type` text NOT NULL,
 	`amount` integer NOT NULL,
-	`category` text,
+	`category_id` integer,
 	`description` text,
 	`transaction_date` integer NOT NULL,
 	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -25,10 +36,16 @@ CREATE TABLE `accounts` (
 	`category` text NOT NULL,
 	`liquidity` text,
 	`excluded_from_net_worth` integer DEFAULT false NOT NULL,
+	`opened_at` integer,
 	`closed_at` integer,
 	`maturity_date` integer,
 	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	`minimumPaymentType` text DEFAULT 'flat' NOT NULL,
+	`minimumPaymentFlat` integer DEFAULT 0 NOT NULL,
+	`minimumPaymentPercentage` integer DEFAULT 0 NOT NULL,
+	`creditLimit` integer,
+	`originalPrincipal` integer,
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
@@ -58,6 +75,17 @@ CREATE TABLE `goal_allocations` (
 --> statement-breakpoint
 CREATE INDEX `idx_goal_allocations_goal` ON `goal_allocations` (`goal_id`);--> statement-breakpoint
 CREATE INDEX `idx_goal_allocations_account` ON `goal_allocations` (`account_id`);--> statement-breakpoint
+CREATE TABLE `goal_milestones` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`goal_id` integer NOT NULL,
+	`label` text NOT NULL,
+	`threshold_in_cents` integer NOT NULL,
+	`reached_at` integer,
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	FOREIGN KEY (`goal_id`) REFERENCES `goals`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE INDEX `idx_goal_milestones_goal` ON `goal_milestones` (`goal_id`);--> statement-breakpoint
 CREATE TABLE `goals` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`slug` text NOT NULL,
@@ -69,9 +97,13 @@ CREATE TABLE `goals` (
 	`is_emergency_fund` integer DEFAULT false NOT NULL,
 	`sort_order` integer DEFAULT 0 NOT NULL,
 	`deleted_at` integer,
+	`goal_type` text DEFAULT 'savings' NOT NULL,
+	`linked_account_id` integer,
+	`starting_balance_in_cents` integer,
 	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
-	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`linked_account_id`) REFERENCES `accounts`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX `goals_slug_unique` ON `goals` (`slug`);--> statement-breakpoint
@@ -93,6 +125,20 @@ CREATE TABLE `login_attempts` (
 	`locked_until` integer
 );
 --> statement-breakpoint
+CREATE TABLE `monthly_reviews` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`slug` text NOT NULL,
+	`user_id` integer NOT NULL,
+	`year_month` text NOT NULL,
+	`completed_items` text DEFAULT '[]' NOT NULL,
+	`notes` text,
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	`updated_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `monthly_reviews_slug_unique` ON `monthly_reviews` (`slug`);--> statement-breakpoint
+CREATE INDEX `idx_monthly_reviews_user_year_month` ON `monthly_reviews` (`user_id`,`year_month`);--> statement-breakpoint
 CREATE TABLE `sessions` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`token` text NOT NULL,
@@ -104,6 +150,12 @@ CREATE TABLE `sessions` (
 --> statement-breakpoint
 CREATE UNIQUE INDEX `sessions_token_unique` ON `sessions` (`token`);--> statement-breakpoint
 CREATE INDEX `idx_sessions_user_last_activity` ON `sessions` (`user_id`,`last_activity`);--> statement-breakpoint
+CREATE TABLE `settings` (
+	`key` text PRIMARY KEY NOT NULL,
+	`value` text NOT NULL,
+	`updated_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE `snapshots` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`slug` text NOT NULL,
@@ -127,6 +179,21 @@ CREATE TABLE `snapshots` (
 CREATE UNIQUE INDEX `snapshots_slug_unique` ON `snapshots` (`slug`);--> statement-breakpoint
 CREATE INDEX `idx_snapshots_user_date` ON `snapshots` (`user_id`,`snapshot_date`);--> statement-breakpoint
 CREATE INDEX `idx_snapshots_slug` ON `snapshots` (`slug`);--> statement-breakpoint
+CREATE TABLE `spending_categories` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`slug` text NOT NULL,
+	`user_id` integer NOT NULL,
+	`name` text NOT NULL,
+	`key` text NOT NULL,
+	`colour` text NOT NULL,
+	`is_default` integer DEFAULT false NOT NULL,
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	`deleted_at` integer,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `spending_categories_slug_unique` ON `spending_categories` (`slug`);--> statement-breakpoint
+CREATE INDEX `idx_spending_categories_user_key` ON `spending_categories` (`user_id`,`key`);--> statement-breakpoint
 CREATE TABLE `system_metadata` (
 	`key` text PRIMARY KEY NOT NULL,
 	`value` text NOT NULL

@@ -173,7 +173,7 @@ export const actions: Actions = {
 					type: "deposit",
 					amount: balanceInCents,
 					description: "Opening balance",
-					category: null,
+					categoryId: null,
 					transactionDate: todayMidnight,
 					createdAt: new Date(),
 				});
