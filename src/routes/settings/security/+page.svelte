@@ -4,6 +4,7 @@
 	import FormField from '$lib/components/ui/form-field/form-field.svelte';
 	import { required, minLength, hasUppercase, hasLowercase, hasNumber, hasSpecial, matches } from '$lib/validation/rules';
 	import type { ActionData } from './$types';
+	import SettingsSectionNav from '$lib/components/ui/settings-section-nav/settings-section-nav.svelte';
 
 	let { data, form } = $props();
 
@@ -159,13 +160,20 @@
 	const totalCodes = $derived(data.totalCodes ?? 10);
 	const usedCodes = $derived(data.usedCodes ?? 0);
 	const remainingCodes = $derived(data.remainingCodes ?? 10);
+
+	const sections = [
+		{ id: 'section-password', label: 'Password' },
+		{ id: 'section-2fa', label: '2FA' },
+		{ id: 'section-backup-codes', label: 'Backup Codes' }
+	];
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
 <main>
+		<SettingsSectionNav {sections} />
 		<!-- PASSWORD CHANGE SECTION -->
-		<section>
+		<section id="section-password" style="scroll-margin-top: 2.5rem;">
 			<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 				<span>PASSWORD</span>
 			</div>
@@ -242,7 +250,7 @@
 			</div>
 		</section>
 
-		<section>
+		<section id="section-2fa" style="scroll-margin-top: 2.5rem;">
 			<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 				<span>TWO-FACTOR AUTHENTICATION</span>
 			</div>
@@ -273,7 +281,7 @@
 			</div>
 		</section>
 
-		<section>
+		<section id="section-backup-codes" style="scroll-margin-top: 2.5rem;">
 			<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 				<span>BACKUP CODES</span>
 			</div>

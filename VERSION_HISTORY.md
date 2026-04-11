@@ -1,3 +1,21 @@
+## [2026-04-11] — feat: settings section navigation
+- Added sticky section-level sub-navigation to General, Profile, and Security settings pages
+- Scroll-spy highlights active section via IntersectionObserver
+- Smooth-scroll to sections on nav item click
+- Data page unchanged (single section placeholder)
+
+**New files:**
+- `src/lib/components/ui/settings-section-nav/settings-section-nav.svelte` — reusable section nav with scroll spy
+
+**Modified files:**
+- `src/routes/settings/general/+page.svelte` — added section nav (Expenses, Tax, Categories)
+- `src/routes/settings/profile/+page.svelte` — added section nav (User Info, Session, RLS)
+- `src/routes/settings/security/+page.svelte` — added section nav (Password, 2FA, Backup Codes)
+
+Suggested commit: `feat: add section-level navigation to settings pages`
+
+---
+
 ## [2026-04-06] — feat: contextual goal alerts on goals page
 
 **Summary:** Added `getGoalListAlerts()` entry point to the alerts server module and wired it into the `/goals` page. Goal-specific alerts (deadline approaching, negative balance, debt grew beyond starting) now render via `AlertsSection` above the goals list filter row.

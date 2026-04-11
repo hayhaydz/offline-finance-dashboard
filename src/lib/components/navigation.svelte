@@ -72,26 +72,27 @@
       label: 'Settings',
       authRequired: true,
       children: [
-        { href: '/settings/data', label: 'Data' },
+        { href: '/settings/general', label: 'General' },
         { href: '/settings/profile', label: 'Profile' },
         { href: '/settings/security', label: 'Security' },
-        { href: '/settings/general', label: 'General' }
+        { href: '/settings/data', label: 'Data' }
       ]
     }
   ];
 
   const currentPath = $derived(page.url.pathname);
 
-  // Close the sub-nav whenever the user navigates to a new page
+  // Auto-open subnav matching the current route
   $effect(() => {
-    currentPath; // By reading currentPath, this effect runs on route changes
-    activeSubNav = null;
+    const path = currentPath; // depend on route changes
+    const matchingParent = navItems.find(
+      (item) => item.children && item.children.some((child) => {
+        if (child.href === '/') return path === '/';
+        return path === child.href || path.startsWith(child.href + '/');
+      })
+    );
+    activeSubNav = matchingParent?.href ?? null;
   });
-
-  // Toggle function for manual sub-nav control
-  function toggleSubNav(href: string) {
-    activeSubNav = activeSubNav === href ? null : href;
-  }
 
   // Generate breadcrumb trail from current path (Updated to use $derived.by)
   const breadcrumbs = $derived.by(() => {
@@ -182,8 +183,7 @@
         {#if hasChildren}
           <a
             href={item.href}
-            onclick={(e) => { e.preventDefault(); toggleSubNav(item.href); }}
-            class="bracket-link text-xs cursor-pointer"
+            class="bracket-link text-xs"
             class:bg-gray-100={isActive}
             class:font-bold={isActive}
           >
@@ -216,7 +216,7 @@
   {#if activeSubNav}
     {@const activeItem = navItems.find(i => i.href === activeSubNav)}
     {#if activeItem?.children}
-      <div class="absolute left-0 right-0 bg-gray-50 border-b border-t z-10">
+      <div class="bg-gray-50 border-t">
         <div class="flex gap-4 p-2 min-h-8 items-center">
           {#each activeItem.children as child}
             {@const otherSiblingHrefs = activeItem.children?.filter(c => c.href !== child.href).map(c => c.href) ?? []}
@@ -227,7 +227,6 @@
                 : currentPath === child.href}
             <a
               href={child.href}
-              onclick={() => activeSubNav = null}
               class="bracket-link text-xs"
               class:bg-gray-100={isChildActive}
               class:font-bold={isChildActive}

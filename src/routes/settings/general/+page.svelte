@@ -3,6 +3,7 @@
 	import FormField from '$lib/components/ui/form-field/form-field.svelte';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { required, monetary } from '$lib/validation/rules';
+	import SettingsSectionNav from '$lib/components/ui/settings-section-nav/settings-section-nav.svelte';
 
 	let { data, form } = $props();
 
@@ -73,6 +74,12 @@
 		if (!formFieldRef) return false;
 		return formFieldRef.validate();
 	});
+
+	const sections = [
+		{ id: 'section-expenses', label: 'Expenses' },
+		{ id: 'section-tax', label: 'Tax' },
+		{ id: 'section-categories', label: 'Categories' }
+	];
 </script>
 
 <main>
@@ -81,8 +88,10 @@
 			<span class="font-bold">GENERAL SETTINGS</span>
 		</div>
 
+		<SettingsSectionNav {sections} />
+
 		<!-- MONTHLY EXPENSES CONFIGURATION SECTION -->
-		<section>
+		<section id="section-expenses" style="scroll-margin-top: 2.5rem;">
 			<div class="font-bold flex justify-between bg-gray-50 border-b border-gray-300 p-2">
 				<span>Monthly Expenses Configuration</span>
 			</div>
@@ -162,8 +171,8 @@
 		</section>
 
 		<!-- TAX SETTINGS SECTION -->
-		<section>
-			<div class="font-bold flex justify-between bg-gray-50 border-b border-gray-300 p-2">
+		<section id="section-tax" style="scroll-margin-top: 2.5rem;">
+			<div class="font-bold flex justify-between bg-gray-50 border-t border-t-black border-b border-b-gray-300 p-2">
 				<span>Tax Settings</span>
 			</div>
 
@@ -228,8 +237,8 @@
 		</section>
 
 		<!-- SPENDING CATEGORIES SECTION -->
-		<section>
-			<div class="font-bold flex justify-between bg-gray-50 border-b border-gray-300 p-2">
+		<section id="section-categories" style="scroll-margin-top: 2.5rem;">
+			<div class="font-bold flex justify-between bg-gray-50 border-t border-t-black border-b border-b-gray-300 p-2">
 				<span>Spending Categories</span>
 				<span class="text-xs text-gray-500">{data.categories.length} categories</span>
 			</div>

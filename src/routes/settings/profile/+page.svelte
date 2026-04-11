@@ -1,10 +1,19 @@
 <script lang="ts">
+	import SettingsSectionNav from '$lib/components/ui/settings-section-nav/settings-section-nav.svelte';
+
 	let { data } = $props();
+	const sections = [
+		{ id: 'section-user-info', label: 'User Info' },
+		{ id: 'section-session', label: 'Session' },
+		{ id: 'section-rls', label: 'RLS' }
+	];
 </script>
 
 <main>
-	<!-- USER INFO SECTION -->
-	<section>
+		<SettingsSectionNav {sections} />
+
+		<!-- USER INFO SECTION -->
+	<section id="section-user-info" style="scroll-margin-top: 2.5rem;">
 		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 			<span>USER INFORMATION</span>
 		</div>
@@ -25,7 +34,7 @@
 	</section>
 
 	<!-- SESSION INFO SECTION -->
-	<section>
+	<section id="section-session" style="scroll-margin-top: 2.5rem;">
 		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 			<span>SESSION INFORMATION</span>
 		</div>
@@ -50,7 +59,7 @@
 	</section>
 
 	<!-- SECURITY INFO SECTION -->
-	<section>
+	<section id="section-rls" style="scroll-margin-top: 2.5rem;">
 		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 			<span>ROW-LEVEL SECURITY</span>
 		</div>
