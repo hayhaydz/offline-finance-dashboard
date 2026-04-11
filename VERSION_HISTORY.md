@@ -1,3 +1,30 @@
+## [2026-04-11] — feat: CSV transaction import
+
+**Summary:** 4-step import wizard (upload → preview → review overlap → confirm) with client-side CSV parsing, server-side overlap detection, and batch insertion. Includes downloadable templates for both minimal (4-col) and full (5-col with category) formats. Supports 13 transaction types, comment lines, quoted fields, and per-row overlap selection.
+
+**New files:**
+- `src/lib/utils/csv-parser.ts` — RFC 4180-style CSV parser with validation (13 types, YYYY-MM-DD dates, amount, description)
+- `src/lib/utils/csv-parser.test.ts` — 13 unit tests
+- `src/lib/server/imports.ts` — `getOverlappingTransactions()` and `batchInsertTransactions()` with account ownership checks
+- `src/lib/server/imports.test.ts` — 3 integration tests (overlap detection, batch insert, amount conversion)
+- `src/lib/components/import-wizard/import-wizard.svelte` — orchestrator with step state machine and form action wiring
+- `src/lib/components/import-wizard/step-upload.svelte` — account selection, template download, drag-and-drop file upload
+- `src/lib/components/import-wizard/step-preview.svelte` — parsed data summary, error/valid row tables
+- `src/lib/components/import-wizard/step-review-overlap.svelte` — overlap detection with Skip All / Keep All / Choose Per Row modes
+- `src/lib/components/import-wizard/step-confirm.svelte` — final summary with hidden form POST to `?/import`
+- `static/templates/transactions-minimal.csv` — 4-column template (date, type, amount, description)
+- `static/templates/transactions-full.csv` — 5-column template with all 13 transaction types
+
+**Modified files:**
+- `src/routes/settings/data/+page.server.ts` — rewrote load (accounts, categories) + added `fetch-overlaps` and `import` actions
+- `src/routes/settings/data/+page.svelte` — wired ImportWizard component with server data and form props
+
+**Verification:** `npm run check` → 0 errors | `npx vitest run` → 301 tests passing (16 new)
+
+Suggested commit: `feat: CSV transaction import with overlap detection`
+
+---
+
 ## [2026-04-11] — feat: settings section navigation
 - Added sticky section-level sub-navigation to General, Profile, and Security settings pages
 - Scroll-spy highlights active section via IntersectionObserver

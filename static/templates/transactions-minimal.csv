@@ -1,0 +1,7 @@
+# Template for transaction import (minimal - 4 columns)
+# Download this file, clear the example rows, and fill in your data.
+# Required: date (YYYY-MM-DD), type, amount (signed decimal), description
+date,type,amount,description
+2026-04-01,deposit,2500.00,Salary payment
+2026-04-02,withdrawal,-45.60,Tesco groceries
+2026-04-03,interest,12.34,Monthly interest

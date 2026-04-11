@@ -1,0 +1,17 @@
+# Template for transaction import (full - 5 columns)
+# Includes category column for optional spending category assignment.
+# All 13 transaction types shown as examples.
+date,type,amount,description,category
+2026-04-01,deposit,2500.00,Salary payment,
+2026-04-02,withdrawal,-45.60,Tesco groceries,groceries
+2026-04-03,interest,12.34,Monthly interest,
+2026-04-04,interest_accrued,8.50,Accrued interest on savings,
+2026-04-05,dividend,150.00,Vanguard dividend,
+2026-04-06,value_change,-200.00,Portfolio adjustment,
+2026-04-07,transfer_in,500.00,From savings account,
+2026-04-08,transfer_out,-500.00,To current account,
+2026-04-09,charge,-12.99,Monthly account fee,banking
+2026-04-10,payment,-250.00,Credit card payment,
+2026-04-11,loan_disbursement,10000.00,Loan advance,
+2026-04-12,mortgage_disbursement,150000.00,Mortgage drawdown,
+2026-04-13,interest_charge,-45.67,Credit card interest,
