@@ -275,6 +275,7 @@
 	let submitMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 
 	// Accordion state
+	let editMode = $state(false);
 	let addTransactionOpen = $state(false);
 	let addRateOpen = $state(false);
 	let addNoteOpen = $state(false);
@@ -342,21 +343,21 @@
 	// Get transaction type badge class
 	function getTransactionTypeClass(type: TransactionType): string {
 		const classes: Record<TransactionType, string> = {
-			deposit: 'bg-green-100 text-green-800',
-			withdrawal: 'bg-red-100 text-red-800',
-			interest: 'bg-blue-100 text-blue-800',
-			interest_accrued: 'bg-blue-50 text-blue-600 border border-blue-200',
-			dividend: 'bg-purple-100 text-purple-800',
-			value_change: 'bg-gray-100 text-gray-800',
-			transfer_in: 'bg-cyan-100 text-cyan-800',
-			transfer_out: 'bg-orange-100 text-orange-800',
-			charge: 'bg-red-100 text-red-800',
-			payment: 'bg-green-100 text-green-800',
-			loan_disbursement: 'bg-green-100 text-green-800',
-			mortgage_disbursement: 'bg-green-100 text-green-800',
-			interest_charge: 'bg-amber-100 text-amber-800'
+			deposit: 'bg-green-100',
+			withdrawal: 'bg-red-100',
+			interest: 'bg-blue-100',
+			interest_accrued: 'bg-blue-50 border border-blue-200',
+			dividend: 'bg-purple-100',
+			value_change: 'bg-gray-100',
+			transfer_in: 'bg-cyan-100',
+			transfer_out: 'bg-orange-100',
+			charge: 'bg-red-100',
+			payment: 'bg-green-100',
+			loan_disbursement: 'bg-green-100',
+			mortgage_disbursement: 'bg-green-100',
+			interest_charge: 'bg-amber-100'
 		};
-		return classes[type] || 'bg-gray-100 text-gray-800';
+		return classes[type] || 'bg-gray-100';
 	}
 
 	// Clear success messages after 10 seconds, errors persist until manually dismissed
@@ -1151,7 +1152,7 @@
 										{scenario.ttzMonths !== null ? `${scenario.ttzMonths}${scenario.ttzMonths >= 300 ? '+' : ''}m` : '—'}
 										{#if scenario.ttzDelta !== null && scenario.ttzDelta > 0}
 											<span class="text-amber-700">(+{scenario.ttzDelta})</span>
-										{/if}
+											{/if}
 									</td>
 								{/each}
 							</tr>
@@ -1413,15 +1414,24 @@
 <div bind:this={transactionsSectionRef} class="border-t border-black">
 	<div class="border-b border-black bg-gray-100 p-2 font-bold flex justify-between items-center">
 		<span>TRANSACTIONS</span>
-		{#if !data.account.closedAt}
-			<button
-				type="button"
-				class="bracket-link text-xs"
-				onclick={() => addTransactionOpen = !addTransactionOpen}
-			>
-				{addTransactionOpen ? '[Cancel]' : '[Add Transaction]'}
-			</button>
-		{/if}
+    <div>
+      {#if !data.account.closedAt}
+        <button
+          type="button"
+          class="bracket-link text-xs"
+          onclick={() => editMode = !editMode}
+        >
+          {editMode ? '[Done]' : '[Edit]'}
+        </button>
+        <button
+          type="button"
+          class="bracket-link text-xs"
+          onclick={() => addTransactionOpen = !addTransactionOpen}
+        >
+          {addTransactionOpen ? '[Cancel]' : '[Add Transaction]'}
+        </button>
+      {/if}
+    </div>
 	</div>
 
 	{#if addTransactionOpen && !data.account.closedAt}
@@ -1544,21 +1554,24 @@
 		<p class="text-gray-600 text-xs p-2">No transactions recorded yet.</p>
 	{:else}
 		<div class="overflow-x-auto">
-			<table class="w-full table-fixed min-w-[600px]">
+			<table class="w-full table-fixed min-w-[800px]">
 				<thead>
 					<tr>
-						<th class="pl-2 text-left whitespace-nowrap w-[12%]">Date</th>
-						<th class="text-left whitespace-nowrap w-[14%]">Type</th>
-						<th class="text-right pr-1 whitespace-nowrap w-[16%]">Amount</th>
-						<th class="pl-2 text-left">Description</th>
-						<th class="text-right pr-2 whitespace-nowrap w-[10%]">Actions</th>
+						{#if editMode}
+						<th class="pl-2 text-left whitespace-nowrap w-28">Actions</th>
+						{/if}
+						<th class="pl-2 text-left whitespace-nowrap w-28">Date</th>
+						<th class="text-left whitespace-nowrap w-36">Type</th>
+						<th class="text-left whitespace-nowrap w-28">Category</th>
+						<th class="text-right pr-1 whitespace-nowrap w-36">Amount</th>
+						<th class="pl-2 text-left w-sm">Description</th>
 					</tr>
 				</thead>
 				<tbody>
 					{#each transactionGroups as group}
 						<!-- Month header row -->
 						<tr class="bg-gray-100 border-b border-gray-300">
-							<td colspan="5" class="pl-2 py-1 text-xs font-bold">
+							<td colspan={editMode ? 7 : 6} class="pl-2 py-1 text-xs font-bold">
 								{group.monthLabel} — {group.transactions.length} transaction{group.transactions.length !== 1 ? 's' : ''}
 								<span class="text-gray-400 font-normal"> · Net: </span>
 								<span class="{group.net >= 0 ? 'text-green-700' : 'text-red-700'}">{group.net >= 0 ? '+' : ''}{formatCurrency(group.net)}</span>
@@ -1567,15 +1580,50 @@
 						</tr>
 						{#each group.transactions as transaction}
 							<tr class="border-b border-gray-200 last:border-b-0 align-top">
+								{#if editMode}
+									<td class="pl-2 text-sm py-2 whitespace-nowrap">
+										{#if !data.account.closedAt}
+											<form
+												method="POST"
+												action="?/deleteTransaction"
+												class="inline"
+												use:enhance={() => {
+													return async ({ result }) => {
+														if (result.type === 'success') {
+															submitMessage = { type: 'success', text: 'Transaction deleted' };
+														} else if (result.type === 'failure' && result.data) {
+															const errorData = result.data as { error?: string };
+															if (errorData.error) {
+																submitMessage = { type: 'error', text: errorData.error };
+															}
+														}
+														await invalidateAll();
+													};
+												}}
+												>
+												<input type="hidden" name="transactionSlug" value={transaction.slug} />
+												<button
+													type="submit"
+													class="bracket-link text-xs text-red-700"
+													onclick={(e) => { if (!confirm('Delete this transaction?')) e.preventDefault(); }}
+												>
+													[Delete]
+												</button>
+											</form>
+										{/if}
+									</td>
+								{/if}
 								<td class="pl-2 text-sm py-2 whitespace-nowrap">{formatDate(transaction.transactionDate)}</td>
 								<td class="text-sm py-2 whitespace-nowrap">
 									<span class="px-1 text-xs {getTransactionTypeClass(transaction.type)}">
 										{getTransactionType(transaction.type)}
 									</span>
+								</td>
+								<td class="text-sm py-2 whitespace-nowrap">
 									{#if transaction.category}
 										<span
-											class="px-1 text-xs border border-black"
-											style="background-color: {transaction.category.colour}20; color: {transaction.category.colour}"
+											class="px-1 text-xs"
+											style="background-color: {transaction.category.colour}20; color: #000"
 										>
 											{transaction.category.name}
 										</span>
@@ -1588,37 +1636,6 @@
 								</td>
 								<td class="pl-2 text-sm py-2 text-gray-600 break-words">
 									{truncateDisplay(transaction.description || '-', DISPLAY_LIMITS.BALANCE_NOTES)}
-								</td>
-								<td class="text-right pr-2 text-sm py-2 whitespace-nowrap">
-									{#if !data.account.closedAt}
-										<form
-											method="POST"
-											action="?/deleteTransaction"
-											class="inline"
-											use:enhance={() => {
-												return async ({ result }) => {
-													if (result.type === 'success') {
-														submitMessage = { type: 'success', text: 'Transaction deleted' };
-													} else if (result.type === 'failure' && result.data) {
-														const errorData = result.data as { error?: string };
-														if (errorData.error) {
-															submitMessage = { type: 'error', text: errorData.error };
-														}
-													}
-													await invalidateAll();
-												};
-											}}
-										>
-											<input type="hidden" name="transactionSlug" value={transaction.slug} />
-											<button
-												type="submit"
-												class="bracket-link text-xs text-red-700"
-												onclick={(e) => { if (!confirm('Delete this transaction?')) e.preventDefault(); }}
-											>
-												[Delete]
-											</button>
-										</form>
-									{/if}
 								</td>
 							</tr>
 						{/each}

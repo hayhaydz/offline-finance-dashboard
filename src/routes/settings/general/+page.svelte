@@ -239,116 +239,114 @@
 		<!-- SPENDING CATEGORIES SECTION -->
 		<section id="section-categories" style="scroll-margin-top: 2.5rem;">
 			<div class="font-bold flex justify-between bg-gray-50 border-t border-t-black border-b border-b-gray-300 p-2">
-				<span>Spending Categories</span>
-				<span class="text-xs text-gray-500">{data.categories.length} categories</span>
+				<span>SPENDING CATEGORIES ({data.categories.length})</span>
+				{#if !showAddForm}
+					<button onclick={() => (showAddForm = true)} class="bracket-link text-xs">
+						Add Category
+					</button>
+				{/if}
 			</div>
 
-			<div class="p-4">
+			<div class="p-0">
 				<!-- Message -->
 				{#if categoryMessage}
-					<div class="p-2 text-xs {categoryMessage.type === 'success' ? 'text-green-700' : 'text-red-700'} border-b border-gray-200 mb-2">
+					<div class="px-3 py-2 text-xs {categoryMessage.type === 'success' ? 'text-green-700' : 'text-red-700'} border-b border-gray-200">
 						{categoryMessage.text}
 					</div>
 				{/if}
 
-				<!-- Add button -->
-				<div class="mb-4">
-					{#if !showAddForm}
-						<button onclick={() => (showAddForm = true)} class="bracket-link text-xs">
-							Add Category
-						</button>
-					{:else}
-						<form
-							method="POST"
-							action="?/createCategory"
-							use:enhance={() => {
-								return async ({ result, update }) => {
-									if (result.type === 'success') {
-										categoryMessage = { type: 'success', text: 'Category created' };
-										cancelAdd();
-									} else if (result.type === 'failure' && result.data) {
-										const d = result.data as { error?: string };
-										if (d.error) categoryMessage = { type: 'error', text: d.error };
-									}
-									await update();
-								};
-							}}
-						>
-							<div class="flex flex-wrap gap-2 items-end">
-								<div>
-									<label for="cat-name" class="block text-xs font-bold mb-1">Name</label>
-									<input
-										type="text"
-										id="cat-name"
-										name="name"
-										bind:value={newName}
-										oninput={handleNameInput}
-										placeholder="e.g. Groceries"
-										required
-										class="border border-black px-2 py-1 text-sm font-mono w-36"
-									/>
-								</div>
-								<div>
-									<label for="cat-key" class="block text-xs font-bold mb-1">Key</label>
-									<input
-										type="text"
-										id="cat-key"
-										name="key"
-										bind:value={newKey}
-										placeholder="auto-derived"
-										required
-										class="border border-black px-2 py-1 text-sm font-mono w-28"
-									/>
-								</div>
-								<div>
-									<label for="cat-colour" class="block text-xs font-bold mb-1">Colour</label>
-									<div class="flex items-center gap-1">
-										<span
-											class="inline-block w-4 h-4 border border-black"
-											style="background-color: {newColour}"
-										></span>
-										<input
-											type="text"
-											id="cat-colour"
-											name="colour"
-											bind:value={newColour}
-											placeholder="#3B82F6"
-											required
-											class="border border-black px-2 py-1 text-sm font-mono w-24"
-										/>
-									</div>
-								</div>
-								<button type="submit" class="bracket-link text-xs">Save</button>
-								<button type="button" onclick={cancelAdd} class="bracket-link text-xs">Cancel</button>
+				<!-- Add form (shown when button clicked in banner) -->
+				{#if showAddForm}
+					<form
+						method="POST"
+						action="?/createCategory"
+						use:enhance={() => {
+							return async ({ result, update }) => {
+								if (result.type === 'success') {
+									categoryMessage = { type: 'success', text: 'Category created' };
+									cancelAdd();
+								} else if (result.type === 'failure' && result.data) {
+									const d = result.data as { error?: string };
+									if (d.error) categoryMessage = { type: 'error', text: d.error };
+								}
+								await update();
+							};
+						}}
+						class="px-3 py-2 border-b border-gray-300"
+					>
+						<div class="flex flex-wrap gap-2 items-end">
+							<div>
+								<label for="cat-name" class="block text-xs font-bold mb-1">Name</label>
+								<input
+									type="text"
+									id="cat-name"
+									name="name"
+									bind:value={newName}
+									oninput={handleNameInput}
+									placeholder="e.g. Groceries"
+									required
+									class="border border-black px-2 py-1 text-sm font-mono w-36"
+								/>
 							</div>
-						</form>
-					{/if}
-				</div>
+							<div>
+								<label for="cat-key" class="block text-xs font-bold mb-1">Key</label>
+								<input
+									type="text"
+									id="cat-key"
+									name="key"
+									bind:value={newKey}
+									placeholder="auto-derived"
+									required
+									class="border border-black px-2 py-1 text-sm font-mono w-28"
+								/>
+							</div>
+							<div>
+								<label for="cat-colour" class="block text-xs font-bold mb-1">Colour</label>
+								<div class="flex items-center gap-1">
+									<span
+										class="inline-block w-4 h-4 border border-black"
+										style="background-color: {newColour}"
+									></span>
+									<input
+										type="text"
+										id="cat-colour"
+										name="colour"
+										bind:value={newColour}
+										placeholder="#3B82F6"
+										required
+										class="border border-black px-2 py-1 text-sm font-mono w-24"
+									/>
+								</div>
+							</div>
+							<button type="submit" class="bracket-link text-xs">Save</button>
+							<button type="button" onclick={cancelAdd} class="bracket-link text-xs">Cancel</button>
+						</div>
+					</form>
+				{/if}
 
 				<!-- Category list -->
 				{#if data.categories.length === 0}
-					<p class="text-gray-600 text-xs">No categories yet. Add one above.</p>
+					<p class="text-gray-600 text-xs p-3">No categories yet. Add one above.</p>
 				{:else}
 					<table>
 						<thead>
 							<tr>
-								<th>Colour</th>
-								<th>Name</th>
-								<th>Key</th>
-								<th>Default</th>
-								<th class="text-right">Actions</th>
+								<th class="pl-3 text-left w-8">C</th>
+								<th class="pl-3 text-left">Name</th>
+								<th class="pl-3 text-left w-24">Key</th>
+								<th class="text-right pr-3">Actions</th>
 							</tr>
 						</thead>
 						<tbody>
 							{#each data.categories as category}
-								<tr class="border-b border-gray-200">
-									<td class="py-1">
+								<tr class="border-b border-gray-200 last:border-b-0">
+									<td class="pl-3 py-1">
 										<span
-											class="inline-block w-4 h-4 border border-black"
+											class="inline-block w-4 h-4 border border-black align-middle"
 											style="background-color: {category.colour}"
 										></span>
 									</td>
-									<td class="py-1 text-sm">
+									<td class="pl-3 py-1 text-sm">
 										{#if editSlug === category.slug}
 											<form
 												method="POST"
@@ -391,9 +389,8 @@
 											{category.name}
 										{/if}
 									</td>
-									<td class="py-1 text-xs text-gray-500 font-mono">{category.key}</td>
-									<td class="py-1 text-xs">{category.isDefault ? '●' : ''}</td>
-									<td class="text-right py-1">
+									<td class="pl-3 py-1 text-xs text-gray-500 font-mono">{category.key}</td>
+									<td class="text-right pr-3 py-1">
 										{#if editSlug !== category.slug}
 											<button onclick={() => startEdit(category.slug)} class="bracket-link text-xs">
 												Edit
@@ -413,4 +410,4 @@
 				{/if}
 			</div>
 		</section>
-</main>
+	</main>
