@@ -50,7 +50,7 @@
 <div class="border-b border-black p-2">
 	<div class="flex justify-between items-center">
 		<h2 class="text-base font-bold m-0 leading-none">{data.snapshot.snapshotDate}</h2>
-		<a href="/snapshots/{data.snapshot.slug}/delete" class="bracket-link text-xs text-red-700">Delete</a>
+		<a href="/overview/snapshots/{data.snapshot.slug}/delete" class="bracket-link text-xs text-red-700">Delete</a>
 	</div>
 </div>
 

@@ -45,7 +45,7 @@
 <!-- Month header -->
 <div class="font-bold flex justify-between items-center bg-gray-100 border-b border-black p-2">
 	<div class="flex items-center gap-2">
-		<a href="/review" class="bracket-link text-xs">Reviews</a>
+		<a href="/overview/routine" class="bracket-link text-xs">Reviews</a>
 		<span>/ {label.toUpperCase()}</span>
 	</div>
 	{#if isCurrentMonth}

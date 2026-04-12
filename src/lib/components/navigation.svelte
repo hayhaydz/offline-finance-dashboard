@@ -64,9 +64,14 @@
       { href: '/goals/create', label: 'Create Goal' },
       { href: '/goals/archived', label: 'Archived Goals' }
     ] },
-    { href: '/snapshots', label: 'Snapshots', authRequired: true },
-    { href: '/review', label: 'Review', authRequired: true },
+    { href: '/overview', label: 'Overview', authRequired: true, children: [
+      { href: '/overview/snapshots', label: 'Snapshots', includeChildRoutes: true },
+      { href: '/overview/routine', label: 'Routine', includeChildRoutes: true },
+      { href: '/overview/budgets', label: 'Budgets' },
+      { href: '/overview/reports', label: 'Reports' }
+    ]},
     { href: '/alerts', label: 'Alerts', authRequired: true },
+    { href: '/tools', label: 'Tools', authRequired: true },
     {
       href: '/settings',
       label: 'Settings',
@@ -118,9 +123,13 @@
         accounts: 'Accounts',
         goals: 'Goals',
         debt: 'Debt Payoff',
+        overview: 'Overview',
+        routine: 'Routine',
+        budgets: 'Budgets',
+        reports: 'Reports',
         snapshots: 'Snapshots',
         settings: 'Settings',
-        review: 'Review',
+        tools: 'Tools',
         profile: 'Profile',
         create: 'Create',
         isa: 'ISA',

@@ -62,7 +62,7 @@
 <!-- SNAPSHOTS LIST SECTION -->
 <div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 	<span class="text-xs text-gray-500"><span class={data.staleness.cssClass}>●</span> {data.staleness.label}</span>
-	<a href="/snapshots/create" class="bracket-link text-xs">+ Create Snapshot</a>
+	<a href="/overview/snapshots/create" class="bracket-link text-xs">+ Create Snapshot</a>
 </div>
 
 <div class="p-0">
@@ -95,7 +95,7 @@
 							{/if}
 						</td>
 						<td class="pl-2 text-sm py-2">
-							<a href="/snapshots/{snapshot.slug}" class="bracket-link text-xs">{snapshot.snapshotDate}</a>
+							<a href="/overview/snapshots/{snapshot.slug}" class="bracket-link text-xs">{snapshot.snapshotDate}</a>
 						</td>
 						<td class="text-right pr-1 text-sm tabular-nums py-2">{formatCurrencyShorthand(snapshot.netWorthInCents)}</td>
 						<td class="text-right pr-1 text-sm tabular-nums py-2">{formatCurrencyShorthand(snapshot.totalAssetsInCents)}</td>

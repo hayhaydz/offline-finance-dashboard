@@ -45,7 +45,7 @@
 		<h2 class="text-base font-bold m-0 leading-none">New Snapshot</h2>
 		<div class="flex gap-2">
 			<button type="submit" form="snapshot-form" class="bracket-link text-xs">Create Snapshot</button>
-			<a href="/snapshots" class="bracket-link text-xs">Cancel</a>
+			<a href="/overview/snapshots" class="bracket-link text-xs">Cancel</a>
 		</div>
 	</div>
 </div>

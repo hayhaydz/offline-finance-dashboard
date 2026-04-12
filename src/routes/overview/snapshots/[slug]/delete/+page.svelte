@@ -52,7 +52,7 @@
 			>
 				[Delete Snapshot]
 			</button>
-			<a href="/snapshots/{data.snapshot.slug}" class="bracket-link text-xs">Cancel</a>
+			<a href="/overview/snapshots/{data.snapshot.slug}" class="bracket-link text-xs">Cancel</a>
 		</div>
 	</form>
 </div>

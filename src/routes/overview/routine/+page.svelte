@@ -14,7 +14,7 @@
 <!-- Header -->
 <div class="font-bold flex justify-between items-center bg-gray-100 border-b border-black p-2">
 	<span>MONTHLY REVIEW</span>
-	<a href="/review/{thisMonth}" class="bracket-link text-xs">
+	<a href="/overview/routine/{thisMonth}" class="bracket-link text-xs">
 		{thisMonth === (history[0]?.yearMonth ?? '') ? 'Continue' : 'Start'} {formatYearMonth(thisMonth)}
 	</a>
 </div>
@@ -47,7 +47,7 @@
 <!-- History table -->
 {#if history.length === 0}
 	<div class="p-2 text-sm text-gray-500">
-		No reviews yet. <a href="/review/{thisMonth}" class="bracket-link">Start your first review</a>
+		No reviews yet. <a href="/overview/routine/{thisMonth}" class="bracket-link">Start your first review</a>
 	</div>
 {:else}
 	<table>
@@ -63,7 +63,7 @@
 			{#each history as entry}
 				<tr class="border-t border-gray-100">
 					<td class="pl-2 py-1 font-bold">
-						<a href="/review/{entry.yearMonth}" class="bracket-link">{entry.label}</a>
+						<a href="/overview/routine/{entry.yearMonth}" class="bracket-link">{entry.label}</a>
 					</td>
 					<td class="text-center tabular-nums py-1">
 						<span

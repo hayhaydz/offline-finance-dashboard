@@ -46,7 +46,7 @@
 				<div class="mb-4 p-3 bg-red-50 border border-red-700 text-red-700 text-sm">
 					{form.error}
 					{#if form?.existingSlug}
-						<a href="/snapshots" class="underline ml-2">View existing snapshot</a>
+						<a href="/overview/snapshots" class="underline ml-2">View existing snapshot</a>
 					{/if}
 				</div>
 			{/if}
