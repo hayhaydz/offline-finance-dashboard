@@ -55,7 +55,7 @@ export const actions: Actions = {
 	 * Save monthly expenses action
 	 * Validates input, converts to pence, and stores in system_metadata table
 	 */
-	default: async ({ request, locals }) => {
+	saveMonthlyExpenses: async ({ request, locals }) => {
 		if (!locals.user) {
 			logError("settings-general", "Authentication required for save");
 			return fail(401, { error: "Authentication required" });
@@ -178,7 +178,10 @@ export const actions: Actions = {
 	 * Create a new spending category
 	 */
 	createCategory: async ({ request, locals }) => {
+		devLog("settings-general:createCategory", "Action invoked");
+
 		if (!locals.user) {
+			logError("settings-general:createCategory", "No authenticated user");
 			return fail(401, { error: "Authentication required" });
 		}
 
@@ -187,13 +190,18 @@ export const actions: Actions = {
 		const key = formData.get("key") as string;
 		const colour = formData.get("colour") as string;
 
+		devLog("settings-general:createCategory", "Form data received", { name, key, colour });
+
 		if (!name?.trim()) {
+			devLog("settings-general:createCategory", "Validation failed: empty name");
 			return fail(400, { error: "Name is required" });
 		}
 		if (!key?.trim()) {
+			devLog("settings-general:createCategory", "Validation failed: empty key");
 			return fail(400, { error: "Key is required" });
 		}
 		if (!colour || !isValidHexColour(colour)) {
+			devLog("settings-general:createCategory", "Validation failed: invalid colour", { colour });
 			return fail(400, { error: "Valid hex colour is required (e.g. #3B82F6)" });
 		}
 
@@ -204,6 +212,8 @@ export const actions: Actions = {
 				key: key.trim(),
 				colour,
 			});
+
+			devLog("settings-general:createCategory", "Result", { success: result.success });
 
 			if (!result.success) {
 				return fail(400, { error: result.error });

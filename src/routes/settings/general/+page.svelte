@@ -10,6 +10,9 @@
 	// Form state - initialize from server data (pence to pounds)
 	let monthlyExpenses = $state('');
 
+	// Monthly expenses feedback
+	let expensesMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+
 	// Category state
 	let showAddForm = $state(false);
 	let editSlug = $state<string | null>(null);
@@ -41,6 +44,11 @@
 		newColour = '#A0AEC0';
 	}
 
+	// DEBUG: trace createCategory form submission
+	function handleAddSubmit() {
+		console.log('[DEBUG:createCategory] Form submitting', { newName, newKey, newColour });
+	}
+
 	// Sync state when server data changes
 	$effect(() => {
 		monthlyExpenses =
@@ -60,9 +68,6 @@
 		validate: () => boolean;
 		touch: () => void;
 	} | null = null;
-
-	// Check if form should show success
-	const showSuccess = $derived(form?.success === true);
 
 	// Current value display
 	const currentDisplay = $derived(
@@ -126,14 +131,34 @@
 				</div>
 
 				<!-- Success message -->
-				{#if showSuccess}
+				{#if expensesMessage?.type === 'success'}
 					<p class="text-green-700 font-bold text-sm mb-4">
-						Monthly expenses updated successfully.
+						{expensesMessage.text}
+					</p>
+				{/if}
+				{#if expensesMessage?.type === 'error'}
+					<p class="text-red-700 font-bold text-sm mb-4">
+						{expensesMessage.text}
 					</p>
 				{/if}
 
 				<!-- Form -->
-				<form method="POST" use:enhance class="mb-4">
+				<form
+					method="POST"
+					action="?/saveMonthlyExpenses"
+					use:enhance={() => {
+						return async ({ result, update }) => {
+							if (result.type === 'success') {
+								expensesMessage = { type: 'success', text: 'Monthly expenses updated successfully.' };
+							} else if (result.type === 'failure' && result.data) {
+								const d = result.data as { error?: string };
+								if (d.error) expensesMessage = { type: 'error', text: d.error };
+							}
+							await update();
+						};
+					}}
+					class="mb-4"
+				>
 					<div class="mb-4">
 						<FormField
 							bind:this={formFieldRef}
@@ -154,8 +179,8 @@
 					<button
 						type="submit"
 						class="bracket-link"
-						disabled={showSuccess}
-						class:opacity-50={showSuccess}
+						disabled={expensesMessage?.type === 'success'}
+						class:opacity-50={expensesMessage?.type === 'success'}
 					>
 						[Save Monthly Expenses]
 					</button>
@@ -260,14 +285,20 @@
 					<form
 						method="POST"
 						action="?/createCategory"
+						onsubmit={handleAddSubmit}
 						use:enhance={() => {
+							console.log('[DEBUG:createCategory] use:enhance outer fn called');
 							return async ({ result, update }) => {
+								console.log('[DEBUG:createCategory] Result received', { type: result.type, data: result.data });
 								if (result.type === 'success') {
 									categoryMessage = { type: 'success', text: 'Category created' };
 									cancelAdd();
 								} else if (result.type === 'failure' && result.data) {
 									const d = result.data as { error?: string };
+									console.log('[DEBUG:createCategory] Failure data', d);
 									if (d.error) categoryMessage = { type: 'error', text: d.error };
+								} else {
+									console.log('[DEBUG:createCategory] Unhandled result type', result.type);
 								}
 								await update();
 							};
@@ -396,7 +427,22 @@
 												Edit
 											</button>
 										{/if}
-										<form method="POST" action="?/deleteCategory" class="inline">
+										<form
+											method="POST"
+											action="?/deleteCategory"
+											use:enhance={() => {
+												return async ({ result, update }) => {
+													if (result.type === 'success') {
+														categoryMessage = { type: 'success', text: 'Category deleted.' };
+													} else if (result.type === 'failure' && result.data) {
+														const d = result.data as { error?: string };
+														if (d.error) categoryMessage = { type: 'error', text: d.error };
+													}
+													await update();
+												};
+											}}
+											class="inline"
+										>
 											<input type="hidden" name="slug" value={category.slug} />
 											<button type="submit" class="bracket-link text-xs text-red-700">
 												Delete
