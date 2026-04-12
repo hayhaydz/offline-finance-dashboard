@@ -110,22 +110,37 @@
 </script>
 
 <div class="border-t border-black">
-	<!-- Month navigation -->
-	<div class="text-center py-1.5 border-b border-black bg-white">
-		<div class="flex items-center justify-center gap-4">
-			<a href="/overview/budgets/{getPrevMonth(data.selectedMonth)}" class="bracket-link text-xs">Prev</a>
-			<span class="font-bold">{getMonthLabel(data.selectedMonth)}</span>
-			{#if getNextMonth(data.selectedMonth)}
-				<a href="/overview/budgets/{getNextMonth(data.selectedMonth)}" class="bracket-link text-xs">Next</a>
-			{:else}
-				<span class="text-xs text-gray-400">[Next]</span>
-			{/if}
+	<!-- HEADER SECTION -->
+	<div class="border-b border-black p-2 flex justify-between items-start">
+		<div>
+			<h1 class="text-lg font-bold m-0 uppercase">Monthly Budget</h1>
+			<div class="text-sm text-gray-600 mt-1">
+				{getMonthLabel(data.selectedMonth)}
+			</div>
+			<div class="text-xs text-gray-600">
+				{data.status.daysElapsed} of {data.status.totalDays} days elapsed
+				{#if data.budget}
+					&middot; {formatCurrency(data.status.totalSpent)} spent
+				{/if}
+				{#if !data.isCurrentMonth}
+					&middot; <span class="text-gray-400">Historical — read-only</span>
+				{/if}
+			</div>
 		</div>
-		{#if !data.isCurrentMonth}
-			<div class="text-gray-400 text-xs mt-0.5">Historical — read-only</div>
-		{/if}
-		<div class="text-gray-400 text-xs mt-0.5">
-			<a href="/overview/budgets/all" class="bracket-link">[All Months]</a>
+		<div class="flex flex-col items-end gap-2">
+			<div class="flex gap-2 mb-1">
+				<a href="/overview/budgets/all" class="bracket-link text-xs">[All Months]</a>
+			</div>
+			<div class="text-[10px] uppercase font-bold text-gray-600">Month</div>
+			<div class="flex gap-1 items-center">
+				<a href="/overview/budgets/{getPrevMonth(data.selectedMonth)}" class="bracket-link text-xs" data-sveltekit-noscroll>[Prev]</a>
+				<span class="bracket-link bg-black text-white text-xs px-1">{getMonthLabel(data.selectedMonth)}</span>
+				{#if getNextMonth(data.selectedMonth)}
+					<a href="/overview/budgets/{getNextMonth(data.selectedMonth)}" class="bracket-link text-xs" data-sveltekit-noscroll>[Next]</a>
+				{:else}
+					<span class="text-xs text-gray-400">[Next]</span>
+				{/if}
+			</div>
 		</div>
 	</div>
 

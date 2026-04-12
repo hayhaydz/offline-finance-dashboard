@@ -1,3 +1,10 @@
+## [2026-04-12] — Budget header redesign
+- Replaced centered month nav with two-column layout matching ISA/interest pages
+- Added H1 title, meta info section (days elapsed, spent, historical badge), pill-style month navigation
+Suggested commit: `refactor: budget month header two-column layout`
+
+---
+
 ## [2026-04-12] — feat: virtual uncategorised catch-all category in budget breakdown
 
 **Changed:**
