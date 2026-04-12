@@ -1,3 +1,20 @@
+## [2026-04-12] — feat: 12 new alert types across 8 checker functions
+
+**Added to `src/lib/types/alerts.ts`:**
+- 12 new `AlertType` values: BUDGET_PROJECTED_OVERSPEND, BUDGET_OVERSPEND, CATEGORY_BUDGET_APPROACHING, CATEGORY_BUDGET_EXCEEDED, HIGH_UNCATEGORISED_SPEND, NET_WORTH_DECLINING, NET_WORTH_SUSTAINED_DECLINE, DEBT_NEVER_PAYS_OFF, GOAL_AUTO_REDUCE_TRIGGERED, ISA_PACING_BEHIND, LISA_CONTRIBUTION_LIMIT, SAVINGS_RATE_BELOW_BOE, ORPHANED_TRANSFER
+
+**Added to `src/lib/server/alerts.ts`:**
+- 8 new async checker functions: checkBudgetAlerts, checkNetWorthAlerts, checkDebtPayoffAlerts, checkGoalAutoReduceAlerts, checkISAPacingAlerts, checkLISAAlerts, checkBoERateAlerts, checkOrphanedTransfers
+- Wired all 8 checkers into getAlerts() (all 12), getAccountListAlerts() (4 account-level), getAlertsForAccount() (3 filtered), getGoalListAlerts() (+auto-reduce)
+- Escalation logic: budget (projected→actual), category (80%→exceeded), uncategorised (20%→40%), net worth (1 month→3+), savings rate (>0.5%→>1% below BoE)
+
+**Updated:**
+- `tests/unit/goal-list-alerts.test.ts`: Added `db.select` mock for checkGoalAutoReduceAlerts compatibility
+
+**Suggested commit:** `feat: 12 new alert types for budget, net worth, debt, ISA, and account monitoring`
+
+---
+
 ## [2026-04-12] — Budget header redesign
 - Replaced centered month nav with two-column layout matching ISA/interest pages
 - Added H1 title, meta info section (days elapsed, spent, historical badge), pill-style month navigation

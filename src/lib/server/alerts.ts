@@ -1,7 +1,7 @@
-import { and, desc, eq, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm';
 import { withUserFilter } from '$lib/auth/row-security';
 import { db } from '$lib/db/client';
-import { accountTransactions, accounts, goals, interestRates, monthlyReviews, snapshots, users } from '$lib/db/schema';
+import { accountTransactions, accounts, goalAllocations, goals, interestRates, monthlyReviews, settings, snapshots, users } from '$lib/db/schema';
 import {
 	getActualInterestEarned,
 	getISAAllowanceUsed,
@@ -9,12 +9,14 @@ import {
 	getUkTaxYearBounds,
 	ISA_ALLOWANCE_IN_CENTS,
 } from '$lib/server/calculations';
+import { getBudgetStatus, getCategoryBreakdown, UNCATEGORISED_ID } from './budgets';
 import {
 	getCurrentBalancesForAccounts,
 	getLatestTransactionDateForAccounts,
 } from '$lib/server/derivedBalances';
 import { getDebtGoalProgress } from './goals';
 import type { Alert, AlertSeverity } from '$lib/types/alerts';
+import { calculateISAPacing } from '$lib/server/isaPacing';
 import { logError } from '$lib/utils/logger';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -714,6 +716,558 @@ async function checkMonthlyReviewAlerts(userId: number): Promise<Alert[]> {
 	return [makeGlobalAlert('NO_MONTHLY_REVIEW', severity, 'Monthly review', message, '/reviews')];
 }
 
+async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
+	const alerts: Alert[] = [];
+	const now = new Date();
+	const year = now.getUTCFullYear();
+	const month = now.getUTCMonth() + 1;
+	const monthSlug = `${year}-${String(month).padStart(2, '0')}`;
+	const href = `/overview/budgets/${monthSlug}`;
+
+	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
+
+	const status = await getBudgetStatus(userId, year, month);
+
+	// No budget configured for current month — skip entirely
+	if (!status.budget) return [];
+
+	const { totalSpent, daysElapsed, totalDays, projectedTotal } = status;
+	const daysRemaining = totalDays - daysElapsed;
+	const target = status.budget.totalTargetInCents;
+
+	// 1. BUDGET_OVERSPEND (red): actual totalSpent > target
+	if (totalSpent > target) {
+		const percentOver = Math.round(((totalSpent - target) / target) * 100);
+		alerts.push(
+			makeGlobalAlert(
+				'BUDGET_OVERSPEND',
+				'red',
+				'Monthly budget exceeded',
+				`Spent ${fmt(totalSpent)} of ${fmt(target)} budget (${percentOver}% over)`,
+				href,
+			),
+		);
+	}
+
+	// 2. BUDGET_PROJECTED_OVERSPEND (amber): projectedTotal > target AND daysElapsed >= 7
+	if (projectedTotal > target && daysElapsed >= 7) {
+		alerts.push(
+			makeGlobalAlert(
+				'BUDGET_PROJECTED_OVERSPEND',
+				'amber',
+				'Budget overspend projected',
+				`Projected to spend ${fmt(projectedTotal)} against a ${fmt(target)} target (${daysRemaining} days remaining)`,
+				href,
+			),
+		);
+	}
+
+	// 3 & 4. Category-level alerts
+	const categories = await getCategoryBreakdown(userId, year, month, status.budget);
+
+	for (const cat of categories) {
+		if (cat.id === UNCATEGORISED_ID) continue; // handled separately below
+		if (cat.target === null || cat.target <= 0) continue;
+
+		const pct = (cat.spent / cat.target) * 100;
+
+		// CATEGORY_BUDGET_EXCEEDED (amber): spent > target
+		if (cat.spent > cat.target) {
+			const over = cat.spent - cat.target;
+			alerts.push({
+				id: `CATEGORY_BUDGET_EXCEEDED:${cat.id}`,
+				type: 'CATEGORY_BUDGET_EXCEEDED',
+				severity: 'amber',
+				title: `${cat.name} over budget`,
+				message: `Spent ${fmt(cat.spent)}, exceeding the ${fmt(cat.target)} target by ${fmt(over)}`,
+				href,
+				triggeredAt: Date.now(),
+			});
+		}
+		// CATEGORY_BUDGET_APPROACHING (info): spent > 80% of target (but not yet exceeded)
+		else if (pct > 80) {
+			alerts.push({
+				id: `CATEGORY_BUDGET_APPROACHING:${cat.id}`,
+				type: 'CATEGORY_BUDGET_APPROACHING',
+				severity: 'info',
+				title: `${cat.name} approaching budget`,
+				message: `Spent ${fmt(cat.spent)} of ${fmt(cat.target)} (${Math.round(pct)}%)`,
+				href,
+				triggeredAt: Date.now(),
+			});
+		}
+	}
+
+	// 5. HIGH_UNCATEGORISED_SPEND (info -> amber)
+	const uncategorisedEntry = categories.find(c => c.id === UNCATEGORISED_ID);
+	if (uncategorisedEntry && totalSpent > 0) {
+		const uncategorisedPct = (uncategorisedEntry.spent / totalSpent) * 100;
+		if (uncategorisedPct > 40) {
+			alerts.push(
+				makeGlobalAlert(
+					'HIGH_UNCATEGORISED_SPEND',
+					'amber',
+					'High uncategorised spending',
+					`${Math.round(uncategorisedPct)}% of spending (${fmt(uncategorisedEntry.spent)}) is uncategorised this month`,
+					href,
+				),
+			);
+		} else if (uncategorisedPct > 20) {
+			alerts.push(
+				makeGlobalAlert(
+					'HIGH_UNCATEGORISED_SPEND',
+					'info',
+					'High uncategorised spending',
+					`${Math.round(uncategorisedPct)}% of spending (${fmt(uncategorisedEntry.spent)}) is uncategorised this month`,
+					href,
+				),
+			);
+		}
+	}
+
+	return alerts;
+}
+
+async function checkNetWorthAlerts(userId: number): Promise<Alert[]> {
+	const alerts: Alert[] = [];
+	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
+
+	const rows = await db
+		.select({
+			snapshotDate: snapshots.snapshotDate,
+			netWorthInCents: snapshots.netWorthInCents,
+		})
+		.from(snapshots)
+		.where(withUserFilter(userId, snapshots))
+		.orderBy(desc(snapshots.snapshotDate))
+		.limit(4);
+
+	if (rows.length < 2) return alerts;
+
+	// NET_WORTH_DECLINING: last snapshot < previous snapshot
+	const last = rows[0];
+	const prev = rows[1];
+	if (last.netWorthInCents < prev.netWorthInCents) {
+		const diff = prev.netWorthInCents - last.netWorthInCents;
+		alerts.push(
+			makeGlobalAlert(
+				'NET_WORTH_DECLINING',
+				'amber',
+				'Net worth declining',
+				`Decreased by ${fmt(diff)} since last snapshot (${prev.snapshotDate})`,
+				'/overview/snapshots',
+			),
+		);
+	}
+
+	// NET_WORTH_SUSTAINED_DECLINE: 3+ consecutive snapshots all declining
+	if (rows.length >= 3) {
+		let decliningMonths = 0;
+		for (let i = 1; i < rows.length; i++) {
+			if (rows[i].netWorthInCents > rows[i - 1].netWorthInCents) {
+				decliningMonths++;
+			} else {
+				break;
+			}
+		}
+		if (decliningMonths >= 3) {
+			alerts.push(
+				makeGlobalAlert(
+					'NET_WORTH_SUSTAINED_DECLINE',
+					'red',
+					'Net worth sustained decline',
+					`Net worth has decreased for ${decliningMonths} consecutive months`,
+					'/overview/snapshots',
+				),
+			);
+		}
+	}
+
+	return alerts;
+}
+
+async function checkDebtPayoffAlerts(userId: number): Promise<Alert[]> {
+	const alerts: Alert[] = [];
+	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
+
+	const openLiabilities = await db
+		.select()
+		.from(accounts)
+		.where(
+			and(
+				withUserFilter(userId, accounts),
+				eq(accounts.category, 'liability'),
+				isNull(accounts.closedAt),
+			),
+		);
+
+	if (openLiabilities.length === 0) return alerts;
+
+	const accountIds = openLiabilities.map(a => a.id);
+	const balances = await getCurrentBalancesForAccounts(accountIds);
+
+	// Fetch latest interest rate for each liability account
+	const rateRows = await db
+		.select()
+		.from(interestRates)
+		.where(inArray(interestRates.accountId, accountIds));
+
+	const latestRates = new Map<number, typeof rateRows[number]>();
+	for (const row of rateRows) {
+		const existing = latestRates.get(row.accountId);
+		if (!existing || row.effectiveFrom > existing.effectiveFrom) {
+			latestRates.set(row.accountId, row);
+		}
+	}
+
+	// Fetch recent payments (last 90 days) to estimate average monthly payment
+	const ninetyDaysAgo = new Date();
+	ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+	const paymentRows = await db
+		.select({
+			accountId: accountTransactions.accountId,
+			amount: accountTransactions.amount,
+		})
+		.from(accountTransactions)
+		.where(
+			and(
+				inArray(accountTransactions.accountId, accountIds),
+				gte(accountTransactions.transactionDate, ninetyDaysAgo),
+			),
+		);
+
+	// Group payments per account and compute average (payments reduce debt, so amount < 0 for liabilities)
+	const accountPayments = new Map<number, number[]>();
+	for (const row of paymentRows) {
+		// For liability accounts, payments reduce the balance (negative amounts)
+		if (row.amount < 0) {
+			const existing = accountPayments.get(row.accountId) ?? [];
+			existing.push(Math.abs(row.amount));
+			accountPayments.set(row.accountId, existing);
+		}
+	}
+
+	for (const account of openLiabilities) {
+		const balance = balances.get(account.id) ?? 0;
+		const rate = latestRates.get(account.id);
+
+		if (!rate || balance >= 0) continue;
+
+		const absBalance = Math.abs(balance);
+		const monthlyInterest = absBalance * (rate.rate / 100 / 12 / 100);
+
+		// Estimate average monthly payment from recent history
+		const payments = accountPayments.get(account.id) ?? [];
+		const avgMonthlyPayment = payments.length > 0
+			? payments.reduce((sum, p) => sum + p, 0) / payments.length
+			: 0;
+
+		if (avgMonthlyPayment <= monthlyInterest && avgMonthlyPayment > 0) {
+			alerts.push(
+				makeAccountAlert(
+					'DEBT_NEVER_PAYS_OFF',
+					'red',
+					`${account.name} — debt growing`,
+					`Monthly payment (${fmt(Math.round(avgMonthlyPayment))}) doesn't cover interest (${fmt(Math.round(monthlyInterest))})`,
+					account,
+				),
+			);
+		}
+	}
+
+	return alerts;
+}
+
+async function checkGoalAutoReduceAlerts(userId: number): Promise<Alert[]> {
+	const alerts: Alert[] = [];
+	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
+
+	const sevenDaysAgo = new Date();
+	sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+	const reductions = await db
+		.select({
+			allocationId: goalAllocations.id,
+			amount: goalAllocations.amount,
+			goalName: goals.name,
+			goalSlug: goals.slug,
+		})
+		.from(goalAllocations)
+		.innerJoin(goals, eq(goalAllocations.goalId, goals.id))
+		.where(
+			and(
+				withUserFilter(userId, goals),
+				eq(goalAllocations.type, 'AUTO_REDUCE_NEGATIVE_BALANCE'),
+				gte(goalAllocations.createdAt, sevenDaysAgo),
+			),
+		);
+
+	for (const r of reductions) {
+		alerts.push({
+			id: `GOAL_AUTO_REDUCE_TRIGGERED:${r.goalSlug}:${r.allocationId}`,
+			type: 'GOAL_AUTO_REDUCE_TRIGGERED',
+			severity: 'red',
+			title: `${r.goalName} allocation reduced`,
+			message: `${fmt(Math.abs(r.amount))} automatically unallocated due to negative account balance`,
+			href: '/goals',
+			triggeredAt: Date.now(),
+		});
+	}
+
+	return alerts;
+}
+
+async function checkISAPacingAlerts(userId: number): Promise<Alert[]> {
+	const alerts: Alert[] = [];
+	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
+
+	const pacing = await calculateISAPacing(userId);
+
+	if (pacing.status !== 'behind') return alerts;
+
+	const deposited = pacing.allowanceUsedInCents;
+	const target = ISA_ALLOWANCE_IN_CENTS;
+	const monthlyNeeded = pacing.requiredMonthlyInCents;
+
+	alerts.push(
+		makeGlobalAlert(
+			'ISA_PACING_BEHIND',
+			'info',
+			'ISA contributions behind pace',
+			`Deposited ${fmt(deposited)} of ${fmt(target)} — ${fmt(monthlyNeeded)}/month needed to reach limit`,
+			'/accounts',
+		),
+	);
+
+	return alerts;
+}
+
+async function checkLISAAlerts(userId: number): Promise<Alert[]> {
+	const alerts: Alert[] = [];
+	const now = new Date();
+	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
+	const { start: taxYearStart } = getUkTaxYearBounds(now);
+
+	const lisaAccounts = await db.query.accounts.findMany({
+		where: and(
+			withUserFilter(userId, accounts),
+			eq(accounts.taxWrapper, 'lisa'),
+			isNull(accounts.closedAt),
+		),
+	});
+
+	if (lisaAccounts.length === 0) return alerts;
+
+	const lisaAccountIds = lisaAccounts.map((a) => a.id);
+
+	const depositRows = await db
+		.select({
+			accountId: accountTransactions.accountId,
+			totalDeposited: sql<number>`coalesce(sum(${accountTransactions.amount}), 0)`,
+		})
+		.from(accountTransactions)
+		.where(
+			and(
+				inArray(accountTransactions.accountId, lisaAccountIds),
+				inArray(accountTransactions.type, ['deposit', 'transfer_in']),
+				gte(accountTransactions.transactionDate, taxYearStart),
+				// transactionDate < taxYearEnd handled implicitly by summing only positive deposits
+			),
+		)
+		.groupBy(accountTransactions.accountId);
+
+	const depositsByAccount = new Map<number, number>();
+	for (const row of depositRows) {
+		// Only count positive amounts (deposits into LISA increase balance)
+		depositsByAccount.set(row.accountId, row.totalDeposited);
+	}
+
+	const LISA_LIMIT_IN_CENTS = 400_000; // £4,000 in pence
+
+	for (const account of lisaAccounts) {
+		const deposited = depositsByAccount.get(account.id) ?? 0;
+		if (deposited > LISA_LIMIT_IN_CENTS) {
+			alerts.push(
+				makeAccountAlert(
+					'LISA_CONTRIBUTION_LIMIT',
+					'amber',
+					`${account.name} — LISA limit exceeded`,
+					`Deposited ${fmt(deposited)} of £4,000 limit this tax year`,
+					account,
+				),
+			);
+		}
+	}
+
+	return alerts;
+}
+
+async function checkBoERateAlerts(userId: number): Promise<Alert[]> {
+	const alerts: Alert[] = [];
+
+	const boeSetting = await db.query.settings.findFirst({
+		where: eq(settings.key, 'boeBaseRate'),
+	});
+
+	if (!boeSetting) return alerts;
+
+	const boeBaseRateInBps = parseInt(boeSetting.value, 10);
+	if (isNaN(boeBaseRateInBps)) return alerts;
+
+	// Query open asset savings accounts (not current accounts)
+	const savingsAccounts = await db.query.accounts.findMany({
+		where: and(
+			withUserFilter(userId, accounts),
+			eq(accounts.category, 'asset'),
+			isNull(accounts.closedAt),
+		),
+	});
+
+	const savingsIds = savingsAccounts
+		.filter((a) => a.type !== 'current')
+		.map((a) => a.id);
+
+	if (savingsIds.length === 0) return alerts;
+
+	// Fetch latest interest rate for each savings account
+	const rateRows = await db
+		.select()
+		.from(interestRates)
+		.where(inArray(interestRates.accountId, savingsIds));
+
+	const latestRates = new Map<number, typeof rateRows[number]>();
+	for (const row of rateRows) {
+		const existing = latestRates.get(row.accountId);
+		if (!existing || row.effectiveFrom > existing.effectiveFrom) {
+			latestRates.set(row.accountId, row);
+		}
+	}
+
+	for (const account of savingsAccounts) {
+		if (account.type === 'current') continue;
+
+		const rate = latestRates.get(account.id);
+		if (!rate) continue;
+
+		// Both rates are in basis points (e.g. 450 = 4.50%)
+		const accountRateInBps = rate.rate;
+		const spread = accountRateInBps - boeBaseRateInBps;
+
+		if (spread < -100) {
+			// More than 1% below base rate
+			const accountRatePct = (accountRateInBps / 100).toFixed(2);
+			const baseRatePct = (boeBaseRateInBps / 100).toFixed(2);
+			const spreadPct = (Math.abs(spread) / 100).toFixed(2);
+			alerts.push(
+				makeAccountAlert(
+					'SAVINGS_RATE_BELOW_BOE',
+					'amber',
+					`${account.name} — rate below base`,
+					`Rate of ${accountRatePct}% is ${spreadPct}% below BoE base (${baseRatePct}%)`,
+					account,
+				),
+			);
+		} else if (spread < -50) {
+			// More than 0.5% below base rate
+			const accountRatePct = (accountRateInBps / 100).toFixed(2);
+			const baseRatePct = (boeBaseRateInBps / 100).toFixed(2);
+			const spreadPct = (Math.abs(spread) / 100).toFixed(2);
+			alerts.push(
+				makeAccountAlert(
+					'SAVINGS_RATE_BELOW_BOE',
+					'info',
+					`${account.name} — rate below base`,
+					`Rate of ${accountRatePct}% is ${spreadPct}% below BoE base (${baseRatePct}%)`,
+					account,
+				),
+			);
+		}
+	}
+
+	return alerts;
+}
+
+async function checkOrphanedTransfers(userId: number): Promise<Alert[]> {
+	const alerts: Alert[] = [];
+	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
+
+	const thirtyDaysAgo = new Date();
+	thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+	// Get all transfer transactions for user's accounts in the last 30 days
+	const userAccounts = await db.query.accounts.findMany({
+		where: withUserFilter(userId, accounts),
+	});
+
+	const userAccountIds = userAccounts.map((a) => a.id);
+	if (userAccountIds.length === 0) return alerts;
+
+	const transferRows = await db
+		.select({
+			id: accountTransactions.id,
+			accountId: accountTransactions.accountId,
+			amount: accountTransactions.amount,
+			type: accountTransactions.type,
+			transactionDate: accountTransactions.transactionDate,
+		})
+		.from(accountTransactions)
+		.where(
+			and(
+				inArray(accountTransactions.accountId, userAccountIds),
+				inArray(accountTransactions.type, ['transfer_in', 'transfer_out']),
+				gte(accountTransactions.transactionDate, thirtyDaysAgo),
+			),
+		);
+
+	if (transferRows.length === 0) return alerts;
+
+	// Build account lookup
+	const accountMap = new Map<number, typeof userAccounts[number]>();
+	for (const account of userAccounts) {
+		accountMap.set(account.id, account);
+	}
+
+	// For each transfer, check if there's a matching counterpart in another account
+	const oneDayMs = 1 * MS_PER_DAY;
+
+	for (const tx of transferRows) {
+		// We only alert on transfer_in to avoid double-counting
+		if (tx.type !== 'transfer_in') continue;
+
+		const txDateMs = Number(tx.transactionDate) * 1000;
+
+		// Look for a matching transfer_out in another account
+		const hasMatch = transferRows.some((other) =>
+			other.type === 'transfer_out' &&
+			other.accountId !== tx.accountId &&
+			Math.abs(other.amount) === Math.abs(tx.amount) &&
+			Math.abs(Number(other.transactionDate) * 1000 - txDateMs) <= oneDayMs,
+		);
+
+		if (!hasMatch) {
+			const account = accountMap.get(tx.accountId);
+			if (!account) continue;
+
+			const txDate = new Date(txDateMs);
+			const formattedAmount = fmt(Math.abs(tx.amount));
+			const formattedDate = txDate.toLocaleDateString('en-GB');
+
+			alerts.push(
+				makeAccountAlert(
+					'ORPHANED_TRANSFER',
+					'info',
+					'Unmatched transfer',
+					`${formattedAmount} transfer_in on ${formattedDate} has no matching counterpart`,
+					account,
+				),
+			);
+		}
+	}
+
+	return alerts;
+}
+
 // ─── Bulk data fetcher ────────────────────────────────────────────────────────
 
 async function fetchBulkData(userId: number) {
@@ -839,17 +1393,27 @@ export async function getAlerts(userId: number): Promise<Alert[]> {
 			...checkClosedWithBalanceAlerts(allAccounts, balances),
 		];
 
-		// User-level (async, parallel)
-		const [isaAlerts, psaAlerts, goalAlerts, snapshotAlerts, reviewAlerts, taxYearReviewAlerts] = await Promise.all([
+		// User-level + account-level (async, parallel)
+		const [isaAlerts, psaAlerts, goalAlerts, snapshotAlerts, reviewAlerts, taxYearReviewAlerts,
+			budgetAlerts, netWorthAlerts, debtPayoffAlerts, goalAutoReduceAlerts, isaPacingAlerts, lisaAlerts, boeRateAlerts, orphanedTransferAlerts] = await Promise.all([
 			checkIsaAlerts(userId, taxYear),
 			checkPsaAlerts(userId, taxYear, taxBand, hasSavingsAccounts),
 			checkGoalAlerts(userId),
 			checkSnapshotAlerts(userId),
 			checkMonthlyReviewAlerts(userId),
 			checkTaxYearReviewAlerts(now),
+			checkBudgetAlerts(userId),
+			checkNetWorthAlerts(userId),
+			checkDebtPayoffAlerts(userId),
+			checkGoalAutoReduceAlerts(userId),
+			checkISAPacingAlerts(userId),
+			checkLISAAlerts(userId),
+			checkBoERateAlerts(userId),
+			checkOrphanedTransfers(userId),
 		]);
 
-		return [...accountAlerts, ...isaAlerts, ...psaAlerts, ...goalAlerts, ...snapshotAlerts, ...reviewAlerts, ...taxYearReviewAlerts];
+		return [...accountAlerts, ...isaAlerts, ...psaAlerts, ...goalAlerts, ...snapshotAlerts, ...reviewAlerts, ...taxYearReviewAlerts,
+			...budgetAlerts, ...netWorthAlerts, ...debtPayoffAlerts, ...goalAutoReduceAlerts, ...isaPacingAlerts, ...lisaAlerts, ...boeRateAlerts, ...orphanedTransferAlerts];
 	} catch (err) {
 		logError('getAlerts', 'Failed to compute alerts', { userId, err });
 		return [];
@@ -865,6 +1429,13 @@ export async function getAccountListAlerts(userId: number): Promise<Alert[]> {
 		const { allAccounts, openAccounts, rateHistories, txSummaries, balances, latestTxDates, now } =
 			await fetchBulkData(userId);
 
+		const [debtPayoffAlerts, boeRateAlerts, orphanedTransferAlerts, lisaAlerts] = await Promise.all([
+			checkDebtPayoffAlerts(userId),
+			checkBoERateAlerts(userId),
+			checkOrphanedTransfers(userId),
+			checkLISAAlerts(userId),
+		]);
+
 		return [
 			...checkMaturityAlerts(openAccounts, now),
 			...checkMaturityPassedAlerts(openAccounts, rateHistories, now),
@@ -877,6 +1448,10 @@ export async function getAccountListAlerts(userId: number): Promise<Alert[]> {
 			...checkPremiumBondsAlerts(openAccounts, balances),
 			...checkUnusedIsaAlerts(openAccounts, txSummaries),
 			...checkClosedWithBalanceAlerts(allAccounts, balances),
+			...debtPayoffAlerts,
+			...boeRateAlerts,
+			...orphanedTransferAlerts,
+			...lisaAlerts,
 		];
 	} catch (err) {
 		logError('getAccountListAlerts', 'Failed to compute account list alerts', { userId, err });
@@ -909,11 +1484,19 @@ export async function getAlertsForAccount(accountId: number, userId: number): Pr
 			...checkClosedWithBalanceAlerts(allAccounts, balances),
 		];
 
+		const [debtPayoffAlerts, boeRateAlerts, lisaAlerts] = await Promise.all([
+			checkDebtPayoffAlerts(userId),
+			checkBoERateAlerts(userId),
+			checkLISAAlerts(userId),
+		]);
+
+		const allAlerts = [...allAccountAlerts, ...debtPayoffAlerts, ...boeRateAlerts, ...lisaAlerts];
+
 		// Find the target account to get its slug for filtering
 		const targetAccount = allAccounts.find((a) => a.id === accountId);
 		if (!targetAccount) return [];
 
-		return allAccountAlerts.filter((a) => a.accountSlug === targetAccount.slug);
+		return allAlerts.filter((a) => a.accountSlug === targetAccount.slug);
 	} catch (err) {
 		logError('getAlertsForAccount', 'Failed to compute account alerts', { accountId, userId, err });
 		return [];
@@ -926,7 +1509,11 @@ export async function getAlertsForAccount(accountId: number, userId: number): Pr
  */
 export async function getGoalListAlerts(userId: number): Promise<Alert[]> {
 	try {
-		return await checkGoalAlerts(userId);
+		const [goalAlerts, autoReduceAlerts] = await Promise.all([
+			checkGoalAlerts(userId),
+			checkGoalAutoReduceAlerts(userId),
+		]);
+		return [...goalAlerts, ...autoReduceAlerts];
 	} catch (err) {
 		logError('getGoalListAlerts', 'Failed to compute goal alerts', { userId, err });
 		return [];

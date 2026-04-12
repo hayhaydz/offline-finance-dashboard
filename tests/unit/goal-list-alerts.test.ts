@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+// Mock select chain for checkGoalAutoReduceAlerts (returns empty by default)
+const selectChain = {
+	from: vi.fn().mockReturnThis(),
+	innerJoin: vi.fn().mockReturnThis(),
+	where: vi.fn().mockResolvedValue([]),
+};
+
 vi.mock('$lib/db/client', () => ({
 	db: {
 		query: {
@@ -7,6 +14,7 @@ vi.mock('$lib/db/client', () => ({
 				findMany: vi.fn(),
 			},
 		},
+		select: vi.fn(() => selectChain),
 	},
 }));
 

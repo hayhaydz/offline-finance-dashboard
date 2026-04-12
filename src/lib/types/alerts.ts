@@ -29,7 +29,26 @@ export type AlertType =
 	| 'DEBT_GREW_BEYOND_STARTING'
 	| 'NO_MONTHLY_REVIEW'
 	| 'TAX_YEAR_INTEREST_REVIEW'
-	| 'TAX_YEAR_ISA_REVIEW';
+	| 'TAX_YEAR_ISA_REVIEW'
+	// Budget
+	| 'BUDGET_PROJECTED_OVERSPEND'
+	| 'BUDGET_OVERSPEND'
+	| 'CATEGORY_BUDGET_APPROACHING'
+	| 'CATEGORY_BUDGET_EXCEEDED'
+	| 'HIGH_UNCATEGORISED_SPEND'
+	// Net worth
+	| 'NET_WORTH_DECLINING'
+	| 'NET_WORTH_SUSTAINED_DECLINE'
+	// Debt
+	| 'DEBT_NEVER_PAYS_OFF'
+	// Goals
+	| 'GOAL_AUTO_REDUCE_TRIGGERED'
+	// ISA
+	| 'ISA_PACING_BEHIND'
+	| 'LISA_CONTRIBUTION_LIMIT'
+	// Accounts
+	| 'SAVINGS_RATE_BELOW_BOE'
+	| 'ORPHANED_TRANSFER';
 
 export interface Alert {
 	id: string;           // deterministic: `${type}:${accountSlug ?? 'global'}`
