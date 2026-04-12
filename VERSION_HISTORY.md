@@ -1,3 +1,23 @@
+## [2026-04-12] — feat: budget targets with per-category tracking
+
+**Summary:** Monthly budget tracking with per-category targets, spending pace visualization, category/account filters, and historical preservation via `budget_months` table. Accordion-based UI following terminal aesthetic with month navigation, progress bars, inline category target editing, and paginated history.
+
+**New files:**
+- `src/lib/server/budgets.ts` — Budget query functions: `getBudgetStatus`, `getCategoryBreakdown`, `getBudgetHistory`, `ensureCurrentMonth`, `saveBudgetRow`
+- `src/routes/overview/budgets/+page.server.ts` — Redirect to current month
+- `src/routes/overview/budgets/[month]/+page.server.ts` — Load budget data + 4 form actions (saveTarget, saveCategoryTarget, toggleCategory, toggleAccount)
+- `src/routes/overview/budgets/[month]/+page.svelte` — Budget page UI with accordions, progress bars, inline editing, filters, history
+
+**Modified files:**
+- `src/lib/db/schema.ts` — Added `budgetMonths` table, relations, and `BudgetMonth` type
+- `src/routes/overview/budgets/+page.svelte` — Replaced "coming soon" stub with redirect passthrough
+- `scripts/seed/modes/standard.ts` — Added budget seed data (£1,500 target with 5 category targets)
+- `src/lib/db/migrations/` — Regenerated fresh migration SQL
+
+**Suggested commit:** `feat: budget targets with per-category tracking and historical preservation`
+
+---
+
 ## [2026-04-11] — feat: CSV transaction import
 
 **Summary:** 4-step import wizard (upload → preview → review overlap → confirm) with client-side CSV parsing, server-side overlap detection, and batch insertion. Includes downloadable templates for both minimal (4-col) and full (5-col with category) formats. Supports 13 transaction types, comment lines, quoted fields, and per-row overlap selection.

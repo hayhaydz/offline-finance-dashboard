@@ -555,6 +555,30 @@ export const snapshots = sqliteTable(
 	}),
 );
 
+export const budgetMonths = sqliteTable(
+	"budget_months",
+	{
+		id: integer("id").primaryKey({ autoIncrement: true }),
+		userId: integer("user_id")
+			.notNull()
+			.references(() => users.id),
+		month: text("month").notNull(), // "2026-04" (YYYY-MM)
+		totalTargetInCents: integer("total_target_in_cents").notNull().default(0),
+		excludedCategoryIds: text("excluded_category_ids").notNull().default("[]"), // JSON array
+		excludedAccountIds: text("excluded_account_ids").notNull().default("[]"), // JSON array
+		categoryTargets: text("category_targets").notNull().default("{}"), // JSON object: categoryId → cents
+		createdAt: integer("created_at", { mode: "timestamp" })
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+	},
+	(table) => ({
+		userMonthIdx: index("idx_budget_months_user_month").on(
+			table.userId,
+			table.month,
+		),
+	}),
+);
+
 // Define relations for Drizzle ORM
 export const usersRelations = relations(users, ({ many }) => ({
 	sessions: many(sessions),
@@ -564,6 +588,7 @@ export const usersRelations = relations(users, ({ many }) => ({
 	snapshots: many(snapshots),
 	monthlyReviews: many(monthlyReviews),
 	spendingCategories: many(spendingCategories),
+	budgetMonths: many(budgetMonths),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -669,6 +694,13 @@ export const spendingCategoriesRelations = relations(spendingCategories, ({ one 
 	}),
 }));
 
+export const budgetMonthsRelations = relations(budgetMonths, ({ one }) => ({
+	user: one(users, {
+		fields: [budgetMonths.userId],
+		references: [users.id],
+	}),
+}));
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type BackupCode = typeof backupCodes.$inferSelect;
@@ -684,3 +716,4 @@ export type SystemMetadata = typeof systemMetadata.$inferSelect;
 export type Settings = typeof settings.$inferSelect;
 export type MonthlyReview = typeof monthlyReviews.$inferSelect;
 export type SpendingCategory = typeof spendingCategories.$inferSelect;
+export type BudgetMonth = typeof budgetMonths.$inferSelect;

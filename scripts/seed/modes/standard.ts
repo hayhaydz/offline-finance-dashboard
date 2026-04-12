@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import * as schema from "../../../src/lib/db/schema.js";
 import type { DB } from "../lib/db.js";
 import { daysAgo, formatGBP, loadFixture, slug } from "../lib/helpers.js";
@@ -154,6 +154,47 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 		}
 		console.log(`  ✓ ${cat.name} (${cat.key})`);
 	}
+
+	// --- Budget ---
+	console.log("\n💷 Creating budget for current month...");
+	const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+
+	await db.insert(schema.budgetMonths).values({
+		userId,
+		month: currentMonth,
+		totalTargetInCents: 150000, // £1,500
+		excludedCategoryIds: JSON.stringify([]),
+		excludedAccountIds: JSON.stringify([]),
+		categoryTargets: JSON.stringify({}),
+	});
+
+	// Update budget with category targets (after categories are seeded)
+	const seededCategories = await db.query.spendingCategories.findMany({
+		where: eq(schema.spendingCategories.userId, userId),
+	});
+
+	const categoryTargets: Record<string, number> = {};
+	const targetMap: Record<string, number> = {
+		groceries: 30000,      // £300
+		eating_out: 20000,     // £200
+		transport: 15000,      // £150
+		bills: 12000,          // £120
+		shopping: 7500,        // £75
+	};
+
+	for (const cat of seededCategories) {
+		if (targetMap[cat.key]) {
+			categoryTargets[String(cat.id)] = targetMap[cat.key];
+		}
+	}
+
+	await db.update(schema.budgetMonths)
+		.set({ categoryTargets: JSON.stringify(categoryTargets) })
+		.where(and(
+			eq(schema.budgetMonths.userId, userId),
+			eq(schema.budgetMonths.month, currentMonth),
+		));
+	console.log(`  ✓ Budget set for ${currentMonth} (£1,500 target)`);
 
 	// --- Goals ---
 	console.log("\n🎯 Creating goals...");

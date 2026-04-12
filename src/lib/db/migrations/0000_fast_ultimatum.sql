@@ -61,6 +61,19 @@ CREATE TABLE `backup_codes` (
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
+CREATE TABLE `budget_months` (
+	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+	`user_id` integer NOT NULL,
+	`month` text NOT NULL,
+	`total_target_in_cents` integer DEFAULT 0 NOT NULL,
+	`excluded_category_ids` text DEFAULT '[]' NOT NULL,
+	`excluded_account_ids` text DEFAULT '[]' NOT NULL,
+	`category_targets` text DEFAULT '{}' NOT NULL,
+	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
+	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE INDEX `idx_budget_months_user_month` ON `budget_months` (`user_id`,`month`);--> statement-breakpoint
 CREATE TABLE `goal_allocations` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`goal_id` integer NOT NULL,
