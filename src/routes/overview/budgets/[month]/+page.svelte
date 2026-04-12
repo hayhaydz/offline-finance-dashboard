@@ -124,6 +124,9 @@
 		{#if !data.isCurrentMonth}
 			<div class="text-gray-400 text-xs mt-0.5">Historical — read-only</div>
 		{/if}
+		<div class="text-gray-400 text-xs mt-0.5">
+			<a href="/overview/budgets/all" class="bracket-link">[All Months]</a>
+		</div>
 	</div>
 
 	<!-- TARGET ACCORDION -->
@@ -229,102 +232,10 @@
 		</div>
 	{/if}
 
-	<!-- CATEGORY TARGETS -->
-	<div class="font-bold text-xs px-2 py-1 bg-gray-50 border-t border-black">CATEGORY TARGETS <span class="text-gray-400">{targetedCategories.length} targeted · {untargetedCategories.length} untargeted</span></div>
-	<div class="px-2 py-1 border-b border-gray-300">
-		{#if targetedCategories.length > 0}
-			<div class="text-gray-500 font-bold text-xs py-1">WITH TARGETS</div>
-			{#each targetedCategories as cat (cat.id)}
-				{@const prog = getCatProgress(cat.spent, cat.target ?? 0)}
-				{@const pct = cat.target && cat.target > 0 ? Math.round((cat.spent / cat.target) * 100) : 0}
-
-				{#if editingCategoryId === cat.id && data.isCurrentMonth}
-					<!-- Inline edit mode -->
-					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200 bg-yellow-50 px-1">
-						<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
-						<span class="text-xs w-20 shrink-0">{cat.name}</span>
-						<form method="POST" action="?/saveCategoryTarget" use:enhance>
-							<input type="hidden" name="categoryId" value={cat.id} />
-							<div class="flex items-center gap-1">
-								<span class="text-xs">£</span>
-								<input name="amount" type="text" value={editAmount} class="border border-black p-0.5 w-20 font-terminal text-xs" />
-								<button type="submit" class="bracket-link text-xs text-green-700">Save</button>
-								<button type="button" class="bracket-link text-xs" onclick={cancelEdit}>Cancel</button>
-							</div>
-						</form>
-					</div>
-				{:else}
-					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200">
-						<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
-						<span class="text-xs w-20 shrink-0">{cat.name}</span>
-						<div class="flex items-center gap-0.5 text-xs min-w-[120px]">
-							<span>[</span>
-							<div class="flex-1 h-2 relative border-y border-gray-100">
-								<div class="h-full {prog.color}" style="width: {prog.width}%"></div>
-							</div>
-							<span>]</span>
-							<span class="min-w-6 font-bold {pct > 100 ? 'text-red-700' : pct > 75 ? 'text-amber-600' : 'text-green-700'}">{pct}%</span>
-						</div>
-						<span class="text-xs min-w-[70px] text-right">
-							{formatCurrency(cat.spent)} <span class="text-gray-400">/</span> {formatCurrency(cat.target ?? 0)}
-						</span>
-						{#if data.isCurrentMonth}
-							<button class="bracket-link text-xs" onclick={() => startEdit(cat.id, cat.target)}>Edit</button>
-						{/if}
-					</div>
-				{/if}
-			{/each}
-		{/if}
-
-		{#if untargetedCategories.length > 0}
-			<div class="text-gray-500 font-bold text-xs py-1 {targetedCategories.length > 0 ? 'mt-1' : ''}">WITHOUT TARGETS</div>
-			{#each untargetedCategories as cat (cat.id)}
-				<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200">
-					<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
-					<span class="text-xs w-20 shrink-0">{cat.name}</span>
-					<span class="text-xs text-gray-400 min-w-[70px] text-right">{formatCurrency(cat.spent)} spent</span>
-					{#if data.isCurrentMonth}
-						<button class="bracket-link text-xs" onclick={() => startEdit(cat.id, null)}>Set Target</button>
-					{/if}
-				</div>
-			{/each}
-		{/if}
-
-		{#if editingCategoryId && !targetedCategories.find(c => c.id === editingCategoryId) && !untargetedCategories.find(c => c.id === editingCategoryId)}
-			{@const cat = data.categories.find(c => c.id === editingCategoryId)}
-			{#if cat}
-				<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200 bg-yellow-50 px-1">
-					<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
-					<span class="text-xs w-20 shrink-0">{cat.name}</span>
-					<form method="POST" action="?/saveCategoryTarget" use:enhance>
-						<input type="hidden" name="categoryId" value={cat.id} />
-						<div class="flex items-center gap-1">
-							<span class="text-xs">£</span>
-							<input name="amount" type="text" value={editAmount} class="border border-black p-0.5 w-20 font-terminal text-xs" placeholder="0.00" />
-							<button type="submit" class="bracket-link text-xs text-green-700">Save</button>
-							<button type="button" class="bracket-link text-xs" onclick={cancelEdit}>Cancel</button>
-						</div>
-					</form>
-				</div>
-			{/if}
-		{/if}
-
-		{#if excludedCategories.length > 0}
-			<div class="text-gray-500 font-bold text-xs py-1 mt-1 opacity-40">EXCLUDED</div>
-			{#each excludedCategories as cat (cat.id)}
-				<div class="flex items-center gap-2 py-1 opacity-40">
-					<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
-					<span class="text-xs w-20 shrink-0 line-through">{cat.name}</span>
-					<span class="text-xs text-gray-400">—</span>
-				</div>
-			{/each}
-		{/if}
-	</div>
-
 	<!-- FILTERS ACCORDION -->
 	{#if data.budget}
 		<button
-			class="w-full font-bold flex justify-between items-center cursor-pointer px-2 py-1 text-xs bg-gray-50 border-t border-black border-b border-gray-300"
+			class="w-full font-bold flex justify-between items-center cursor-pointer px-2 py-1 text-xs bg-gray-50 border-t border-black"
 			onclick={() => (filtersOpen = !filtersOpen)}
 		>
 			<span>FILTERS <span class="text-gray-400">{data.budget.excludedCategoryIds.length > 0 ? (data.categories.length - data.budget.excludedCategoryIds.length) + '/' + data.categories.length + ' cats' : 'all cats'} · {data.budget.excludedAccountIds.length > 0 ? (data.accounts.length - data.budget.excludedAccountIds.length) + '/' + data.accounts.length + ' accts' : 'all accts'}</span></span>
@@ -360,16 +271,120 @@
 							</button>
 						</form>
 					{/each}
-
-					<div class="text-xs text-gray-400 mt-2 border-t border-dotted border-gray-200 pt-1">
-						Transactions without a category are included by default.
-					</div>
 				{:else}
 					<div class="text-xs text-gray-400">Filters are read-only for historical months.</div>
 				{/if}
 			</div>
 		{/if}
 	{/if}
+
+	<!-- CATEGORY TARGETS -->
+	<div class="font-bold text-xs px-2 py-1 bg-gray-50 border-t border-black">CATEGORY TARGETS <span class="text-gray-400">{targetedCategories.length} targeted · {untargetedCategories.length} untargeted</span></div>
+	<div class="px-2 py-1 border-b border-gray-300">
+		{#if targetedCategories.length > 0}
+			<div class="text-gray-500 font-bold text-xs py-1">WITH TARGETS</div>
+			{#each targetedCategories as cat (cat.id)}
+				{@const prog = getCatProgress(cat.spent, cat.target ?? 0)}
+				{@const pct = cat.target && cat.target > 0 ? Math.round((cat.spent / cat.target) * 100) : 0}
+
+				{#if editingCategoryId === cat.id && data.isCurrentMonth}
+					<!-- Inline edit mode -->
+					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200 bg-yellow-50 px-1">
+						<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
+						<span class="text-xs w-32 shrink-0">{cat.name}</span>
+						<form method="POST" action="?/saveCategoryTarget" use:enhance>
+							<input type="hidden" name="categoryId" value={cat.id} />
+							<div class="flex items-center gap-1">
+								<span class="text-xs">£</span>
+								<input name="amount" type="text" value={editAmount} class="border border-black p-0.5 w-20 font-terminal text-xs" />
+								<button type="submit" class="bracket-link text-xs text-green-700">Save</button>
+								<button type="button" class="bracket-link text-xs" onclick={cancelEdit}>Cancel</button>
+							</div>
+						</form>
+					</div>
+				{:else}
+					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200">
+						<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
+						<span class="text-xs w-32 shrink-0">{cat.name}</span>
+						<div class="flex items-center gap-0.5 text-xs min-w-[120px]">
+							<span>[</span>
+							<div class="flex-1 h-2 relative border-y border-gray-100">
+								<div class="h-full {prog.color}" style="width: {prog.width}%"></div>
+							</div>
+							<span>]</span>
+							<span class="min-w-6 font-bold {pct > 100 ? 'text-red-700' : pct > 75 ? 'text-amber-600' : 'text-green-700'}">{pct}%</span>
+						</div>
+						<span class="text-xs min-w-[70px] text-right">
+							{formatCurrency(cat.spent)} <span class="text-gray-400">/</span> {formatCurrency(cat.target ?? 0)}
+						</span>
+						{#if data.isCurrentMonth}
+							<button class="bracket-link text-xs" onclick={() => startEdit(cat.id, cat.target)}>Edit</button>
+						{/if}
+					</div>
+				{/if}
+			{/each}
+		{/if}
+
+		{#if untargetedCategories.length > 0}
+			<div class="text-gray-500 font-bold text-xs py-1 {targetedCategories.length > 0 ? 'mt-1' : ''}">WITHOUT TARGETS</div>
+			{#each untargetedCategories as cat (cat.id)}
+				{#if editingCategoryId === cat.id && data.isCurrentMonth}
+					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200 bg-yellow-50 px-1">
+						<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
+						<span class="text-xs w-32 shrink-0">{cat.name}</span>
+						<form method="POST" action="?/saveCategoryTarget" use:enhance>
+							<input type="hidden" name="categoryId" value={cat.id} />
+							<div class="flex items-center gap-1">
+								<span class="text-xs">£</span>
+								<input name="amount" type="text" value={editAmount} class="border border-black p-0.5 w-20 font-terminal text-xs" placeholder="0.00" />
+								<button type="submit" class="bracket-link text-xs text-green-700">Save</button>
+								<button type="button" class="bracket-link text-xs" onclick={cancelEdit}>Cancel</button>
+							</div>
+						</form>
+					</div>
+				{:else}
+					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200">
+						<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
+						<span class="text-xs w-32 shrink-0">{cat.name}</span>
+						<span class="text-xs text-gray-400 min-w-[70px] text-right">{formatCurrency(cat.spent)} spent</span>
+						{#if data.isCurrentMonth}
+							<button class="bracket-link text-xs" onclick={() => startEdit(cat.id, null)}>Set Target</button>
+						{/if}
+					</div>
+				{/if}
+			{/each}
+		{/if}
+
+		{#if editingCategoryId && !targetedCategories.find(c => c.id === editingCategoryId) && !untargetedCategories.find(c => c.id === editingCategoryId)}
+			{@const cat = data.categories.find(c => c.id === editingCategoryId)}
+			{#if cat}
+				<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200 bg-yellow-50 px-1">
+					<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
+					<span class="text-xs w-32 shrink-0">{cat.name}</span>
+					<form method="POST" action="?/saveCategoryTarget" use:enhance>
+						<input type="hidden" name="categoryId" value={cat.id} />
+						<div class="flex items-center gap-1">
+							<span class="text-xs">£</span>
+							<input name="amount" type="text" value={editAmount} class="border border-black p-0.5 w-20 font-terminal text-xs" placeholder="0.00" />
+							<button type="submit" class="bracket-link text-xs text-green-700">Save</button>
+							<button type="button" class="bracket-link text-xs" onclick={cancelEdit}>Cancel</button>
+						</div>
+					</form>
+				</div>
+			{/if}
+		{/if}
+
+		{#if excludedCategories.length > 0}
+			<div class="text-gray-500 font-bold text-xs py-1 mt-1 opacity-40">EXCLUDED</div>
+			{#each excludedCategories as cat (cat.id)}
+				<div class="flex items-center gap-2 py-1 opacity-40">
+					<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
+					<span class="text-xs w-20 shrink-0 line-through">{cat.name}</span>
+					<span class="text-xs text-gray-400">—</span>
+				</div>
+			{/each}
+		{/if}
+	</div>
 
 	<!-- HISTORY -->
 	<div class="font-bold text-xs px-2 py-1 bg-gray-50 border-t border-black">HISTORY <span class="text-gray-400">{data.history.months.length} months</span></div>
@@ -414,21 +429,5 @@
 		{:else}
 			<div class="text-xs text-gray-400 py-1">No history yet.</div>
 		{/if}
-	</div>
-
-	<!-- FOOTER -->
-	<div class="flex justify-between items-center px-2 py-2 bg-gray-50 border-t border-black text-xs">
-		<span class="text-gray-400">
-			{#if data.budget}
-				{data.budget.excludedCategoryIds.length > 0 ? (data.categories.length - data.budget.excludedCategoryIds.length) + ' of ' + data.categories.length + ' categories' : 'All categories'}
-				·
-				{data.budget.excludedAccountIds.length > 0 ? (data.accounts.length - data.budget.excludedAccountIds.length) + ' of ' + data.accounts.length + ' accounts' : 'All accounts'}
-			{:else}
-				No filters applied
-			{/if}
-		</span>
-		<button class="bracket-link" onclick={() => { targetOpen = !targetOpen; filtersOpen = !filtersOpen; }}>
-			{targetOpen || filtersOpen ? 'Collapse All' : 'Expand All'}
-		</button>
 	</div>
 </div>

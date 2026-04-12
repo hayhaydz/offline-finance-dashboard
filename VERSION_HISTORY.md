@@ -1,3 +1,36 @@
+## [2026-04-12] — feat: virtual uncategorised catch-all category in budget breakdown
+
+**Changed:**
+- `getCategoryBreakdown()` now captures `null` categoryId spend into a virtual "Uncategorised" entry (sentinel ID `-1`) instead of discarding it
+- `toggleCategory` action rejects the sentinel ID — uncategorised transactions cannot be excluded
+- Removed obsolete "Transactions without a category are included by default" note from filters section
+
+**Added:**
+- `UNCATEGORISED_ID = -1` exported constant for sentinel ID reuse
+- Virtual category always sorts last within its target group (targeted or untargeted)
+- Users can set budget targets on uncategorised spending to drive categorisation behaviour
+
+**Suggested commit:** `feat: virtual uncategorised catch-all category in budget breakdown`
+
+---
+
+## [2026-04-12] — refactor: time-based pages default to current period with /all index views
+
+**Changed:**
+- `/accounts/isa` now redirects to current tax year instead of showing index
+- `/accounts/interest` now redirects to current tax year instead of showing index
+- ISA and Interest index views moved to `/accounts/isa/all` and `/accounts/interest/all`
+
+**Added:**
+- `/overview/budgets/all` — Budget history index page with pagination
+- `[All Months]` link on budget month detail page
+- `[All Years]` links now point to `/all` routes
+- `all` breadcrumb label in navigation
+
+**Suggested commit:** `refactor: time-based pages default to current period with /all index views`
+
+---
+
 ## [2026-04-12] — feat: budget targets with per-category tracking
 
 **Summary:** Monthly budget tracking with per-category targets, spending pace visualization, category/account filters, and historical preservation via `budget_months` table. Accordion-based UI following terminal aesthetic with month navigation, progress bars, inline category target editing, and paginated history.

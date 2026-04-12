@@ -8,6 +8,9 @@ import {
 } from "$lib/db/schema";
 import { devLog } from "$lib/utils/logger";
 
+/** Sentinel ID for the virtual "Uncategorised" catch-all category */
+export const UNCATEGORISED_ID = -1;
+
 export interface BudgetConfig {
 	totalTargetInCents: number;
 	excludedCategoryIds: number[];
@@ -165,9 +168,12 @@ export async function getCategoryBreakdown(
 		.groupBy(accountTransactions.categoryId);
 
 	const spendMap = new Map<number, number>();
+	let uncategorisedSpent = 0;
 	for (const row of spendRows) {
 		if (row.categoryId !== null) {
 			spendMap.set(row.categoryId, Number(row.total));
+		} else {
+			uncategorisedSpent = Number(row.total);
 		}
 	}
 
@@ -183,6 +189,32 @@ export async function getCategoryBreakdown(
 		const aTargeted = a.target !== null ? 1 : 0;
 		const bTargeted = b.target !== null ? 1 : 0;
 		if (aTargeted !== bTargeted) return bTargeted - aTargeted;
+
+		if (a.target !== null && b.target !== null) {
+			const aPct = a.target > 0 ? a.spent / a.target : 0;
+			const bPct = b.target > 0 ? b.spent / b.target : 0;
+			return bPct - aPct;
+		}
+
+		return b.spent - a.spent;
+	});
+
+	breakdown.push({
+		id: UNCATEGORISED_ID,
+		name: "Uncategorised",
+		colour: "#9CA3AF", // gray-400
+		spent: uncategorisedSpent,
+		target: budget?.categoryTargets[String(UNCATEGORISED_ID)] ?? null,
+	});
+
+	// Re-sort: push uncategorised to the end of its target group
+	breakdown.sort((a, b) => {
+		const aTargeted = a.target !== null ? 1 : 0;
+		const bTargeted = b.target !== null ? 1 : 0;
+		if (aTargeted !== bTargeted) return bTargeted - aTargeted;
+
+		if (a.id === UNCATEGORISED_ID) return 1;
+		if (b.id === UNCATEGORISED_ID) return 1;
 
 		if (a.target !== null && b.target !== null) {
 			const aPct = a.target > 0 ? a.spent / a.target : 0;

@@ -137,7 +137,8 @@
         liabilities: 'Liabilities',
         balances: 'Balances',
         edit: 'Edit',
-        delete: 'Close'
+        delete: 'Close',
+        all: 'All'
       };
 
       // Use override if provided, otherwise use labelMap or segment

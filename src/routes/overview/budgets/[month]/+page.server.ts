@@ -10,6 +10,7 @@ import {
 	getBudgetHistory,
 	getBudgetRow,
 	saveBudgetRow,
+	UNCATEGORISED_ID,
 } from "$lib/server/budgets";
 import type { Actions, PageServerLoad } from "./$types";
 
@@ -190,6 +191,10 @@ export const actions: Actions = {
 
 		if (!categoryId || Number.isNaN(categoryId)) {
 			return fail(400, { error: "Invalid category" });
+		}
+
+		if (categoryId === UNCATEGORISED_ID) {
+			return fail(400, { error: "Cannot exclude uncategorised" });
 		}
 
 		const row = await getBudgetRow(locals.user.id, monthStr);
