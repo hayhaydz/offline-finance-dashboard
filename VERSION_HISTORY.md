@@ -1,3 +1,19 @@
+## [2026-04-13] — perf: add database indexes for login, MFA, and milestone queries
+
+**Summary:** Added composite and single-column indexes to three tables that lacked coverage for hot-path queries, eliminating full table scans during login, backup code verification, and milestone filtering.
+
+**Changed (`src/lib/db/schema.ts`):**
+- `backupCodes`: converted to three-argument form, added `idx_backup_codes_user_id_used` composite index on `(userId, used)`
+- `loginAttempts`: converted to three-argument form, added `idx_login_attempts_last_attempt` on `lastAttempt` and `idx_login_attempts_locked_until` on `lockedUntil`
+- `goalMilestones`: added `idx_goal_milestones_reached_at` on `reachedAt`
+
+**Fixed (`src/routes/settings/general/+page.svelte`):**
+- Narrowed `ActionResult` type access — `result.data` now only accessed after type-narrowing to `'failure'`, resolving TS error on discriminated union
+
+**Suggested commit:** `perf: add indexes on backupCodes, loginAttempts, goalMilestones; fix settings TS error`
+
+---
+
 ## [2026-04-12] — feat: 12 new alert types across 8 checker functions
 
 **Added to `src/lib/types/alerts.ts`:**

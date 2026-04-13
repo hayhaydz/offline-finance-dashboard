@@ -131,6 +131,31 @@ export const actions = {
 			return fail(401, { error: "Invalid credentials" });
 		}
 
+		// Re-check rate limit before TOTP verification.
+		// Previous requests may have exhausted the allowance with TOTP
+		// failures — this catches accumulated TOTP brute-force attempts
+		// at the verification boundary, not just at the request start.
+		const mfaRateLimit = await checkRateLimit(username);
+		if (mfaRateLimit.locked) {
+			logError("login", "Account locked before MFA verification", {
+				username,
+			});
+			return fail(429, {
+				locked: true,
+				error: "Account locked due to too many failed attempts",
+			});
+		}
+		if (mfaRateLimit.delay) {
+			devLog("login", "MFA rate limit delay applied", {
+				username,
+				delaySeconds: mfaRateLimit.delay,
+			});
+			return fail(429, {
+				delay: mfaRateLimit.delay,
+				error: "Too many failed attempts. Please wait before trying again.",
+			});
+		}
+
 		// Decrypt TOTP secret before verifying TOTP code
 		// The secret is stored AES-256-GCM encrypted in the database
 		const systemKey = process.env.ENCRYPTION_KEY;

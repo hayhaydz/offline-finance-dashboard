@@ -43,26 +43,42 @@ export const sessions = sqliteTable(
 	}),
 );
 
-export const backupCodes = sqliteTable("backup_codes", {
-	id: integer("id").primaryKey({ autoIncrement: true }),
-	userId: integer("user_id")
-		.notNull()
-		.references(() => users.id),
-	code: text("code").notNull(), // Hashed with Argon2id
-	used: integer("used", { mode: "boolean" }).notNull().default(false),
-	createdAt: integer("created_at", { mode: "timestamp" })
-		.notNull()
-		.default(sql`CURRENT_TIMESTAMP`),
-});
+export const backupCodes = sqliteTable(
+	"backup_codes",
+	{
+		id: integer("id").primaryKey({ autoIncrement: true }),
+		userId: integer("user_id")
+			.notNull()
+			.references(() => users.id),
+		code: text("code").notNull(), // Hashed with Argon2id
+		used: integer("used", { mode: "boolean" }).notNull().default(false),
+		createdAt: integer("created_at", { mode: "timestamp" })
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+	},
+	(table) => ({
+		userIdUsedIdx: index("idx_backup_codes_user_id_used").on(
+			table.userId,
+			table.used,
+		),
+	}),
+);
 
-export const loginAttempts = sqliteTable("login_attempts", {
-	username: text("username").primaryKey(),
-	count: integer("count").notNull().default(0),
-	lastAttempt: integer("last_attempt", { mode: "timestamp" })
-		.notNull()
-		.default(sql`CURRENT_TIMESTAMP`),
-	lockedUntil: integer("locked_until", { mode: "timestamp" }),
-});
+export const loginAttempts = sqliteTable(
+	"login_attempts",
+	{
+		username: text("username").primaryKey(),
+		count: integer("count").notNull().default(0),
+		lastAttempt: integer("last_attempt", { mode: "timestamp" })
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+		lockedUntil: integer("locked_until", { mode: "timestamp" }),
+	},
+	(table) => ({
+		lastAttemptIdx: index("idx_login_attempts_last_attempt").on(table.lastAttempt),
+		lockedUntilIdx: index("idx_login_attempts_locked_until").on(table.lockedUntil),
+	}),
+);
 
 export const accounts = sqliteTable(
 	"accounts",
@@ -294,6 +310,7 @@ export const goalMilestones = sqliteTable(
 	},
 	(table) => ({
 		goalIdx: index("idx_goal_milestones_goal").on(table.goalId),
+		reachedAtIdx: index("idx_goal_milestones_reached_at").on(table.reachedAt),
 	}),
 );
 

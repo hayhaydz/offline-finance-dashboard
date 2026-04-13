@@ -3,6 +3,7 @@ import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { accountNotes } from "$lib/db/schema";
 import { FIELD_LIMITS } from "$lib/utils/fieldLimits";
+import { sanitizeNoteContent } from "$lib/utils/sanitize";
 import { devLog } from "$lib/utils/logger";
 
 export interface CreateNoteData {
@@ -25,18 +26,19 @@ export async function createNote(
 	}
 
 	const slug = nanoid(21);
+	const sanitizedContent = sanitizeNoteContent(data.content.trim());
 
 	await db.insert(accountNotes).values({
 		slug,
 		accountId: data.accountId,
-		content: data.content.trim(),
+		content: sanitizedContent,
 		createdAt: new Date(),
 	});
 
 	devLog("createNote", "Note created", {
 		noteSlug: slug,
 		accountId: data.accountId,
-		contentLength: data.content.length,
+		contentLength: sanitizedContent.length,
 	});
 
 	return { success: true, noteSlug: slug };

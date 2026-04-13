@@ -289,7 +289,7 @@
 						use:enhance={() => {
 							console.log('[DEBUG:createCategory] use:enhance outer fn called');
 							return async ({ result, update }) => {
-								console.log('[DEBUG:createCategory] Result received', { type: result.type, data: result.data });
+								console.log('[DEBUG:createCategory] Result received', { type: result.type, data: result.type === 'failure' ? result.data : undefined });
 								if (result.type === 'success') {
 									categoryMessage = { type: 'success', text: 'Category created' };
 									cancelAdd();

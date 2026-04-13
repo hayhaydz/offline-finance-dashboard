@@ -88,6 +88,16 @@ export async function load({ cookies, locals }) {
 
 	devLog("mfaSetup", "QR code generated", { username: user.username });
 
+	// Set flag proving the user loaded the setup page and received the QR code.
+	// The finalize action checks for this to prevent bypassing the setup flow.
+	cookies.set("mfa-setup-initiated", "true", {
+		path: "/mfa-setup",
+		httpOnly: true,
+		sameSite: "strict",
+		secure: process.env.APP_ENV === "production",
+		maxAge: 60 * 15, // Same 15-min window as the setup token
+	});
+
 	return {
 		qrCodeUrl,
 		username: user.username,
@@ -104,6 +114,17 @@ export const actions = {
 		if (!totpCode) {
 			devLog("mfaSetup", "Validation failed - missing TOTP code");
 			return fail(400, { error: "Authentication code is required" });
+		}
+
+		// Verify the user actually loaded the setup page (saw the QR code).
+		// Without this check, anyone with the setup token could POST directly
+		// to finalize MFA without completing the setup flow.
+		const setupInitiated = cookies.get("mfa-setup-initiated");
+		if (!setupInitiated) {
+			logError("mfaSetup", "Finalize attempted without setup initiation");
+			return fail(403, {
+				error: "MFA setup not initiated. Please start from the registration page.",
+			});
 		}
 
 		// Get setup token from cookie
@@ -180,8 +201,9 @@ export const actions = {
 			.set({ mfaSetupToken: null, updatedAt: new Date() })
 			.where(eq(users.id, user.id));
 
-		// Clear the setup cookie
+		// Clear the setup cookies
 		cookies.delete("mfa-setup-token", { path: "/" });
+		cookies.delete("mfa-setup-initiated", { path: "/mfa-setup" });
 
 		// Create session and log user in (auto-login after MFA setup)
 		const sessionToken = crypto.randomBytes(32).toString("hex");
