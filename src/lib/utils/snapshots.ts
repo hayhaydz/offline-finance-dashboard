@@ -1,6 +1,5 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "$lib/db/client";
-import type { Snapshot } from "$lib/db/schema";
 import { accounts, goals, snapshots } from "$lib/db/schema";
 import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
 import { calculateAssetsAndLiabilities } from "$lib/server/finance";
@@ -124,8 +123,11 @@ export async function calculateSnapshotData(
 export async function getSnapshotByDate(
 	userId: number,
 	snapshotDate: string,
-): Promise<Snapshot | null> {
+): Promise<{ slug: string } | null> {
 	const existing = await db.query.snapshots.findFirst({
+		columns: {
+			slug: true,
+		},
 		where: and(
 			eq(snapshots.userId, userId),
 			eq(snapshots.snapshotDate, snapshotDate),

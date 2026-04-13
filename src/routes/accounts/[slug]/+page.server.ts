@@ -709,8 +709,14 @@ export const actions: Actions = {
 					? parsedAmount
 					: Math.abs(parsedAmount);
 
-		// Parse date
+		// Validate date format (YYYY-MM-DD)
+		if (!transactionDateStr || !/^\d{4}-\d{2}-\d{2}$/.test(transactionDateStr)) {
+			return fail(400, { error: "Invalid date format. Use YYYY-MM-DD." });
+		}
 		const transactionDate = new Date(`${transactionDateStr}T00:00:00.000Z`);
+		if (Number.isNaN(transactionDate.getTime())) {
+			return fail(400, { error: "Invalid date" });
+		}
 
 		// Validate description length
 		if (description && description.trim().length > 500) {
@@ -842,8 +848,14 @@ export const actions: Actions = {
 		}
 		const rate = parseRateToBasisPoints(ratePercent);
 
-		// Parse date
+		// Validate date format (YYYY-MM-DD)
+		if (!effectiveFromStr || !/^\d{4}-\d{2}-\d{2}$/.test(effectiveFromStr)) {
+			return fail(400, { error: "Invalid date format. Use YYYY-MM-DD." });
+		}
 		const effectiveFrom = new Date(`${effectiveFromStr}T00:00:00.000Z`);
+		if (Number.isNaN(effectiveFrom.getTime())) {
+			return fail(400, { error: "Invalid date" });
+		}
 
 		try {
 			const result = await createInterestRate(

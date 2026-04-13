@@ -36,6 +36,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const safeOffset = safePage * PAGE_SIZE;
 
 	const snapshotsList = await db.query.snapshots.findMany({
+		columns: {
+			slug: true,
+			snapshotDate: true,
+			netWorthInCents: true,
+			totalAssetsInCents: true,
+			totalLiabilitiesInCents: true,
+		},
 		where: withUserFilter(locals.user.id, snapshots),
 		orderBy: [desc(snapshots.snapshotDate)],
 		limit: PAGE_SIZE,

@@ -289,10 +289,12 @@ export const actions: Actions = {
 
 		// Extract type-level updates (e.g., "type_savings=0", "type_current=1")
 		const typeUpdates: Map<string, boolean> = new Map();
+		const validTypes = new Set(["current", "savings", "investment", "credit-card", "loan", "mortgage"]);
 
 		for (const [key, value] of formData.entries()) {
 			if (key.startsWith("type_")) {
 				const accountType = key.replace("type_", "");
+				if (!validTypes.has(accountType)) continue;
 				const excluded = value === "1";
 				typeUpdates.set(accountType, excluded);
 			}

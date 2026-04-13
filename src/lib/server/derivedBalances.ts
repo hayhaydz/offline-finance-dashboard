@@ -81,40 +81,29 @@ export async function getMonthlyBalanceHistory(
 	accountId: number,
 	limitMonths = 24,
 ): Promise<MonthlyBalancePoint[]> {
-	const transactions = await db.query.accountTransactions.findMany({
-		where: eq(accountTransactions.accountId, accountId),
-		orderBy: (tx, { asc }) => asc(tx.transactionDate),
-		columns: {
-			amount: true,
-			transactionDate: true,
-		},
-	});
+	const monthExpr = sql<string>`strftime('%Y-%m', ${accountTransactions.transactionDate}, 'unixepoch')`;
 
-	if (transactions.length === 0) return [];
+	const rows = await db
+		.select({
+			monthKey: monthExpr,
+			monthlyNetChange: sql<number>`sum(${accountTransactions.amount})`,
+			closingBalance:
+				sql<number>`sum(sum(${accountTransactions.amount})) over (order by ${monthExpr})`,
+		})
+		.from(accountTransactions)
+		.where(eq(accountTransactions.accountId, accountId))
+		.groupBy(monthExpr)
+		.orderBy(monthExpr);
 
-	const monthlyNet = new Map<string, number>();
-	const monthlyClosing = new Map<string, number>();
-	let runningBalance = 0;
+	if (rows.length === 0) return [];
 
-	for (const tx of transactions) {
-		runningBalance += tx.amount;
-		const year = tx.transactionDate.getUTCFullYear();
-		const month = String(tx.transactionDate.getUTCMonth() + 1).padStart(2, "0");
-		const monthKey = `${year}-${month}`;
-		monthlyNet.set(monthKey, (monthlyNet.get(monthKey) ?? 0) + tx.amount);
-		monthlyClosing.set(monthKey, runningBalance);
-	}
-
-	const monthKeys = Array.from(monthlyNet.keys()).sort();
-	const points = monthKeys.map((monthKey) => {
-		const [year, month] = monthKey.split("-").map((v) => parseInt(v, 10));
+	return rows.slice(-limitMonths).map((row) => {
+		const [year, month] = row.monthKey.split("-").map(Number);
 		return {
-			monthKey,
-			monthStart: new Date(Date.UTC(year, month - 1, 1, 0, 0, 0, 0)),
-			monthlyNetChange: monthlyNet.get(monthKey) ?? 0,
-			closingBalance: monthlyClosing.get(monthKey) ?? 0,
+			monthKey: row.monthKey,
+			monthStart: new Date(Date.UTC(year, month - 1, 1)),
+			monthlyNetChange: Number(row.monthlyNetChange ?? 0),
+			closingBalance: Number(row.closingBalance ?? 0),
 		};
 	});
-
-	return points.slice(-limitMonths);
 }

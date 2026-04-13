@@ -234,10 +234,12 @@ export const actions: Actions = {
 
 		const formData = await request.formData();
 		const typeUpdates: Map<string, boolean> = new Map();
+		const validTypes = new Set(["current", "savings", "investment", "credit-card", "loan", "mortgage"]);
 
 		for (const [key, value] of formData.entries()) {
 			if (key.startsWith("type_")) {
 				const accountType = key.replace("type_", "");
+				if (!validTypes.has(accountType)) continue;
 				const excluded = value === "1";
 				typeUpdates.set(accountType, excluded);
 			}

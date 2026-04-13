@@ -54,7 +54,12 @@ export const actions: Actions = {
 			return fail(400, { error: "Invalid date format. Use YYYY-MM-DD." });
 		}
 
-		// Check for same-day duplicate
+		// Validate notes length
+			if (notes && notes.length > 10000) {
+				return fail(400, { error: "Notes must be 10,000 characters or less" });
+			}
+
+			// Check for same-day duplicate
 		const existing = await getSnapshotByDate(locals.user.id, snapshotDate);
 		if (existing) {
 			devLog("createSnapshot", "Duplicate snapshot date", {

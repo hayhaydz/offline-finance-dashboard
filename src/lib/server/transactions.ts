@@ -141,19 +141,16 @@ export async function updateTransaction(
 		transactionDate?: Date;
 	},
 ): Promise<{ success: boolean }> {
-	const transaction = await getTransactionBySlug(slug);
+	const result = await db
+		.update(accountTransactions)
+		.set(data)
+		.where(eq(accountTransactions.slug, slug))
+		.returning({ slug: accountTransactions.slug });
 
-	if (!transaction) {
+	if (result.length === 0) {
 		logError("updateTransaction", "Transaction not found", { slug });
 		throw new Error("Transaction not found");
 	}
-
-	await db
-		.update(accountTransactions)
-		.set({
-			...data,
-		})
-		.where(eq(accountTransactions.slug, slug));
 
 	devLog("updateTransaction", "Transaction updated", { slug });
 
@@ -166,16 +163,15 @@ export async function updateTransaction(
 export async function deleteTransaction(
 	slug: string,
 ): Promise<{ success: boolean }> {
-	const transaction = await getTransactionBySlug(slug);
+	const result = await db
+		.delete(accountTransactions)
+		.where(eq(accountTransactions.slug, slug))
+		.returning({ slug: accountTransactions.slug });
 
-	if (!transaction) {
+	if (result.length === 0) {
 		logError("deleteTransaction", "Transaction not found", { slug });
 		throw new Error("Transaction not found");
 	}
-
-	await db
-		.delete(accountTransactions)
-		.where(eq(accountTransactions.slug, slug));
 
 	devLog("deleteTransaction", "Transaction deleted", { slug });
 

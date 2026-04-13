@@ -73,6 +73,15 @@ export const actions: Actions = {
 			});
 		}
 
+		// Validate date format (YYYY-MM-DD)
+		const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+		if (!dateRegex.test(fromDate) || !dateRegex.test(toDate)) {
+			return fail(400, {
+				action: "fetch-overlaps",
+				error: "Invalid date format. Use YYYY-MM-DD.",
+			});
+		}
+
 		try {
 			const overlaps = await getOverlappingTransactions(
 				locals.user.id,

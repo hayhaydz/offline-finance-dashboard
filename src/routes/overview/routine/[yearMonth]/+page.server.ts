@@ -40,6 +40,9 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const monthStart = `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-01`;
 
 	const priorSnapshot = await db.query.snapshots.findFirst({
+		columns: {
+			goalsBreakdown: true,
+		},
 		where: and(
 			withUserFilter(locals.user.id, snapshots),
 			lt(snapshots.snapshotDate, monthStart),

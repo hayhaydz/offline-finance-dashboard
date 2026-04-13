@@ -82,6 +82,11 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const notes = formData.get("notes") as string;
 
+		// Validate notes length
+		if (notes && notes.length > 10000) {
+			return fail(400, { error: "Notes must be 10,000 characters or less" });
+		}
+
 		// Only update notes field - financial data is immutable
 		try {
 			await db
