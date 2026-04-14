@@ -127,7 +127,7 @@ describe("getActualInterestByTaxWrapper", () => {
 		expect(result.taxable).toBe(0);
 	});
 
-	it("classifies premium-bonds as taxable", async () => {
+	it("classifies premium-bonds as tax-free", async () => {
 		mockDbSelect([{ taxWrapper: "premium-bonds", total: 30000 }]);
 
 		const result = await getActualInterestByTaxWrapper(
@@ -136,8 +136,8 @@ describe("getActualInterestByTaxWrapper", () => {
 			taxYearEnd,
 		);
 
-		expect(result.taxFree).toBe(0);
-		expect(result.taxable).toBe(30000);
+		expect(result.taxFree).toBe(30000);
+		expect(result.taxable).toBe(0);
 	});
 
 	it("handles mixed wrappers across multiple rows", async () => {
@@ -154,10 +154,10 @@ describe("getActualInterestByTaxWrapper", () => {
 			taxYearEnd,
 		);
 
-		// ISA (20000) + LISA (10000) = 30000 tax-free
-		expect(result.taxFree).toBe(30000);
-		// none (15000) + premium-bonds (5000) = 20000 taxable
-		expect(result.taxable).toBe(20000);
+		// ISA (20000) + LISA (10000) + premium-bonds (5000) = 35000 tax-free
+		expect(result.taxFree).toBe(35000);
+		// none (15000) = 15000 taxable
+		expect(result.taxable).toBe(15000);
 	});
 });
 

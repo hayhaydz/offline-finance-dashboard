@@ -1,3 +1,25 @@
+## [2026-04-14] — fix: resolve cn() duplication, premium-bonds validation gap, tax-free classification
+
+**Summary:** Fixed 3 pre-existing bugs: (1) UI components importing weak `cn()` without Tailwind merge — replaced barrel with re-export of strong version, (2) `validation/rules.ts` missing `"premium-bonds"` from `TAX_WRAPPERS` causing latent form rejection, (3) created shared `isTaxFreeWrapper()` to replace duplicated local `isTaxFree()` in calculations.ts and interestBreakdown.ts — also fixed `calculations.ts` silently classifying premium-bonds interest as taxable (only checked isa/lisa inline).
+
+**New files:**
+- `src/lib/utils/tax-classification.ts` — shared `isTaxFreeWrapper(taxWrapper)` function
+
+**Changed:**
+- `src/lib/utils.ts` — replaced body with re-export of strong `cn` from `src/lib/utils/cn.ts`
+- `src/lib/utils/cn.ts` — now contains the proper `cn()` with `clsx` + `twMerge`
+- `src/lib/validation/rules.ts` — added `"premium-bonds"` to `TAX_WRAPPERS` array
+- `src/lib/server/calculations.ts` — imported shared `isTaxFreeWrapper()`, replaced 2 inline checks (fixes missing premium-bonds)
+- `src/lib/server/interestBreakdown.ts` — removed local `isTaxFree()`, imported shared function, renamed shadowed variable
+- `src/lib/db/migrations/meta/0000_snapshot.json` — added indexes on backupCodes, loginAttempts, goalMilestones
+- `tests/unit/homepage-interest.test.ts` — updated 2 tests to expect premium-bonds as tax-free (was testing the bug)
+
+**Verification:** `npm run check` (0 errors), `npm test` (389 passed)
+
+**Suggested commit:** `fix: resolve cn() duplication, premium-bonds validation, tax-free classification`
+
+---
+
 ## [2026-04-14] — refactor: decompose account detail route, fix transaction aggregation
 
 **Summary:** Extracted 3 server modules from the 902-line account detail route and converted `getTransactionSum` from client-side aggregation to SQL `SUM()`. Rate scenario formatters use Option B pattern (pre-computed TTZ results) to preserve per-scenario accuracy.

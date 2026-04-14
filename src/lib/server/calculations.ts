@@ -6,6 +6,7 @@ import {
 	getCurrentBalancesForAccounts,
 } from "$lib/server/derivedBalances";
 import { getCurrentRate } from "$lib/server/interestRates";
+import { isTaxFreeWrapper } from "$lib/utils/tax-classification";
 
 export const ISA_ALLOWANCE_IN_CENTS = 20_000_00;
 
@@ -180,7 +181,7 @@ export async function getActualInterestByTaxWrapper(
 	let taxFree = 0;
 	let taxable = 0;
 	for (const row of results) {
-		if (row.taxWrapper === "isa" || row.taxWrapper === "lisa") {
+		if (isTaxFreeWrapper(row.taxWrapper)) {
 			taxFree += Number(row.total);
 		} else {
 			taxable += Number(row.total);
@@ -256,7 +257,7 @@ export async function getProjectedInterestByTaxWrapper(
 			projected = Math.round((yearlyInterest / 365) * daysRemaining);
 		}
 
-		if (account.taxWrapper === "isa" || account.taxWrapper === "lisa") {
+		if (isTaxFreeWrapper(account.taxWrapper)) {
 			taxFree += projected;
 		} else {
 			taxable += projected;

@@ -61,6 +61,7 @@ CREATE TABLE `backup_codes` (
 	FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
+CREATE INDEX `idx_backup_codes_user_id_used` ON `backup_codes` (`user_id`,`used`);--> statement-breakpoint
 CREATE TABLE `budget_months` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`user_id` integer NOT NULL,
@@ -99,6 +100,7 @@ CREATE TABLE `goal_milestones` (
 );
 --> statement-breakpoint
 CREATE INDEX `idx_goal_milestones_goal` ON `goal_milestones` (`goal_id`);--> statement-breakpoint
+CREATE INDEX `idx_goal_milestones_reached_at` ON `goal_milestones` (`reached_at`);--> statement-breakpoint
 CREATE TABLE `goals` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`slug` text NOT NULL,
@@ -138,6 +140,8 @@ CREATE TABLE `login_attempts` (
 	`locked_until` integer
 );
 --> statement-breakpoint
+CREATE INDEX `idx_login_attempts_last_attempt` ON `login_attempts` (`last_attempt`);--> statement-breakpoint
+CREATE INDEX `idx_login_attempts_locked_until` ON `login_attempts` (`locked_until`);--> statement-breakpoint
 CREATE TABLE `monthly_reviews` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
 	`slug` text NOT NULL,

@@ -28,6 +28,7 @@ import {
 	getCurrentRate,
 	getCurrentRatesForAccounts,
 } from "$lib/server/interestRates";
+import { isTaxFreeWrapper } from "$lib/utils/tax-classification";
 import { devLog, logError } from "$lib/utils/logger";
 
 /**
@@ -227,16 +228,6 @@ export interface AccountInterestSummary {
 	taxFreeStatus: TaxFreeStatus;
 }
 
-/**
- * Check if a tax wrapper is tax-free (excluded from Personal Savings Allowance)
- */
-function isTaxFree(taxWrapper: string): boolean {
-	return (
-		taxWrapper === "isa" ||
-		taxWrapper === "lisa" ||
-		taxWrapper === "premium-bonds"
-	);
-}
 
 /**
  * Get month name from month number (1-12)
@@ -435,7 +426,7 @@ export async function getActualInterestBreakdown(
 		// 2. Accrued interest on non-matured bonds is EXCLUDED from taxable actuals for THIS year
 		// 3. Everything else is taxable (unless it's tax-free wrapper)
 
-		const isTaxFreeWrapper = isTaxFree(tx.accountTaxWrapper);
+		const isAccountTaxFree = isTaxFreeWrapper(tx.accountTaxWrapper);
 
 		let countsAsActualThisYear = true;
 		// If it's accrued interest and the account has a maturity date in the future
@@ -448,7 +439,7 @@ export async function getActualInterestBreakdown(
 		}
 
 		if (countsAsActualThisYear) {
-			if (isTaxFreeWrapper) {
+			if (isAccountTaxFree) {
 				taxFreeTotal += tx.amount;
 			} else {
 				taxableTotal += tx.amount;
@@ -537,7 +528,7 @@ export async function getActualInterestBreakdown(
 				taxWrapper: tx.accountTaxWrapper,
 				total: tx.amount,
 				transactionCount: 1,
-				isTaxFree: isTaxFree(tx.accountTaxWrapper),
+				isTaxFree: isTaxFreeWrapper(tx.accountTaxWrapper),
 			});
 		}
 	}
@@ -740,7 +731,7 @@ export async function getProjectedInterestBreakdown(
 		});
 
 		total += projected;
-		if (isTaxFree(account.taxWrapper)) {
+		if (isTaxFreeWrapper(account.taxWrapper)) {
 			taxFreeTotal += projected;
 		} else {
 			taxableTotal += projected;

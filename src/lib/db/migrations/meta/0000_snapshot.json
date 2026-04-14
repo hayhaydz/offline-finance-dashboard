@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "a5cf9ef2-57d4-4732-b25a-b0d696a82aa7",
+  "id": "adac2dae-ade8-4804-a9c6-e7a41d886ff1",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "account_notes": {
@@ -428,7 +428,16 @@
           "default": "CURRENT_TIMESTAMP"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_backup_codes_user_id_used": {
+          "name": "idx_backup_codes_user_id_used",
+          "columns": [
+            "user_id",
+            "used"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {
         "backup_codes_user_id_users_id_fk": {
           "name": "backup_codes_user_id_users_id_fk",
@@ -696,6 +705,13 @@
           "name": "idx_goal_milestones_goal",
           "columns": [
             "goal_id"
+          ],
+          "isUnique": false
+        },
+        "idx_goal_milestones_reached_at": {
+          "name": "idx_goal_milestones_reached_at",
+          "columns": [
+            "reached_at"
           ],
           "isUnique": false
         }
@@ -987,7 +1003,22 @@
           "autoincrement": false
         }
       },
-      "indexes": {},
+      "indexes": {
+        "idx_login_attempts_last_attempt": {
+          "name": "idx_login_attempts_last_attempt",
+          "columns": [
+            "last_attempt"
+          ],
+          "isUnique": false
+        },
+        "idx_login_attempts_locked_until": {
+          "name": "idx_login_attempts_locked_until",
+          "columns": [
+            "locked_until"
+          ],
+          "isUnique": false
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},

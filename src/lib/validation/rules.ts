@@ -23,7 +23,7 @@ export type AccountType = (typeof ACCOUNT_TYPES)[number];
 /**
  * Valid tax wrapper enum values
  */
-const TAX_WRAPPERS = ["none", "isa", "lisa"] as const;
+const TAX_WRAPPERS = ["none", "isa", "lisa", "premium-bonds"] as const;
 export type TaxWrapper = (typeof TAX_WRAPPERS)[number];
 
 /**
