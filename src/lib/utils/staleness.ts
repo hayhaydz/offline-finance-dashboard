@@ -6,6 +6,8 @@
  * Red:     Updated 30+ days ago
  */
 
+import { MS_PER_DAY } from "$lib/utils/time-constants";
+
 export interface StalenessInfo {
 	color: "green" | "amber" | "red";
 	label: string; // e.g., "Updated today", "Updated 3 days ago"
@@ -18,7 +20,7 @@ export interface StalenessInfo {
 export function getStaleness(lastUpdated: Date): StalenessInfo {
 	const now = new Date();
 	const diffMs = now.getTime() - lastUpdated.getTime();
-	const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+	const diffDays = Math.floor(diffMs / MS_PER_DAY);
 
 	if (diffDays === 0) {
 		return {

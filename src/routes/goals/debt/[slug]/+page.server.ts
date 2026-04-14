@@ -6,6 +6,7 @@ import { goals, accountTransactions, goalMilestones, interestRates } from "$lib/
 import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
 import { getDebtGoalProgress, checkMilestones } from "$lib/server/goals";
 import { devLog, logError } from "$lib/utils/logger";
+import { MS_PER_MONTH } from "$lib/utils/time-constants";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -89,14 +90,14 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     const now = new Date();
     const monthsSinceFirst = Math.max(
       1,
-      (now.getTime() - new Date(firstPaymentDate).getTime()) / (30 * 24 * 60 * 60 * 1000)
+      (now.getTime() - new Date(firstPaymentDate).getTime()) / MS_PER_MONTH
     );
     avgMonthlyPayment = Math.round(totalPaidInCents / monthsSinceFirst);
 
     if (avgMonthlyPayment > 0 && progress.remainingInCents > 0) {
       const monthsUntilPayoff = progress.remainingInCents / avgMonthlyPayment;
       projectedPayoffDate = new Date(
-        now.getTime() + monthsUntilPayoff * 30 * 24 * 60 * 60 * 1000
+        now.getTime() + monthsUntilPayoff * MS_PER_MONTH
       );
     }
   }

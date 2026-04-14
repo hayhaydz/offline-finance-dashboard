@@ -7,6 +7,7 @@ import {
 } from "$lib/server/derivedBalances";
 import { getCurrentRate } from "$lib/server/interestRates";
 import { isTaxFreeWrapper } from "$lib/utils/tax-classification";
+import { MS_PER_DAY } from "$lib/utils/time-constants";
 
 export const ISA_ALLOWANCE_IN_CENTS = 20_000_00;
 
@@ -83,7 +84,7 @@ export function calculateProjectedInterestInCents(params: {
 		return 0;
 	}
 
-	const msPerDay = 24 * 60 * 60 * 1000;
+	const msPerDay = MS_PER_DAY;
 	const daysRemaining = (toDate.getTime() - fromDate.getTime()) / msPerDay;
 	const annualInterestInCents = balanceInCents * (rateBasisPoints / 10_000);
 
@@ -200,7 +201,7 @@ export async function getProjectedInterestByTaxWrapper(
 	taxYearEnd: Date,
 	today: Date,
 ): Promise<{ taxFree: number; taxable: number; daysRemaining: number }> {
-	const millisecondsPerDay = 24 * 60 * 60 * 1000;
+	const millisecondsPerDay = MS_PER_DAY;
 	const daysRemaining = Math.max(
 		0,
 		Math.ceil(

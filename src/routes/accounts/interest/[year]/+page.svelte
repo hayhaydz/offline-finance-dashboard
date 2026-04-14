@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { formatCurrency, formatDateShorthand } from '$lib/utils/currency';
+	import { formatTaxWrapper, formatRate, getMonthName, renderProgressBar, getExclusionReason } from '$lib/utils/formatting';
 	import { goto } from '$app/navigation';
 	import { page as pageState } from '$app/state';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
@@ -15,31 +16,6 @@
 		const startStr = formatDateShorthand(start);
 		const endStr = formatDateShorthand(end);
 		return `${startStr} to ${endStr}`;
-	}
-
-	// Helper function to format tax wrapper display
-	function formatTaxWrapper(wrapper: string): string {
-		if (wrapper === 'none') return 'None';
-		return wrapper.toUpperCase();
-	}
-
-	// Helper function to get exclusion reason display
-	function getExclusionReason(reason: string | null): string {
-		const reasons: Record<string, string> = {
-			no_balance: 'No balance',
-			no_rate: 'No rate set',
-			already_matured: 'Already matured',
-			matures_after_tax_year: 'Matures after tax year end',
-			closed_account: 'Account closed',
-			non_interest_bearing: 'Not interest-bearing'
-		};
-		return reasons[reason || ''] || reason || 'Included';
-	}
-
-	// Helper to format rate for display
-	function formatRate(basisPoints: number | null): string {
-		if (basisPoints === null) return '-';
-		return `${(basisPoints / 100).toFixed(2)}%`;
 	}
 
 	// Pagination state for transactions
@@ -180,15 +156,6 @@
 		}
 	});
 
-	// Helper function to get month name
-	function getMonthName(month: number): string {
-		const names = [
-			'January', 'February', 'March', 'April', 'May', 'June',
-			'July', 'August', 'September', 'October', 'November', 'December'
-		];
-		return names[month - 1] || 'Unknown';
-	}
-
 	function clearFilters() {
 		filterAccountId = null;
 		filterMonth = null;
@@ -285,13 +252,6 @@
 	const prevYear = $derived(currentIndex < data.availableTaxYears.length - 1 ? data.availableTaxYears[currentIndex + 1] : null);
 	const nextYear = $derived(currentIndex > 0 ? data.availableTaxYears[currentIndex - 1] : null);
 
-	// Helper for ASCII progress bar
-	function renderProgressBar(used: number, limit: number, width = 10): string {
-		const ratio = Math.min(1, used / limit);
-		const filled = Math.round(ratio * width);
-		const empty = width - filled;
-		return `[${'#'.repeat(filled)}${'.'.repeat(empty)}] ${Math.round(ratio * 100)}%`;
-	}
 </script>
 
 <!-- HEADER SECTION -->

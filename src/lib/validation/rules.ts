@@ -6,31 +6,11 @@
  */
 
 import type { ValidationRule } from "./types";
-
-/**
- * Valid account types enum values
- */
-const ACCOUNT_TYPES = [
-	"current",
-	"savings",
-	"investment",
-	"credit-card",
-	"loan",
-	"mortgage",
-] as const;
-export type AccountType = (typeof ACCOUNT_TYPES)[number];
-
-/**
- * Valid tax wrapper enum values
- */
-const TAX_WRAPPERS = ["none", "isa", "lisa", "premium-bonds"] as const;
-export type TaxWrapper = (typeof TAX_WRAPPERS)[number];
-
-/**
- * Valid liquidity options enum values
- */
-const LIQUIDITY_OPTIONS = ["instant", "delayed", "locked"] as const;
-export type Liquidity = (typeof LIQUIDITY_OPTIONS)[number];
+import {
+	ACCOUNT_TYPES,
+	TAX_WRAPPERS,
+	LIQUIDITY_OPTIONS,
+} from "$lib/utils/domain-constants";
 
 /**
  * Creates a rule that requires a non-empty value
@@ -336,7 +316,7 @@ export function liquidity(message?: string): ValidationRule {
 				return true;
 			}
 			// Check against allowed values
-			return LIQUIDITY_OPTIONS.includes(value as Liquidity);
+			return (LIQUIDITY_OPTIONS as readonly string[]).includes(value);
 		},
 		message: message || "Select a valid liquidity option",
 	};

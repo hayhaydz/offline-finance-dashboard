@@ -8,23 +8,10 @@
  */
 
 // All 13 transaction types from the accountTransactions DB table
-const VALID_TRANSACTION_TYPES = [
-	"deposit",
-	"withdrawal",
-	"interest",
-	"interest_accrued",
-	"dividend",
-	"value_change",
-	"transfer_in",
-	"transfer_out",
-	"charge",
-	"payment",
-	"loan_disbursement",
-	"mortgage_disbursement",
-	"interest_charge",
-] as const;
+import { TRANSACTION_TYPES } from "$lib/utils/domain-constants";
+import type { TransactionType } from "$lib/utils/domain-constants";
 
-type TransactionType = (typeof VALID_TRANSACTION_TYPES)[number];
+const VALID_TRANSACTION_TYPES = TRANSACTION_TYPES;
 
 interface ParseError {
 	row: number;

@@ -1,4 +1,5 @@
 import { devLog } from "$lib/utils/logger";
+import { MS_PER_MONTH } from "$lib/utils/time-constants";
 
 export interface DebtGoalInput {
 	goalId: number;
@@ -53,7 +54,7 @@ export function calculatePayoffProjection(params: {
 	if (!aprBasisPoints || aprBasisPoints === 0) {
 		const months = Math.ceil(balanceInCents / monthlyPaymentInCents);
 		const projectedPayoffDate = new Date(
-			now.getTime() + months * 30 * 24 * 60 * 60 * 1000,
+			now.getTime() + months * MS_PER_MONTH,
 		);
 		return { months, totalInterestInCents: 0, projectedPayoffDate };
 	}
@@ -75,7 +76,7 @@ export function calculatePayoffProjection(params: {
 	const totalInterestInCents = Math.max(0, totalPaidInCents - balanceInCents);
 
 	const projectedPayoffDate = new Date(
-		now.getTime() + months * 30 * 24 * 60 * 60 * 1000,
+		now.getTime() + months * MS_PER_MONTH,
 	);
 
 	return { months, totalInterestInCents, projectedPayoffDate };
@@ -167,7 +168,7 @@ export function calculateDebtStrategyMetrics(
 		...snowballOrder.map((d) => {
 			if (!d.projectedPayoffDate) return 0;
 			return Math.ceil(
-				(d.projectedPayoffDate.getTime() - Date.now()) / (30 * 24 * 60 * 60 * 1000),
+				(d.projectedPayoffDate.getTime() - Date.now()) / MS_PER_MONTH,
 			);
 		}),
 	);
@@ -175,7 +176,7 @@ export function calculateDebtStrategyMetrics(
 		...avalancheOrder.map((d) => {
 			if (!d.projectedPayoffDate) return 0;
 			return Math.ceil(
-				(d.projectedPayoffDate.getTime() - Date.now()) / (30 * 24 * 60 * 60 * 1000),
+				(d.projectedPayoffDate.getTime() - Date.now()) / MS_PER_MONTH,
 			);
 		}),
 	);

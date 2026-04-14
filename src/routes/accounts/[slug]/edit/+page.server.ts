@@ -4,23 +4,12 @@ import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts } from "$lib/db/schema";
 import { devLog, logError } from "$lib/utils/logger";
+import {
+	ACCOUNT_TYPES,
+	TAX_WRAPPERS,
+	LIQUIDITY_OPTIONS,
+} from "$lib/utils/domain-constants";
 import type { Actions, PageServerLoad } from "./$types";
-
-// Valid account types
-const VALID_ACCOUNT_TYPES = [
-	"current",
-	"savings",
-	"investment",
-	"credit-card",
-	"loan",
-	"mortgage",
-];
-
-// Valid tax wrapper values
-const VALID_TAX_WRAPPERS = ["none", "isa", "lisa", "premium-bonds"];
-
-// Valid liquidity values
-const VALID_LIQUIDITY_VALUES = ["instant", "delayed", "locked"];
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!locals.user) {
@@ -120,7 +109,7 @@ export const actions: Actions = {
 			});
 		}
 
-		if (!VALID_ACCOUNT_TYPES.includes(type)) {
+		if (!(ACCOUNT_TYPES as readonly string[]).includes(type)) {
 			devLog("editAccount", "Validation failed - invalid type", {
 				accountSlug,
 				type,
@@ -128,7 +117,7 @@ export const actions: Actions = {
 			return fail(400, { error: "Invalid account type" });
 		}
 
-		if (!VALID_TAX_WRAPPERS.includes(taxWrapper)) {
+		if (!(TAX_WRAPPERS as readonly string[]).includes(taxWrapper)) {
 			devLog("editAccount", "Validation failed - invalid tax wrapper", {
 				accountSlug,
 				taxWrapper,
@@ -136,7 +125,7 @@ export const actions: Actions = {
 			return fail(400, { error: "Invalid tax wrapper" });
 		}
 
-		if (!VALID_LIQUIDITY_VALUES.includes(liquidity)) {
+		if (!(LIQUIDITY_OPTIONS as readonly string[]).includes(liquidity)) {
 			devLog("editAccount", "Validation failed - invalid liquidity", {
 				accountSlug,
 				liquidity,

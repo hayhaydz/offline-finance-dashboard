@@ -5,6 +5,7 @@ import { HOME_ROUTE, LOGIN_ROUTE } from "$lib/constants/routes";
 import { db } from "$lib/db/client";
 import { sessions } from "$lib/db/schema";
 import { logError } from "$lib/utils/logger";
+import { MS_PER_DAY } from "$lib/utils/time-constants";
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const { pathname, hostname } = event.url;
@@ -74,8 +75,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	// Check session expiration (24-hour inactivity)
-	const twentyFourHours = 24 * 60 * 60 * 1000;
-	if (Date.now() - session.lastActivity.getTime() > twentyFourHours) {
+	if (Date.now() - session.lastActivity.getTime() > MS_PER_DAY) {
 		await db.delete(sessions).where(eq(sessions.token, sessionToken));
 		event.cookies.delete("session", { path: "/" });
 		if (isProtectedRoute) {

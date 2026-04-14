@@ -1,7 +1,8 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { page as pageState } from '$app/state';
-  import { formatCurrency, formatDateShorthand } from "$lib/utils/currency";
+  import { formatCurrency, formatDateShorthand, formatAccountType } from "$lib/utils/currency";
+  import { formatDays, getOnTrackClass, formatTaxWrapper } from "$lib/utils/formatting";
   import { getStaleness } from "$lib/utils/staleness";
   import { DISPLAY_LIMITS, truncateDisplay } from "$lib/utils/fieldLimits";
   import GoalDetailCard from "$lib/components/GoalDetailCard.svelte";
@@ -104,25 +105,6 @@
 
   const staleness = $derived(getStaleness(new Date(data.goal.updatedAt)));
 
-  // Helper to format account type
-  function formatAccountType(type: string | null): string {
-    if (!type) return "-";
-    const typeMap: Record<string, string> = {
-      current: "Current",
-      savings: "Savings",
-      investment: "Investment",
-      "credit-card": "Credit Card",
-      loan: "Loan",
-      mortgage: "Mortgage",
-    };
-    return typeMap[type] ?? type;
-  }
-
-  // Helper to format tax wrapper
-  function formatTaxWrapper(wrapper: string | null): string {
-    if (!wrapper || wrapper === "none") return "";
-    return wrapper.toUpperCase();
-  }
 
   // Helper to format liquidity
   function formatLiquidity(liquidity: string | null): string {
@@ -133,23 +115,6 @@
       locked: "Locked",
     };
     return liquidityMap[liquidity] ?? liquidity;
-  }
-
-  // Helper to format days with appropriate label
-  function formatDays(days: number | null): string {
-    if (days === null) return "-";
-    if (days === 0) return "Today";
-    if (days === 1) return "1 day";
-    if (days < 7) return `${days} days`;
-    if (days < 30) return `${Math.round(days / 7)} weeks`;
-    if (days < 365) return `${Math.round(days / 30)} months`;
-    return `${Math.round(days / 365)} years`;
-  }
-
-  // Helper to format percentage with color class
-  function getOnTrackClass(onTrack: boolean | null): string {
-    if (onTrack === null) return "text-gray-500";
-    return onTrack ? "text-green-700" : "text-amber-600";
   }
 
   // Calculate percentage of goal from each account
@@ -222,7 +187,7 @@
               {formatAccountType(alloc.accountType)}
             </td>
             <td class="text-right pr-1 text-sm py-2">
-              {#if formatTaxWrapper(alloc.taxWrapper)}
+              {#if alloc.taxWrapper && alloc.taxWrapper !== 'none'}
                 <span class="text-amber-700">{formatTaxWrapper(alloc.taxWrapper)}</span>
               {:else}
                 <span class="text-gray-400">-</span>

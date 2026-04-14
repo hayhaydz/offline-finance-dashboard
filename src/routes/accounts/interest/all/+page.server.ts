@@ -4,16 +4,8 @@ import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions, users } from "$lib/db/schema";
 import { getTaxFreeStatus, getUkTaxYearBounds } from "$lib/server/calculations";
+import { isTaxFreeWrapper } from "$lib/utils/tax-classification";
 import type { PageServerLoad } from "./$types";
-
-// Helper: Check if account tax wrapper is tax-free
-function isTaxFree(taxWrapper: string): boolean {
-	return (
-		taxWrapper === "isa" ||
-		taxWrapper === "lisa" ||
-		taxWrapper === "premium-bonds"
-	);
-}
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
@@ -91,7 +83,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		}
 
 		if (account) {
-			if (isTaxFree(account.taxWrapper)) {
+			if (isTaxFreeWrapper(account.taxWrapper)) {
 				yearData.isaInterest += tx.amount;
 			} else {
 				yearData.nonIsaInterest += tx.amount;

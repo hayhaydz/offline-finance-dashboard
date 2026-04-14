@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { formatCurrency } from '$lib/utils/currency';
+	import { getProgressColor } from '$lib/utils/formatting';
 	import { goto } from '$app/navigation';
 	import { page as pageState } from '$app/state';
 	import GoalRow from '$lib/components/GoalRow.svelte';
@@ -49,13 +50,6 @@
 		return goal.targetAmountInCents > 0
 			? Math.min(100, Math.round((goal.currentAllocation / goal.targetAmountInCents) * 100))
 			: 0;
-	}
-
-	// Get progress color class based on percentage
-	function getProgressColor(progress: number): { text: string; bg: string } {
-		if (progress >= 70) return { text: 'text-green-700', bg: 'bg-green-700' };
-		if (progress >= 30) return { text: 'text-amber-600', bg: 'bg-amber-600' };
-		return { text: 'text-red-600', bg: 'bg-red-600' };
 	}
 
 	// Get emergency fund milestones display

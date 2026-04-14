@@ -18,10 +18,10 @@ import { getDebtGoalProgress } from './goals';
 import type { Alert, AlertSeverity } from '$lib/types/alerts';
 import { calculateISAPacing } from '$lib/server/isaPacing';
 import { logError } from '$lib/utils/logger';
+import { MS_PER_DAY } from '$lib/utils/time-constants';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const PSA_BY_BAND: Record<string, number> = {
 	basic: 100_000,     // £1,000 in pence
 	higher: 50_000,     // £500 in pence

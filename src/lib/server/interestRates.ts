@@ -1,6 +1,7 @@
 import { and, asc, desc, eq, inArray, lte } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { type Account, interestRates } from "$lib/db/schema";
+import { formatRate } from "$lib/utils/formatting";
 import { devLog, logError } from "$lib/utils/logger";
 
 export interface CreateInterestRateData {
@@ -221,13 +222,8 @@ export async function deleteInterestRate(
 	return { success: true };
 }
 
-/**
- * Convert basis points to percentage string.
- * E.g., 450 -> "4.50%"
- */
-export function formatRate(basisPoints: number): string {
-	return `${(basisPoints / 100).toFixed(2)}%`;
-}
+// Re-export formatRate from shared formatting module
+export { formatRate };
 
 /**
  * Convert percentage to basis points.

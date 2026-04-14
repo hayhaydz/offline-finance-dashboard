@@ -19,16 +19,9 @@ import { getCurrentRate } from "$lib/server/interestRates";
 import { updateTypeExclusions } from "$lib/server/exclusions";
 import { getNetWorthSummary } from "$lib/server/finance";
 import { devLog, logError } from "$lib/utils/logger";
+import { MS_PER_DAY } from "$lib/utils/time-constants";
+import { isTaxFreeWrapper } from "$lib/utils/tax-classification";
 import type { Actions, PageServerLoad } from "./$types";
-
-// Helper: Check if account tax wrapper is tax-free (excluded from Personal Savings Allowance)
-function isTaxFree(taxWrapper: string): boolean {
-	return (
-		taxWrapper === "isa" ||
-		taxWrapper === "lisa" ||
-		taxWrapper === "premium-bonds"
-	);
-}
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
@@ -124,7 +117,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 				taxYear.start,
 				taxYear.end,
 			);
-			if (isTaxFree(account.taxWrapper)) {
+			if (isTaxFreeWrapper(account.taxWrapper)) {
 				actualInterestTaxFree += accountInterest;
 			} else {
 				actualInterestTaxable += accountInterest;
@@ -135,7 +128,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Transform data for display
 	const today = new Date();
 	today.setUTCHours(0, 0, 0, 0);
-	const millisecondsPerDay = 24 * 60 * 60 * 1000;
+	const millisecondsPerDay = MS_PER_DAY;
 
 	// Calculate days remaining in tax year
 	const daysRemainingInTaxYear = Math.max(
@@ -201,7 +194,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		}
 
 		// 3. ADD TO TOTALS: Use the prorated/maturity-checked value, NOT the full yearly value
-		if (isTaxFree(account.taxWrapper)) {
+		if (isTaxFreeWrapper(account.taxWrapper)) {
 			totalProjectedTaxFree += projectedForRestOfTaxYear;
 		} else {
 			totalProjectedTaxable += projectedForRestOfTaxYear;

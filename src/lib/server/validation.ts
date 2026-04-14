@@ -129,27 +129,13 @@ export function requireEnum<T extends string>(
 }
 
 // ── Re-exported constants for server-side use ─────────────────
+// Sourced from single source of truth in domain-constants.ts
 
-/** Valid account type values */
-export const VALID_ACCOUNT_TYPES = [
-	"current",
-	"savings",
-	"investment",
-	"credit-card",
-	"loan",
-	"mortgage",
-] as const;
-
-/** Valid tax wrapper values */
-export const VALID_TAX_WRAPPERS = [
-	"none",
-	"isa",
-	"lisa",
-	"premium-bonds",
-] as const;
-
-/** Valid liquidity values */
-export const VALID_LIQUIDITY = ["instant", "delayed", "locked"] as const;
+export {
+	ACCOUNT_TYPES as VALID_ACCOUNT_TYPES,
+	TAX_WRAPPERS as VALID_TAX_WRAPPERS,
+	LIQUIDITY_OPTIONS as VALID_LIQUIDITY,
+} from "$lib/utils/domain-constants";
 
 /** Field limit constants (re-export from fieldLimits for convenience) */
 export { FIELD_LIMITS };

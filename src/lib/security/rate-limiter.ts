@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { loginAttempts } from "$lib/db/schema";
+import { MS_PER_DAY } from "$lib/utils/time-constants";
 
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
@@ -40,7 +41,7 @@ export async function checkRateLimit(
 	}
 
 	// Clear lockout/attempts if expired (last attempt > 24h ago)
-	const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+	const twentyFourHoursAgo = new Date(Date.now() - MS_PER_DAY);
 	if (attempt.lastAttempt < twentyFourHoursAgo) {
 		await db.delete(loginAttempts).where(eq(loginAttempts.username, username));
 		return { allowed: true, attemptsRemaining: MAX_ATTEMPTS };

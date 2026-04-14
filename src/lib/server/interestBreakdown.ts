@@ -28,8 +28,11 @@ import {
 	getCurrentRate,
 	getCurrentRatesForAccounts,
 } from "$lib/server/interestRates";
+import { formatCurrency } from "$lib/utils/currency";
+import { getMonthName } from "$lib/utils/formatting";
 import { isTaxFreeWrapper } from "$lib/utils/tax-classification";
 import { devLog, logError } from "$lib/utils/logger";
+import { MS_PER_DAY } from "$lib/utils/time-constants";
 
 /**
  * Interest transaction with account details for traceability
@@ -228,27 +231,6 @@ export interface AccountInterestSummary {
 	taxFreeStatus: TaxFreeStatus;
 }
 
-
-/**
- * Get month name from month number (1-12)
- */
-function getMonthName(month: number): string {
-	const names = [
-		"January",
-		"February",
-		"March",
-		"April",
-		"May",
-		"June",
-		"July",
-		"August",
-		"September",
-		"October",
-		"November",
-		"December",
-	];
-	return names[month - 1] || "Unknown";
-}
 
 /**
  * Fetch all interest transactions for the user in the tax year with account details.
@@ -642,7 +624,7 @@ export async function getProjectedInterestBreakdown(
 	});
 
 	// Calculate days remaining in tax year
-	const msPerDay = 24 * 60 * 60 * 1000;
+	const msPerDay = MS_PER_DAY;
 	const daysRemainingInTaxYear = Math.max(
 		0,
 		Math.ceil((taxYearEnd.getTime() - now.getTime()) / msPerDay),
@@ -800,7 +782,7 @@ export async function getInterestReconciliationReport(
 		flags.push({
 			type: "error",
 			category: "transactions",
-			message: `Transaction sum (${centsToCurrency(transactionsSum)}) does not match headline total (${centsToCurrency(actual.total)})`,
+			message: `Transaction sum (${formatCurrency(transactionsSum)}) does not match headline total (${formatCurrency(actual.total)})`,
 			delta: actualVsTransactionsDelta,
 		});
 	}
@@ -816,7 +798,7 @@ export async function getInterestReconciliationReport(
 		flags.push({
 			type: "error",
 			category: "by_account",
-			message: `Account breakdown sum (${centsToCurrency(byAccountSum)}) does not match headline total (${centsToCurrency(actual.total)})`,
+			message: `Account breakdown sum (${formatCurrency(byAccountSum)}) does not match headline total (${formatCurrency(actual.total)})`,
 			delta: actualVsByAccountDelta,
 		});
 	}
@@ -832,7 +814,7 @@ export async function getInterestReconciliationReport(
 		flags.push({
 			type: "error",
 			category: "by_month",
-			message: `Monthly breakdown sum (${centsToCurrency(byMonthSum)}) does not match headline total (${centsToCurrency(actual.total)})`,
+			message: `Monthly breakdown sum (${formatCurrency(byMonthSum)}) does not match headline total (${formatCurrency(actual.total)})`,
 			delta: actualVsByMonthDelta,
 		});
 	}
@@ -890,7 +872,7 @@ export async function getInterestBreakdownReport(params: {
 	const now = asOfDate ?? new Date();
 
 	// Calculate days remaining in tax year
-	const msPerDay = 24 * 60 * 60 * 1000;
+	const msPerDay = MS_PER_DAY;
 	const daysRemainingInTaxYear = Math.max(
 		0,
 		Math.ceil((calculatedTaxYearEnd.getTime() - now.getTime()) / msPerDay),
@@ -1093,9 +1075,3 @@ export async function getAccountInterestSummary(params: {
 	return summary;
 }
 
-/**
- * Helper: Convert cents to currency string (internal utility)
- */
-function centsToCurrency(cents: number): string {
-	return `£${(cents / 100).toFixed(2)}`;
-}

@@ -1,6 +1,7 @@
 import { getUkTaxYearBounds, ISA_ALLOWANCE_IN_CENTS } from "$lib/server/calculations";
 import { getISABreakdownReport } from "$lib/server/isaBreakdown";
 import { devLog } from "$lib/utils/logger";
+import { MS_PER_MONTH } from "$lib/utils/time-constants";
 
 export type ISAPacingStatus = "full" | "on-track" | "behind" | "no-data";
 
@@ -66,7 +67,7 @@ export async function calculateISAPacing(
 
 	// Calculate months elapsed in tax year (minimum 1)
 	const msElapsed = now.getTime() - taxYearStart.getTime();
-	const monthsElapsed = Math.max(1, msElapsed / (30 * 24 * 60 * 60 * 1000));
+	const monthsElapsed = Math.max(1, msElapsed / MS_PER_MONTH);
 
 	// Months remaining (use days for precision, minimum 0)
 	const monthsRemaining = Math.max(0, daysRemainingInTaxYear / 30);

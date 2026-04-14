@@ -7,6 +7,7 @@ import {
 	getUkTaxYearBounds,
 	ISA_ALLOWANCE_IN_CENTS,
 } from "$lib/server/calculations";
+import { TAX_FREE_WRAPPERS } from "$lib/utils/domain-constants";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -24,7 +25,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const isaAccounts = await db.query.accounts.findMany({
 		where: and(
 			withUserFilter(locals.user.id, accounts),
-			inArray(accounts.taxWrapper, ["isa", "lisa", "premium-bonds"]),
+			inArray(accounts.taxWrapper, TAX_FREE_WRAPPERS),
 		),
 		columns: { id: true, taxWrapper: true },
 	});

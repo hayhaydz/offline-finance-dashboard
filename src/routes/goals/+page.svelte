@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page as pageState } from '$app/state';
 	import { formatCurrency } from '$lib/utils/currency';
+	import { getProgressColor as getProgressColorFromPercent } from '$lib/utils/formatting';
 	import { getStaleness } from '$lib/utils/staleness';
 	import GoalRow from '$lib/components/GoalRow.svelte';
 	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
@@ -171,17 +172,14 @@
 
 	// Get progress color class based on percentage
 	function getProgressColor(goal: EnrichedGoal): { text: string; bg: string } {
-		const progress = getProgress(goal);
 		if (goal.color && typeof goal.color === 'string') {
 			// Debt goal with pre-calculated color
 			if (goal.color === 'green') return { text: 'text-green-700', bg: 'bg-green-700' };
 			if (goal.color === 'amber') return { text: 'text-amber-600', bg: 'bg-amber-600' };
 			return { text: 'text-red-600', bg: 'bg-red-600' };
 		}
-		// Savings goal: calculate from progress percentage
-		if (progress >= 70) return { text: 'text-green-700', bg: 'bg-green-700' };
-		if (progress >= 30) return { text: 'text-amber-600', bg: 'bg-amber-600' };
-		return { text: 'text-red-600', bg: 'bg-red-600' };
+		// Savings goal: delegate to shared utility
+		return getProgressColorFromPercent(getProgress(goal));
 	}
 
 	// Get emergency fund milestones display

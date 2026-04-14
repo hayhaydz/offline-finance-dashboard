@@ -1,3 +1,5 @@
+import { MS_PER_DAY } from "$lib/utils/time-constants";
+
 export interface RecurringPattern {
 	description: string;
 	approximateAmount: number;
@@ -48,7 +50,7 @@ export function detectRecurringPatterns(
 			const daysDiff =
 				(sorted[i].transactionDate.getTime() -
 					sorted[i - 1].transactionDate.getTime()) /
-				(1000 * 60 * 60 * 24);
+				MS_PER_DAY;
 			if (daysDiff >= 28 && daysDiff <= 35) monthlyGaps++;
 		}
 		if (monthlyGaps < 2) continue;

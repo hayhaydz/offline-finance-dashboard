@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { MONTH_NAMES_SHORT } from "$lib/utils/domain-constants";
 	interface TaxYearProgressData {
 		taxYearStart: Date;
 		taxYearEnd: Date;
@@ -19,8 +20,7 @@
 		const daysRemaining = 365 - daysElapsed;
 		
 		const endDay = end.getDate();
-		const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-		const endMonth = monthNames[end.getMonth()];
+		const endMonth = MONTH_NAMES_SHORT[end.getMonth()];
 		const endYear = end.getFullYear();
 		const endDateFormatted = `${endDay} ${endMonth} ${endYear}`;
 		

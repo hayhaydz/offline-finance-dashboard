@@ -4,6 +4,7 @@ import { db } from "$lib/db/client";
 import { accounts, goalAllocations, goals } from "$lib/db/schema";
 import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
 import { devLog } from "$lib/utils/logger";
+import { MS_PER_DAY, MS_PER_MONTH } from "$lib/utils/time-constants";
 
 // Type for account allocation with liquidity info
 export interface AccountAllocationWithLiquidity {
@@ -78,7 +79,7 @@ export function calculateLiquidityBreakdown(
 	if (targetDate) {
 		const now = new Date();
 		const daysUntilTarget = Math.ceil(
-			(new Date(targetDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24),
+			(new Date(targetDate).getTime() - now.getTime()) / MS_PER_DAY,
 		);
 
 		if (daysUntilTarget <= URGENT_DAYS_THRESHOLD && daysUntilTarget > 0) {
@@ -183,7 +184,7 @@ export function calculateContributionStats(
 		const last = new Date(lastContributionDate);
 		last.setHours(0, 0, 0, 0);
 		daysSinceLastContribution = Math.floor(
-			(now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24),
+			(now.getTime() - last.getTime()) / MS_PER_DAY,
 		);
 	}
 
@@ -230,7 +231,7 @@ export function calculatePaceMetrics(params: {
 		target.setHours(0, 0, 0, 0);
 
 		const diffMs = target.getTime() - now.getTime();
-		daysRemaining = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+		daysRemaining = Math.max(0, Math.ceil(diffMs / MS_PER_DAY));
 
 		// Required monthly = remaining / months remaining
 		if (daysRemaining > 0) {
@@ -252,7 +253,7 @@ export function calculatePaceMetrics(params: {
 		const first = new Date(firstContributionDate);
 		const monthsSinceFirst = Math.max(
 			1,
-			(now.getTime() - first.getTime()) / (30 * 24 * 60 * 60 * 1000),
+			(now.getTime() - first.getTime()) / MS_PER_MONTH,
 		);
 		actualMonthlyAvgInCents = Math.round(
 			currentAllocationInCents / monthsSinceFirst,
@@ -263,7 +264,7 @@ export function calculatePaceMetrics(params: {
 			const monthsUntilComplete =
 				amountRemainingInCents / actualMonthlyAvgInCents;
 			projectedCompletionDate = new Date(
-				now.getTime() + monthsUntilComplete * 30 * 24 * 60 * 60 * 1000,
+				now.getTime() + monthsUntilComplete * MS_PER_MONTH,
 			);
 		} else if (amountRemainingInCents === 0) {
 			projectedCompletionDate = now; // Already complete
@@ -327,7 +328,7 @@ export function projectPayoffDate(params: {
 	}
 
 	const now = new Date();
-	const msPerMonth = 30 * 24 * 60 * 60 * 1000;
+	const msPerMonth = MS_PER_MONTH;
 	const monthsSinceFirst = Math.max(
 		1,
 		(now.getTime() - firstPaymentDate.getTime()) / msPerMonth,

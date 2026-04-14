@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { formatCurrency, formatDateShorthand } from '$lib/utils/currency';
+	import { formatTaxWrapper, getMonthName, renderProgressBar } from '$lib/utils/formatting';
 	import { goto } from '$app/navigation';
 	import { page as pageState } from '$app/state';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
@@ -15,17 +16,6 @@
 		const startStr = formatDateShorthand(start);
 		const endStr = formatDateShorthand(end);
 		return `${startStr} to ${endStr}`;
-	}
-
-	// Helper function to format tax wrapper display
-	function formatTaxWrapper(wrapper: string): string {
-		const displayNames: Record<string, string> = {
-			none: 'None',
-			isa: 'ISA',
-			lisa: 'LISA',
-			'premium-bonds': 'Premium Bonds',
-		};
-		return displayNames[wrapper] || wrapper.toUpperCase();
 	}
 
 	// Pagination state for transactions
@@ -137,15 +127,6 @@
 		}
 	});
 
-	// Helper function to get month name
-	function getMonthName(month: number): string {
-		const names = [
-			'January', 'February', 'March', 'April', 'May', 'June',
-			'July', 'August', 'September', 'October', 'November', 'December'
-		];
-		return names[month - 1] || 'Unknown';
-	}
-
 	function clearFilters() {
 		filterAccountId = null;
 		filterMonth = null;
@@ -226,13 +207,6 @@
 	const prevYear = $derived(currentIndex < data.availableTaxYears.length - 1 ? data.availableTaxYears[currentIndex + 1] : null);
 	const nextYear = $derived(currentIndex > 0 ? data.availableTaxYears[currentIndex - 1] : null);
 
-	// Helper for ASCII progress bar (allowance utilization)
-	function renderProgressBar(used: number, limit: number, width = 10): string {
-		const ratio = Math.min(1, used / limit);
-		const filled = Math.round(ratio * width);
-		const empty = width - filled;
-		return `[${'#'.repeat(filled)}${'.'.repeat(empty)}] ${Math.round(ratio * 100)}%`;
-	}
 
 	// Derived sort label based on active breakdown
 	const sortLabel = $derived(() => {

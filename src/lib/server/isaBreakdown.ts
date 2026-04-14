@@ -13,6 +13,7 @@
  */
 
 import { and, asc, eq, gte, inArray, lte } from "drizzle-orm";
+import { TAX_FREE_WRAPPERS, MONTH_NAMES } from "$lib/utils/domain-constants";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
@@ -21,6 +22,7 @@ import {
 	ISA_ALLOWANCE_IN_CENTS,
 } from "$lib/server/calculations";
 import { devLog } from "$lib/utils/logger";
+import { MS_PER_DAY } from "$lib/utils/time-constants";
 
 /**
  * ISA subscription transaction with account details
@@ -161,7 +163,7 @@ async function getISATransactions(params: {
 	const isaAccounts = await db.query.accounts.findMany({
 		where: and(
 			withUserFilter(userId, accounts),
-			inArray(accounts.taxWrapper, ["isa", "lisa", "premium-bonds"]),
+			inArray(accounts.taxWrapper, TAX_FREE_WRAPPERS),
 		),
 		columns: {
 			id: true,
@@ -285,20 +287,7 @@ function getISABreakdownByMonth(
 	transactions: ISATransaction[],
 ): ISAMonthBreakdown[] {
 	const byMonth = new Map<string, ISAMonthBreakdown>();
-	const monthNames = [
-		"January",
-		"February",
-		"March",
-		"April",
-		"May",
-		"June",
-		"July",
-		"August",
-		"September",
-		"October",
-		"November",
-		"December",
-	];
+	const monthNames = MONTH_NAMES;
 
 	for (const tx of transactions) {
 		if (tx.type !== "deposit") continue;
@@ -414,7 +403,7 @@ export async function getISABreakdownReport(params: {
 	const daysRemainingInTaxYear = Math.max(
 		0,
 		Math.ceil(
-			(taxYearEnd.getTime() - asOfDate.getTime()) / (24 * 60 * 60 * 1000),
+			(taxYearEnd.getTime() - asOfDate.getTime()) / MS_PER_DAY,
 		),
 	);
 
@@ -538,7 +527,7 @@ export async function getISAAvailableTaxYears(
 	const isaAccounts = await db.query.accounts.findMany({
 		where: and(
 			withUserFilter(userId, accounts),
-			inArray(accounts.taxWrapper, ["isa", "lisa", "premium-bonds"]),
+			inArray(accounts.taxWrapper, TAX_FREE_WRAPPERS),
 		),
 		columns: { id: true },
 	});

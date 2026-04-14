@@ -105,7 +105,8 @@ export function formatDateForRange(date: Date): string {
  * @param type - The account type string from database (e.g., "credit-card")
  * @returns Human-readable label (e.g., "Credit Card")
  */
-export function formatAccountType(type: string): string {
+export function formatAccountType(type: string | null | undefined): string {
+	if (!type) return "-";
 	const labels: Record<string, string> = {
 		current: "Current",
 		savings: "Savings",
