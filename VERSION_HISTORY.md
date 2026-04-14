@@ -1,3 +1,30 @@
+## [2026-04-14] — refactor: extract shared patterns (Phase 2)
+
+**Summary:** Created 7 shared utility modules that eliminate ~800 lines of duplicated code across the codebase. Foundation layer for Phases 3-7.
+
+**New files:**
+- `src/lib/utils/time-constants.ts` — shared MS_PER_DAY, MS_PER_MONTH (replaces 12 inline redefinitions)
+- `src/lib/utils/formatting.ts` — consolidated formatting functions (formatTaxWrapper, formatRate, getMonthName, etc.)
+- `src/lib/utils/domain-constants.ts` — single source of truth for ACCOUNT_TYPES, TAX_WRAPPERS, LIQUIDITY_OPTIONS, TAX_FREE_WRAPPERS
+- `src/lib/server/utils/aggregate.ts` — generic map-reduce aggregation (replaces ~250 lines in interestBreakdown + isaBreakdown)
+- `src/lib/server/utils/pagination.ts` — parsePagination + calculatePagination (replaces ~120 lines across 9 route files)
+- `src/lib/server/utils/auth-guard.ts` — requireAuth() + getAuthUser() helpers (replaces 89 inline checks across 37 files)
+- `src/lib/server/utils/reconciliation.ts` — shared breakdown reconciliation with reconcileBreakdowns + addWarningFlag
+
+**Changed:**
+- `src/lib/server/isaBreakdown.ts` — uses reconcileBreakdowns/addWarningFlag for reconciliation, aggregateByKey for institution breakdown, ReconciliationFlag[] type
+- `src/routes/+page.server.ts` — uses requireAuth/getAuthUser, parsePagination/calculatePagination
+- `src/routes/accounts/+page.server.ts` — uses requireAuth/getAuthUser, parsePagination/calculatePagination
+- `src/routes/alerts/+page.server.ts` — uses requireAuth
+- `src/routes/settings/general/+page.server.ts` — uses requireAuth/getAuthUser
+- [Plus all files updated in Tasks 2.1-2.3 for time-constants, formatting, domain-constants]
+
+**Verification:** `npm run check` (0 errors), `npm test` (389 passed)
+
+**Suggested commit:** `refactor: extract shared patterns — Phase 2 foundation layer`
+
+---
+
 ## [2026-04-14] — fix: resolve cn() duplication, premium-bonds validation gap, tax-free classification
 
 **Summary:** Fixed 3 pre-existing bugs: (1) UI components importing weak `cn()` without Tailwind merge — replaced barrel with re-export of strong version, (2) `validation/rules.ts` missing `"premium-bonds"` from `TAX_WRAPPERS` causing latent form rejection, (3) created shared `isTaxFreeWrapper()` to replace duplicated local `isTaxFree()` in calculations.ts and interestBreakdown.ts — also fixed `calculations.ts` silently classifying premium-bonds interest as taxable (only checked isa/lisa inline).

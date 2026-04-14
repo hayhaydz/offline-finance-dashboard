@@ -5,18 +5,16 @@ import { systemMetadata, users } from "$lib/db/schema";
 import { parseCurrency } from "$lib/utils/currency";
 import { isValidHexColour } from "$lib/utils/category-colours";
 import { getCategories, createCategory, updateCategory, deleteCategory } from "$lib/server/categories";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import { devLog, logError, logFormData } from "$lib/utils/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user) {
-		logError("settings-general", "Authentication required");
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	devLog("settings-general", "General settings page loaded", {
-		username: locals.user.username,
-		userId: locals.user.id,
+		username: user.username,
+		userId: user.id,
 	});
 
 	// Query monthly expenses from system_metadata
@@ -35,17 +33,17 @@ export const load: PageServerLoad = async ({ locals }) => {
 	}
 
 	// Fetch user's current tax band
-	const user = await db.query.users.findFirst({
-		where: eq(users.id, locals.user.id),
+	const userRow = await db.query.users.findFirst({
+		where: eq(users.id, user.id),
 		columns: { taxBand: true },
 	});
 
 	// Fetch spending categories
-	const categories = await getCategories(locals.user.id);
+	const categories = await getCategories(user.id);
 
 	return {
 		monthlyExpensesInPence,
-		taxBand: user?.taxBand ?? "basic",
+		taxBand: userRow?.taxBand ?? "basic",
 		categories,
 	};
 };
@@ -56,10 +54,8 @@ export const actions: Actions = {
 	 * Validates input, converts to pence, and stores in system_metadata table
 	 */
 	saveMonthlyExpenses: async ({ request, locals }) => {
-		if (!locals.user) {
-			logError("settings-general", "Authentication required for save");
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		const formData = await request.formData();
 		logFormData("settings-general", Object.fromEntries(formData));
@@ -67,7 +63,7 @@ export const actions: Actions = {
 		const monthlyExpensesInput = formData.get("monthlyExpenses") as string;
 
 		devLog("settings-general", "Saving monthly expenses", {
-			userId: locals.user.id,
+			userId: user.id,
 			inputValue: monthlyExpensesInput,
 		});
 
@@ -113,7 +109,7 @@ export const actions: Actions = {
 
 				devLog("settings-general", "Updated monthly expenses", {
 					amountInPence,
-					userId: locals.user.id,
+					userId: user.id,
 				});
 			} else {
 				await db.insert(systemMetadata).values({
@@ -123,7 +119,7 @@ export const actions: Actions = {
 
 				devLog("settings-general", "Inserted monthly expenses", {
 					amountInPence,
-					userId: locals.user.id,
+					userId: user.id,
 				});
 			}
 
@@ -140,10 +136,8 @@ export const actions: Actions = {
 	 * Update tax band action
 	 */
 	updateTaxBand: async ({ request, locals }) => {
-		if (!locals.user) {
-			logError("settings-general", "Authentication required for tax band update");
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		const formData = await request.formData();
 		logFormData("settings-general", Object.fromEntries(formData));
@@ -160,10 +154,10 @@ export const actions: Actions = {
 			await db
 				.update(users)
 				.set({ taxBand: taxBand as "basic" | "higher" | "additional" })
-				.where(eq(users.id, locals.user.id));
+				.where(eq(users.id, user.id));
 
 			devLog("settings-general", "Tax band updated", {
-				userId: locals.user.id,
+				userId: user.id,
 				taxBand,
 			});
 
@@ -180,10 +174,8 @@ export const actions: Actions = {
 	createCategory: async ({ request, locals }) => {
 		devLog("settings-general:createCategory", "Action invoked");
 
-		if (!locals.user) {
-			logError("settings-general:createCategory", "No authenticated user");
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		const formData = await request.formData();
 		const name = formData.get("name") as string;
@@ -207,7 +199,7 @@ export const actions: Actions = {
 
 		try {
 			const result = await createCategory({
-				userId: locals.user.id,
+				userId: user.id,
 				name: name.trim(),
 				key: key.trim(),
 				colour,
@@ -231,9 +223,8 @@ export const actions: Actions = {
 	 * Update an existing spending category
 	 */
 	updateCategory: async ({ request, locals }) => {
-		if (!locals.user) {
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		const formData = await request.formData();
 		const slug = formData.get("slug") as string;
@@ -245,7 +236,7 @@ export const actions: Actions = {
 		}
 
 		try {
-			const result = await updateCategory(slug, locals.user.id, {
+			const result = await updateCategory(slug, user.id, {
 				name: name?.trim() || undefined,
 				colour: colour && isValidHexColour(colour) ? colour : undefined,
 			});
@@ -266,9 +257,8 @@ export const actions: Actions = {
 	 * Delete (soft) a spending category
 	 */
 	deleteCategory: async ({ request, locals }) => {
-		if (!locals.user) {
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		const formData = await request.formData();
 		const slug = formData.get("slug") as string;
@@ -278,7 +268,7 @@ export const actions: Actions = {
 		}
 
 		try {
-			const result = await deleteCategory(slug, locals.user.id);
+			const result = await deleteCategory(slug, user.id);
 
 			if (!result.success) {
 				return fail(400, { error: result.error });

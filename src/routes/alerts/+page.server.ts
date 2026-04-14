@@ -1,14 +1,12 @@
-import { redirect } from "@sveltejs/kit";
 import { getAlerts } from "$lib/server/alerts";
+import { requireAuth } from "$lib/server/utils/auth-guard";
 import { sortAlerts } from "$lib/types/alerts";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user) {
-		redirect(302, "/auth/login");
-	}
+	const user = requireAuth(locals);
 
-	const all = await getAlerts(locals.user.id);
+	const all = await getAlerts(user.id);
 	const sorted = sortAlerts(all);
 
 	return {

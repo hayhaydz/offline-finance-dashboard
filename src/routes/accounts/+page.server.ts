@@ -1,4 +1,4 @@
-import { fail, redirect } from "@sveltejs/kit";
+import { fail } from "@sveltejs/kit";
 import { count, eq } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { getAccountListAlerts } from "$lib/server/alerts";
@@ -18,39 +18,39 @@ import {
 import { getCurrentRate } from "$lib/server/interestRates";
 import { updateTypeExclusions } from "$lib/server/exclusions";
 import { getNetWorthSummary } from "$lib/server/finance";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
+import {
+	calculatePagination,
+	parsePagination,
+} from "$lib/server/utils/pagination";
 import { devLog, logError } from "$lib/utils/logger";
 import { MS_PER_DAY } from "$lib/utils/time-constants";
 import { isTaxFreeWrapper } from "$lib/utils/tax-classification";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-	if (!locals.user) {
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	// Pagination for accounts
-	const ACCOUNTS_PER_PAGE = 20;
-	const pageParam = url.searchParams.get("page");
-	// URL parameter is 1-indexed, convert to 0-indexed for internal use
-	const parsedPage = pageParam ? Number.parseInt(pageParam, 10) : 1;
-	const validPage =
-		Number.isFinite(parsedPage) && parsedPage >= 1 ? parsedPage : 1;
+	const PAGE_SIZE = 20;
+	const { page: requestedPage } = parsePagination(url, PAGE_SIZE);
 
 	// Get total count for pagination
 	const [{ total }] = await db
 		.select({ total: count() })
 		.from(accounts)
-		.where(withUserFilter(locals.user.id, accounts));
-	const totalPages = Math.ceil(total / ACCOUNTS_PER_PAGE);
-	// Convert 1-indexed to 0-indexed and clamp to valid range
-	const safePage = Math.min(validPage - 1, Math.max(0, totalPages - 1));
-	const offset = safePage * ACCOUNTS_PER_PAGE;
+		.where(withUserFilter(user.id, accounts));
+	const { page: safePage, totalPages, offset } = calculatePagination(
+		total,
+		requestedPage,
+		PAGE_SIZE,
+	);
 
 	// Query accounts with user filter and pagination
 	const userAccounts = await db.query.accounts.findMany({
-		where: withUserFilter(locals.user.id, accounts),
+		where: withUserFilter(user.id, accounts),
 		orderBy: (accounts, { desc }) => desc(accounts.createdAt),
-		limit: ACCOUNTS_PER_PAGE,
+		limit: PAGE_SIZE,
 		offset,
 	});
 	const accountIds = userAccounts.map((a) => a.id);
@@ -97,7 +97,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	// Calculate aggregate interest summary
 	const isaAllowanceUsed = await getISAAllowanceUsed(
-		locals.user.id,
+		user.id,
 		taxYear.start,
 		taxYear.end,
 	);
@@ -230,7 +230,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	// Get user's tax band for allowance calculation
 	const userWithTaxBand = await db.query.users.findFirst({
-		where: eq(users.id, locals.user.id),
+		where: eq(users.id, user.id),
 		columns: { taxBand: true },
 	});
 	const taxBand = userWithTaxBand?.taxBand ?? "basic";
@@ -250,20 +250,20 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	) as string[];
 
 	// Calculate net worth summary (shared utility)
-	const netWorthSummary = await getNetWorthSummary(locals.user.id);
+	const netWorthSummary = await getNetWorthSummary(user.id);
 
 	return {
 		netWorthSummary,
 		accounts: accountsWithInterest,
 		accountsPagination: {
-			page: safePage,
+			page: safePage - 1, // PaginationClient expects 0-indexed
 			totalPages,
 		},
 		institutions,
 		user: {
-			id: locals.user.id,
-			username: locals.user.username,
-			createdAt: locals.user.createdAt,
+			id: user.id,
+			username: user.username,
+			createdAt: user.createdAt,
 		},
 		interestSummary: {
 			actualInterestIsa: actualInterestTaxFree,
@@ -286,16 +286,14 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			limit: ISA_ALLOWANCE_IN_CENTS,
 			remaining: Math.max(0, ISA_ALLOWANCE_IN_CENTS - isaAllowanceUsed),
 		},
-		alerts: await getAccountListAlerts(locals.user.id),
+		alerts: await getAccountListAlerts(user.id),
 	};
 };
 
 export const actions: Actions = {
 	updateExclusions: async ({ request, locals }) => {
-		if (!locals.user) {
-			logError("updateExclusions", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		const formData = await request.formData();
 		const typeUpdates: Map<string, boolean> = new Map();
@@ -317,12 +315,12 @@ export const actions: Actions = {
 
 		try {
 			const result = await updateTypeExclusions({
-				userId: locals.user.id,
+				userId: user.id,
 				typeUpdates,
 			});
 
 			devLog("updateExclusions", "Type-based bulk update successful", {
-				userId: locals.user.id,
+				userId: user.id,
 				affectedRows: result.affectedRows,
 			});
 

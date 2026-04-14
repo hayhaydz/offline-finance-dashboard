@@ -20,41 +20,46 @@ import { updateTypeExclusions } from "$lib/server/exclusions";
 import { getNetWorthSummary } from "$lib/server/finance";
 import { calculateISAPacing } from "$lib/server/isaPacing";
 import { getDebtGoalProgress, projectPayoffDate } from "$lib/server/goals";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
+import {
+	calculatePagination,
+	parsePagination,
+} from "$lib/server/utils/pagination";
 import { devLog, isVerboseDebug, logError } from "$lib/utils/logger";
 import { getStaleness } from "$lib/utils/staleness";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-	if (!locals.user) {
-		devLog("homePage", "Unauthenticated access, redirecting to login");
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	devLog("homePage", "Loading net worth data for user", {
-		userId: locals.user.id,
+		userId: user.id,
 	});
 
-	// Pagination for goals (1-indexed URL parameters)
-	const GOALS_PER_PAGE = 10;
-	const goalsPageParam = Number(url.searchParams.get("goalsPage")) || 1;
+	// Pagination for goals
+	const GOALS_PAGE_SIZE = 10;
+	const { page: goalsRequestedPage } = parsePagination(
+		url,
+		GOALS_PAGE_SIZE,
+		"goalsPage",
+	);
 
 	// Fetch total goal count for pagination
 	const [{ totalGoals }] = await db
 		.select({ totalGoals: count() })
 		.from(goals)
-		.where(withUserFilter(locals.user.id, goals));
+		.where(withUserFilter(user.id, goals));
 
-	const totalGoalPages = Math.ceil(totalGoals / GOALS_PER_PAGE);
-	// Convert 1-indexed URL to 0-indexed internal and clamp to valid range
-	const safeGoalsPage = Math.min(
-		Math.max(0, goalsPageParam - 1),
-		Math.max(0, totalGoalPages - 1),
-	);
+	const {
+		page: safeGoalsPage,
+		totalPages: totalGoalPages,
+		offset: goalsOffset,
+	} = calculatePagination(totalGoals, goalsRequestedPage, GOALS_PAGE_SIZE);
 
 	// Fetch ALL open accounts for the homepage summary table.
 	// We group by type on the client, so pagination would hide types.
 	const userAccounts = await db.query.accounts.findMany({
-		where: and(withUserFilter(locals.user.id, accounts), isNull(accounts.closedAt)),
+		where: and(withUserFilter(user.id, accounts), isNull(accounts.closedAt)),
 	});
 	const accountIds = userAccounts.map((a) => a.id);
 	const [currentBalances, latestTransactionDates] = await Promise.all([
@@ -73,10 +78,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	// Fetch paginated goals for homepage preview
 	const userGoals = await db.query.goals.findMany({
-		where: withUserFilter(locals.user.id, goals),
+		where: withUserFilter(user.id, goals),
 		orderBy: [asc(goals.sortOrder)],
-		limit: GOALS_PER_PAGE,
-		offset: safeGoalsPage * GOALS_PER_PAGE,
+		limit: GOALS_PAGE_SIZE,
+		offset: goalsOffset,
 		with: {
 			allocations: {
 				columns: {
@@ -181,9 +186,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	devLog("homePage", "Fetched user goals", { goalCount: activeGoals.length });
 
 	// Calculate net worth summary (shared utility)
-	const netWorthSummary = await getNetWorthSummary(locals.user.id);
+	const netWorthSummary = await getNetWorthSummary(user.id);
 
-	const alerts = await getAlerts(locals.user.id);
+	const alerts = await getAlerts(user.id);
 
 	const today = new Date();
 	today.setUTCHours(0, 0, 0, 0);
@@ -191,7 +196,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// ISA tracker for current UK tax year (6 Apr -> 5 Apr)
 	const taxYear = getUkTaxYearBounds(new Date());
 	const isaUsed = await getISAAllowanceUsed(
-		locals.user.id,
+		user.id,
 		taxYear.start,
 		taxYear.end,
 	);
@@ -201,12 +206,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		remaining: Math.max(0, ISA_ALLOWANCE_IN_CENTS - isaUsed),
 		taxYearStart: taxYear.start,
 		taxYearEnd: taxYear.end,
-		pacing: await calculateISAPacing(locals.user.id),
+		pacing: await calculateISAPacing(user.id),
 	};
 
 	// Calculate interest summary — uses ALL accounts (not paginated)
 	const interestActual = await getActualInterestByTaxWrapper(
-		locals.user.id,
+		user.id,
 		taxYear.start,
 		taxYear.end,
 	);
@@ -215,7 +220,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	// Projected interest for remaining tax year — uses ALL accounts
 	const interestProjected = await getProjectedInterestByTaxWrapper(
-		locals.user.id,
+		user.id,
 		taxYear.start,
 		taxYear.end,
 		today,
@@ -226,7 +231,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	// Get user's tax band for allowance calculation
 	const userWithTaxBand = await db.query.users.findFirst({
-		where: eq(users.id, locals.user.id),
+		where: eq(users.id, user.id),
 		columns: { taxBand: true },
 	});
 	const taxBand = userWithTaxBand?.taxBand ?? "basic";
@@ -260,9 +265,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	return {
 		user: {
-			id: locals.user.id,
-			username: locals.user.username,
-			createdAt: locals.user.createdAt,
+			id: user.id,
+			username: user.username,
+			createdAt: user.createdAt,
 		},
 		netWorthSummary,
 		accounts: accountsWithDerivedBalances,
@@ -271,7 +276,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		interestSummary,
 		goals: goalsWithPayoff,
 		goalsPagination: {
-			page: safeGoalsPage,
+			page: safeGoalsPage - 1, // PaginationClient expects 0-indexed
 			totalPages: totalGoalPages,
 		},
 		staleness,
@@ -280,10 +285,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 export const actions: Actions = {
 	updateExclusions: async ({ request, locals }) => {
-		if (!locals.user) {
-			logError("updateExclusions", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		const formData = await request.formData();
 
@@ -306,7 +309,7 @@ export const actions: Actions = {
 		}
 
 		devLog("updateExclusions", "Processing type-level exclusion updates", {
-			userId: locals.user.id,
+			userId: user.id,
 			typeCount: typeUpdates.size,
 			typeUpdates: Array.from(typeUpdates.entries()).map(
 				([type, excluded]) => ({ type, excluded }),
@@ -315,7 +318,7 @@ export const actions: Actions = {
 
 		if (isVerboseDebug()) {
 			const beforeUpdate = await db.query.accounts.findMany({
-				where: withUserFilter(locals.user.id, accounts),
+				where: withUserFilter(user.id, accounts),
 				columns: { id: true, type: true, excludedFromNetWorth: true },
 			});
 			devLog("updateExclusions", "Database state BEFORE update", {
@@ -336,7 +339,7 @@ export const actions: Actions = {
 
 		try {
 			const result = await updateTypeExclusions({
-				userId: locals.user.id,
+				userId: user.id,
 				typeUpdates,
 			});
 
@@ -345,7 +348,7 @@ export const actions: Actions = {
 					"updateExclusions",
 					"No matching open accounts found for selected types",
 					{
-						userId: locals.user.id,
+						userId: user.id,
 						typesRequested: Array.from(typeUpdates.keys()),
 					},
 				);
@@ -353,14 +356,14 @@ export const actions: Actions = {
 			}
 
 			devLog("updateExclusions", "Type-based bulk update successful", {
-				userId: locals.user.id,
+				userId: user.id,
 				affectedRows: result.affectedRows,
 				typesUpdated: Array.from(typeUpdates.keys()),
 			});
 
 			if (isVerboseDebug()) {
 				const afterUpdate = await db.query.accounts.findMany({
-					where: withUserFilter(locals.user.id, accounts),
+					where: withUserFilter(user.id, accounts),
 					columns: { id: true, type: true, excludedFromNetWorth: true },
 				});
 				devLog("updateExclusions", "Database state AFTER update", {

@@ -21,6 +21,12 @@ import {
 	getUkTaxYearBounds,
 	ISA_ALLOWANCE_IN_CENTS,
 } from "$lib/server/calculations";
+import { aggregateByKey } from "$lib/server/utils/aggregate";
+import {
+	reconcileBreakdowns,
+	addWarningFlag,
+	type ReconciliationFlag,
+} from "$lib/server/utils/reconciliation";
 import { devLog } from "$lib/utils/logger";
 import { MS_PER_DAY } from "$lib/utils/time-constants";
 
@@ -124,10 +130,7 @@ export interface ISAReconciliation {
 	totalVsByAccountDelta: number; // Should be 0
 	totalVsByMonthDelta: number; // Should be 0
 	totalVsTransactionsDelta: number; // Should be 0
-	flags: Array<{
-		type: "warning" | "error";
-		message: string;
-	}>;
+	flags: ReconciliationFlag[];
 }
 
 /**
@@ -320,27 +323,17 @@ function getISABreakdownByMonth(
 function getISABreakdownByInstitution(
 	transactions: ISATransaction[],
 ): ISAInstitutionBreakdown[] {
-	const byInstitution = new Map<string, ISAInstitutionBreakdown>();
+	const deposits = transactions.filter((tx) => tx.type === "deposit");
 
-	for (const tx of transactions) {
-		if (tx.type !== "deposit") continue;
-
-		const institution = tx.accountInstitution || "Unknown";
-		const existing = byInstitution.get(institution);
-
-		if (existing) {
-			existing.total += tx.amount;
-			existing.transactionCount++;
-		} else {
-			byInstitution.set(institution, {
-				institution,
-				total: tx.amount,
-				transactionCount: 1,
-			});
-		}
-	}
-
-	return Array.from(byInstitution.values());
+	return aggregateByKey(
+		deposits,
+		(tx) => tx.accountInstitution || "Unknown",
+		(tx) => tx.amount,
+	).map(({ key: institution, total, count }) => ({
+		institution,
+		total,
+		transactionCount: count,
+	}));
 }
 
 /**
@@ -457,43 +450,37 @@ export async function getISABreakdownReport(params: {
 	};
 
 	// Reconciliation checks
-	const totalVsByAccountDelta =
-		allowanceUsed - byAccount.reduce((sum, a) => sum + a.total, 0);
-	const totalVsByMonthDelta =
-		allowanceUsed - byMonth.reduce((sum, m) => sum + m.total, 0);
-	const totalVsTransactionsDelta =
-		allowanceUsed -
-		transactions
-			.filter((tx) => tx.type === "deposit")
-			.reduce((sum, tx) => sum + tx.amount, 0);
-
-	const flags: Array<{ type: "warning" | "error"; message: string }> = [];
-
-	if (totalVsByAccountDelta !== 0) {
-		flags.push({
-			type: "error",
-			message: `Account breakdown delta: ${totalVsByAccountDelta} cents`,
-		});
-	}
-	if (totalVsByMonthDelta !== 0) {
-		flags.push({
-			type: "error",
-			message: `Month breakdown delta: ${totalVsByMonthDelta} cents`,
-		});
-	}
-	if (totalVsTransactionsDelta !== 0) {
-		flags.push({
-			type: "error",
-			message: `Transaction delta: ${totalVsTransactionsDelta} cents`,
-		});
-	}
+	const { flags, deltas } = reconcileBreakdowns(allowanceUsed, [
+		{
+			label: "Account breakdown",
+			category: "by_account",
+			sum: byAccount.reduce((s, a) => s + a.total, 0),
+		},
+		{
+			label: "Monthly breakdown",
+			category: "by_month",
+			sum: byMonth.reduce((s, m) => s + m.total, 0),
+		},
+		{
+			label: "Transaction",
+			category: "transactions",
+			sum: transactions
+				.filter((tx) => tx.type === "deposit")
+				.reduce((s, tx) => s + tx.amount, 0),
+		},
+	]);
 
 	if (allowanceUsed > ISA_ALLOWANCE_IN_CENTS) {
-		flags.push({
-			type: "warning",
-			message: `ISA allowance exceeded by ${allowanceUsed - ISA_ALLOWANCE_IN_CENTS} cents`,
-		});
+		addWarningFlag(
+			flags,
+			"allowance",
+			`ISA allowance exceeded by ${allowanceUsed - ISA_ALLOWANCE_IN_CENTS} cents`,
+		);
 	}
+
+	const totalVsByAccountDelta = deltas.by_account ?? 0;
+	const totalVsByMonthDelta = deltas.by_month ?? 0;
+	const totalVsTransactionsDelta = deltas.transactions ?? 0;
 
 	const reconciliation: ISAReconciliation = {
 		totalVsByAccountDelta,
