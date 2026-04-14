@@ -2,7 +2,16 @@ import { fail, redirect } from "@sveltejs/kit";
 import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
-import { parseCurrency } from "$lib/utils/currency";
+import {
+	requireString,
+	optionalString,
+	requireEnum,
+	requireCurrency,
+	VALID_ACCOUNT_TYPES,
+	VALID_TAX_WRAPPERS,
+	VALID_LIQUIDITY,
+	FIELD_LIMITS,
+} from "$lib/server/validation";
 import { devLog, logError, logFormData } from "$lib/utils/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
@@ -41,59 +50,51 @@ export const actions: Actions = {
 			// Server-side validation
 			const errors: Record<string, string> = {};
 
-			// Name: required, trimmed, max 100 chars
-			if (!name?.trim()) {
-				errors.name = "Account name is required";
-			} else if (name.trim().length > 100) {
-				errors.name = "Account name must be 100 characters or less";
-			}
+			const nameResult = requireString(
+				name,
+				"Account name",
+				FIELD_LIMITS.ACCOUNT_NAME,
+			);
+			if (!nameResult.ok) errors.name = nameResult.error;
 
-			// Type: required, must match one of 6 account types
-			const validTypes = [
-				"current",
-				"savings",
-				"investment",
-				"credit-card",
-				"loan",
-				"mortgage",
-			];
-			if (!type || !validTypes.includes(type)) {
-				errors.type = "Please select a valid account type";
-			}
+			const typeResult = requireEnum(type, VALID_ACCOUNT_TYPES, "Account type");
+			if (!typeResult.ok) errors.type = typeResult.error;
 
-			// Tax wrapper: required, must match one of 4 values
-			const validTaxWrappers = ["none", "isa", "lisa", "premium-bonds"];
-			if (!taxWrapper || !validTaxWrappers.includes(taxWrapper)) {
-				errors.taxWrapper = "Please select a valid tax wrapper";
-			}
+			const taxWrapperResult = requireEnum(
+				taxWrapper,
+				VALID_TAX_WRAPPERS,
+				"Tax wrapper",
+			);
+			if (!taxWrapperResult.ok) errors.taxWrapper = taxWrapperResult.error;
 
 			// Category: auto-calculated from type (assets vs liabilities)
 			const assetTypes = new Set(["current", "savings", "investment"]);
 			const category = assetTypes.has(type) ? "asset" : "liability";
 
-			// Institution: optional, max 100 chars if provided
-			if (institution && institution.trim().length > 100) {
-				errors.institution = "Institution name must be 100 characters or less";
+			const institutionResult = optionalString(
+				institution,
+				"Institution name",
+				FIELD_LIMITS.INSTITUTION_NAME,
+			);
+			if (!institutionResult.ok) errors.institution = institutionResult.error;
+
+			if (liquidity) {
+				const liquidityResult = requireEnum(
+					liquidity,
+					VALID_LIQUIDITY,
+					"Liquidity option",
+				);
+				if (!liquidityResult.ok) errors.liquidity = liquidityResult.error;
 			}
 
-			// Liquidity: optional, must match one of 3 values if provided
-			const validLiquidity = ["instant", "delayed", "locked"];
-			if (liquidity && !validLiquidity.includes(liquidity)) {
-				errors.liquidity = "Please select a valid liquidity option";
-			}
-
-			// Initial balance: optional, parse using parseCurrency
+			// Initial balance: optional
 			let balanceInCents: number | null = null;
 			if (initialBalance?.trim()) {
-				try {
-					balanceInCents = parseCurrency(initialBalance);
-				} catch (e) {
-					devLog("createAccount", "parseCurrency validation failed", {
-						input: initialBalance,
-						error: e instanceof Error ? e.message : String(e),
-					});
-					errors.initialBalance =
-						"Invalid balance format. Enter amount like 123.45 or 123";
+				const balanceResult = requireCurrency(initialBalance, "Balance");
+				if (!balanceResult.ok) {
+					errors.initialBalance = balanceResult.error;
+				} else {
+					balanceInCents = balanceResult.valueInCents;
 				}
 			}
 

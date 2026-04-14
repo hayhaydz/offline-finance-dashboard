@@ -12,7 +12,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		throw redirect(302, "/login");
 	}
 
-	// Fetch snapshot to validate ownership and load current notes
+	// Load full snapshot for detail page display
 	const snapshot = await db.query.snapshots.findFirst({
 		where: eq(snapshots.slug, params.slug),
 	});
@@ -56,8 +56,14 @@ export const actions: Actions = {
 
 		logFormData("updateNotes", request);
 
-		// Fetch snapshot to validate ownership
+		// Fetch snapshot to validate ownership (only columns needed for check + notes update)
 		const snapshot = await db.query.snapshots.findFirst({
+			columns: {
+				id: true,
+				userId: true,
+				slug: true,
+				notes: true,
+			},
 			where: eq(snapshots.slug, params.slug),
 		});
 

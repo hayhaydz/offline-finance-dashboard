@@ -2,6 +2,12 @@ import { error, fail, redirect } from "@sveltejs/kit";
 import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { validateUserAccess, withUserFilter } from "$lib/auth/row-security";
 import { getAlertsForAccount } from "$lib/server/alerts";
+import {
+	requireString,
+	requireDateISO,
+	requireEnum,
+	FIELD_LIMITS,
+} from "$lib/server/validation";
 import { db } from "$lib/db/client";
 import {
 	accountNotes,
@@ -37,179 +43,21 @@ import {
 } from "$lib/server/transactions";
 import { calculateTTZ } from "$lib/utils/debt-calculator";
 import { devLog, logError } from "$lib/utils/logger";
+import {
+	formatTaxYearStartParam,
+	getTaxYearEndFromStart,
+	parseTaxYearStart,
+	getDebtHealthStatus,
+	calculateMinimumPayment,
+	calculatePaymentSuggestion,
+} from "$lib/server/debt-projections";
+import { detectRecurringPatterns } from "$lib/server/recurring-patterns";
 import type { Actions, PageServerLoad } from "./$types";
 
-function formatTaxYearStartParam(date: Date): string {
-	const year = date.getUTCFullYear();
-	const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-	const day = String(date.getUTCDate()).padStart(2, "0");
-	return `${year}-${month}-${day}`;
-}
 
-function getTaxYearEndFromStart(taxYearStart: Date): Date {
-	return new Date(
-		Date.UTC(taxYearStart.getUTCFullYear() + 1, 3, 5, 23, 59, 59, 999),
-	);
-}
 
-function parseTaxYearStart(value: string | null): Date | null {
-	if (!value) return null;
-	const parsed = new Date(`${value}T00:00:00.000Z`);
-	if (Number.isNaN(parsed.getTime())) return null;
-	if (parsed.getUTCMonth() !== 3 || parsed.getUTCDate() !== 6) return null;
-	return parsed;
-}
 
-/**
- * Calculate debt health status badge
- * HEALTHY: Pays off in < 5 years
- * WARNING: Pays off in 5+ years
- * CRITICAL: Never pays off
- */
-function getDebtHealthStatus(ttz: {
-	months: number | null;
-	years: number | null;
-}): { label: string; class: string } {
-	if (ttz.months === null) {
-		return { label: "[CRITICAL]", class: "text-red-700" };
-	}
-	if (ttz.years !== null && ttz.years >= 5) {
-		return { label: "[WARNING]", class: "text-amber-700" };
-	}
-	return { label: "[HEALTHY]", class: "text-green-700" };
-}
 
-type RecurringPattern = {
-	description: string;
-	approximateAmount: number;
-	lastDate: Date;
-};
-
-/**
- * Detect recurring transaction patterns from full transaction history.
- * Requires ≥ 3 occurrences, amounts within ±10% of median, and ≥ 2 gaps in 28–35 day range.
- */
-function detectRecurringPatterns(
-	txs: Array<{ description: string | null; amount: number; transactionDate: Date }>,
-): RecurringPattern[] {
-	const groups = new Map<string, typeof txs>();
-
-	for (const tx of txs) {
-		if (!tx.description || tx.description.trim().length <= 3) continue;
-		const key = tx.description.toLowerCase().trim();
-		if (!groups.has(key)) groups.set(key, []);
-		groups.get(key)!.push(tx);
-	}
-
-	const patterns: RecurringPattern[] = [];
-
-	for (const group of groups.values()) {
-		if (group.length < 3) continue;
-
-		const sorted = [...group].sort(
-			(a, b) => a.transactionDate.getTime() - b.transactionDate.getTime(),
-		);
-
-		const amounts = sorted.map((t) => Math.abs(t.amount));
-		const sortedAmounts = [...amounts].sort((a, b) => a - b);
-		const median = sortedAmounts[Math.floor(sortedAmounts.length / 2)];
-
-		if (median === 0) continue;
-		const allWithinRange = amounts.every(
-			(a) => a >= median * 0.9 && a <= median * 1.1,
-		);
-		if (!allWithinRange) continue;
-
-		let monthlyGaps = 0;
-		for (let i = 1; i < sorted.length; i++) {
-			const daysDiff =
-				(sorted[i].transactionDate.getTime() -
-					sorted[i - 1].transactionDate.getTime()) /
-				(1000 * 60 * 60 * 24);
-			if (daysDiff >= 28 && daysDiff <= 35) monthlyGaps++;
-		}
-		if (monthlyGaps < 2) continue;
-
-		patterns.push({
-			description: group[0].description!.trim(),
-			approximateAmount: median,
-			lastDate: sorted[sorted.length - 1].transactionDate,
-		});
-	}
-
-	return patterns;
-}
-
-/**
- * Calculate minimum payment from account rule
- * Note: percentage is stored in basis points in the database (100 = 1%)
- */
-function calculateMinimumPayment(
-	balance: number,
-	_rate: number,
-	rule: { type: string; flat: number | null; percentage: number | null },
-): number {
-	if (rule.type === "flat" && rule.flat !== null) {
-		return rule.flat;
-	}
-	if (rule.type === "percentage" && rule.percentage !== null) {
-		// percentage is in basis points: 100 = 1%, so divide by 10000
-		return Math.round((balance * rule.percentage) / 10000);
-	}
-	// Default to 1% of balance
-	return Math.round(balance * 0.01);
-}
-
-/**
- * Calculate payment suggestion
- * Returns optimal payment and time/interest savings if significant improvement found
- */
-function calculatePaymentSuggestion(
-	balance: number,
-	rate: number,
-	currentPayment: number,
-	ttz: { months: number | null; totalInterest: number | null },
-): {
-	suggestedPayment: number;
-	monthsSaved: number;
-	interestSaved: number;
-} | null {
-	// No suggestion if never pays off or already fast (< 6 months)
-	if (ttz.months === null || ttz.months < 6) {
-		return null;
-	}
-
-	// Try +25%, +50%, +100% payment increments
-	const increments = [1.25, 1.5, 2.0];
-
-	for (const mult of increments) {
-		const newPayment = Math.round(currentPayment * mult);
-		const newTtz = calculateTTZ(balance, rate, {
-			type: "flat",
-			flat: newPayment,
-		});
-
-		if (
-			newTtz.months !== null &&
-			newTtz.totalInterest !== null &&
-			ttz.totalInterest !== null
-		) {
-			const monthsSaved = ttz.months - newTtz.months;
-			const interestSaved = ttz.totalInterest - newTtz.totalInterest;
-
-			// Only suggest if saves 3+ months
-			if (monthsSaved > 3) {
-				return {
-					suggestedPayment: newPayment,
-					monthsSaved,
-					interestSaved,
-				};
-			}
-		}
-	}
-
-	return null;
-}
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
 	if (!locals.user) {
@@ -684,7 +532,7 @@ export const actions: Actions = {
 		const transactionDateStr = formData.get("transactionDate") as string;
 
 		// Validate type
-		const validTypes: TransactionType[] = [
+		const VALID_TX_TYPES: readonly TransactionType[] = [
 			"deposit",
 			"withdrawal",
 			"interest",
@@ -692,9 +540,10 @@ export const actions: Actions = {
 			"value_change",
 			"transfer_in",
 			"transfer_out",
-		];
-		if (!validTypes.includes(type)) {
-			return fail(400, { error: "Invalid transaction type" });
+		] as const;
+		const typeResult = requireEnum(type, VALID_TX_TYPES, "Transaction type");
+		if (!typeResult.ok) {
+			return fail(400, { error: typeResult.error });
 		}
 
 		// Parse amount (handle both decimal and integer input)
@@ -709,18 +558,17 @@ export const actions: Actions = {
 					? parsedAmount
 					: Math.abs(parsedAmount);
 
-		// Validate date format (YYYY-MM-DD)
-		if (!transactionDateStr || !/^\d{4}-\d{2}-\d{2}$/.test(transactionDateStr)) {
-			return fail(400, { error: "Invalid date format. Use YYYY-MM-DD." });
+		const dateResult = requireDateISO(transactionDateStr, "Transaction date");
+		if (!dateResult.ok) {
+			return fail(400, { error: dateResult.error });
 		}
-		const transactionDate = new Date(`${transactionDateStr}T00:00:00.000Z`);
-		if (Number.isNaN(transactionDate.getTime())) {
-			return fail(400, { error: "Invalid date" });
-		}
+		const transactionDate = dateResult.date;
 
-		// Validate description length
-		if (description && description.trim().length > 500) {
-			return fail(400, { error: "Description must be 500 characters or less" });
+		if (description) {
+			const descResult = requireString(description, "Description", FIELD_LIMITS.BALANCE_NOTES);
+			if (!descResult.ok) {
+				return fail(400, { error: descResult.error });
+			}
 		}
 
 		try {
@@ -848,14 +696,11 @@ export const actions: Actions = {
 		}
 		const rate = parseRateToBasisPoints(ratePercent);
 
-		// Validate date format (YYYY-MM-DD)
-		if (!effectiveFromStr || !/^\d{4}-\d{2}-\d{2}$/.test(effectiveFromStr)) {
-			return fail(400, { error: "Invalid date format. Use YYYY-MM-DD." });
+		const dateResult = requireDateISO(effectiveFromStr, "Effective from date");
+		if (!dateResult.ok) {
+			return fail(400, { error: dateResult.error });
 		}
-		const effectiveFrom = new Date(`${effectiveFromStr}T00:00:00.000Z`);
-		if (Number.isNaN(effectiveFrom.getTime())) {
-			return fail(400, { error: "Invalid date" });
-		}
+		const effectiveFrom = dateResult.date;
 
 		try {
 			const result = await createInterestRate(
@@ -972,21 +817,16 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const content = formData.get("content") as string;
 
-		// Validate content
-		if (!content || content.trim().length === 0) {
-			return fail(400, { error: "Note content is required" });
+		const noteResult = requireString(content, "Note content", FIELD_LIMITS.NOTE_CONTENT);
+		if (!noteResult.ok) {
+			return fail(400, { error: noteResult.error });
 		}
-
-		if (content.length > 5000) {
-			return fail(400, {
-				error: "Note content must be 5000 characters or less",
-			});
-		}
+		const trimmedContent = noteResult.value;
 
 		try {
 			const result = await createNote({
 				accountId: account.id,
-				content: content.trim(),
+				content: trimmedContent,
 			});
 
 			devLog("addNote", "Note created successfully", {

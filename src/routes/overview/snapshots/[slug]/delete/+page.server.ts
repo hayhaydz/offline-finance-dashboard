@@ -12,6 +12,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	}
 
 	const snapshot = await db.query.snapshots.findFirst({
+		columns: {
+			id: true,
+			userId: true,
+			slug: true,
+			snapshotDate: true,
+		},
 		where: eq(snapshots.slug, params.slug),
 	});
 
@@ -44,6 +50,12 @@ export const actions: Actions = {
 		});
 
 		const snapshot = await db.query.snapshots.findFirst({
+			columns: {
+				id: true,
+				userId: true,
+				slug: true,
+				snapshotDate: true,
+			},
 			where: eq(snapshots.slug, params.slug),
 		});
 

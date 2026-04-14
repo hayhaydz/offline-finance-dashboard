@@ -2,7 +2,12 @@ import { fail, redirect } from "@sveltejs/kit";
 import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { goals } from "$lib/db/schema";
-import { parseCurrency } from "$lib/utils/currency";
+import {
+	requireString,
+	requirePositiveCurrency,
+	requireDateISO,
+	FIELD_LIMITS,
+} from "$lib/server/validation";
 import { devLog, logError, logFormData } from "$lib/utils/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
@@ -35,23 +40,15 @@ export const actions: Actions = {
 		// Server-side validation
 		const errors: Record<string, string> = {};
 
-		if (!name || name.trim().length === 0) {
-			errors.name = "Goal name is required";
-		} else if (name.trim().length > 100) {
-			errors.name = "Goal name must be 100 characters or less";
-		}
+		const nameResult = requireString(name, "Goal name", FIELD_LIMITS.GOAL_NAME);
+		if (!nameResult.ok) errors.name = nameResult.error;
 
-		// Parse and validate target amount
-		let targetAmountInCents: number;
-		try {
-			targetAmountInCents = parseCurrency(targetAmountStr);
-			if (targetAmountInCents <= 0) {
-				errors.target_amount = "Target amount must be greater than zero";
-			}
-		} catch (_e) {
-			errors.target_amount =
-				"Invalid amount format. Enter amount like 10000.00 or 10000";
-			targetAmountInCents = 0;
+		const amountResult = requirePositiveCurrency(
+			targetAmountStr,
+			"Target amount",
+		);
+		if (!amountResult.ok) {
+			errors.target_amount = amountResult.error;
 		}
 
 		// Parse isEmergencyFund
@@ -61,13 +58,15 @@ export const actions: Actions = {
 		// Parse target date (optional)
 		let targetDate: Date | undefined;
 		if (targetDateStr?.trim()) {
-			const parsed = new Date(targetDateStr);
-			if (Number.isNaN(parsed.getTime())) {
-				errors.target_date = "Invalid date format";
-			} else if (parsed < new Date()) {
-				errors.target_date = "Target date cannot be in the past";
+			const dateResult = requireDateISO(targetDateStr, "Target date");
+			if (!dateResult.ok) {
+				errors.target_date = dateResult.error;
 			} else {
-				targetDate = parsed;
+				if (dateResult.date < new Date()) {
+					errors.target_date = "Target date cannot be in the past";
+				} else {
+					targetDate = dateResult.date;
+				}
 			}
 		}
 
@@ -86,7 +85,7 @@ export const actions: Actions = {
 
 		devLog("goals-create", "Validation passed", {
 			name: name.trim(),
-			targetAmountInCents,
+			targetAmountInCents: amountResult.ok ? amountResult.valueInCents : 0,
 			isEmergencyFund,
 			targetDate: targetDate?.toISOString(),
 		});
@@ -101,10 +100,10 @@ export const actions: Actions = {
 				userId: locals.user.id,
 				slug,
 				name: name.trim(),
-				targetAmountInCents: targetAmountInCents,
+				targetAmountInCents: amountResult.ok ? amountResult.valueInCents : 0,
 				isEmergencyFund: isEmergencyFund,
 				targetDate: targetDate,
-				currentAllocation: 0, // NEW: Start with zero allocation
+				currentAllocation: 0,
 			})
 			.returning();
 

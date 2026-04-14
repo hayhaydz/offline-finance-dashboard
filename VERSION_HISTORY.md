@@ -1,3 +1,61 @@
+## [2026-04-14] — refactor: extract recurring-patterns and debt-projections from account detail route
+
+**Summary:** Extracted domain-focused modules from the 1061-line account detail route file to improve maintainability and testability. Pure domain logic moved to `src/lib/server/` following existing project patterns.
+
+**New files:**
+- `src/lib/server/recurring-patterns.ts` — `detectRecurringPatterns()` + `ReurringPattern` type
+- `src/lib/server/debt-projections.ts` — `getDebtHealthStatus`, `calculateMinimumPayment`, `calculatePaymentSuggestion`, `formatTaxYearStartParam`, `getTaxYearEndFromStart`, `parseTaxYearStart`
+
+**Changed (`src/routes/accounts/[slug]/+page.server.ts`):**
+- Replaced inline function definitions with imports from new modules
+- No behavioral changes — exact same logic, just relocated
+
+**Verification:** `npm run check` (0 errors), `npm test` (347 passed)
+
+---
+
+## [2026-04-14] — refactor: extract server-side validation utilities, reduce duplication in route actions
+
+**Summary:** Created `src/lib/server/validation.ts` with reusable helpers (`requireString`, `optionalString`, `requirePositiveCurrency`, `requireCurrency`, `requireDateISO`, `requireEnum`) that return discriminated union results. Replaced inline validation in 3 route files with these helpers.
+
+**New files:**
+- `src/lib/server/validation.ts` — server-side validation helpers + constants (`VALID_ACCOUNT_TYPES`, `VALID_TAX_WRAPPERS`, `VALID_LIQUIDITY`, re-exported `FIELD_LIMITS`)
+- `tests/unit/server-validation.test.ts` — 38 tests covering all helpers
+
+**Changed (`src/routes/accounts/create/+page.server.ts`):**
+- Replaced inline name/type/taxWrapper/institution/liquidity/balance validation with helper calls
+- Removed `parseCurrency` import (now used internally by `requireCurrency`)
+
+**Changed (`src/routes/goals/create/+page.server.ts`):**
+- Replaced inline name/amount/date validation with `requireString`, `requirePositiveCurrency`, `requireDateISO`
+- Removed `parseCurrency` import
+
+**Changed (`src/routes/accounts/[slug]/+page.server.ts`):**
+- `addTransaction`: type enum via `requireEnum`, date via `requireDateISO`, description length via `requireString`
+- `addInterestRate`: date via `requireDateISO`
+- `addNote`: content validation via `requireString` with `FIELD_LIMITS.NOTE_CONTENT`
+
+**Suggested commit:** `refactor: extract server-side validation utilities, reduce duplication in route actions`
+
+---
+
+## [2026-04-14] — perf: use selective column queries for snapshot detail/delete pages
+
+**Summary:** Added `columns` filters to snapshot queries that don't need the full JSON payloads, avoiding deserialization of 50KB+ JSON columns for simple ownership checks and form submissions.
+
+**Changed (`src/routes/overview/snapshots/[slug]/+page.server.ts`):**
+- `updateNotes` action: added `columns: { id, userId, slug, notes }` — only needs these for ownership check + notes update
+
+**Changed (`src/routes/overview/snapshots/[slug]/delete/+page.server.ts`):**
+- `load` function: added `columns: { id, userId, slug, snapshotDate }` — only needs these for ownership check + breadcrumb
+- `default` action: added `columns: { id, userId, slug, snapshotDate }` — only needs these for ownership check + date confirmation
+
+**Note:** Load function in `[slug]/+page.server.ts` intentionally left unfiltered — the detail page renders all JSON breakdown columns.
+
+**Suggested commit:** `perf: use selective column queries for snapshot detail/delete pages`
+
+---
+
 ## [2026-04-13] — perf: add database indexes for login, MFA, and milestone queries
 
 **Summary:** Added composite and single-column indexes to three tables that lacked coverage for hot-path queries, eliminating full table scans during login, backup code verification, and milestone filtering.
