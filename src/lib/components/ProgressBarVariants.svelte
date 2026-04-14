@@ -1,6 +1,4 @@
 <script lang="ts">
-  // import { formatCurrencyShorthand } from '$lib/utils/currency';
-
   // Helper for portability
   const formatCurrencyShorthand = (n: number) =>
     new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumSignificantDigits: 3 }).format(n);

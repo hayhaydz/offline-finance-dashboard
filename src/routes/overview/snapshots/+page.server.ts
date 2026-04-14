@@ -23,7 +23,6 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	const pageParam = url.searchParams.get("page");
 	const page = Math.max(0, pageParam ? parseInt(pageParam, 10) - 1 : 0);
-	const _offset = page * PAGE_SIZE;
 
 	// Total count for pagination
 	const [{ total }] = await db

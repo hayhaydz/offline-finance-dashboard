@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, isNull, or, sql } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
 import { withUserFilter } from '$lib/auth/row-security';
 import { db } from '$lib/db/client';
 import { accountTransactions, accounts, goalAllocations, goals, interestRates, monthlyReviews, settings, snapshots, users } from '$lib/db/schema';

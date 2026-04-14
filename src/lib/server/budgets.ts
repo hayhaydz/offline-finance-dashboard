@@ -1,4 +1,4 @@
-import { and, count, desc, eq, gte, inArray, lte, notInArray, or, isNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, lte, notInArray, or, isNull, sql } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import {
 	accounts,

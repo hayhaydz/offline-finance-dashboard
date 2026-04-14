@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { db } from "$lib/db/client";
-import { users, accounts, goals, goalMilestones, accountTransactions } from "$lib/db/schema";
-import { eq, and, gte, ne, sql } from "drizzle-orm";
+import { goals, goalMilestones } from "$lib/db/schema";
+import { eq, gte } from "drizzle-orm";
 
 describe("debt goals full flow", () => {
   it("tracks debt payoff from creation to completion", async () => {

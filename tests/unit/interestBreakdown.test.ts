@@ -1168,7 +1168,7 @@ describe("getInterestBreakdownReport", () => {
 			};
 		});
 
-		const _result = await getInterestBreakdownReport({
+		await getInterestBreakdownReport({
 			userId: mockUserId,
 			taxYearStart: mockTaxYearStart,
 			taxYearEnd: mockTaxYearEnd,
@@ -1299,7 +1299,7 @@ describe("getInterestBreakdownReport", () => {
 		mockGetActualInterestEarned.mockResolvedValue(10000);
 		mockFindAccounts.mockResolvedValue([]);
 
-		const _result = await getInterestBreakdownReport({
+		await getInterestBreakdownReport({
 			userId: mockUserId,
 			taxYearStart: mockTaxYearStart,
 			taxYearEnd: mockTaxYearEnd,
@@ -1332,7 +1332,7 @@ describe("getInterestBreakdownReport", () => {
 		mockGetActualInterestEarned.mockResolvedValue(60000);
 		mockFindAccounts.mockResolvedValue([]);
 
-		const _result = await getInterestBreakdownReport({
+		await getInterestBreakdownReport({
 			userId: mockUserId,
 			taxYearStart: mockTaxYearStart,
 			taxYearEnd: mockTaxYearEnd,

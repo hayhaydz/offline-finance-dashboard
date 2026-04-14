@@ -1,3 +1,90 @@
+## [2026-04-14] — docs: document RLS usage patterns (Task 6.3)
+
+**Summary:** Created comprehensive documentation of row-level security patterns covering all 5 RLS utilities (withUserFilter, validateUserAccess, checkUserAccess, validateAllUserAccess, andWithUserFilter), anti-patterns, user-scoped tables, and a checklist for new features.
+
+**New file:**
+- `docs/security/rls-patterns.md` — RLS pattern documentation
+
+**Suggested commit message:** `docs: add RLS usage patterns documentation (Task 6.3)`
+
+---
+
+## [2026-04-14] — test: static RLS coverage analysis (Task 6.2)
+
+**Summary:** Created static analysis test that scans all server/route files and verifies every DB query on user-scoped tables includes row-level security filtering. Zero RLS gaps found — all files already use withUserFilter, validateUserAccess, or eq(table.userId, userId).
+
+**New file:**
+- `tests/unit/rls-coverage.test.ts` — 5 tests verifying RLS coverage
+
+**Test coverage:**
+- Scans all `.ts` files in `src/lib/server/` and `src/routes/` (excluding test files)
+- Recognises 3 valid RLS patterns: `withUserFilter`, `validateUserAccess`, `eq(table.userId, ...)`
+- Documents 6 account-scoped helper exemptions (filter by pre-validated accountId)
+- Documents 3 INSERT-only route exemptions (set userId in insert values)
+- Verifies exemption entries actually use accountId or insert patterns
+- Checks broad coverage (20+ files) and multiple pattern usage
+
+**Result:** 0 RLS gaps found. All 30+ server files with user-scoped DB queries apply RLS.
+
+**Verification:** `npm test` (54 files, 361 tests passed)
+
+**Suggested commit:** `test: add static RLS coverage analysis, verify all user-scoped queries use row-level security`
+
+---
+
+## [2026-04-14] — test: auth bypass integration tests (Task 6.1)
+
+**Summary:** Added 9 integration tests covering MFA setup bypass prevention, MFA verification rate limiting, and protected route access control.
+
+**New file:**
+- `tests/integration/auth-bypass.test.ts` — 9 tests across 4 scenarios
+
+**Test coverage:**
+- MFA setup finalize without `mfa-setup-initiated` cookie → 403 rejected
+- MFA setup finalize with proper flow → success + auto-login
+- Login rate limit locked → 429 with locked flag
+- Login rate limit delay → 429 with delay value
+- Login MFA boundary rate limit (dual `checkRateLimit` calls) → 429
+- Unauthenticated `/accounts` and `/settings` → 302 redirect to `/login`
+- Invalid session token → 302 redirect + cookie cleared
+- Auth routes (`/login`, `/register`) → allowed without session
+
+**Verification:** `npx vitest run tests/integration/auth-bypass.test.ts` (9 passed)
+
+**Suggested commit:** `test: add integration tests for auth bypass scenarios`
+
+---
+
+## [2026-04-14] — chore: remove unused imports and dead code
+
+**Summary:** Removed unused imports, dead variables, and commented-out code across source and test files. No logic changes.
+
+**Source files cleaned:**
+- `src/lib/server/alerts.ts` — removed unused `or` import
+- `src/lib/server/budgets.ts` — removed unused `inArray` import
+- `src/routes/goals/[slug]/+page.server.ts` — removed unused `interestRates` import
+- `src/routes/overview/budgets/[month]/+page.server.ts` — removed unused `devLog` import
+- `src/routes/overview/routine/[yearMonth]/+page.server.ts` — removed unused `eq` import, removed unused `params` destructuring
+- `src/routes/accounts/isa/all/+page.server.ts` — removed dead `_getTaxYearLabel` function
+- `src/routes/overview/snapshots/+page.server.ts` — removed dead `_offset` variable
+- `src/lib/server/calculations.ts` — prefixed unused `taxYearStart` param with `_`
+- `src/lib/components/ProgressBarVariants.svelte` — removed commented-out import
+
+**Test files cleaned:**
+- `tests/integration/debt-goal-creation.test.ts` — removed unused `goalMilestones` import
+- `tests/integration/debt-goals-full-flow.test.ts` — removed unused `users`, `accounts`, `accountTransactions`, `and`, `ne`, `sql` imports
+- `tests/unit/row-security.test.ts` — removed dead `_mockUser2` constant
+- `tests/integration/accounts-interest.test.ts` — removed unused `_taxFreeForecast` variable
+- `tests/unit/interestBreakdown.test.ts` — replaced 3 `const _result = await` with plain `await` calls
+
+**Intentionally kept:** `_KDF_OPTIONS` in `encryption.ts` (OWASP security documentation reference)
+
+**Verification:** `npm run check` (0 errors), `npm test` (347 passed)
+
+**Suggested commit:** `chore: remove unused imports and dead code`
+
+---
+
 ## [2026-04-14] — refactor: extract recurring-patterns and debt-projections from account detail route
 
 **Summary:** Extracted domain-focused modules from the 1061-line account detail route file to improve maintainability and testability. Pure domain logic moved to `src/lib/server/` following existing project patterns.

@@ -3,7 +3,7 @@ import { count, desc, eq, sql } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import type { Account } from "$lib/db/schema";
-import { accounts, accountTransactions, goalAllocations, goals, interestRates } from "$lib/db/schema";
+import { accounts, accountTransactions, goalAllocations, goals } from "$lib/db/schema";
 import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
 import { calculateRecentAveragePayment, getCurrentApr } from "$lib/server/debtMetrics";
 import {

@@ -195,7 +195,7 @@ export async function getActualInterestByTaxWrapper(
  */
 export async function getProjectedInterestByTaxWrapper(
 	userId: number,
-	taxYearStart: Date,
+	_taxYearStart: Date,
 	taxYearEnd: Date,
 	today: Date,
 ): Promise<{ taxFree: number; taxable: number; daysRemaining: number }> {

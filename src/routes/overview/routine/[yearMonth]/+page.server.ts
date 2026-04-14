@@ -1,5 +1,5 @@
 import { error, fail, redirect } from "@sveltejs/kit";
-import { and, desc, eq, isNull, lt } from "drizzle-orm";
+import { and, desc, isNull, lt } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { goals, snapshots } from "$lib/db/schema";
@@ -106,7 +106,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 };
 
 export const actions: Actions = {
-	toggle: async ({ request, locals, params }) => {
+	toggle: async ({ request, locals }) => {
 		if (!locals.user) {
 			return fail(401, { error: "Authentication required" });
 		}

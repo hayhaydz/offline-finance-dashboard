@@ -9,13 +9,6 @@ import {
 } from "$lib/server/calculations";
 import type { PageServerLoad } from "./$types";
 
-function _getTaxYearLabel(date: Date): string {
-	const bounds = getUkTaxYearBounds(date);
-	const startYear = bounds.start.getUTCFullYear();
-	const endYear = bounds.end.getUTCFullYear();
-	return `${startYear}/${String(endYear).slice(-2)}`;
-}
-
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
 		redirect(302, "/login");

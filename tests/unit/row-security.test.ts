@@ -21,19 +21,6 @@ const mockUser1: User = {
 	updatedAt: new Date(),
 };
 
-const _mockUser2: User = {
-	id: 2,
-	username: "user2",
-	passwordHash: "hash",
-	totpSecret: "secret",
-	totpSecretIV: "iv",
-	passwordSalt: "salt",
-	mfaSetupToken: null,
-	taxBand: "basic",
-	createdAt: new Date(),
-	updatedAt: new Date(),
-};
-
 // Mock resource with userId
 interface MockResource {
 	id: number;

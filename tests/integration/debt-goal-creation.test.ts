@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { db } from "$lib/db/client";
-import { goals, goalMilestones } from "$lib/db/schema";
+import { goals } from "$lib/db/schema";
 import { eq } from "drizzle-orm";
 
 describe("debt goal creation", () => {

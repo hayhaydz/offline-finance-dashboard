@@ -694,7 +694,6 @@ function createMockReport(
 		taxFreeActual = 0;
 	}
 	const taxableForecast = taxableActual + projectedTotal;
-	const _taxFreeForecast = taxFreeActual; // Assuming no projected tax-free for simplicity
 
 	// Update transactions with type
 	transactions.forEach((tx) => {

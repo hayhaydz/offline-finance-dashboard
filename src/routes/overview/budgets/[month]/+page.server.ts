@@ -3,7 +3,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { accounts, spendingCategories } from "$lib/db/schema";
 import { parseCurrency } from "$lib/utils/currency";
-import { logFormData, devLog } from "$lib/utils/logger";
+import { logFormData } from "$lib/utils/logger";
 import {
 	getBudgetStatus,
 	getCategoryBreakdown,
