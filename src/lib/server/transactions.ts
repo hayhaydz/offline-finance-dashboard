@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { type Account, accounts, accountTransactions } from "$lib/db/schema";
@@ -180,7 +180,7 @@ export async function deleteTransaction(
 
 /**
  * Calculate the sum of transactions by type for an account within a date range.
- * Used for ISA allowance calculations and interest totals.
+ * Uses SQL SUM aggregation for efficiency — no client-side filtering or reducing.
  */
 export async function getTransactionSum(
 	accountId: number,
@@ -191,25 +191,19 @@ export async function getTransactionSum(
 	const conditions = [
 		eq(accountTransactions.accountId, accountId),
 		gte(accountTransactions.transactionDate, fromDate),
+		inArray(accountTransactions.type, types),
 	];
 
 	if (toDate) {
 		conditions.push(lte(accountTransactions.transactionDate, toDate));
 	}
 
-	// Use a raw query to sum amounts
-	const result = await db.query.accountTransactions.findMany({
-		where: and(...conditions),
-		columns: {
-			amount: true,
-			type: true,
-		},
-	});
+	const rows = await db
+		.select({
+			total: sql<number>`coalesce(sum(${accountTransactions.amount}), 0)`,
+		})
+		.from(accountTransactions)
+		.where(and(...conditions));
 
-	// Filter by types in memory since Drizzle doesn't support `inArray` with enum types well
-	const filtered = result.filter((tx) =>
-		types.includes(tx.type as TransactionType),
-	);
-
-	return filtered.reduce((sum, tx) => sum + tx.amount, 0);
+	return Number(rows[0]?.total ?? 0);
 }

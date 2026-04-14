@@ -1,6 +1,6 @@
-import { error, fail, redirect } from "@sveltejs/kit";
+import { fail } from "@sveltejs/kit";
 import { and, count, desc, eq, inArray } from "drizzle-orm";
-import { validateUserAccess, withUserFilter } from "$lib/auth/row-security";
+import { withUserFilter } from "$lib/auth/row-security";
 import { getAlertsForAccount } from "$lib/server/alerts";
 import {
 	requireString,
@@ -52,6 +52,13 @@ import {
 	calculatePaymentSuggestion,
 } from "$lib/server/debt-projections";
 import { detectRecurringPatterns } from "$lib/server/recurring-patterns";
+import { requireAccountOwnership } from "$lib/server/account-ownership";
+import {
+	buildOverpaymentScenarios,
+	buildRateStressScenarios,
+	calculateBreakEvenMonth,
+} from "$lib/server/rate-scenarios";
+import { buildAvailableTaxYears } from "$lib/server/account-tax-year";
 import type { Actions, PageServerLoad } from "./$types";
 
 
@@ -60,26 +67,9 @@ import type { Actions, PageServerLoad } from "./$types";
 
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
-	if (!locals.user) {
-		redirect(302, "/login");
-	}
-
-	const accountSlug = params.slug;
-
-	// Get account with ownership validation using slug
-	const account = await db.query.accounts.findFirst({
-		where: eq(accounts.slug, accountSlug),
-	});
-
-	if (!account) {
-		logError("accountDetail", "Account not found", {
-			accountSlug,
-			userId: locals.user.id,
-		});
-		error(404, "Account not found");
-	}
-
-	validateUserAccess(account, locals.user, "Account");
+	const account = await requireAccountOwnership(locals, params.slug);
+	// requireAccountOwnership redirects if no user — safe to assert
+	const user = locals.user!;
 
 	// Derive balances from transactions (source of truth).
 	const [currentBalance, monthlyBalances] = await Promise.all([
@@ -130,7 +120,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
 	// Get all interest transactions to determine available tax years (global context for navigation)
 	const userAccounts = await db.query.accounts.findMany({
-		where: withUserFilter(locals.user.id, accounts),
+		where: withUserFilter(user.id, accounts),
 		columns: { id: true },
 	});
 	const accountIds = userAccounts.map((a) => a.id);
@@ -141,23 +131,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 				: eq(accountTransactions.id, 0),
 		columns: { transactionDate: true },
 	});
-	const availableTaxYears = new Map<
-		string,
-		{ slug: string; start: Date; end: Date }
-	>();
-	for (const tx of interestTransactions) {
-		const bounds = getUkTaxYearBounds(tx.transactionDate);
-		const startYear = bounds.start.getUTCFullYear();
-		const endYear = bounds.end.getUTCFullYear();
-		const slug = `${startYear}-${String(endYear).slice(-2)}`;
-		if (!availableTaxYears.has(slug)) {
-			availableTaxYears.set(slug, {
-				slug,
-				start: bounds.start,
-				end: bounds.end,
-			});
-		}
-	}
+	const availableTaxYears = buildAvailableTaxYears(interestTransactions)
 	const sortedTaxYears = Array.from(availableTaxYears.values()).sort(
 		(a, b) => b.start.getTime() - a.start.getTime(),
 	);
@@ -203,7 +177,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	if (account.taxWrapper !== "none") {
 		const taxYear = getUkTaxYearBounds();
 		const isaReport = await getISABreakdownReport({
-			userId: locals.user.id,
+			userId: user.id,
 			taxYearStart: taxYear.start,
 			taxYearEnd: taxYear.end,
 		});
@@ -321,69 +295,44 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
 				// Pre-compute overpayment scenarios: minimum, +25%, +50%
 				const now = new Date();
-				overpaymentScenarios = ([1, 1.25, 1.5] as const).map((mult, i) => {
-					const label = i === 0 ? "Minimum" : i === 1 ? "+25%" : "+50%";
-					const payment = Math.round(currentPayment * mult);
-					const result = calculateTTZ(balanceForTTZ, rate, {
-						type: "flat",
-						flat: payment,
-					});
-					let debtFreeDate: string | null = null;
-					if (result.months !== null) {
-						const d = new Date(now);
-						d.setMonth(d.getMonth() + result.months);
-						debtFreeDate = d.toLocaleDateString("en-GB", {
-							month: "short",
-							year: "numeric",
-						});
-					}
-					return {
-						label,
-						payment,
-						ttzMonths: result.months,
-						totalInterest: result.totalInterest,
-						debtFreeDate,
-					};
-				});
+				overpaymentScenarios = buildOverpaymentScenarios(
+					([1, 1.25, 1.5] as const).map((multiplier) => {
+						const payment = Math.round(currentPayment * multiplier);
+						return {
+							multiplier,
+							ttzResult: calculateTTZ(balanceForTTZ, rate, {
+								type: "flat",
+								flat: payment,
+							}),
+						};
+					}),
+					currentPayment,
+					now,
+				);
 
 				// Rate change stress test: +2% and +5% scenarios
-				rateScenarios = [200, 500].map((delta) => {
-					const scenarioRate = rate + delta;
-					const result = calculateTTZ(balanceForTTZ, scenarioRate, rule);
-					const cappedMonths =
-						result.months !== null ? Math.min(result.months, 300) : null;
-					let debtFreeDate: string | null = null;
-					if (cappedMonths !== null) {
-						const d = new Date(now);
-						d.setMonth(d.getMonth() + cappedMonths);
-						debtFreeDate = d.toLocaleDateString("en-GB", {
-							month: "short",
-							year: "numeric",
-						});
-					}
-					const ttzDelta =
-						cappedMonths !== null ? cappedMonths - ttz!.months! : null;
-					return {
-						label: `+${delta / 100}%`,
-						rate: scenarioRate,
-						ttzMonths: cappedMonths,
-						ttzDelta,
-						totalInterest: result.totalInterest,
-						debtFreeDate,
-					};
-				});
+				rateScenarios = buildRateStressScenarios(
+					[200, 500].map((delta) => {
+						const scenarioRate = rate + delta;
+						return {
+							basisPointDelta: delta,
+							scenarioRate,
+							ttzResult: calculateTTZ(balanceForTTZ, scenarioRate, rule),
+						};
+					}),
+					ttz!.months!,
+					now,
+				);
 			}
 
 			// Break-even month: first row where cumulative interest ≥ originalPrincipal
 			if (account.originalPrincipal) {
-				let cumInterest = 0;
-				for (let i = 0; i < ttzResult.projection.length; i++) {
-					cumInterest += ttzResult.projection[i].interest;
-					if (cumInterest >= account.originalPrincipal) {
-						breakEvenMonthIndex = i;
-						break;
-					}
-				}
+				const result = calculateBreakEvenMonth(
+					ttzResult.projection,
+					account.originalPrincipal,
+				);
+				// calculateBreakEvenMonth returns 1-indexed month; convert to 0-indexed
+				breakEvenMonthIndex = result !== null ? result - 1 : null;
 			}
 		}
 	}
@@ -392,7 +341,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	if (account.category === "liability") {
 		const allLiabilities = await db.query.accounts.findMany({
 			where: and(
-				withUserFilter(locals.user.id, accounts),
+				withUserFilter(user.id, accounts),
 				eq(accounts.category, "liability"),
 			),
 			columns: { id: true },
@@ -460,7 +409,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			: null;
 
 	// Get spending categories for transaction form
-	const categories = await getCategories(locals.user.id);
+	const categories = await getCategories(user.id);
 
 	return {
 		account,
@@ -492,7 +441,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		breadcrumbOverrides: [
 			{ segmentIndex: 1, label: account.name, skipLink: false },
 		],
-		alerts: await getAlertsForAccount(account.id, locals.user.id),
+		alerts: await getAlertsForAccount(account.id, user.id),
 	};
 };
 
@@ -501,27 +450,7 @@ export const actions: Actions = {
 	 * Add a new transaction to an account
 	 */
 	addTransaction: async ({ request, locals, params }) => {
-		if (!locals.user) {
-			logError("addTransaction", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
-
-		const accountSlug = params.slug;
-
-		// Validate ownership
-		const account = await db.query.accounts.findFirst({
-			where: eq(accounts.slug, accountSlug),
-		});
-
-		if (!account) {
-			logError("addTransaction", "Account not found", {
-				accountSlug,
-				userId: locals.user.id,
-			});
-			return fail(404, { error: "Account not found" });
-		}
-
-		validateUserAccess(account, locals.user, "Account");
+		const account = await requireAccountOwnership(locals, params.slug);
 
 		const formData = await request.formData();
 		const type = formData.get("type") as TransactionType;
@@ -585,7 +514,7 @@ export const actions: Actions = {
 			);
 
 			devLog("addTransaction", "Transaction created successfully", {
-				accountSlug,
+				accountSlug: params.slug,
 				transactionSlug: result.transactionSlug,
 				type,
 				amount,
@@ -604,27 +533,7 @@ export const actions: Actions = {
 	 * Delete a transaction
 	 */
 	deleteTransaction: async ({ request, locals, params }) => {
-		if (!locals.user) {
-			logError("deleteTransaction", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
-
-		const accountSlug = params.slug;
-
-		// Validate ownership
-		const account = await db.query.accounts.findFirst({
-			where: eq(accounts.slug, accountSlug),
-		});
-
-		if (!account) {
-			logError("deleteTransaction", "Account not found", {
-				accountSlug,
-				userId: locals.user.id,
-			});
-			return fail(404, { error: "Account not found" });
-		}
-
-		validateUserAccess(account, locals.user, "Account");
+		const account = await requireAccountOwnership(locals, params.slug);
 
 		const formData = await request.formData();
 		const transactionSlug = formData.get("transactionSlug") as string;
@@ -638,7 +547,7 @@ export const actions: Actions = {
 			if (
 				!transaction ||
 				transaction.accountId !== account.id ||
-				transaction.account.userId !== locals.user.id
+				transaction.account.userId !== locals.user!.id
 			) {
 				return fail(404, { error: "Transaction not found" });
 			}
@@ -646,7 +555,7 @@ export const actions: Actions = {
 			await deleteTransaction(transactionSlug);
 
 			devLog("deleteTransaction", "Transaction deleted successfully", {
-				accountSlug,
+				accountSlug: params.slug,
 				transactionSlug,
 			});
 
@@ -663,27 +572,7 @@ export const actions: Actions = {
 	 * Add a new interest rate to an account
 	 */
 	addInterestRate: async ({ request, locals, params }) => {
-		if (!locals.user) {
-			logError("addInterestRate", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
-
-		const accountSlug = params.slug;
-
-		// Validate ownership
-		const account = await db.query.accounts.findFirst({
-			where: eq(accounts.slug, accountSlug),
-		});
-
-		if (!account) {
-			logError("addInterestRate", "Account not found", {
-				accountSlug,
-				userId: locals.user.id,
-			});
-			return fail(404, { error: "Account not found" });
-		}
-
-		validateUserAccess(account, locals.user, "Account");
+		const account = await requireAccountOwnership(locals, params.slug);
 
 		const formData = await request.formData();
 		const rateStr = formData.get("rate") as string;
@@ -713,7 +602,7 @@ export const actions: Actions = {
 			);
 
 			devLog("addInterestRate", "Interest rate created successfully", {
-				accountSlug,
+				accountSlug: params.slug,
 				rateId: result.rateId,
 				rate,
 				effectiveFrom: effectiveFromStr,
@@ -732,27 +621,7 @@ export const actions: Actions = {
 	 * Delete an interest rate
 	 */
 	deleteInterestRate: async ({ request, locals, params }) => {
-		if (!locals.user) {
-			logError("deleteInterestRate", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
-
-		const accountSlug = params.slug;
-
-		// Validate ownership
-		const account = await db.query.accounts.findFirst({
-			where: eq(accounts.slug, accountSlug),
-		});
-
-		if (!account) {
-			logError("deleteInterestRate", "Account not found", {
-				accountSlug,
-				userId: locals.user.id,
-			});
-			return fail(404, { error: "Account not found" });
-		}
-
-		validateUserAccess(account, locals.user, "Account");
+		const account = await requireAccountOwnership(locals, params.slug);
 
 		const formData = await request.formData();
 		const rateIdStr = formData.get("rateId") as string;
@@ -767,7 +636,7 @@ export const actions: Actions = {
 			if (
 				!rate ||
 				rate.accountId !== account.id ||
-				rate.account.userId !== locals.user.id
+				rate.account.userId !== locals.user!.id
 			) {
 				return fail(404, { error: "Interest rate not found" });
 			}
@@ -775,7 +644,7 @@ export const actions: Actions = {
 			await deleteInterestRate(rateId);
 
 			devLog("deleteInterestRate", "Interest rate deleted successfully", {
-				accountSlug,
+				accountSlug: params.slug,
 				rateId,
 			});
 
@@ -792,27 +661,7 @@ export const actions: Actions = {
 	 * Add a new note to an account
 	 */
 	addNote: async ({ request, locals, params }) => {
-		if (!locals.user) {
-			logError("addNote", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
-
-		const accountSlug = params.slug;
-
-		// Validate ownership
-		const account = await db.query.accounts.findFirst({
-			where: eq(accounts.slug, accountSlug),
-		});
-
-		if (!account) {
-			logError("addNote", "Account not found", {
-				accountSlug,
-				userId: locals.user.id,
-			});
-			return fail(404, { error: "Account not found" });
-		}
-
-		validateUserAccess(account, locals.user, "Account");
+		const account = await requireAccountOwnership(locals, params.slug);
 
 		const formData = await request.formData();
 		const content = formData.get("content") as string;
@@ -830,7 +679,7 @@ export const actions: Actions = {
 			});
 
 			devLog("addNote", "Note created successfully", {
-				accountSlug,
+				accountSlug: params.slug,
 				noteSlug: result.noteSlug,
 			});
 
@@ -847,27 +696,7 @@ export const actions: Actions = {
 	 * Delete a note
 	 */
 	deleteNote: async ({ request, locals, params }) => {
-		if (!locals.user) {
-			logError("deleteNote", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
-
-		const accountSlug = params.slug;
-
-		// Validate ownership
-		const account = await db.query.accounts.findFirst({
-			where: eq(accounts.slug, accountSlug),
-		});
-
-		if (!account) {
-			logError("deleteNote", "Account not found", {
-				accountSlug,
-				userId: locals.user.id,
-			});
-			return fail(404, { error: "Account not found" });
-		}
-
-		validateUserAccess(account, locals.user, "Account");
+		const account = await requireAccountOwnership(locals, params.slug);
 
 		const formData = await request.formData();
 		const noteSlug = formData.get("noteSlug") as string;
@@ -886,7 +715,7 @@ export const actions: Actions = {
 			await deleteNote(noteSlug);
 
 			devLog("deleteNote", "Note deleted successfully", {
-				accountSlug,
+				accountSlug: params.slug,
 				noteSlug,
 			});
 

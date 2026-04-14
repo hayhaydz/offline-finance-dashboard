@@ -1,3 +1,26 @@
+## [2026-04-14] — refactor: decompose account detail route, fix transaction aggregation
+
+**Summary:** Extracted 3 server modules from the 902-line account detail route and converted `getTransactionSum` from client-side aggregation to SQL `SUM()`. Rate scenario formatters use Option B pattern (pre-computed TTZ results) to preserve per-scenario accuracy.
+
+**New files:**
+- `src/lib/server/account-ownership.ts` — `requireAccountOwnership()` guard (eliminates 6x duplicated auth+ownership blocks)
+- `src/lib/server/rate-scenarios.ts` — `buildOverpaymentScenarios`, `buildRateStressScenarios`, `calculateBreakEvenMonth` (Option B formatters accepting pre-computed TTZ results)
+- `src/lib/server/account-tax-year.ts` — `buildAvailableTaxYears`, `deriveSelectedTaxYear`
+- `tests/unit/account-ownership.test.ts` — 4 tests
+- `tests/unit/rate-scenarios.test.ts` — 16 tests (regression test: each scenario gets its own ttzMonths)
+- `tests/unit/account-tax-year.test.ts` — 5 tests
+- `tests/unit/transaction-sum.test.ts` — 3 tests
+
+**Changed:**
+- `src/lib/server/transactions.ts` — `getTransactionSum` uses SQL `SUM()` + `inArray()` instead of client-side `.filter()/.reduce()`
+- `src/routes/accounts/[slug]/+page.server.ts` — 902 → 730 lines (replaced inline logic with module imports, wired rate scenario formatters)
+
+**Verification:** `npm run check` (0 errors), `npm test` (389 passed)
+
+**Suggested commit:** `refactor: decompose account detail route, fix transaction aggregation`
+
+---
+
 ## [2026-04-14] — docs: document RLS usage patterns (Task 6.3)
 
 **Summary:** Created comprehensive documentation of row-level security patterns covering all 5 RLS utilities (withUserFilter, validateUserAccess, checkUserAccess, validateAllUserAccess, andWithUserFilter), anti-patterns, user-scoped tables, and a checklist for new features.
