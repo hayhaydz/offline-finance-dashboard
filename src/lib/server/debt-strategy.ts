@@ -1,36 +1,17 @@
 import { devLog } from "$lib/utils/logger";
 import { MS_PER_MONTH } from "$lib/utils/time-constants";
-
-export interface DebtGoalInput {
-	goalId: number;
-	slug: string;
-	name: string;
-	remainingInCents: number;
-	aprBasisPoints: number | null;
-	minimumMonthlyInCents: number;
-}
-
-export interface PayoffProjection {
-	months: number | null;
-	totalInterestInCents: number | null;
-	projectedPayoffDate: Date | null;
-}
-
-export interface DebtGoalWithProjection extends DebtGoalInput {
-	projectedPayoffDate: Date | null;
-	totalInterestInCents: number | null;
-}
-
-export interface DebtStrategyMetrics {
-	totalDebtInCents: number;
-	totalMonthlyMinimumInCents: number;
-	projectedDebtFreeDate: Date | null;
-	snowballOrder: DebtGoalWithProjection[];
-	avalancheOrder: DebtGoalWithProjection[];
-	hybridOrder: DebtGoalWithProjection[];
-	interestSavedByAvalancheInCents: number | null;
-	monthsSavedByAvalanche: number | null;
-}
+import type {
+	DebtGoalInput,
+	PayoffProjection,
+	DebtGoalWithProjection,
+	DebtStrategyMetrics,
+} from "$lib/types/debt";
+export type {
+	DebtGoalInput,
+	PayoffProjection,
+	DebtGoalWithProjection,
+	DebtStrategyMetrics,
+} from "$lib/types/debt";
 
 const HYBRID_THRESHOLD_CENTS = 100000; // £1,000
 

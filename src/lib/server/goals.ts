@@ -5,20 +5,27 @@ import { accounts, goalAllocations, goals } from "$lib/db/schema";
 import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
 import { devLog } from "$lib/utils/logger";
 import { MS_PER_DAY, MS_PER_MONTH } from "$lib/utils/time-constants";
+import type {
+	AccountAllocationWithLiquidity,
+	AllocationHistoryEntry,
+	ContributionStats,
+	DebtGoalProgress,
+	LiquidityBreakdown,
+	MilestoneTemplate,
+	MilestoneWithReached,
+	PaceMetrics,
+} from "$lib/types/goals";
 
-// Type for account allocation with liquidity info
-export interface AccountAllocationWithLiquidity {
-	netAllocated: number;
-	liquidity: string | null;
-}
-
-export interface LiquidityBreakdown {
-	instantPercent: number;
-	delayedPercent: number;
-	lockedPercent: number;
-	totalAllocatedInCents: number;
-	hasLiquidityWarning: boolean;
-	warningMessage: string | null;
+// Re-export types for backward compatibility
+export type {
+	AccountAllocationWithLiquidity,
+	AllocationHistoryEntry,
+	ContributionStats,
+	DebtGoalProgress,
+	LiquidityBreakdown,
+	MilestoneTemplate,
+	MilestoneWithReached,
+	PaceMetrics,
 }
 
 // Days threshold for "urgent" goal (locked funds warning)
@@ -103,31 +110,6 @@ export function calculateLiquidityBreakdown(
 	};
 }
 
-// Type for pace metrics result
-export interface PaceMetrics {
-	daysRemaining: number | null;
-	amountRemainingInCents: number;
-	requiredMonthlyInCents: number | null;
-	actualMonthlyAvgInCents: number;
-	projectedCompletionDate: Date | null;
-	onTrack: boolean | null; // true if projected <= target
-}
-
-// Type for allocation history entry (minimal for calculations)
-export interface AllocationHistoryEntry {
-	amount: number;
-	createdAt: Date;
-	type: string;
-}
-
-export interface ContributionStats {
-	daysSinceLastContribution: number | null;
-	totalContributions: number;
-	totalWithdrawals: number;
-	netContributedInCents: number;
-	firstContributionDate: Date | null;
-	lastContributionDate: Date | null;
-}
 
 /**
  * Calculate contribution statistics from allocation history.
@@ -287,14 +269,6 @@ export function calculatePaceMetrics(params: {
 	};
 }
 
-export interface DebtGoalProgress {
-	paidInCents: number;
-	totalInCents: number;
-	percent: number;
-	remainingInCents: number;
-	debtGrewBeyondStarting: boolean;
-}
-
 export function getDebtGoalProgress(params: {
 	startingBalanceInCents: number;
 	currentBalanceInCents: number;
@@ -341,11 +315,6 @@ export function projectPayoffDate(params: {
 	return new Date(now.getTime() + monthsUntilPayoff * msPerMonth);
 }
 
-export interface MilestoneTemplate {
-	label: string;
-	thresholdInCents: number;
-}
-
 export function generateDefaultMilestones(params: {
 	startingBalanceInCents: number;
 }): MilestoneTemplate[] {
@@ -358,12 +327,6 @@ export function generateDefaultMilestones(params: {
 		{ label: "75% paid off", thresholdInCents: Math.round(absStarting * 0.25) },
 		{ label: "Paid off", thresholdInCents: 0 },
 	];
-}
-
-export interface MilestoneWithReached {
-	id: number;
-	thresholdInCents: number;
-	reachedAt: Date | null;
 }
 
 export function checkMilestones(params: {

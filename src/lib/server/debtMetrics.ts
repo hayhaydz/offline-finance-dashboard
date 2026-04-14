@@ -1,11 +1,6 @@
 import { devLog } from "$lib/utils/logger";
-
-export interface PayoffProjection {
-	months: number;
-	payoffDate: Date;
-	totalPaid: number;
-	interestPaid: number;
-}
+import type { PayoffProjection } from "$lib/types/debt";
+export type { PayoffProjection } from "$lib/types/debt";
 
 /**
  * Calculate payoff projection using amortization formula.
@@ -28,9 +23,8 @@ export function calculatePayoffProjection(
 	if (absBalance === 0) {
 		return {
 			months: 0,
-			payoffDate: new Date(),
-			totalPaid: 0,
-			interestPaid: 0,
+			projectedPayoffDate: new Date(),
+			totalInterestInCents: 0,
 		};
 	}
 
@@ -41,13 +35,12 @@ export function calculatePayoffProjection(
 	// Zero interest: simple division
 	if (monthlyRate === 0) {
 		const months = Math.ceil(absBalance / monthlyPaymentInCents);
-		const payoffDate = new Date();
-		payoffDate.setMonth(payoffDate.getMonth() + months);
+		const projectedPayoffDate = new Date();
+		projectedPayoffDate.setMonth(projectedPayoffDate.getMonth() + months);
 		return {
 			months,
-			payoffDate,
-			totalPaid: months * monthlyPaymentInCents,
-			interestPaid: 0,
+			projectedPayoffDate,
+			totalInterestInCents: 0,
 		};
 	}
 
@@ -71,13 +64,12 @@ export function calculatePayoffProjection(
 	const denominator = Math.log(1 + monthlyRate);
 	const months = Math.ceil(-numerator / denominator);
 
-	const payoffDate = new Date();
-	payoffDate.setMonth(payoffDate.getMonth() + months);
+	const projectedPayoffDate = new Date();
+	projectedPayoffDate.setMonth(projectedPayoffDate.getMonth() + months);
 
-	const totalPaid = months * monthlyPaymentInCents;
-	const interestPaid = totalPaid - absBalance;
+	const totalInterestInCents = Math.max(0, months * monthlyPaymentInCents - absBalance);
 
-	return { months, payoffDate, totalPaid, interestPaid };
+	return { months, projectedPayoffDate, totalInterestInCents };
 }
 
 /**

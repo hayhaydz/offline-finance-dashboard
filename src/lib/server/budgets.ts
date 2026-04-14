@@ -7,33 +7,12 @@ import {
 	spendingCategories,
 } from "$lib/db/schema";
 import { devLog } from "$lib/utils/logger";
+import type { BudgetConfig, CategoryBreakdown, BudgetStatus } from "$lib/types/budget";
+
+export type { BudgetConfig, CategoryBreakdown, BudgetStatus };
 
 /** Sentinel ID for the virtual "Uncategorised" catch-all category */
 export const UNCATEGORISED_ID = -1;
-
-export interface BudgetConfig {
-	totalTargetInCents: number;
-	excludedCategoryIds: number[];
-	excludedAccountIds: number[];
-	categoryTargets: Record<string, number>;
-}
-
-export interface CategoryBreakdown {
-	id: number;
-	name: string;
-	colour: string;
-	spent: number;
-	target: number | null;
-}
-
-export interface BudgetStatus {
-	budget: BudgetConfig | null;
-	totalSpent: number;
-	daysElapsed: number;
-	totalDays: number;
-	avgPerDay: number;
-	projectedTotal: number;
-}
 
 function parseBudgetConfig(row: typeof budgetMonths.$inferSelect): BudgetConfig {
 	return {

@@ -1,25 +1,8 @@
+import type { TTZResult, OverpaymentScenario, RateStressScenario } from "$lib/types/debt";
+export type { OverpaymentScenario, RateStressScenario } from "$lib/types/debt";
+
 /** Minimal TTZ result shape needed by the scenario formatters. */
-interface TTZResult {
-	months: number | null;
-	totalInterest: number | null;
-}
-
-export interface OverpaymentScenario {
-	label: string;
-	payment: number;
-	ttzMonths: number | null;
-	totalInterest: number | null;
-	debtFreeDate: string | null;
-}
-
-export interface RateStressScenario {
-	label: string;
-	rate: number;
-	ttzMonths: number | null;
-	ttzDelta: number | null;
-	totalInterest: number | null;
-	debtFreeDate: string | null;
-}
+type TTZSubset = Pick<TTZResult, "months" | "totalInterest">;
 
 /**
  * Format pre-computed overpayment scenarios.
@@ -27,7 +10,7 @@ export interface RateStressScenario {
  * labeling, payment calculation, and debt-free date formatting.
  */
 export function buildOverpaymentScenarios(
-	scenarios: Array<{ multiplier: number; ttzResult: TTZResult }>,
+	scenarios: Array<{ multiplier: number; ttzResult: TTZSubset }>,
 	currentPayment: number,
 	now: Date,
 ): OverpaymentScenario[] {
@@ -67,7 +50,7 @@ export function buildRateStressScenarios(
 	scenarios: Array<{
 		basisPointDelta: number;
 		scenarioRate: number;
-		ttzResult: TTZResult;
+		ttzResult: TTZSubset;
 	}>,
 	baseTTZMonths: number | null,
 	now: Date,

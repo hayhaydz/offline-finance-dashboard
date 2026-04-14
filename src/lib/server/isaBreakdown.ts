@@ -25,122 +25,34 @@ import { aggregateByKey } from "$lib/server/utils/aggregate";
 import {
 	reconcileBreakdowns,
 	addWarningFlag,
-	type ReconciliationFlag,
 } from "$lib/server/utils/reconciliation";
 import { devLog } from "$lib/utils/logger";
 import { MS_PER_DAY } from "$lib/utils/time-constants";
 
-/**
- * ISA subscription transaction with account details
- */
-export interface ISATransaction {
-	id: number;
-	slug: string;
-	transactionDate: Date;
-	type: string; // 'deposit', 'transfer_in' (excluded from allowance)
-	amount: number; // in cents
-	description: string | null;
-	runningTotal: number; // cumulative subscription in cents
+import type {
+	ISATransaction,
+	ISAAccountBreakdown,
+	ISAMonthBreakdown,
+	ISAInstitutionBreakdown,
+	ISATaxWrapperBreakdown,
+	ISAMeta,
+	ISAActualBreakdown,
+	ISAReconciliation,
+	ISABreakdownReport,
+} from "$lib/types/breakdown";
 
-	// Account details
-	accountId: number;
-	accountSlug: string;
-	accountName: string;
-	accountType: string;
-	accountInstitution: string | null;
-	accountTaxWrapper: string; // 'isa', 'lisa', 'premium-bonds'
-}
-
-/**
- * Account breakdown of ISA subscriptions
- */
-export interface ISAAccountBreakdown {
-	accountId: number;
-	accountSlug: string;
-	accountName: string;
-	accountType: string;
-	accountInstitution: string | null;
-	accountTaxWrapper: string;
-	total: number; // in cents subscribed this tax year
-	transactionCount: number;
-}
-
-/**
- * Monthly breakdown of ISA subscriptions
- */
-export interface ISAMonthBreakdown {
-	year: number;
-	month: number; // 1-12
-	monthName: string; // e.g., "April"
-	total: number; // in cents subscribed
-	transactionCount: number;
-}
-
-/**
- * Institution breakdown of ISA subscriptions
- */
-export interface ISAInstitutionBreakdown {
-	institution: string;
-	total: number; // in cents subscribed
-	transactionCount: number;
-}
-
-/**
- * Tax wrapper breakdown (ISA vs LISA vs Premium Bonds)
- */
-export interface ISATaxWrapperBreakdown {
-	taxWrapper: string;
-	total: number; // in cents subscribed
-	transactionCount: number;
-	displayName: string; // "ISA", "LISA", "Premium Bonds"
-}
-
-/**
- * Meta information about the tax year and allowance status
- */
-export interface ISAMeta {
-	taxYearStart: Date;
-	taxYearEnd: Date;
-	taxYearLabel: string; // "2025-26"
-	asOfDate: Date;
-	daysRemainingInTaxYear: number;
-	allowanceInCents: number; // 20_000_00
-	allowanceUsed: number; // in cents
-	allowanceRemaining: number; // in cents
-	utilizationPercent: number; // 0-100
-	overAllowance: boolean;
-}
-
-/**
- * Actual ISA subscriptions breakdown with all dimensions
- */
-export interface ISAActualBreakdown {
-	total: number; // in cents subscribed
-	byAccount: ISAAccountBreakdown[];
-	byMonth: ISAMonthBreakdown[];
-	byInstitution: ISAInstitutionBreakdown[];
-	byTaxWrapper: ISATaxWrapperBreakdown[];
-	transactions: ISATransaction[];
-}
-
-/**
- * ISA subscription reconciliation for data integrity
- */
-export interface ISAReconciliation {
-	totalVsByAccountDelta: number; // Should be 0
-	totalVsByMonthDelta: number; // Should be 0
-	totalVsTransactionsDelta: number; // Should be 0
-	flags: ReconciliationFlag[];
-}
-
-/**
- * Complete ISA breakdown report
- */
-export interface ISABreakdownReport {
-	meta: ISAMeta;
-	actual: ISAActualBreakdown;
-	reconciliation: ISAReconciliation;
-}
+// Re-export types for backward compatibility
+export type {
+	ISATransaction,
+	ISAAccountBreakdown,
+	ISAMonthBreakdown,
+	ISAInstitutionBreakdown,
+	ISATaxWrapperBreakdown,
+	ISAMeta,
+	ISAActualBreakdown,
+	ISAReconciliation,
+	ISABreakdownReport,
+};
 
 /**
  * Fetch all ISA subscription transactions for a tax year

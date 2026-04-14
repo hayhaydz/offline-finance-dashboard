@@ -7,7 +7,7 @@
 	import { page as pageState } from '$app/state';
 	import type { PageData, ActionData } from './$types';
 	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
-	import type { TransactionType } from '$lib/server/transactions';
+	import type { TransactionType } from '$lib/utils/domain-constants';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import { devLogClient, logComponentLifecycle } from '$lib/utils/client-logger';
 	import { calculateTTZ } from '$lib/utils/debt-calculator';

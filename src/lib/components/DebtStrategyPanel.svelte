@@ -1,6 +1,6 @@
 <script lang="ts">
   import { formatCurrency, formatCurrencyShorthand, formatDateShorthand } from '$lib/utils/currency';
-  import type { DebtStrategyMetrics, DebtGoalWithProjection } from '$lib/server/debt-strategy';
+  import type { DebtStrategyMetrics, DebtGoalWithProjection } from '$lib/types/debt';
 
   interface Props {
     metrics: DebtStrategyMetrics;

@@ -1,3 +1,34 @@
+## [2026-04-14] — refactor: type system cleanup (Phase 3)
+
+**Summary:** Consolidated duplicate types, created 4 new type files in `lib/types/`, and unified type sources across the codebase. Eliminates type duplication between debt modules, extraction of ~35 interfaces from server files into dedicated type modules, unified ReconciliationFlag with proper category union type.
+
+**New files:**
+- `src/lib/types/debt.ts` — PayoffProjection, TTZResult, PaymentRule, MonthProjection, DebtGoalInput, DebtStrategyMetrics, OverpaymentScenario, RateStressScenario
+- `src/lib/types/breakdown.ts` — All interest + ISA breakdown interfaces (~24 types), ReconciliationCategory union, ReconciliationFlag with proper category union
+- `src/lib/types/goals.ts` — PaceMetrics, LiquidityBreakdown, DebtGoalProgress, ContributionStats, AllocationHistoryEntry, MilestoneTemplate, MilestoneWithReached
+- `src/lib/types/budget.ts` — BudgetConfig, CategoryBreakdown, BudgetStatus
+
+**Changed:**
+- `src/lib/server/debtMetrics.ts` — removed inline PayoffProjection, imports from `$lib/types/debt`
+- `src/lib/server/debt-strategy.ts` — removed 4 inline types, imports from `$lib/types/debt`
+- `src/lib/utils/debt-calculator.ts` — removed 3 inline types, imports from `$lib/types/debt`
+- `src/lib/server/rate-scenarios.ts` — removed 3 inline types, imports from `$lib/types/debt`
+- `src/lib/server/interestBreakdown.ts` — removed ~14 inline interfaces, imports from `$lib/types/breakdown`
+- `src/lib/server/isaBreakdown.ts` — removed ~10 inline interfaces, imports from `$lib/types/breakdown`
+- `src/lib/server/goals.ts` — removed ~8 inline interfaces, imports from `$lib/types/goals`
+- `src/lib/server/budgets.ts` — removed 3 inline interfaces, imports from `$lib/types/budget`
+- `src/lib/server/transactions.ts` — TransactionType imported from `$lib/utils/domain-constants` instead of Drizzle inference
+- `src/lib/components/ExclusionsModal.svelte` — inline Account replaced with Pick<Account, ...> from schema
+- `src/lib/server/utils/reconciliation.ts` — ReconciliationFlag now uses union category type from `$lib/types/breakdown`
+- `src/lib/types/breakdown.ts` — ReconciliationCategory union added, ISAReconciliation.flags uses local ReconciliationFlag
+- [All route files and test files updated to import from new type locations]
+
+**Verification:** `npm run check` (0 errors), `npm test` (389 passed)
+
+**Suggested commit:** `refactor: type system cleanup — Phase 3 consolidate duplicate types`
+
+---
+
 ## [2026-04-14] — refactor: extract shared patterns (Phase 2)
 
 **Summary:** Created 7 shared utility modules that eliminate ~800 lines of duplicated code across the codebase. Foundation layer for Phases 3-7.

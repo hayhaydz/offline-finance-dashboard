@@ -7,18 +7,18 @@
  * Used by both interestBreakdown and isaBreakdown modules.
  */
 
-export interface ReconciliationFlag {
-	type: "error" | "warning";
-	category: string;
-	message: string;
-	delta?: number;
-}
+import type {
+	ReconciliationFlag,
+	ReconciliationCategory,
+} from "$lib/types/breakdown";
+
+export type { ReconciliationFlag };
 
 export interface ReconciliationCheck {
 	/** Display name for error messages */
 	label: string;
 	/** Category identifier */
-	category: string;
+	category: ReconciliationCategory;
 	/** The sum to validate against the headline total */
 	sum: number;
 }
@@ -72,7 +72,7 @@ export function reconcileBreakdowns(
  */
 export function addWarningFlag(
 	flags: ReconciliationFlag[],
-	category: string,
+	category: ReconciliationCategory,
 	message: string,
 ): void {
 	flags.push({ type: "warning", category, message });

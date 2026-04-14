@@ -1,20 +1,14 @@
 <script lang="ts">
 import { enhance } from "$app/forms";
 import type { SubmitFunction } from "@sveltejs/kit";
+import type { Account } from "$lib/db/schema";
 
-interface Account {
-	id: number;
-	name: string;
-	type: string;
-	category: "asset" | "liability";
-	excludedFromNetWorth: boolean;
-	taxWrapper: string;
-}
+type ExclusionsAccount = Pick<Account, "id" | "name" | "type" | "category" | "excludedFromNetWorth" | "taxWrapper">;
 
 interface Props {
 	open: boolean;
 	onClose: () => void;
-	accounts: Account[];
+	accounts: ExclusionsAccount[];
 }
 
 let { open, onClose, accounts }: Props = $props();

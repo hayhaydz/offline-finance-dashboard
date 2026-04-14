@@ -22,7 +22,7 @@ describe("Debt metrics calculations", () => {
 			const monthlyPayment = 20000; // £200
 			const result = calculatePayoffProjection(balance, apr, monthlyPayment);
 			expect(result.months).toBeGreaterThan(0);
-			expect(result.payoffDate).toBeInstanceOf(Date);
+			expect(result.projectedPayoffDate).toBeInstanceOf(Date);
 		});
 
 		it("should handle zero balance", () => {

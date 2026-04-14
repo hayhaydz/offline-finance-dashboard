@@ -1,15 +1,9 @@
 <script lang="ts">
 	import { formatCurrency, formatDateRange } from '$lib/utils/currency';
 	import ExclusionsModal from '$lib/components/ExclusionsModal.svelte';
+	import type { Account } from '$lib/db/schema';
 
-	interface Account {
-		id: number;
-		name: string;
-		type: string;
-		category: 'asset' | 'liability';
-		excludedFromNetWorth: boolean;
-		taxWrapper: string;
-	}
+	type ExclusionsAccount = Pick<Account, 'id' | 'name' | 'type' | 'category' | 'excludedFromNetWorth' | 'taxWrapper'>;
 
 	interface NetWorthSummary {
 		netWorth: number;
@@ -25,7 +19,7 @@
 
 	interface Props {
 		summary: NetWorthSummary;
-		accounts: Account[];
+		accounts: ExclusionsAccount[];
 	}
 
 	let { summary, accounts }: Props = $props();

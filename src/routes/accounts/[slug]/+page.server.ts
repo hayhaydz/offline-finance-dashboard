@@ -39,8 +39,8 @@ import {
 	createTransaction,
 	deleteTransaction,
 	getTransactionBySlug,
-	type TransactionType,
 } from "$lib/server/transactions";
+import type { TransactionType } from "$lib/utils/domain-constants";
 import { calculateTTZ } from "$lib/utils/debt-calculator";
 import { devLog, logError } from "$lib/utils/logger";
 import {

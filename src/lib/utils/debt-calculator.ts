@@ -1,22 +1,4 @@
-interface PaymentRule {
-	type: "flat" | "percentage" | "flat_or_percentage";
-	flat?: number; // pence
-	percentage?: number; // basis points
-}
-
-interface TTZResult {
-	months: number | null;
-	years: number | null;
-	totalInterest: number | null;
-	projection: MonthProjection[];
-}
-
-interface MonthProjection {
-	month: number;
-	balance: number;
-	interest: number;
-	payment: number;
-}
+import type { PaymentRule, TTZResult, MonthProjection } from "$lib/types/debt";
 
 export function calculateTTZ(
 	balance: number,
@@ -67,4 +49,4 @@ function calculateMinimumPayment(balance: number, rule: PaymentRule): number {
 	return Math.round((balance * 250) / 10000); // Default 2.5%
 }
 
-export type { PaymentRule, TTZResult, MonthProjection };
+export type { PaymentRule, TTZResult, MonthProjection } from "$lib/types/debt";

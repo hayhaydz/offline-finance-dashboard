@@ -2,9 +2,10 @@ import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { type Account, accounts, accountTransactions } from "$lib/db/schema";
+import type { TransactionType } from "$lib/utils/domain-constants";
 import { devLog, logError } from "$lib/utils/logger";
 
-export type TransactionType = (typeof accountTransactions.$inferInsert)["type"];
+export type { TransactionType };
 
 export interface CreateTransactionData {
 	accountId: number;
