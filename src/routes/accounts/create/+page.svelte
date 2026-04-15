@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import FormField from '$lib/components/ui/form-field/form-field.svelte';
-	import TerminalRadio from '$lib/components/ui/terminal-toggle/TerminalRadio.svelte';
+	import { FormField, TerminalRadio } from '$lib/components/ui/index';
 	import {
 		required,
 		maxLength,

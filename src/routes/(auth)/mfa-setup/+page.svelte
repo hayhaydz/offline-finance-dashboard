@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import FormField from '$lib/components/ui/form-field/form-field.svelte';
+	import { FormField } from '$lib/components/ui/index';
 	import { required, exactLength } from '$lib/validation/rules';
 
 	let { form, data } = $props();

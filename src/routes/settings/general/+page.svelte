@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import FormField from '$lib/components/ui/form-field/form-field.svelte';
+	import { FormField, SettingsSectionNav } from '$lib/components/ui/index';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { required, monetary } from '$lib/validation/rules';
-	import SettingsSectionNav from '$lib/components/ui/settings-section-nav/settings-section-nav.svelte';
 
 	let { data, form } = $props();
 

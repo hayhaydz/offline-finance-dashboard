@@ -1,3 +1,38 @@
+## [2026-04-15] — refactor: fix module boundaries (Phase 4)
+
+**Summary:** Moved 3 server-only files out of client-accessible `lib/utils/` into `lib/server/`, expanded UI barrel exports to eliminate deep imports, created top-level components barrel, renamed `navigation.svelte` to `Navigation.svelte` for consistency, and removed 4 dead components.
+
+**New files:**
+- `src/lib/server/logger.ts` — moved from `lib/utils/logger.ts` (Node.js/Winston imports)
+- `src/lib/server/rate-helpers.ts` — moved from `lib/utils/rate-helpers.ts` (drizzle imports)
+- `src/lib/server/snapshot-utils.ts` — moved from `lib/utils/snapshots.ts` (server imports)
+- `src/lib/types/snapshots.ts` — extracted SnapshotPreviewData type for client-safe import
+- `src/lib/components/index.ts` — barrel for 18 top-level domain components
+
+**Changed:**
+- `src/lib/components/ui/index.ts` — added FormField, SettingsSectionNav, TerminalRadio exports
+- 10 route files — updated to barrel imports instead of deep paths
+- 57 files — updated `$lib/utils/logger` → `$lib/server/logger`
+- `src/routes/accounts/liabilities/+page.server.ts` — updated rate-helpers import path
+- 3 files — updated snapshots import paths
+- `src/lib/components/navigation.svelte` → `Navigation.svelte` (renamed)
+- `src/routes/+layout.svelte` — updated Navigation import path
+- `src/lib/components/ui/terminal-toggle/index.ts` — removed TerminalToggle export
+
+**Deleted:**
+- `src/lib/components/theme-toggle.svelte` — dead code (0 consumers)
+- `src/lib/components/ui/terminal-toggle/TerminalCheckbox.svelte` — dead code (0 consumers)
+- `src/lib/components/ui/terminal-toggle/TerminalToggle.svelte` — dead code (0 consumers)
+- `src/lib/components/ui/loading-indicator/` — dead code (0 consumers)
+
+**Note:** `log-sanitize.ts` remains in `lib/utils/` because `client-logger.ts` imports `maskSensitiveData` from it — SvelteKit blocks client code from `$lib/server/*`. Since it's a pure function with no server-only deps, this is the correct location.
+
+**Verification:** `npm run check` (0 errors), `npm test` (389 passed)
+
+**Suggested commit:** `refactor: fix module boundaries — Phase 4 server isolation + barrel exports + naming`
+
+---
+
 ## [2026-04-14] — refactor: type system cleanup (Phase 3)
 
 **Summary:** Consolidated duplicate types, created 4 new type files in `lib/types/`, and unified type sources across the codebase. Eliminates type duplication between debt modules, extraction of ~35 interfaces from server files into dedicated type modules, unified ReconciliationFlag with proper category union type.

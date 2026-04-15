@@ -1,5 +1,5 @@
 <script lang="ts">
-	import SettingsSectionNav from '$lib/components/ui/settings-section-nav/settings-section-nav.svelte';
+	import { SettingsSectionNav } from '$lib/components/ui/index';
 
 	let { data } = $props();
 	const sections = [

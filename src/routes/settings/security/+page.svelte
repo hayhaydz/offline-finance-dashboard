@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { browser } from '$app/environment';
-	import FormField from '$lib/components/ui/form-field/form-field.svelte';
+	import { FormField, SettingsSectionNav } from '$lib/components/ui/index';
 	import { required, minLength, hasUppercase, hasLowercase, hasNumber, hasSpecial, matches } from '$lib/validation/rules';
 	import type { ActionData } from './$types';
-	import SettingsSectionNav from '$lib/components/ui/settings-section-nav/settings-section-nav.svelte';
 
 	let { data, form } = $props();
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Navigation from '$lib/components/navigation.svelte';
+	import Navigation from '$lib/components/Navigation.svelte';
 	import { page } from '$app/state';
 	import { afterNavigate } from '$app/navigation';
 	import type { Snippet } from 'svelte';
