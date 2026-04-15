@@ -73,6 +73,8 @@ const ACCOUNT_SCOPED_HELPERS = new Set([
 	"src/lib/server/calculations.ts",
 	// Some functions filter by accountId/slug, getTransactions uses eq(accounts.userId, userId)
 	"src/lib/server/transactions.ts",
+	// getAccountInterestSummary queries by accountId — caller validates account ownership
+	"src/lib/server/interestBreakdown/index.ts",
 ]);
 
 // ---------------------------------------------------------------------------

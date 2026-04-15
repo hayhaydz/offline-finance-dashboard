@@ -1,3 +1,65 @@
+## [2026-04-15] — refactor: server-side decomposition (Phase 5)
+
+**Summary:** Decomposed 6 large single-file modules into focused sub-modules and extracted pure calculations from DB-access code. All consumer imports preserved via barrel re-exports — zero breaking changes across 80+ consumers.
+
+**New files (Task 1 — calculations split):**
+- `src/lib/utils/tax-year-utils.ts` — pure: `getUkTaxYearBounds`, `calculateProjectedInterestInCents`, `ISA_ALLOWANCE_IN_CENTS`, `TaxBand`, `TaxYearBounds`
+- `src/lib/server/tax-year-queries.ts` — DB: 8 query functions, `TaxFreeStatus` type
+
+**New files (Task 2 — schema decomposition):**
+- `src/lib/db/schema/auth.ts` — users, sessions, backupCodes, loginAttempts + relations
+- `src/lib/db/schema/accounts.ts` — accounts, accountTransactions, interestRates, accountNotes + relations
+- `src/lib/db/schema/goals.ts` — goals, goalAllocations, goalMilestones + relations
+- `src/lib/db/schema/system.ts` — settings, systemMetadata, monthlyReviews, spendingCategories, snapshots, budgetMonths + relations
+- `src/lib/db/schema/index.ts` — re-exports all 17 tables + 14 relations + 15+ types
+
+**New files (Task 5 — alerts decomposition):**
+- `src/lib/server/alerts/index.ts` — 4 public entry points + re-exports
+- `src/lib/server/alerts/sync-checkers.ts` — 15 sync checker functions + helpers
+- `src/lib/server/alerts/async-checkers.ts` — 14 async checker functions (DB-backed)
+- `src/lib/server/alerts/bulk-data.ts` — `fetchBulkData()` multi-table aggregation
+- `src/lib/server/alerts/constants.ts` — `PSA_BY_BAND`, internal types
+
+**New files (Task 6 — interestBreakdown decomposition):**
+- `src/lib/server/interestBreakdown/index.ts` — public orchestrator + re-exports (6 functions + 13 types)
+- `src/lib/server/interestBreakdown/queries.ts` — DB queries for transactions, rates
+- `src/lib/server/interestBreakdown/aggregations.ts` — 4 dimension aggregations (month, institution, wrapper, account)
+- `src/lib/server/interestBreakdown/reconciliation.ts` — delta checking, system integrity
+
+**New files (Task 7 — isaBreakdown decomposition):**
+- `src/lib/server/isaBreakdown/index.ts` — public entry points + re-exports (2 functions + 9 types)
+- `src/lib/server/isaBreakdown/queries.ts` — DB queries for ISA transactions
+- `src/lib/server/isaBreakdown/aggregations.ts` — dimension aggregations using `aggregateByKey`
+
+**New files (Task 8 — goals split):**
+- `src/lib/server/goal-calculations.ts` — 8 pure functions (no DB imports): `calculateLiquidityBreakdown`, `calculateContributionStats`, `calculatePaceMetrics`, `getDebtGoalProgress`, `projectPayoffDate`, `generateDefaultMilestones`, `checkMilestones`, `distributeWithdrawalAcrossAccounts`
+
+**Deleted:**
+- `src/lib/server/calculations.ts` — replaced by `tax-year-utils.ts` + `tax-year-queries.ts`
+- `src/lib/db/schema.ts` — replaced by `schema/` directory
+- `src/lib/auth/encryption.ts` — dead code (zero production consumers)
+- `tests/unit/encryption.test.ts` — dead test for deleted encryption module
+- `src/lib/server/alerts.ts` — replaced by `alerts/` directory
+- `src/lib/server/interestBreakdown.ts` — replaced by `interestBreakdown/` directory
+- `src/lib/server/isaBreakdown.ts` — replaced by `isaBreakdown/` directory
+
+**Changed:**
+- `src/lib/server/goals.ts` — slimmed to 5 DB functions + re-exports from `goal-calculations.ts`
+- 20+ files — import path updates from `$lib/server/calculations` → `$lib/utils/tax-year-utils` + `$lib/server/tax-year-queries`
+- `src/lib/server/debtMetrics.ts`, `src/lib/server/debt-strategy.ts` — consolidated duplicate `calculatePayoffProjection`
+- `tests/unit/rls-coverage.test.ts` — updated for new module paths
+- All 80+ `$lib/db/schema` consumers unchanged (barrel re-export preserves imports)
+- All 5 `$lib/server/alerts` consumers unchanged (barrel re-export)
+- All 3 `$lib/server/interestBreakdown` consumers unchanged
+- All 3 `$lib/server/isaBreakdown` consumers unchanged
+- All 14 `$lib/server/goals` consumers unchanged
+
+**Verification:** `npm run check` (0 errors), `npm test` (385 passed)
+
+**Suggested commit:** `refactor: server-side decomposition — Phase 5 complete`
+
+---
+
 ## [2026-04-15] — refactor: fix module boundaries (Phase 4)
 
 **Summary:** Moved 3 server-only files out of client-accessible `lib/utils/` into `lib/server/`, expanded UI barrel exports to eliminate deep imports, created top-level components barrel, renamed `navigation.svelte` to `Navigation.svelte` for consistency, and removed 4 dead components.
