@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { FormField, SettingsSectionNav } from '$lib/components/ui/index';
+	import SubmitFeedback from '$lib/components/SubmitFeedback.svelte';
 	import { formatCurrency } from '$lib/utils/currency';
+	import { useSubmitFeedback } from '$lib/utils/use-submit-feedback.svelte';
 	import { required, monetary } from '$lib/validation/rules';
 
 	let { data, form } = $props();
@@ -9,13 +11,13 @@
 	// Form state - initialize from server data (pence to pounds)
 	let monthlyExpenses = $state('');
 
-	// Monthly expenses feedback
-	let expensesMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+	// Form feedback composables
+	const expensesFeedback = useSubmitFeedback();
+	const categoryFeedback = useSubmitFeedback();
 
 	// Category state
 	let showAddForm = $state(false);
 	let editSlug = $state<string | null>(null);
-	let categoryMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
 	let newName = $state('');
 	let newKey = $state('');
 	let newColour = $state('#A0AEC0');
@@ -41,11 +43,6 @@
 		newName = '';
 		newKey = '';
 		newColour = '#A0AEC0';
-	}
-
-	// DEBUG: trace createCategory form submission
-	function handleAddSubmit() {
-		console.log('[DEBUG:createCategory] Form submitting', { newName, newKey, newColour });
 	}
 
 	// Sync state when server data changes
@@ -129,33 +126,14 @@
 					</p>
 				</div>
 
-				<!-- Success message -->
-				{#if expensesMessage?.type === 'success'}
-					<p class="text-green-700 font-bold text-sm mb-4">
-						{expensesMessage.text}
-					</p>
-				{/if}
-				{#if expensesMessage?.type === 'error'}
-					<p class="text-red-700 font-bold text-sm mb-4">
-						{expensesMessage.text}
-					</p>
-				{/if}
+				<!-- Feedback message -->
+				<SubmitFeedback message={expensesFeedback.message} onDismiss={expensesFeedback.dismiss} />
 
 				<!-- Form -->
 				<form
 					method="POST"
 					action="?/saveMonthlyExpenses"
-					use:enhance={() => {
-						return async ({ result, update }) => {
-							if (result.type === 'success') {
-								expensesMessage = { type: 'success', text: 'Monthly expenses updated successfully.' };
-							} else if (result.type === 'failure' && result.data) {
-								const d = result.data as { error?: string };
-								if (d.error) expensesMessage = { type: 'error', text: d.error };
-							}
-							await update();
-						};
-					}}
+					use:enhance={expensesFeedback.createEnhanceHandler('Monthly expenses updated successfully.')}
 					class="mb-4"
 				>
 					<div class="mb-4">
@@ -178,8 +156,8 @@
 					<button
 						type="submit"
 						class="bracket-link"
-						disabled={expensesMessage?.type === 'success'}
-						class:opacity-50={expensesMessage?.type === 'success'}
+						disabled={expensesFeedback.message?.type === 'success'}
+						class:opacity-50={expensesFeedback.message?.type === 'success'}
 					>
 						[Save Monthly Expenses]
 					</button>
@@ -273,35 +251,14 @@
 
 			<div class="p-0">
 				<!-- Message -->
-				{#if categoryMessage}
-					<div class="px-3 py-2 text-xs {categoryMessage.type === 'success' ? 'text-green-700' : 'text-red-700'} border-b border-gray-200">
-						{categoryMessage.text}
-					</div>
-				{/if}
+				<SubmitFeedback message={categoryFeedback.message} onDismiss={categoryFeedback.dismiss} />
 
 				<!-- Add form (shown when button clicked in banner) -->
 				{#if showAddForm}
 					<form
 						method="POST"
 						action="?/createCategory"
-						onsubmit={handleAddSubmit}
-						use:enhance={() => {
-							console.log('[DEBUG:createCategory] use:enhance outer fn called');
-							return async ({ result, update }) => {
-								console.log('[DEBUG:createCategory] Result received', { type: result.type, data: result.type === 'failure' ? result.data : undefined });
-								if (result.type === 'success') {
-									categoryMessage = { type: 'success', text: 'Category created' };
-									cancelAdd();
-								} else if (result.type === 'failure' && result.data) {
-									const d = result.data as { error?: string };
-									console.log('[DEBUG:createCategory] Failure data', d);
-									if (d.error) categoryMessage = { type: 'error', text: d.error };
-								} else {
-									console.log('[DEBUG:createCategory] Unhandled result type', result.type);
-								}
-								await update();
-							};
-						}}
+						use:enhance={categoryFeedback.createEnhanceHandler('Category created', { onSuccess: cancelAdd })}
 						class="px-3 py-2 border-b border-gray-300"
 					>
 						<div class="flex flex-wrap gap-2 items-end">
@@ -382,18 +339,7 @@
 												method="POST"
 												action="?/updateCategory"
 												class="inline-flex gap-1 items-center"
-												use:enhance={() => {
-													return async ({ result, update }) => {
-														if (result.type === 'success') {
-															categoryMessage = { type: 'success', text: 'Category updated' };
-															editSlug = null;
-														} else if (result.type === 'failure' && result.data) {
-															const d = result.data as { error?: string };
-															if (d.error) categoryMessage = { type: 'error', text: d.error };
-														}
-														await update();
-													};
-												}}
+												use:enhance={categoryFeedback.createEnhanceHandler('Category updated', { onSuccess: () => { editSlug = null; } })}
 											>
 												<input type="hidden" name="slug" value={category.slug} />
 												<input
@@ -429,17 +375,7 @@
 										<form
 											method="POST"
 											action="?/deleteCategory"
-											use:enhance={() => {
-												return async ({ result, update }) => {
-													if (result.type === 'success') {
-														categoryMessage = { type: 'success', text: 'Category deleted.' };
-													} else if (result.type === 'failure' && result.data) {
-														const d = result.data as { error?: string };
-														if (d.error) categoryMessage = { type: 'error', text: d.error };
-													}
-													await update();
-												};
-											}}
+											use:enhance={categoryFeedback.createEnhanceHandler('Category deleted.')}
 											class="inline"
 										>
 											<input type="hidden" name="slug" value={category.slug} />

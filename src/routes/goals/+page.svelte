@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page as pageState } from '$app/state';
+	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { getProgressColor as getProgressColorFromPercent } from '$lib/utils/formatting';
 	import { getStaleness } from '$lib/utils/staleness';
@@ -22,8 +23,14 @@
 	};
 
 	let tableRef: HTMLElement | null = $state(null);
-	let currentPage = $state(0);
-	let isUpdatingPage = $state(false);
+
+	// Pagination with URL sync
+	const pagination = useUrlPagination('page');
+
+	// Sync from server data (initial + navigation)
+	$effect(() => {
+		pagination.page = data.page;
+	});
 
 	// Filter state: 'all', 'savings', or 'debt'
 	let filter = $state<'all' | 'savings' | 'debt'>('all');
@@ -49,33 +56,6 @@
 		}
 		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
 	}
-
-	async function updatePage(newPage: number) {
-		if (isUpdatingPage) return;
-		isUpdatingPage = true;
-		currentPage = newPage;
-		const url = new URL(pageState.url);
-		if (newPage + 1 !== 1) {
-			url.searchParams.set('page', String(newPage + 1));
-		} else {
-			url.searchParams.delete('page');
-		}
-		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
-		isUpdatingPage = false;
-	}
-
-	$effect(() => {
-		if (isUpdatingPage) return;
-		currentPage = data.page;
-	});
-
-	$effect(() => {
-		if (isUpdatingPage) return;
-		const urlPage = Number(pageState.url.searchParams.get('page')) || 1;
-		if (currentPage !== urlPage - 1) {
-			currentPage = urlPage - 1;
-		}
-	});
 
 	// Reactive goals array for client-side reordering
 	let goals = $state<EnrichedGoal[]>([]);
@@ -363,9 +343,9 @@
 		{/if}
 	{/if}
 	<PaginationClient
-		page={currentPage}
+		page={pagination.page}
 		totalPages={data.totalPages}
-		onPageChange={updatePage}
+		onPageChange={pagination.updatePage}
 		scrollTarget={tableRef}
 	/>
 </div>

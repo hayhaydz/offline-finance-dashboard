@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { formatCurrency, formatDateShorthand } from '$lib/utils/currency';
 	import { formatTaxWrapper, getMonthName, renderProgressBar } from '$lib/utils/formatting';
-	import { goto } from '$app/navigation';
-	import { page as pageState } from '$app/state';
+	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import type { PageData } from './$types';
 
@@ -19,7 +18,7 @@
 	}
 
 	// Pagination state for transactions
-	let transactionsPage = $state(0);
+	const txPagination = useUrlPagination('txPage');
 	const TRANSACTIONS_PER_PAGE = 25;
 
 	// Filtering state for transactions
@@ -35,10 +34,6 @@
 	// Scroll targets for pagination
 	let transactionsSectionRef: HTMLElement | null = $state(null);
 	let breakdownsSectionRef: HTMLElement | null = $state(null);
-
-	// Track if we're updating to prevent loops
-	let isUpdatingTransactionsPage = $state(false);
-	let isUpdatingBreakdownsPage = $state(false);
 
 	// Derived filtered transactions (deposits only for allowance tracking)
 	const filteredTransactions = $derived.by(() => {
@@ -65,7 +60,7 @@
 
 	// Paginated transactions
 	const paginatedTransactions = $derived.by(() => {
-		const start = transactionsPage * TRANSACTIONS_PER_PAGE;
+		const start = txPagination.page * TRANSACTIONS_PER_PAGE;
 		const end = start + TRANSACTIONS_PER_PAGE;
 		return sortedTransactions.slice(start, end);
 	});
@@ -73,52 +68,17 @@
 	const totalTransactionPages = $derived(Math.ceil(sortedTransactions.length / TRANSACTIONS_PER_PAGE));
 
 	// Breakdown pagination state
-	let breakdownsPage = $state(0);
+	const breakdownsPagination = useUrlPagination('breakdownsPage');
 	const BREAKDOWNS_PER_PAGE = 10;
 
 	// Reset breakdown page when tab changes or sorts change
 	$effect(() => {
-		breakdownsPage = 0;
+		breakdownsPagination.page = 0;
 	});
-
-	// Sync pagination state with URL (1-indexed)
-	$effect(() => {
-		if (isUpdatingBreakdownsPage) return;
-		const urlBreakdownsPage = Number(pageState.url.searchParams.get('breakdownsPage')) || 1;
-		if (breakdownsPage !== urlBreakdownsPage - 1) breakdownsPage = urlBreakdownsPage - 1;
-
-		if (isUpdatingTransactionsPage) return;
-		const urlTransactionsPage = Number(pageState.url.searchParams.get('txPage')) || 1;
-		if (transactionsPage !== urlTransactionsPage - 1) transactionsPage = urlTransactionsPage - 1;
-	});
-
-	async function updateBreakdownsPage(newPage: number) {
-		if (isUpdatingBreakdownsPage) return;
-		isUpdatingBreakdownsPage = true;
-		breakdownsPage = newPage;
-		const url = new URL(pageState.url);
-		url.searchParams.set('breakdownsPage', String(newPage + 1));
-		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
-		isUpdatingBreakdownsPage = false;
-	}
-
-	async function updateTransactionsPage(newPage: number) {
-		if (isUpdatingTransactionsPage) return;
-		isUpdatingTransactionsPage = true;
-		transactionsPage = newPage;
-		const url = new URL(pageState.url);
-		if (newPage + 1 !== 1) {
-			url.searchParams.set('txPage', String(newPage + 1));
-		} else {
-			url.searchParams.delete('txPage');
-		}
-		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
-		isUpdatingTransactionsPage = false;
-	}
 
 	// Reset page when filters change
 	$effect(() => {
-		transactionsPage = 0;
+		txPagination.page = 0;
 
 		// Scroll to transactions if a filter was applied
 		if (filterAccountId !== null || filterMonth !== null || filterInstitution !== null || filterTaxWrapper !== null) {
@@ -160,7 +120,7 @@
 		return accounts;
 	});
 
-	const paginatedAccounts = $derived(sortedAccounts.slice(breakdownsPage * BREAKDOWNS_PER_PAGE, (breakdownsPage + 1) * BREAKDOWNS_PER_PAGE));
+	const paginatedAccounts = $derived(sortedAccounts.slice(breakdownsPagination.page * BREAKDOWNS_PER_PAGE, (breakdownsPagination.page + 1) * BREAKDOWNS_PER_PAGE));
 	const totalAccountPages = $derived(Math.ceil(sortedAccounts.length / BREAKDOWNS_PER_PAGE));
 
 	// Sort state for month breakdown (default: chronological)
@@ -174,7 +134,7 @@
 		return months;
 	});
 
-	const paginatedMonths = $derived(sortedMonths.slice(breakdownsPage * BREAKDOWNS_PER_PAGE, (breakdownsPage + 1) * BREAKDOWNS_PER_PAGE));
+	const paginatedMonths = $derived(sortedMonths.slice(breakdownsPagination.page * BREAKDOWNS_PER_PAGE, (breakdownsPagination.page + 1) * BREAKDOWNS_PER_PAGE));
 	const totalMonthPages = $derived(Math.ceil(sortedMonths.length / BREAKDOWNS_PER_PAGE));
 
 	// Sort state for institution breakdown (default: amount descending)
@@ -185,7 +145,7 @@
 		return institutions;
 	});
 
-	const paginatedInstitutions = $derived(sortedInstitutions.slice(breakdownsPage * BREAKDOWNS_PER_PAGE, (breakdownsPage + 1) * BREAKDOWNS_PER_PAGE));
+	const paginatedInstitutions = $derived(sortedInstitutions.slice(breakdownsPagination.page * BREAKDOWNS_PER_PAGE, (breakdownsPagination.page + 1) * BREAKDOWNS_PER_PAGE));
 	const totalInstitutionPages = $derived(Math.ceil(sortedInstitutions.length / BREAKDOWNS_PER_PAGE));
 
 	// Sort state for wrapper breakdown (default: amount descending)
@@ -196,7 +156,7 @@
 		return wrappers;
 	});
 
-	const paginatedWrappers = $derived(sortedWrappers.slice(breakdownsPage * BREAKDOWNS_PER_PAGE, (breakdownsPage + 1) * BREAKDOWNS_PER_PAGE));
+	const paginatedWrappers = $derived(sortedWrappers.slice(breakdownsPagination.page * BREAKDOWNS_PER_PAGE, (breakdownsPagination.page + 1) * BREAKDOWNS_PER_PAGE));
 	const totalWrapperPages = $derived(Math.ceil(sortedWrappers.length / BREAKDOWNS_PER_PAGE));
 
 	// Tax year selector logic
@@ -486,7 +446,7 @@
 					</tfoot>
 				</table>
 			</div>
-			<PaginationClient page={breakdownsPage} onPageChange={updateBreakdownsPage} totalPages={totalAccountPages} scrollTarget={breakdownsSectionRef} />
+			<PaginationClient page={breakdownsPagination.page} onPageChange={breakdownsPagination.updatePage} totalPages={totalAccountPages} scrollTarget={breakdownsSectionRef} />
 		</div>
 	{/if}
 
@@ -532,7 +492,7 @@
 					</tfoot>
 				</table>
 			</div>
-			<PaginationClient page={breakdownsPage} onPageChange={updateBreakdownsPage} totalPages={totalMonthPages} scrollTarget={breakdownsSectionRef} />
+			<PaginationClient page={breakdownsPagination.page} onPageChange={breakdownsPagination.updatePage} totalPages={totalMonthPages} scrollTarget={breakdownsSectionRef} />
 		</div>
 	{/if}
 
@@ -578,7 +538,7 @@
 					</tfoot>
 				</table>
 			</div>
-			<PaginationClient page={breakdownsPage} onPageChange={updateBreakdownsPage} totalPages={totalInstitutionPages} scrollTarget={breakdownsSectionRef} />
+			<PaginationClient page={breakdownsPagination.page} onPageChange={breakdownsPagination.updatePage} totalPages={totalInstitutionPages} scrollTarget={breakdownsSectionRef} />
 		</div>
 	{/if}
 
@@ -626,7 +586,7 @@
 					</tfoot>
 				</table>
 			</div>
-			<PaginationClient page={breakdownsPage} onPageChange={updateBreakdownsPage} totalPages={totalWrapperPages} scrollTarget={breakdownsSectionRef} />
+			<PaginationClient page={breakdownsPagination.page} onPageChange={breakdownsPagination.updatePage} totalPages={totalWrapperPages} scrollTarget={breakdownsSectionRef} />
 		</div>
 	{/if}
 </div>
@@ -729,7 +689,7 @@
 			</table>
 		</div>
 		<div class="border-t border-black empty:hidden">
-			<PaginationClient page={transactionsPage} totalPages={totalTransactionPages} onPageChange={updateTransactionsPage} scrollTarget={transactionsSectionRef} />
+			<PaginationClient page={txPagination.page} totalPages={totalTransactionPages} onPageChange={txPagination.updatePage} scrollTarget={transactionsSectionRef} />
 		</div>
 	{/if}
 	<div class="p-2 text-[10px] text-gray-600 border-t border-black uppercase font-mono">

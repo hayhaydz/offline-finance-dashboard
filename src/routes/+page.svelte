@@ -1,14 +1,17 @@
 <script lang="ts">
 	import AlertsSection from '$lib/components/AlertsSection.svelte';
+	import KpiCard from '$lib/components/KpiCard.svelte';
 	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
 	import IsaAllowanceWidget from '$lib/components/IsaAllowanceWidget.svelte';
 	import TaxYearProgress from '$lib/components/TaxYearProgress.svelte';
 	import GoalCard from '$lib/components/GoalCard.svelte';
 	import DebtCard from '$lib/components/DebtCard.svelte';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
+	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import { formatCurrency, formatCurrencyShorthand, formatAccountType, formatDateShorthand } from '$lib/utils/currency';
 	import { goto } from '$app/navigation';
 	import { page as pageState } from '$app/state';
+	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
 
 	let { data } = $props();
 	let { user, environment: env, goals } = $derived(data);
@@ -18,38 +21,15 @@
 
 	// Pagination state with scroll targets
 	let goalsSectionRef: HTMLElement | null = $state(null);
-	let goalsPage = $state(0);
 	let goalsFilter = $state<'all' | 'savings' | 'debt'>('all');
 
-	// Track if we're updating to prevent loops
-	let isUpdatingGoalsPage = $state(false);
+	// URL pagination for goals
+	const pagination = useUrlPagination('goalsPage');
 
-	// Sync goals pagination state with URL (1-indexed)
+	// Sync from server data (initial + navigation)
 	$effect(() => {
-		if (isUpdatingGoalsPage) return;
-		goalsPage = data.goalsPagination.page;
+		pagination.page = data.goalsPagination.page;
 	});
-
-	$effect(() => {
-		if (isUpdatingGoalsPage) return;
-		const urlGoalsPage = Number(pageState.url.searchParams.get('goalsPage')) || 1;
-		if (goalsPage !== urlGoalsPage - 1) goalsPage = urlGoalsPage - 1;
-	});
-
-	// Handle goals page changes
-	async function updateGoalsPage(newPage: number) {
-		if (isUpdatingGoalsPage) return;
-		isUpdatingGoalsPage = true;
-		goalsPage = newPage;
-		const url = new URL(pageState.url);
-		if (newPage + 1 !== 1) {
-			url.searchParams.set('goalsPage', String(newPage + 1));
-		} else {
-			url.searchParams.delete('goalsPage');
-		}
-		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
-		isUpdatingGoalsPage = false;
-	}
 
 	// Current tax year slug for interest link
 	const currentYearSlug = $derived(
@@ -146,7 +126,7 @@
 		</div>
 	</div>
 
-	<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">SECURITY FEATURES</div>
+	<SectionHeader title="SECURITY FEATURES" />
 	<div class="border-b border-black p-2">
 		<div class="flex justify-between my-1"><span>End-to-end encryption</span><span class="text-green-700 font-bold">Active</span></div>
 		<div class="flex justify-between my-1"><span>TOTP authentication</span><span class="text-green-700 font-bold">Active</span></div>
@@ -170,26 +150,17 @@
 	{@const posted = data.interestSummary.actualInterestIsa + data.interestSummary.actualInterestNonIsa}
 	{@const estimated = data.interestSummary.projectedInterestIsa + data.interestSummary.projectedInterestNonIsa}
 	{@const forecast = posted + estimated}
-	<div class="font-bold flex justify-between items-center bg-gray-100 border-b border-black p-2">
-		<span>INTEREST</span>
+	{#snippet interestAction()}
 		<div class="flex items-center gap-2">
 			<a href="/accounts/interest/{currentYearSlug}" class="bracket-link text-xs">View Breakdown</a>
 		</div>
-	</div>
+	{/snippet}
+	<SectionHeader title="INTEREST" action={interestAction} />
 	<div class="border-b border-black">
 		<div class="grid grid-cols-2 md:grid-cols-4">
-			<div class="border-r border-black p-2">
-				<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Posted (Actual)</div>
-				<div class="text-lg font-bold text-green-700">{formatCurrency(posted)}</div>
-			</div>
-			<div class="border-r border-black p-2">
-				<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Estimated (Projected)</div>
-				<div class="text-lg font-bold text-amber-700">{formatCurrency(estimated)}</div>
-			</div>
-			<div class="border-r border-black p-2">
-				<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Forecast (Total)</div>
-				<div class="text-lg font-bold">{formatCurrency(forecast)}</div>
-			</div>
+			<KpiCard label="Posted (Actual)" value={formatCurrency(posted)} color="text-green-700" />
+			<KpiCard label="Estimated (Projected)" value={formatCurrency(estimated)} color="text-amber-700" />
+			<KpiCard label="Forecast (Total)" value={formatCurrency(forecast)} />
 			<div class="p-2">
 				<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">PSA Remaining</div>
 				{#if data.interestSummary.taxFreeStatusProjected.overAllowance}
@@ -222,7 +193,7 @@
 					<span class="font-bold">ISA/LISA:</span> Always tax-free. Current total: {formatCurrency(data.interestSummary.totalExpectedIsa)}
 				</div>
 				<div>
-					<span class="font-bold">Personal Savings Allowance:</span> 
+					<span class="font-bold">Personal Savings Allowance:</span>
 					{#if data.interestSummary.taxFreeStatusProjected.overAllowance}
 						Over by {formatCurrency(data.interestSummary.taxFreeStatusProjected.taxableAmount)} of {formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} allowance ({data.interestSummary.taxBand} rate).
 					{:else}
@@ -373,9 +344,9 @@
 		</div>
 		{#if goalsFilter === 'all'}
 			<PaginationClient
-				page={goalsPage}
+				page={pagination.page}
 				totalPages={data.goalsPagination.totalPages}
-				onPageChange={updateGoalsPage}
+				onPageChange={pagination.updatePage}
 				scrollTarget={goalsSectionRef}
 			/>
 		{/if}

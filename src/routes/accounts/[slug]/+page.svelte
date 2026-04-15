@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import AlertsSection from '$lib/components/AlertsSection.svelte';
+	import SubmitFeedback from '$lib/components/SubmitFeedback.svelte';
 	import { formatCurrency, formatDateShorthand, formatDateTime } from '$lib/utils/currency';
-	import { invalidateAll } from '$app/navigation';
-	import { goto } from '$app/navigation';
-	import { page as pageState } from '$app/state';
+	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
+	import { useSubmitFeedback } from '$lib/utils/use-submit-feedback.svelte';
 	import type { PageData, ActionData } from './$types';
 	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 	import type { TransactionType } from '$lib/utils/domain-constants';
@@ -36,18 +36,23 @@
 		currentIndex > 0 ? data.availableTaxYears[currentIndex - 1] : null
 	);
 
-	let transactionPage = $state(0);
+	const txPagination = useUrlPagination('txPage');
+	const ratesPagination = useUrlPagination('ratesPage');
+	const balancesPagination = useUrlPagination('balancesPage');
+
+	// Sync transaction pagination from server data
+	$effect(() => {
+		txPagination.page = data.transactionPagination.page;
+	});
 
 	// Interest rates pagination state
-	let ratesPage = $state(0);
 	const RATES_PER_PAGE = 5;
-	const paginatedRates = $derived(data.rates.slice(ratesPage * RATES_PER_PAGE, (ratesPage + 1) * RATES_PER_PAGE));
+	const paginatedRates = $derived(data.rates.slice(ratesPagination.page * RATES_PER_PAGE, (ratesPagination.page + 1) * RATES_PER_PAGE));
 	const totalRatesPages = $derived(Math.ceil(data.rates.length / RATES_PER_PAGE));
 
 	// Monthly balance pagination state
-	let balancesPage = $state(0);
 	const BALANCES_PER_PAGE = 6;
-	const paginatedBalances = $derived(data.monthlyBalances.slice(balancesPage * BALANCES_PER_PAGE, (balancesPage + 1) * BALANCES_PER_PAGE));
+	const paginatedBalances = $derived(data.monthlyBalances.slice(balancesPagination.page * BALANCES_PER_PAGE, (balancesPagination.page + 1) * BALANCES_PER_PAGE));
 	const totalBalancesPages = $derived(Math.ceil(data.monthlyBalances.length / BALANCES_PER_PAGE));
 
 	// Liabilities projection toggle state
@@ -202,77 +207,8 @@
 	let ratesSectionRef: HTMLElement | null = $state(null);
 	let balancesSectionRef: HTMLElement | null = $state(null);
 
-	// Track if we're updating to prevent loops
-	let isUpdatingTransactionPage = $state(false);
-	let isUpdatingRatesPage = $state(false);
-	let isUpdatingBalancesPage = $state(false);
-
-	// Sync pagination from server data
-	$effect(() => {
-		if (isUpdatingTransactionPage) return;
-		transactionPage = data.transactionPagination.page;
-	});
-
-	// Sync pagination state with URL (1-indexed)
-	$effect(() => {
-		if (isUpdatingTransactionPage) return;
-		const urlTxPage = Number(pageState.url.searchParams.get('txPage')) || 1;
-		if (transactionPage !== urlTxPage - 1) transactionPage = urlTxPage - 1;
-
-		if (isUpdatingRatesPage) return;
-		const urlRatesPage = Number(pageState.url.searchParams.get('ratesPage')) || 1;
-		if (ratesPage !== urlRatesPage - 1) ratesPage = urlRatesPage - 1;
-
-		if (isUpdatingBalancesPage) return;
-		const urlBalancesPage = Number(pageState.url.searchParams.get('balancesPage')) || 1;
-		if (balancesPage !== urlBalancesPage - 1) balancesPage = urlBalancesPage - 1;
-	});
-
-	async function updateTransactionPage(newPage: number) {
-		if (isUpdatingTransactionPage) return;
-		isUpdatingTransactionPage = true;
-		transactionPage = newPage;
-		const url = new URL(pageState.url);
-		if (newPage + 1 !== 1) {
-			url.searchParams.set('txPage', String(newPage + 1));
-		} else {
-			url.searchParams.delete('txPage');
-		}
-		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
-		isUpdatingTransactionPage = false;
-	}
-
-	async function updateRatesPage(newPage: number) {
-		if (isUpdatingRatesPage) return;
-		isUpdatingRatesPage = true;
-		ratesPage = newPage;
-		const url = new URL(pageState.url);
-		if (newPage + 1 !== 1) {
-			url.searchParams.set('ratesPage', String(newPage + 1));
-		} else {
-			url.searchParams.delete('ratesPage');
-		}
-		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
-		isUpdatingRatesPage = false;
-	}
-
-	async function updateBalancesPage(newPage: number) {
-		if (isUpdatingBalancesPage) return;
-		isUpdatingBalancesPage = true;
-		balancesPage = newPage;
-		const url = new URL(pageState.url);
-		if (newPage + 1 !== 1) {
-			url.searchParams.set('balancesPage', String(newPage + 1));
-		} else {
-			url.searchParams.delete('balancesPage');
-		}
-		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
-		isUpdatingBalancesPage = false;
-	}
-
-	// Form submission feedback state
-	let isSubmitting = $state(false);
-	let submitMessage = $state<{ type: 'success' | 'error'; text: string } | null>(null);
+	// Form submission feedback
+	const feedback = useSubmitFeedback();
 
 	// Accordion state
 	let editMode = $state(false);
@@ -360,25 +296,10 @@
 		return classes[type] || 'bg-gray-100';
 	}
 
-	// Clear success messages after 10 seconds, errors persist until manually dismissed
+	// Sync form errors from server action results
 	$effect(() => {
-		if (submitMessage) {
-			const timeout = setTimeout(() => {
-				if (submitMessage?.type === 'success') {
-					submitMessage = null;
-				}
-			}, 10000);
-			return () => clearTimeout(timeout);
-		}
-	});
-
-	// Show form submission result
-	$effect(() => {
-		if (form) {
-			isSubmitting = false;
-			if (form.error) {
-				submitMessage = { type: 'error', text: form.error as string };
-			}
+		if (form?.error) {
+			feedback.message = { type: 'error', text: form.error as string };
 		}
 	});
 
@@ -635,20 +556,7 @@
 	{/if}
 </div>
 
-{#if submitMessage}
-	<div class="p-2 border-t text-sm flex justify-between items-start {submitMessage.type === 'error' ? 'bg-red-100' : 'bg-green-100'}">
-		<div class="flex-1">
-			{@html submitMessage.text.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="bracket-link text-xs">$1</a>')}
-		</div>
-		<button
-			type="button"
-			onclick={() => submitMessage = null}
-			class="ml-2 text-xs bracket-link"
-		>
-			[Dismiss]
-		</button>
-	</div>
-{/if}
+<SubmitFeedback message={feedback.message} onDismiss={feedback.dismiss} />
 
 {#if form?.error}
 	<div class="bg-amber-100 border-b border-black p-2 text-sm">
@@ -804,21 +712,7 @@
 			<form
 				method="POST"
 				action="?/addInterestRate"
-				use:enhance={() => {
-					return async ({ formElement, result }) => {
-						if (result.type === 'success') {
-							submitMessage = { type: 'success', text: 'Interest rate added successfully' };
-							formElement.reset();
-							addRateOpen = false;
-						} else if (result.type === 'failure' && result.data) {
-							const errorData = result.data as { error?: string };
-							if (errorData.error) {
-								submitMessage = { type: 'error', text: errorData.error };
-							}
-						}
-						await invalidateAll();
-					};
-				}}
+				use:enhance={feedback.createEnhanceHandler('Interest rate added successfully', { resetForm: true, onSuccess: () => { addRateOpen = false; } })}
 				class="flex flex-col gap-2"
 			>
 				<div class="grid grid-cols-2 gap-4">
@@ -851,11 +745,11 @@
 				<div>
 					<button
 						type="submit"
-						disabled={isSubmitting}
+						disabled={feedback.isSubmitting}
 						class="bracket-link text-sm"
-						class:opacity-50={isSubmitting}
+						class:opacity-50={feedback.isSubmitting}
 					>
-						{isSubmitting ? 'Adding...' : 'Add Rate'}
+						{feedback.isSubmitting ? 'Adding...' : 'Add Rate'}
 					</button>
 				</div>
 			</form>
@@ -898,19 +792,7 @@
 										method="POST"
 										action="?/deleteInterestRate"
 										class="inline"
-										use:enhance={() => {
-											return async ({ result }) => {
-												if (result.type === 'success') {
-													submitMessage = { type: 'success', text: 'Interest rate deleted' };
-												} else if (result.type === 'failure' && result.data) {
-													const errorData = result.data as { error?: string };
-													if (errorData.error) {
-														submitMessage = { type: 'error', text: errorData.error };
-													}
-												}
-												await invalidateAll();
-											};
-										}}
+										use:enhance={feedback.createEnhanceHandler('Interest rate deleted')}
 									>
 										<input type="hidden" name="rateId" value={rate.id} />
 										<button
@@ -928,7 +810,7 @@
 				</tbody>
 			</table>
 		</div>
-		<PaginationClient page={ratesPage} totalPages={totalRatesPages} onPageChange={updateRatesPage} scrollTarget={ratesSectionRef} />
+		<PaginationClient page={ratesPagination.page} totalPages={totalRatesPages} onPageChange={ratesPagination.updatePage} scrollTarget={ratesSectionRef} />
 	{/if}
 </div>
 {/if}
@@ -1288,7 +1170,7 @@
 			</tbody>
 		</table>
 		</div>
-		<PaginationClient page={balancesPage} totalPages={totalBalancesPages} onPageChange={updateBalancesPage} scrollTarget={balancesSectionRef} />
+		<PaginationClient page={balancesPagination.page} totalPages={totalBalancesPages} onPageChange={balancesPagination.updatePage} scrollTarget={balancesSectionRef} />
 	{/if}
 </div>
 
@@ -1312,21 +1194,7 @@
 			<form
 				method="POST"
 				action="?/addNote"
-				use:enhance={() => {
-					return async ({ formElement, result }) => {
-						if (result.type === 'success') {
-							submitMessage = { type: 'success', text: 'Note added successfully' };
-							formElement.reset();
-							addNoteOpen = false;
-						} else if (result.type === 'failure' && result.data) {
-							const errorData = result.data as { error?: string };
-							if (errorData.error) {
-								submitMessage = { type: 'error', text: errorData.error };
-							}
-						}
-						await invalidateAll();
-					};
-				}}
+				use:enhance={feedback.createEnhanceHandler('Note added successfully', { resetForm: true, onSuccess: () => { addNoteOpen = false; } })}
 				class="flex flex-col gap-2"
 			>
 				<div>
@@ -1345,11 +1213,11 @@
 				<div>
 					<button
 						type="submit"
-						disabled={isSubmitting}
+						disabled={feedback.isSubmitting}
 						class="bracket-link text-sm"
-						class:opacity-50={isSubmitting}
+						class:opacity-50={feedback.isSubmitting}
 					>
-						{isSubmitting ? 'Adding...' : 'Add Note'}
+						{feedback.isSubmitting ? 'Adding...' : 'Add Note'}
 					</button>
 				</div>
 			</form>
@@ -1378,19 +1246,7 @@
 									method="POST"
 									action="?/deleteNote"
 									class="inline"
-									use:enhance={() => {
-										return async ({ result }) => {
-											if (result.type === 'success') {
-												submitMessage = { type: 'success', text: 'Note deleted' };
-											} else if (result.type === 'failure' && result.data) {
-												const errorData = result.data as { error?: string };
-												if (errorData.error) {
-													submitMessage = { type: 'error', text: errorData.error };
-												}
-											}
-											await invalidateAll();
-										};
-									}}
+									use:enhance={feedback.createEnhanceHandler("Note deleted")}
 								>
 									<input type="hidden" name="noteSlug" value={note.slug} />
 									<button
@@ -1439,21 +1295,7 @@
 			<form
 				method="POST"
 				action="?/addTransaction"
-				use:enhance={() => {
-					return async ({ formElement, result }) => {
-						if (result.type === 'success') {
-							submitMessage = { type: 'success', text: 'Transaction added successfully' };
-							formElement.reset();
-							addTransactionOpen = false;
-						} else if (result.type === 'failure' && result.data) {
-							const errorData = result.data as { error?: string };
-							if (errorData.error) {
-								submitMessage = { type: 'error', text: errorData.error };
-							}
-						}
-						await invalidateAll();
-					};
-				}}
+				use:enhance={feedback.createEnhanceHandler("Transaction added successfully", { resetForm: true, onSuccess: () => { addTransactionOpen = false; } })}
 				class="flex flex-col gap-2"
 			>
 				<div class="grid grid-cols-2 gap-4">
@@ -1528,11 +1370,11 @@
 				<div>
 					<button
 						type="submit"
-						disabled={isSubmitting}
+						disabled={feedback.isSubmitting}
 						class="bracket-link text-sm"
-						class:opacity-50={isSubmitting}
+						class:opacity-50={feedback.isSubmitting}
 					>
-						{isSubmitting ? 'Adding...' : 'Add Transaction'}
+						{feedback.isSubmitting ? 'Adding...' : 'Add Transaction'}
 					</button>
 				</div>
 			</form>
@@ -1587,19 +1429,7 @@
 												method="POST"
 												action="?/deleteTransaction"
 												class="inline"
-												use:enhance={() => {
-													return async ({ result }) => {
-														if (result.type === 'success') {
-															submitMessage = { type: 'success', text: 'Transaction deleted' };
-														} else if (result.type === 'failure' && result.data) {
-															const errorData = result.data as { error?: string };
-															if (errorData.error) {
-																submitMessage = { type: 'error', text: errorData.error };
-															}
-														}
-														await invalidateAll();
-													};
-												}}
+												use:enhance={feedback.createEnhanceHandler('Transaction deleted')}
 												>
 												<input type="hidden" name="transactionSlug" value={transaction.slug} />
 												<button
@@ -1644,7 +1474,7 @@
 			</table>
 		</div>
 		<div class="border-t border-black empty:hidden">
-			<PaginationClient page={transactionPage} totalPages={data.transactionPagination.totalPages} onPageChange={updateTransactionPage} scrollTarget={transactionsSectionRef} />
+			<PaginationClient page={txPagination.page} totalPages={data.transactionPagination.totalPages} onPageChange={txPagination.updatePage} scrollTarget={transactionsSectionRef} />
 		</div>
 	{/if}
 </div>

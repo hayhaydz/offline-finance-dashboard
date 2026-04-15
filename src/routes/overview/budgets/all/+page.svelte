@@ -1,33 +1,18 @@
 <script lang="ts">
 	import { formatCurrency } from '$lib/utils/currency';
-	import { goto } from '$app/navigation';
-	import { page as pageState } from '$app/state';
+	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 
 	let { data } = $props();
 
 	let tableRef = $state<HTMLElement | null>(null);
-	let currentPage = $state(0);
-	let isUpdatingPage = $state(false);
 
+	const pagination = useUrlPagination('page');
+
+	// Sync from server data (initial + navigation)
 	$effect(() => {
-		if (isUpdatingPage) return;
-		currentPage = data.pagination.page;
+		pagination.page = data.pagination.page;
 	});
-
-	async function updatePage(newPage: number) {
-		if (isUpdatingPage) return;
-		isUpdatingPage = true;
-		currentPage = newPage;
-		const url = new URL(pageState.url);
-		if (newPage > 0) {
-			url.searchParams.set('page', String(newPage + 1));
-		} else {
-			url.searchParams.delete('page');
-		}
-		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
-		isUpdatingPage = false;
-	}
 
 	function getMonthLabel(monthStr: string): string {
 		const [y, m] = monthStr.split("-");
@@ -77,9 +62,9 @@
 			</table>
 		</div>
 		<PaginationClient
-			page={currentPage}
+			page={pagination.page}
 			totalPages={data.pagination.totalPages}
-			onPageChange={updatePage}
+			onPageChange={pagination.updatePage}
 			scrollTarget={tableRef}
 		/>
 	</div>

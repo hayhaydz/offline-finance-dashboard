@@ -1,7 +1,7 @@
 <script lang="ts">
 	import AlertsSection from '$lib/components/AlertsSection.svelte';
 	import { page } from '$app/state';
-	import { goto } from '$app/navigation';
+	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
 	import { formatCurrency, formatAccountType as commonFormatAccountType, formatDateShorthand as commonFormatDateShorthand } from '$lib/utils/currency';
 	import IsaAllowanceWidget from '$lib/components/IsaAllowanceWidget.svelte';
 	import AccountFiltersModal from '$lib/components/AccountFiltersModal.svelte';
@@ -16,56 +16,14 @@
 	let filterModalOpen = $state(false);
 	let sortModalOpen = $state(false);
 
-	// Pagination state - use a ref to avoid race conditions
+	// Pagination state
 	let accountsSectionRef: HTMLElement | null = $state(null);
-	let currentPage = $state(0);
+	const pagination = useUrlPagination('page');
 
-	// Track if we're updating to prevent loops
-	let isUpdatingPage = $state(false);
-
-  // Sync from server data (initial + navigation)
-  $effect(() => {
-    if (isUpdatingPage) return;
-    currentPage = data.accountsPagination.page;
-  });
-
-  // Sync from URL (handles browser back/forward and direct links)
-  $effect(() => {
-    if (isUpdatingPage) return; // Skip if we're updating from user action
-
-    const urlPage = Number(page.url.searchParams.get('page')) || 1;
-    // Convert 1-indexed URL to 0-indexed internal state
-    const internalPage = urlPage - 1;
-    if (currentPage !== internalPage) {
-      currentPage = internalPage;
-    }
-  });
-
-  async function updateAccountsPage(newPage: number) {
-    // 1. Prevent double-clicks from firing concurrent route changes
-    if (isUpdatingPage) return; 
-    
-    isUpdatingPage = true;
-    currentPage = newPage;
-    
-    // 2. Use SvelteKit's reactive page.url instead of window.location.href
-    const url = new URL(page.url); 
-    
-    // Convert 0-indexed internal state to 1-indexed URL parameter
-    const displayPage = newPage + 1;
-    if (displayPage !== 1) {
-			url.searchParams.set('page', String(displayPage));
-		} else {
-			url.searchParams.delete('page');
-		}
-    
-    // 3. AWAIT the goto function! This ensures the navigation fully completes 
-    // and the URL physically updates before we release the 'isUpdatingPage' lock.
-    await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
-
-    // 4. Safely release the lock now that page.url has updated
-    isUpdatingPage = false;
-  }
+	// Sync from server data (initial + navigation)
+	$effect(() => {
+		pagination.page = data.accountsPagination.page;
+	});
 
 	// Current tax year slug for interest links
 
@@ -153,13 +111,13 @@
 			if (activeFilters.taxWrapper.length > 0 && !activeFilters.taxWrapper.includes(a.taxWrapper)) return false;
 			if (activeFilters.liquidity.length > 0 && !activeFilters.liquidity.includes(a.liquidity || '')) return false;
 			if (activeFilters.institution.length > 0 && !activeFilters.institution.includes(a.institution || '')) return false;
-			
+
 			if (activeFilters.status === 'open' && a.closedAt) return false;
 			if (activeFilters.status === 'closed' && !a.closedAt) return false;
-			
+
 			if (activeFilters.exclusion === 'included' && a.excludedFromNetWorth) return false;
 			if (activeFilters.exclusion === 'excluded' && !a.excludedFromNetWorth) return false;
-			
+
 			if (activeFilters.stale === 'yes') {
 				const lastUpdate = a.lastUpdated ? new Date(a.lastUpdated) : null;
 				if (!lastUpdate || lastUpdate < thirtyDaysAgo) {
@@ -180,7 +138,7 @@
 			return true;
 		});
 	});
-	
+
 	const sortedAccounts = $derived(sortAccounts(filteredAccounts));
 
 	// Calculate summary stats
@@ -350,9 +308,9 @@
 		</table>
 		</div>
 		<PaginationClient
-			page={currentPage}
+			page={pagination.page}
 			totalPages={data.accountsPagination.totalPages}
-			onPageChange={updateAccountsPage}
+			onPageChange={pagination.updatePage}
 			scrollTarget={accountsSectionRef}
 		/>
 	{/if}

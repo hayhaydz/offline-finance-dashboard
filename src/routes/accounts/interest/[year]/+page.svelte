@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { formatCurrency, formatDateShorthand } from '$lib/utils/currency';
 	import { formatTaxWrapper, formatRate, getMonthName, renderProgressBar, getExclusionReason } from '$lib/utils/formatting';
-	import { goto } from '$app/navigation';
-	import { page as pageState } from '$app/state';
+	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import type { PageData } from './$types';
 
@@ -18,9 +17,13 @@
 		return `${startStr} to ${endStr}`;
 	}
 
-	// Pagination state for transactions
-	let transactionsPage = $state(0);
+	// Pagination state (URL-synced via composable)
+	const txPagination = useUrlPagination('txPage');
+	const breakdownsPagination = useUrlPagination('breakdownsPage');
+	const projectionsPagination = useUrlPagination('projectionsPage');
 	const TRANSACTIONS_PER_PAGE = 10;
+	const BREAKDOWNS_PER_PAGE = 10;
+	const PROJECTIONS_PER_PAGE = 10;
 
 	// Filtering state for transactions
 	let filterAccountId = $state<number | null>(null);
@@ -37,22 +40,17 @@
 	let breakdownsSectionRef: HTMLElement | null = $state(null);
 	let projectionsSectionRef: HTMLElement | null = $state(null);
 
-	// Track if we're updating to prevent loops
-	let isUpdatingTransactionsPage = $state(false);
-	let isUpdatingBreakdownsPage = $state(false);
-	let isUpdatingProjectionsPage = $state(false);
-
 	// Derived filtered transactions
 	const filteredTransactions = $derived.by(() => {
 		return data.actual.transactions.filter(tx => {
 			if (tx.type === 'opening') return false; // Usually don't filter opening balances or hide them when filtering
-			
+
 			if (filterAccountId !== null && tx.accountId !== filterAccountId) return false;
 			if (filterMonth !== null && tx.transactionDate.getUTCMonth() + 1 !== filterMonth) return false;
 			if (filterYear !== null && tx.transactionDate.getUTCFullYear() !== filterYear) return false;
 			if (filterInstitution !== null && tx.accountInstitution !== filterInstitution) return false;
 			if (filterTaxWrapper !== null && tx.accountTaxWrapper !== filterTaxWrapper) return false;
-			
+
 			return true;
 		});
 	});
@@ -67,88 +65,31 @@
 
 	// Paginated transactions
 	const paginatedTransactions = $derived.by(() => {
-		const start = transactionsPage * TRANSACTIONS_PER_PAGE;
+		const start = txPagination.page * TRANSACTIONS_PER_PAGE;
 		const end = start + TRANSACTIONS_PER_PAGE;
 		return sortedTransactions.slice(start, end);
 	});
 
 	const totalTransactionPages = $derived(Math.ceil(sortedTransactions.length / TRANSACTIONS_PER_PAGE));
 
-	// Breakdown pagination state
-	let breakdownsPage = $state(0);
-	const BREAKDOWNS_PER_PAGE = 10;
-
 	// Reset breakdown page when tab changes or sorts change
 	$effect(() => {
 		const _ = { activeBreakdown, accountsSortDesc, monthsSortDesc, institutionsSortDesc, wrappersSortDesc };
-		breakdownsPage = 0;
+		breakdownsPagination.page = 0;
 	});
-
-	// Projection pagination state
-	let projectionsPage = $state(0);
-	const PROJECTIONS_PER_PAGE = 10;
 
 	// Reset projection page when sort changes
 	$effect(() => {
 		const _ = projectedAccountsSortDesc;
-		projectionsPage = 0;
+		projectionsPagination.page = 0;
 	});
-
-	// Sync pagination state with URL (1-indexed)
-	$effect(() => {
-		if (isUpdatingBreakdownsPage) return;
-		const urlBreakdownsPage = Number(pageState.url.searchParams.get('breakdownsPage')) || 1;
-		if (breakdownsPage !== urlBreakdownsPage - 1) breakdownsPage = urlBreakdownsPage - 1;
-
-		if (isUpdatingProjectionsPage) return;
-		const urlProjectionsPage = Number(pageState.url.searchParams.get('projectionsPage')) || 1;
-		if (projectionsPage !== urlProjectionsPage - 1) projectionsPage = urlProjectionsPage - 1;
-
-		if (isUpdatingTransactionsPage) return;
-		const urlTransactionsPage = Number(pageState.url.searchParams.get('txPage')) || 1;
-		if (transactionsPage !== urlTransactionsPage - 1) transactionsPage = urlTransactionsPage - 1;
-	});
-
-	async function updateBreakdownsPage(newPage: number) {
-		if (isUpdatingBreakdownsPage) return;
-		isUpdatingBreakdownsPage = true;
-		breakdownsPage = newPage;
-		const url = new URL(pageState.url);
-		url.searchParams.set('breakdownsPage', String(newPage + 1));
-		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
-		isUpdatingBreakdownsPage = false;
-	}
-
-	async function updateProjectionsPage(newPage: number) {
-		if (isUpdatingProjectionsPage) return;
-		isUpdatingProjectionsPage = true;
-		projectionsPage = newPage;
-		const url = new URL(pageState.url);
-		url.searchParams.set('projectionsPage', String(newPage + 1));
-		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
-		isUpdatingProjectionsPage = false;
-	}
-
-	async function updateTransactionsPage(newPage: number) {
-		if (isUpdatingTransactionsPage) return;
-		isUpdatingTransactionsPage = true;
-		transactionsPage = newPage;
-		const url = new URL(pageState.url);
-		if (newPage + 1 !== 1) {
-			url.searchParams.set('txPage', String(newPage + 1));
-		} else {
-			url.searchParams.delete('txPage');
-		}
-		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
-		isUpdatingTransactionsPage = false;
-	}
 
 	// Reset page when filters change
 	$effect(() => {
 		// This effect will run whenever any filter changes
 		const _ = { filterAccountId, filterMonth, filterYear, filterInstitution, filterTaxWrapper };
-		transactionsPage = 0;
-		
+		txPagination.page = 0;
+
 		// Scroll to transactions if a filter was applied
 		if (filterAccountId !== null || filterMonth !== null || filterInstitution !== null || filterTaxWrapper !== null) {
 			const anchor = document.getElementById('transactions-anchor');
@@ -189,7 +130,7 @@
 		return accounts;
 	});
 
-	const paginatedAccounts = $derived(sortedAccounts.slice(breakdownsPage * BREAKDOWNS_PER_PAGE, (breakdownsPage + 1) * BREAKDOWNS_PER_PAGE));
+	const paginatedAccounts = $derived(sortedAccounts.slice(breakdownsPagination.page * BREAKDOWNS_PER_PAGE, (breakdownsPagination.page + 1) * BREAKDOWNS_PER_PAGE));
 	const totalAccountPages = $derived(Math.ceil(sortedAccounts.length / BREAKDOWNS_PER_PAGE));
 
 	// Sort state for month breakdown (default: chronological)
@@ -203,7 +144,7 @@
 		return months;
 	});
 
-	const paginatedMonths = $derived(sortedMonths.slice(breakdownsPage * BREAKDOWNS_PER_PAGE, (breakdownsPage + 1) * BREAKDOWNS_PER_PAGE));
+	const paginatedMonths = $derived(sortedMonths.slice(breakdownsPagination.page * BREAKDOWNS_PER_PAGE, (breakdownsPagination.page + 1) * BREAKDOWNS_PER_PAGE));
 	const totalMonthPages = $derived(Math.ceil(sortedMonths.length / BREAKDOWNS_PER_PAGE));
 
 	// Sort state for institution breakdown (default: amount descending)
@@ -214,7 +155,7 @@
 		return institutions;
 	});
 
-	const paginatedInstitutions = $derived(sortedInstitutions.slice(breakdownsPage * BREAKDOWNS_PER_PAGE, (breakdownsPage + 1) * BREAKDOWNS_PER_PAGE));
+	const paginatedInstitutions = $derived(sortedInstitutions.slice(breakdownsPagination.page * BREAKDOWNS_PER_PAGE, (breakdownsPagination.page + 1) * BREAKDOWNS_PER_PAGE));
 	const totalInstitutionPages = $derived(Math.ceil(sortedInstitutions.length / BREAKDOWNS_PER_PAGE));
 
 	// Sort state for wrapper breakdown (default: amount descending)
@@ -225,7 +166,7 @@
 		return wrappers;
 	});
 
-	const paginatedWrappers = $derived(sortedWrappers.slice(breakdownsPage * BREAKDOWNS_PER_PAGE, (breakdownsPage + 1) * BREAKDOWNS_PER_PAGE));
+	const paginatedWrappers = $derived(sortedWrappers.slice(breakdownsPagination.page * BREAKDOWNS_PER_PAGE, (breakdownsPagination.page + 1) * BREAKDOWNS_PER_PAGE));
 	const totalWrapperPages = $derived(Math.ceil(sortedWrappers.length / BREAKDOWNS_PER_PAGE));
 
 	// Filter to only show valid interest-bearing accounts (excluded accounts are not relevant for projection display)
@@ -241,14 +182,14 @@
 		return accounts;
 	});
 
-	const paginatedProjectedAccounts = $derived(sortedProjectedAccounts.slice(projectionsPage * PROJECTIONS_PER_PAGE, (projectionsPage + 1) * PROJECTIONS_PER_PAGE));
+	const paginatedProjectedAccounts = $derived(sortedProjectedAccounts.slice(projectionsPagination.page * PROJECTIONS_PER_PAGE, (projectionsPagination.page + 1) * PROJECTIONS_PER_PAGE));
 	const totalProjectedPages = $derived(Math.ceil(sortedProjectedAccounts.length / PROJECTIONS_PER_PAGE));
 
 	// Tax year selector logic
 	const currentYearSlug = $derived(data.meta.taxYearStart.getUTCFullYear() + '-' + String(data.meta.taxYearEnd.getUTCFullYear()).slice(-2));
-	
+
 	const currentIndex = $derived(data.availableTaxYears.findIndex(ty => ty.slug === currentYearSlug));
-	
+
 	const prevYear = $derived(currentIndex < data.availableTaxYears.length - 1 ? data.availableTaxYears[currentIndex + 1] : null);
 	const nextYear = $derived(currentIndex > 0 ? data.availableTaxYears[currentIndex - 1] : null);
 
@@ -421,7 +362,7 @@
 					</thead>
 					<tbody>
 						{#each paginatedAccounts as account}
-							<tr 
+							<tr
 								class="border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50"
 								class:bg-black={filterAccountId === account.accountId}
 								class:text-white={filterAccountId === account.accountId}
@@ -453,7 +394,7 @@
 					</tfoot>
 				</table>
 			</div>
-			<PaginationClient page={breakdownsPage} onPageChange={updateBreakdownsPage} totalPages={totalAccountPages} scrollTarget={breakdownsSectionRef} />
+			<PaginationClient page={breakdownsPagination.page} onPageChange={breakdownsPagination.updatePage} totalPages={totalAccountPages} scrollTarget={breakdownsSectionRef} />
 		</div>
 	{/if}
 
@@ -471,7 +412,7 @@
 					</thead>
 					<tbody>
 						{#each paginatedMonths as month}
-							<tr 
+							<tr
 								class="border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50"
 								class:bg-black={filterMonth === month.month && filterYear === month.year}
 								class:text-white={filterMonth === month.month && filterYear === month.year}
@@ -499,7 +440,7 @@
 					</tfoot>
 				</table>
 			</div>
-			<PaginationClient page={breakdownsPage} onPageChange={updateBreakdownsPage} totalPages={totalMonthPages} scrollTarget={breakdownsSectionRef} />
+			<PaginationClient page={breakdownsPagination.page} onPageChange={breakdownsPagination.updatePage} totalPages={totalMonthPages} scrollTarget={breakdownsSectionRef} />
 		</div>
 	{/if}
 
@@ -517,7 +458,7 @@
 					</thead>
 					<tbody>
 						{#each paginatedInstitutions as inst}
-							<tr 
+							<tr
 								class="border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50"
 								class:bg-black={filterInstitution === inst.institution}
 								class:text-white={filterInstitution === inst.institution}
@@ -545,7 +486,7 @@
 					</tfoot>
 				</table>
 			</div>
-			<PaginationClient page={breakdownsPage} onPageChange={updateBreakdownsPage} totalPages={totalInstitutionPages} scrollTarget={breakdownsSectionRef} />
+			<PaginationClient page={breakdownsPagination.page} onPageChange={breakdownsPagination.updatePage} totalPages={totalInstitutionPages} scrollTarget={breakdownsSectionRef} />
 		</div>
 	{/if}
 
@@ -563,7 +504,7 @@
 					</thead>
 					<tbody>
 						{#each paginatedWrappers as wrap}
-							<tr 
+							<tr
 								class="border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50"
 								class:bg-black={filterTaxWrapper === wrap.taxWrapper}
 								class:text-white={filterTaxWrapper === wrap.taxWrapper}
@@ -596,7 +537,7 @@
 					</tfoot>
 				</table>
 			</div>
-			<PaginationClient page={breakdownsPage} onPageChange={updateBreakdownsPage} totalPages={totalWrapperPages} scrollTarget={breakdownsSectionRef} />
+			<PaginationClient page={breakdownsPagination.page} onPageChange={breakdownsPagination.updatePage} totalPages={totalWrapperPages} scrollTarget={breakdownsSectionRef} />
 		</div>
 	{/if}
 </div>
@@ -657,7 +598,7 @@
 							{:else}
 								<div class="flex items-center justify-end gap-1">
 									<span class="text-amber-700">+{formatCurrency(account.projectedInterest)}</span>
-									<span 
+									<span
 										class="text-[10px] text-gray-400 cursor-help font-bold"
 										title="{formatCurrency(account.balanceInCents)} * {(account.rateBasisPoints! / 100).toFixed(2)}% * {(account.daysUntilMaturity ?? account.daysUntilTaxYearEnd)} / 365 days"
 									>[?]</span>
@@ -687,7 +628,7 @@
 			</tfoot>
 		</table>
 	</div>
-	<PaginationClient page={projectionsPage} totalPages={totalProjectedPages} onPageChange={updateProjectionsPage} scrollTarget={projectionsSectionRef} />
+	<PaginationClient page={projectionsPagination.page} totalPages={totalProjectedPages} onPageChange={projectionsPagination.updatePage} scrollTarget={projectionsSectionRef} />
 	<div class="p-2 text-[10px] text-gray-600 border-t border-black uppercase font-mono">
 		[TECHNICAL NOTE] Basis: balance * rate * (days / 365). fixed-term accounts project only to maturity date. non-matured fixed-term interest is excluded from taxable totals until maturity.
 	</div>
@@ -791,7 +732,7 @@
 			</table>
 		</div>
 		<div class="border-t border-black empty:hidden">
-			<PaginationClient page={transactionsPage} totalPages={totalTransactionPages} onPageChange={updateTransactionsPage} scrollTarget={transactionsSectionRef} />
+			<PaginationClient page={txPagination.page} totalPages={totalTransactionPages} onPageChange={txPagination.updatePage} scrollTarget={transactionsSectionRef} />
 		</div>
 	{/if}
 	<div class="p-2 text-[10px] text-gray-600 border-t border-black uppercase font-mono">

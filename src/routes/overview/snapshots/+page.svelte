@@ -1,40 +1,16 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { page as pageState } from '$app/state';
+	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
 	import { formatCurrencyShorthand } from '$lib/utils/currency';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 
 	let { data } = $props();
 
 	let tableRef: HTMLElement | null = $state(null);
-	let currentPage = $state(0);
-	let isUpdatingPage = $state(false);
+	const pagination = useUrlPagination('page');
 
-	async function updatePage(newPage: number) {
-		if (isUpdatingPage) return;
-		isUpdatingPage = true;
-		currentPage = newPage;
-		const url = new URL(pageState.url);
-		if (newPage + 1 !== 1) {
-			url.searchParams.set('page', String(newPage + 1));
-		} else {
-			url.searchParams.delete('page');
-		}
-		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
-		isUpdatingPage = false;
-	}
-
+	// Sync from server data (initial + navigation)
 	$effect(() => {
-		if (isUpdatingPage) return;
-		currentPage = data.page;
-	});
-
-	$effect(() => {
-		if (isUpdatingPage) return;
-		const urlPage = Number(pageState.url.searchParams.get('page')) || 1;
-		if (currentPage !== urlPage - 1) {
-			currentPage = urlPage - 1;
-		}
+		pagination.page = data.page;
 	});
 
 	const snapshotsWithTrends = $derived.by(() => {
@@ -115,8 +91,8 @@
 </div>
 
 <PaginationClient
-	page={currentPage}
+	page={pagination.page}
 	totalPages={data.totalPages}
-	onPageChange={updatePage}
+	onPageChange={pagination.updatePage}
 	scrollTarget={tableRef}
 />
