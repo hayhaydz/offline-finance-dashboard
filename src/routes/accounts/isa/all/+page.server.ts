@@ -6,7 +6,7 @@ import { accounts, accountTransactions } from "$lib/db/schema";
 import {
 	getUkTaxYearBounds,
 	ISA_ALLOWANCE_IN_CENTS,
-} from "$lib/server/calculations";
+} from "$lib/utils/tax-year-utils";
 import { TAX_FREE_WRAPPERS } from "$lib/utils/domain-constants";
 import type { PageServerLoad } from "./$types";
 

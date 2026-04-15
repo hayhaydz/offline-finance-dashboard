@@ -12,14 +12,16 @@ import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
 import {
-	calculateProjectedInterestInCents,
 	getAccountInterestEarned,
 	getActualInterestEarned,
+} from "$lib/server/tax-year-queries";
+import {
+	calculateProjectedInterestInCents,
 	getTaxFreeStatus,
 	getUkTaxYearBounds,
 	type TaxBand,
 	type TaxFreeStatus,
-} from "$lib/server/calculations";
+} from "$lib/utils/tax-year-utils";
 import {
 	getCurrentBalanceForAccount,
 	getCurrentBalancesForAccounts,

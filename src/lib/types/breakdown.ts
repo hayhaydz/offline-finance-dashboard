@@ -137,8 +137,8 @@ export interface InterestForecast {
 	total: number; // in cents (actual + projected)
 	taxableTotal: number; // in cents
 	taxFreeTotal: number; // in cents
-	psaStatusNow: import("$lib/server/calculations").TaxFreeStatus; // Personal Savings Allowance status (actual only)
-	psaStatusForecast: import("$lib/server/calculations").TaxFreeStatus; // PSA status (actual + projected)
+	psaStatusNow: import("$lib/utils/tax-year-utils").TaxFreeStatus; // Personal Savings Allowance status (actual only)
+	psaStatusForecast: import("$lib/utils/tax-year-utils").TaxFreeStatus; // PSA status (actual + projected)
 }
 
 /**
@@ -214,7 +214,7 @@ export interface AccountInterestSummary {
 	taxYearEnd: Date;
 
 	// Tax-free status (Personal Savings Allowance)
-	taxFreeStatus: import("$lib/server/calculations").TaxFreeStatus;
+	taxFreeStatus: import("$lib/utils/tax-year-utils").TaxFreeStatus;
 }
 
 // --- ISA Breakdown Types ---

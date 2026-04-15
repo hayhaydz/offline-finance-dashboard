@@ -9,8 +9,8 @@ import {
 } from "$lib/db/schema";
 import {
 	getActualInterestEarned,
-	getTaxFreeStatus,
-} from "$lib/server/calculations";
+} from "$lib/server/tax-year-queries";
+import { getTaxFreeStatus } from "$lib/utils/tax-year-utils";
 
 describe("Interest Summaries", () => {
 	let testUserId: number;

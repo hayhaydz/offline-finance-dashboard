@@ -8,10 +8,12 @@ import {
 	getActualInterestByTaxWrapper,
 	getISAAllowanceUsed,
 	getProjectedInterestByTaxWrapper,
+} from "$lib/server/tax-year-queries";
+import {
 	getTaxFreeStatus,
 	getUkTaxYearBounds,
 	ISA_ALLOWANCE_IN_CENTS,
-} from "$lib/server/calculations";
+} from "$lib/utils/tax-year-utils";
 import {
 	getCurrentBalancesForAccounts,
 	getLatestTransactionDateForAccounts,

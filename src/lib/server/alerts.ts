@@ -5,10 +5,12 @@ import { accountTransactions, accounts, goalAllocations, goals, interestRates, m
 import {
 	getActualInterestEarned,
 	getISAAllowanceUsed,
+} from '$lib/server/tax-year-queries';
+import {
 	getTaxFreeStatus,
 	getUkTaxYearBounds,
 	ISA_ALLOWANCE_IN_CENTS,
-} from '$lib/server/calculations';
+} from '$lib/utils/tax-year-utils';
 import { getBudgetStatus, getCategoryBreakdown, UNCATEGORISED_ID } from './budgets';
 import {
 	getCurrentBalancesForAccounts,

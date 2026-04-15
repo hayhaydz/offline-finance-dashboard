@@ -1,3 +1,4 @@
+import { calculatePayoffProjection } from "$lib/server/debtMetrics";
 import { devLog } from "$lib/server/logger";
 import { MS_PER_MONTH } from "$lib/utils/time-constants";
 import type {
@@ -12,56 +13,9 @@ export type {
 	DebtGoalWithProjection,
 	DebtStrategyMetrics,
 } from "$lib/types/debt";
+export { calculatePayoffProjection } from "$lib/server/debtMetrics";
 
 const HYBRID_THRESHOLD_CENTS = 100000; // £1,000
-
-export function calculatePayoffProjection(params: {
-	balanceInCents: number;
-	monthlyPaymentInCents: number;
-	aprBasisPoints: number | null;
-}): PayoffProjection {
-	const { balanceInCents, monthlyPaymentInCents, aprBasisPoints } = params;
-
-	if (balanceInCents <= 0) {
-		return { months: 0, totalInterestInCents: 0, projectedPayoffDate: new Date() };
-	}
-
-	if (monthlyPaymentInCents <= 0) {
-		return { months: null, totalInterestInCents: null, projectedPayoffDate: null };
-	}
-
-	const now = new Date();
-
-	if (!aprBasisPoints || aprBasisPoints === 0) {
-		const months = Math.ceil(balanceInCents / monthlyPaymentInCents);
-		const projectedPayoffDate = new Date(
-			now.getTime() + months * MS_PER_MONTH,
-		);
-		return { months, totalInterestInCents: 0, projectedPayoffDate };
-	}
-
-	const monthlyRate = aprBasisPoints / 10000 / 12;
-
-	const monthlyInterest = balanceInCents * monthlyRate;
-	if (monthlyPaymentInCents <= monthlyInterest) {
-		return { months: null, totalInterestInCents: null, projectedPayoffDate: null };
-	}
-
-	const numerator = -Math.log(
-		1 - (monthlyRate * balanceInCents) / monthlyPaymentInCents,
-	);
-	const denominator = Math.log(1 + monthlyRate);
-	const months = Math.ceil(numerator / denominator);
-
-	const totalPaidInCents = monthlyPaymentInCents * months;
-	const totalInterestInCents = Math.max(0, totalPaidInCents - balanceInCents);
-
-	const projectedPayoffDate = new Date(
-		now.getTime() + months * MS_PER_MONTH,
-	);
-
-	return { months, totalInterestInCents, projectedPayoffDate };
-}
 
 export function calculateStrategyOrder(
 	debts: DebtGoalInput[],

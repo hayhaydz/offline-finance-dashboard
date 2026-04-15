@@ -7,10 +7,12 @@ import { accounts, users } from "$lib/db/schema";
 import {
 	getAccountInterestEarned,
 	getISAAllowanceUsed,
+} from "$lib/server/tax-year-queries";
+import {
 	getTaxFreeStatus,
 	getUkTaxYearBounds,
 	ISA_ALLOWANCE_IN_CENTS,
-} from "$lib/server/calculations";
+} from "$lib/utils/tax-year-utils";
 import {
 	getCurrentBalancesForAccounts,
 	getLatestTransactionDateForAccounts,

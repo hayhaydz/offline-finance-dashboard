@@ -1,4 +1,4 @@
-import { getUkTaxYearBounds } from "$lib/server/calculations";
+import { getUkTaxYearBounds } from "$lib/utils/tax-year-utils";
 
 interface TaxYearInfo {
 	slug: string;

@@ -9,37 +9,61 @@ import {
 describe("Debt metrics calculations", () => {
 	describe("calculatePayoffProjection", () => {
 		it("should calculate months to payoff with zero interest", () => {
-			const balance = 100000; // £1,000
-			const apr = 0;
-			const monthlyPayment = 20000; // £200
-			const result = calculatePayoffProjection(balance, apr, monthlyPayment);
+			const result = calculatePayoffProjection({
+				balanceInCents: 100000, // £1,000
+				aprBasisPoints: 0,
+				monthlyPaymentInCents: 20000, // £200
+			});
 			expect(result.months).toBe(5);
 		});
 
 		it("should calculate months to payoff with interest", () => {
-			const balance = 320000; // £3,200
-			const apr = 249; // 2.49% (basis points)
-			const monthlyPayment = 20000; // £200
-			const result = calculatePayoffProjection(balance, apr, monthlyPayment);
+			const result = calculatePayoffProjection({
+				balanceInCents: 320000, // £3,200
+				aprBasisPoints: 249, // 2.49% (basis points)
+				monthlyPaymentInCents: 20000, // £200
+			});
 			expect(result.months).toBeGreaterThan(0);
 			expect(result.projectedPayoffDate).toBeInstanceOf(Date);
 		});
 
 		it("should handle zero balance", () => {
-			const balance = 0;
-			const apr = 249;
-			const monthlyPayment = 20000;
-			const result = calculatePayoffProjection(balance, apr, monthlyPayment);
+			const result = calculatePayoffProjection({
+				balanceInCents: 0,
+				aprBasisPoints: 249,
+				monthlyPaymentInCents: 20000,
+			});
 			expect(result.months).toBe(0);
 		});
 
-		it("should throw when payment is too small to cover interest", () => {
-			const balance = 320000;
-			const apr = 249;
-			const monthlyPayment = 100; // Too small
-			expect(() => {
-				calculatePayoffProjection(balance, apr, monthlyPayment);
-			}).toThrow();
+		it("should return nulls when payment is too small to cover interest", () => {
+			const result = calculatePayoffProjection({
+				balanceInCents: 320000,
+				aprBasisPoints: 249,
+				monthlyPaymentInCents: 100, // Too small
+			});
+			expect(result.months).toBeNull();
+			expect(result.totalInterestInCents).toBeNull();
+			expect(result.projectedPayoffDate).toBeNull();
+		});
+
+		it("should return nulls when monthly payment is zero", () => {
+			const result = calculatePayoffProjection({
+				balanceInCents: 100000,
+				aprBasisPoints: 249,
+				monthlyPaymentInCents: 0,
+			});
+			expect(result.months).toBeNull();
+		});
+
+		it("should treat null APR as 0% interest", () => {
+			const result = calculatePayoffProjection({
+				balanceInCents: 120000,
+				aprBasisPoints: null,
+				monthlyPaymentInCents: 10000,
+			});
+			expect(result.months).toBe(12);
+			expect(result.totalInterestInCents).toBe(0);
 		});
 	});
 

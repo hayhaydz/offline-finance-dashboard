@@ -1,4 +1,5 @@
 import { devLog } from "$lib/server/logger";
+import { MS_PER_MONTH } from "$lib/utils/time-constants";
 import type { PayoffProjection } from "$lib/types/debt";
 export type { PayoffProjection } from "$lib/types/debt";
 
@@ -8,66 +9,58 @@ export type { PayoffProjection } from "$lib/types/debt";
  * All monetary values are in pence (cents). APR is in basis points
  * (e.g. 249 = 2.49%).
  *
- * @param balanceInCents  Current balance in pence (use absolute value for debt)
- * @param aprBasisPoints  APR in basis points (249 = 2.49%)
- * @param monthlyPaymentInCents  Monthly payment in pence
- * @throws  When the monthly payment is too small to ever cover the interest charge
+ * Returns nullable fields when the debt cannot be paid off (payment too
+ * small to cover interest, or no payment provided). This is the single
+ * consolidated implementation used by both individual debt metrics and
+ * strategy comparisons.
  */
-export function calculatePayoffProjection(
-	balanceInCents: number,
-	aprBasisPoints: number,
-	monthlyPaymentInCents: number,
-): PayoffProjection {
+export function calculatePayoffProjection(params: {
+	balanceInCents: number;
+	aprBasisPoints: number | null;
+	monthlyPaymentInCents: number;
+}): PayoffProjection {
+	const { balanceInCents, aprBasisPoints, monthlyPaymentInCents } = params;
 	const absBalance = Math.abs(balanceInCents);
 
-	if (absBalance === 0) {
-		return {
-			months: 0,
-			projectedPayoffDate: new Date(),
-			totalInterestInCents: 0,
-		};
+	if (absBalance <= 0) {
+		return { months: 0, totalInterestInCents: 0, projectedPayoffDate: new Date() };
+	}
+
+	if (monthlyPaymentInCents <= 0) {
+		return { months: null, totalInterestInCents: null, projectedPayoffDate: null };
+	}
+
+	// Treat null APR as 0% interest
+	if (!aprBasisPoints || aprBasisPoints === 0) {
+		const months = Math.ceil(absBalance / monthlyPaymentInCents);
+		const projectedPayoffDate = new Date(Date.now() + months * MS_PER_MONTH);
+		return { months, totalInterestInCents: 0, projectedPayoffDate };
 	}
 
 	// Convert APR from basis points to monthly decimal rate
 	// e.g. 249 bp -> 2.49% annual -> 0.2075% monthly
-	const monthlyRate = (aprBasisPoints / 100) / 12 / 100;
+	const monthlyRate = aprBasisPoints / 10000 / 12;
 
-	// Zero interest: simple division
-	if (monthlyRate === 0) {
-		const months = Math.ceil(absBalance / monthlyPaymentInCents);
-		const projectedPayoffDate = new Date();
-		projectedPayoffDate.setMonth(projectedPayoffDate.getMonth() + months);
-		return {
-			months,
-			projectedPayoffDate,
-			totalInterestInCents: 0,
-		};
-	}
-
-	// Check that the payment actually reduces the principal
 	const monthlyInterest = absBalance * monthlyRate;
 	if (monthlyPaymentInCents <= monthlyInterest) {
-		const err = new Error(
-			"Payment too small to cover interest. Debt will never be paid off.",
-		);
 		devLog("debtMetrics", "calculatePayoffProjection: payment insufficient", {
 			absBalance,
 			aprBasisPoints,
 			monthlyPaymentInCents,
 			monthlyInterest: Math.round(monthlyInterest),
 		});
-		throw err;
+		return { months: null, totalInterestInCents: null, projectedPayoffDate: null };
 	}
 
 	// Amortization formula: N = -ln(1 - (r * P) / A) / ln(1 + r)
-	const numerator = Math.log(1 - (monthlyRate * absBalance) / monthlyPaymentInCents);
+	const numerator = -Math.log(1 - (monthlyRate * absBalance) / monthlyPaymentInCents);
 	const denominator = Math.log(1 + monthlyRate);
-	const months = Math.ceil(-numerator / denominator);
+	const months = Math.ceil(numerator / denominator);
 
-	const projectedPayoffDate = new Date();
-	projectedPayoffDate.setMonth(projectedPayoffDate.getMonth() + months);
+	const totalPaidInCents = monthlyPaymentInCents * months;
+	const totalInterestInCents = Math.max(0, totalPaidInCents - absBalance);
 
-	const totalInterestInCents = Math.max(0, months * monthlyPaymentInCents - absBalance);
+	const projectedPayoffDate = new Date(Date.now() + months * MS_PER_MONTH);
 
 	return { months, projectedPayoffDate, totalInterestInCents };
 }

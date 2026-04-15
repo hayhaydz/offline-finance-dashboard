@@ -69,10 +69,8 @@ vi.mock("$lib/server/interestRates", () => {
 	return { getCurrentRate, getCurrentRatesForAccounts };
 });
 
-vi.mock("$lib/server/calculations", () => ({
+vi.mock("$lib/utils/tax-year-utils", () => ({
 	calculateProjectedInterestInCents: vi.fn(),
-	getAccountInterestEarned: vi.fn(),
-	getActualInterestEarned: vi.fn(),
 	getUkTaxYearBounds: vi.fn((_date) => ({
 		start: new Date("2025-04-06T00:00:00.000Z"),
 		end: new Date("2026-04-05T23:59:59.999Z"),
@@ -95,15 +93,24 @@ vi.mock("$lib/server/calculations", () => ({
 				? amount
 				: Math.max(0, amount - (band === "basic" ? 100000 : 50000)),
 	})),
+	ISA_ALLOWANCE_IN_CENTS: 20_000_00,
+}));
+
+vi.mock("$lib/server/tax-year-queries", () => ({
+	getAccountInterestEarned: vi.fn(),
+	getActualInterestEarned: vi.fn(),
 }));
 
 import { db } from "$lib/db/client";
 import {
 	calculateProjectedInterestInCents,
-	getActualInterestEarned,
 	getTaxFreeStatus,
 	getUkTaxYearBounds,
-} from "$lib/server/calculations";
+} from "$lib/utils/tax-year-utils";
+import {
+	getAccountInterestEarned,
+	getActualInterestEarned,
+} from "$lib/server/tax-year-queries";
 import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
 import { getCurrentRate } from "$lib/server/interestRates";
 

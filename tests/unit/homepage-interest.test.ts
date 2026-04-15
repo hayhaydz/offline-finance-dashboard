@@ -62,7 +62,7 @@ vi.mock("$lib/server/interestRates", () => ({
 import {
 	getActualInterestByTaxWrapper,
 	getProjectedInterestByTaxWrapper,
-} from "$lib/server/calculations";
+} from "$lib/server/tax-year-queries";
 import { db } from "$lib/db/client";
 
 describe("getActualInterestByTaxWrapper", () => {

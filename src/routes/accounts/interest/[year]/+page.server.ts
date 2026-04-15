@@ -3,7 +3,7 @@ import { eq, inArray } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions, users } from "$lib/db/schema";
-import { getUkTaxYearBounds } from "$lib/server/calculations";
+import { getUkTaxYearBounds } from "$lib/utils/tax-year-utils";
 import { getInterestBreakdownReport } from "$lib/server/interestBreakdown";
 import { devLog, logError } from "$lib/server/logger";
 import type { PageServerLoad } from "./$types";

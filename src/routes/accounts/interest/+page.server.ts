@@ -1,5 +1,5 @@
 import { redirect } from "@sveltejs/kit";
-import { getUkTaxYearBounds } from "$lib/server/calculations";
+import { getUkTaxYearBounds } from "$lib/utils/tax-year-utils";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {

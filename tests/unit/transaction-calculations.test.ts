@@ -3,7 +3,7 @@ import {
 	calculateProjectedInterestInCents,
 	getTaxFreeStatus,
 	getUkTaxYearBounds,
-} from "$lib/server/calculations";
+} from "$lib/utils/tax-year-utils";
 
 describe("getUkTaxYearBounds", () => {
 	it("returns current tax year when date is on/after 6 April", () => {

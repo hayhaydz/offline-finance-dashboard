@@ -20,7 +20,7 @@ import { accounts, accountTransactions } from "$lib/db/schema";
 import {
 	getUkTaxYearBounds,
 	ISA_ALLOWANCE_IN_CENTS,
-} from "$lib/server/calculations";
+} from "$lib/utils/tax-year-utils";
 import { aggregateByKey } from "$lib/server/utils/aggregate";
 import {
 	reconcileBreakdowns,
