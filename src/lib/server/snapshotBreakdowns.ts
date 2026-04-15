@@ -22,7 +22,7 @@ import {
 	getActualInterestBreakdown,
 	getProjectedInterestBreakdown,
 } from "$lib/server/interestBreakdown";
-import { devLog } from "$lib/utils/logger";
+import { devLog } from "$lib/server/logger";
 
 /**
  * ISA allowance breakdown for snapshot storage (standalone with metadata)

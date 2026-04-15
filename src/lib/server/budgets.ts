@@ -6,7 +6,7 @@ import {
 	budgetMonths,
 	spendingCategories,
 } from "$lib/db/schema";
-import { devLog } from "$lib/utils/logger";
+import { devLog } from "$lib/server/logger";
 import type { BudgetConfig, CategoryBreakdown, BudgetStatus } from "$lib/types/budget";
 
 export type { BudgetConfig, CategoryBreakdown, BudgetStatus };

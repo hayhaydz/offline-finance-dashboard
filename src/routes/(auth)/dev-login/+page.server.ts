@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { HOME_ROUTE } from "$lib/constants/routes";
 import { db } from "$lib/db/client";
 import { sessions, users } from "$lib/db/schema";
-import { devLog, logError } from "$lib/utils/logger";
+import { devLog, logError } from "$lib/server/logger";
 
 export async function load({ cookies }) {
 	const appEnv = process.env.APP_ENV || "unknown";

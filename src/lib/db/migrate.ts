@@ -1,7 +1,7 @@
 import path from "node:path";
 import { sql } from "drizzle-orm";
 import { migrate } from "drizzle-orm/better-sqlite3/migrator";
-import { logError } from "$lib/utils/logger";
+import { logError } from "$lib/server/logger";
 import { db as defaultDb } from "./client";
 
 /**

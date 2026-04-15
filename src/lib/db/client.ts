@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3-multiple-ciphers";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import { devLog, logError } from "$lib/utils/logger";
+import { devLog, logError } from "$lib/server/logger";
 import * as schema from "./schema";
 
 // Load environment variables from .env file

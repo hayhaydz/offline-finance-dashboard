@@ -3,7 +3,7 @@ import { and, desc, isNull, lt } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { goals, snapshots } from "$lib/db/schema";
-import { devLog, logError } from "$lib/utils/logger";
+import { devLog, logError } from "$lib/server/logger";
 import {
 	CHECKLIST_ITEMS,
 	currentYearMonth,

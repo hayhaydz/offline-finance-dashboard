@@ -2,7 +2,7 @@ import { redirect, fail } from "@sveltejs/kit";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { accounts, spendingCategories } from "$lib/db/schema";
-import { devLog, logError, logFormData } from "$lib/utils/logger";
+import { devLog, logError, logFormData } from "$lib/server/logger";
 import {
 	getOverlappingTransactions,
 	batchInsertTransactions,

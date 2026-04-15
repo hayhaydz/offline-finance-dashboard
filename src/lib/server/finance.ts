@@ -6,7 +6,7 @@ import {
 	getCurrentBalancesForAccounts,
 	getLatestTransactionDateForAccounts,
 } from "$lib/server/derivedBalances";
-import { devLog } from "$lib/utils/logger";
+import { devLog } from "$lib/server/logger";
 import { formatAccountType } from "$lib/utils/currency";
 
 export interface AccountWithLatestBalance {

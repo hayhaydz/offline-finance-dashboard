@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { accounts } from "$lib/db/schema";
 import { validateUserAccess } from "$lib/auth/row-security";
-import { logError } from "$lib/utils/logger";
+import { logError } from "$lib/server/logger";
 
 export async function requireAccountOwnership(
 	locals: App.Locals,

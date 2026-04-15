@@ -2,12 +2,12 @@ import { error, fail, redirect } from "@sveltejs/kit";
 import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { snapshots } from "$lib/db/schema";
-import { devLog, logError, logFormData } from "$lib/utils/logger";
+import { devLog, logError, logFormData } from "$lib/server/logger";
 import {
 	calculateSnapshotData,
 	getSnapshotByDate,
 	getTodayUTC,
-} from "$lib/utils/snapshots";
+} from "$lib/server/snapshot-utils";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {

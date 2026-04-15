@@ -4,7 +4,7 @@ import { db } from "$lib/db/client";
 import { accounts } from "$lib/db/schema";
 import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
 import { calculateTTZ } from "$lib/utils/debt-calculator";
-import { getCurrentRate } from "$lib/utils/rate-helpers";
+import { getCurrentRate } from "$lib/server/rate-helpers";
 import type { PageServerLoad } from "./$types";
 
 function getDebtStatusLabel(ttz: {

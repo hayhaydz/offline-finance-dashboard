@@ -17,7 +17,7 @@ import {
 import { getDebtGoalProgress } from './goals';
 import type { Alert, AlertSeverity } from '$lib/types/alerts';
 import { calculateISAPacing } from '$lib/server/isaPacing';
-import { logError } from '$lib/utils/logger';
+import { logError } from '$lib/server/logger';
 import { MS_PER_DAY } from '$lib/utils/time-constants';
 
 // ─── Constants ──────────────────────────────────────────────────────────────

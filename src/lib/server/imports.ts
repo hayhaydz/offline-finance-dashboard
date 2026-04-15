@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { accountTransactions, accounts } from "$lib/db/schema";
 import { type TransactionType } from "$lib/utils/csv-parser";
-import { devLog, logError } from "$lib/utils/logger";
+import { devLog, logError } from "$lib/server/logger";
 
 // ---------------------------------------------------------------------------
 // Types

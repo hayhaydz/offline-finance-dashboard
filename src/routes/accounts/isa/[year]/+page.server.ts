@@ -6,7 +6,7 @@ import { accounts, accountTransactions } from "$lib/db/schema";
 import { getUkTaxYearBounds } from "$lib/server/calculations";
 import { getISABreakdownReport } from "$lib/server/isaBreakdown";
 import { calculateISAPacing } from "$lib/server/isaPacing";
-import { devLog, logError } from "$lib/utils/logger";
+import { devLog, logError } from "$lib/server/logger";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {

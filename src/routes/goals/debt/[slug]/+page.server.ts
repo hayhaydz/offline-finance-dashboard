@@ -5,7 +5,7 @@ import { db } from "$lib/db/client";
 import { goals, accountTransactions, goalMilestones, interestRates } from "$lib/db/schema";
 import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
 import { getDebtGoalProgress, checkMilestones } from "$lib/server/goals";
-import { devLog, logError } from "$lib/utils/logger";
+import { devLog, logError } from "$lib/server/logger";
 import { MS_PER_MONTH } from "$lib/utils/time-constants";
 import type { Actions, PageServerLoad } from "./$types";
 

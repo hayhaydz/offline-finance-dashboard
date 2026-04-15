@@ -5,7 +5,7 @@ import { db } from "$lib/db/client";
 import { accounts, goalAllocations, goals } from "$lib/db/schema";
 import { getGoalAccountNetAllocations } from "$lib/server/goals";
 import { parseCurrency } from "$lib/utils/currency";
-import { devLog, logError, logFormData } from "$lib/utils/logger";
+import { devLog, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ params, locals }) => {

@@ -6,7 +6,7 @@ import { db } from "$lib/db/client";
 import { accounts, goals, goalMilestones } from "$lib/db/schema";
 import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
 import { generateDefaultMilestones } from "$lib/server/goals";
-import { devLog, logError, logFormData } from "$lib/utils/logger";
+import { devLog, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {

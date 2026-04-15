@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { monthlyReviews } from "$lib/db/schema";
-import { devLog, logError } from "$lib/utils/logger";
+import { devLog, logError } from "$lib/server/logger";
 import { CHECKLIST_ITEMS, formatYearMonth } from "$lib/utils/reviews";
 
 export type { ChecklistItem } from "$lib/utils/reviews";

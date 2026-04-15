@@ -3,7 +3,7 @@ import { count, desc, eq } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { snapshots } from "$lib/db/schema";
-import { devLog, logError } from "$lib/utils/logger";
+import { devLog, logError } from "$lib/server/logger";
 import { getMostRecentDate, getStaleness } from "$lib/utils/staleness";
 import type { PageServerLoad } from "./$types";
 

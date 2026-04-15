@@ -4,7 +4,7 @@ import { db } from "$lib/db/client";
 import { accountNotes } from "$lib/db/schema";
 import { FIELD_LIMITS } from "$lib/utils/fieldLimits";
 import { sanitizeNoteContent } from "$lib/utils/sanitize";
-import { devLog } from "$lib/utils/logger";
+import { devLog } from "$lib/server/logger";
 
 export interface CreateNoteData {
 	accountId: number;

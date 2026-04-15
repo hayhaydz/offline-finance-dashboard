@@ -2,7 +2,7 @@ import { redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { sessions } from "$lib/db/schema";
-import { devLog, logError } from "$lib/utils/logger";
+import { devLog, logError } from "$lib/server/logger";
 
 export const actions = {
 	default: async ({ cookies, locals }) => {

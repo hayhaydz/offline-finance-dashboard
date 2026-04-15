@@ -30,7 +30,7 @@ vi.mock('$lib/server/goals', () => ({
 	getDebtGoalProgress: vi.fn(),
 }));
 
-vi.mock('$lib/utils/logger', () => ({
+vi.mock('$lib/server/logger', () => ({
 	logError: vi.fn(),
 }));
 
@@ -149,7 +149,7 @@ describe('getGoalListAlerts', () => {
 	it('returns empty array and logs error on failure', async () => {
 		const { getGoalListAlerts } = await import('$lib/server/alerts');
 		const { db } = await import('$lib/db/client');
-		const { logError } = await import('$lib/utils/logger');
+		const { logError } = await import('$lib/server/logger');
 
 		vi.mocked(db.query.goals.findMany).mockRejectedValue(new Error('DB down'));
 

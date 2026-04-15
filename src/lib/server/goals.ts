@@ -3,7 +3,7 @@ import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, goalAllocations, goals } from "$lib/db/schema";
 import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
-import { devLog } from "$lib/utils/logger";
+import { devLog } from "$lib/server/logger";
 import { MS_PER_DAY, MS_PER_MONTH } from "$lib/utils/time-constants";
 import type {
 	AccountAllocationWithLiquidity,

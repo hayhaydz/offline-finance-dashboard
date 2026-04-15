@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { db } from "$lib/db/client";
 import { accounts, interestRates } from "$lib/db/schema";
-import { getCurrentRate } from "./rate-helpers";
+import { getCurrentRate } from "$lib/server/rate-helpers";
 
 describe("getCurrentRate", () => {
 	let testAccountId: number;

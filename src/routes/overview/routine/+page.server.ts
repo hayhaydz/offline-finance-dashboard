@@ -4,7 +4,7 @@ import {
 	currentYearMonth,
 	getReviewHistory,
 } from "$lib/server/reviews";
-import { devLog } from "$lib/utils/logger";
+import { devLog } from "$lib/server/logger";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {

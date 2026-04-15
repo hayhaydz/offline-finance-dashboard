@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { generateSecret, generateURI, verify } from "otplib";
 import QRCode from "qrcode";
-import { logError } from "$lib/utils/logger";
+import { logError } from "$lib/server/logger";
 
 // Generate TOTP secret for user (base32 encoded)
 export function generateTOTPSecret(): string {

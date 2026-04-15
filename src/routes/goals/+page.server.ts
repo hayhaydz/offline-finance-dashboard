@@ -12,7 +12,7 @@ import {
 	isVerboseDebug,
 	logError,
 	logFormData,
-} from "$lib/utils/logger";
+} from "$lib/server/logger";
 import { getGoalListAlerts } from "$lib/server/alerts";
 import { calculateDebtStrategyMetrics } from "$lib/server/debt-strategy";
 import { getMostRecentDate, getStaleness } from "$lib/utils/staleness";

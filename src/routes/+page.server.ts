@@ -25,7 +25,7 @@ import {
 	calculatePagination,
 	parsePagination,
 } from "$lib/server/utils/pagination";
-import { devLog, isVerboseDebug, logError } from "$lib/utils/logger";
+import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 import { getStaleness } from "$lib/utils/staleness";
 import type { Actions, PageServerLoad } from "./$types";
 

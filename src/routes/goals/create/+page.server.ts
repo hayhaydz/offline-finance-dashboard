@@ -8,7 +8,7 @@ import {
 	requireDateISO,
 	FIELD_LIMITS,
 } from "$lib/server/validation";
-import { devLog, logError, logFormData } from "$lib/utils/logger";
+import { devLog, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {

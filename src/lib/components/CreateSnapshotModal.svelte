@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import type { SnapshotPreviewData } from '$lib/utils/snapshots';
+	import type { SnapshotPreviewData } from '$lib/types/snapshots';
 	import { formatCurrencyShorthand } from '$lib/utils/currency';
 	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 

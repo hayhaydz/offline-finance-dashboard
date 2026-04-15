@@ -4,7 +4,7 @@ import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { goals } from "$lib/db/schema";
 import { calculateReadyToAssign } from "$lib/server/goals";
-import { devLog } from "$lib/utils/logger";
+import { devLog } from "$lib/server/logger";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, url }) => {

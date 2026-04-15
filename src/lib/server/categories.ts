@@ -2,7 +2,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { spendingCategories } from "$lib/db/schema";
-import { devLog, logError } from "$lib/utils/logger";
+import { devLog, logError } from "$lib/server/logger";
 import { isValidHexColour } from "$lib/utils/category-colours";
 
 export interface CreateCategoryData {

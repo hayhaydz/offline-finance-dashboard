@@ -23,7 +23,7 @@ import {
 	calculatePagination,
 	parsePagination,
 } from "$lib/server/utils/pagination";
-import { devLog, logError } from "$lib/utils/logger";
+import { devLog, logError } from "$lib/server/logger";
 import { MS_PER_DAY } from "$lib/utils/time-constants";
 import { isTaxFreeWrapper } from "$lib/utils/tax-classification";
 import type { Actions, PageServerLoad } from "./$types";

@@ -7,7 +7,11 @@ import {
 	calculateInterestBreakdown,
 	calculateISAAllowanceBreakdown,
 } from "$lib/server/snapshotBreakdowns";
-import { devLog } from "$lib/utils/logger";
+import { devLog } from "$lib/server/logger";
+import type { SnapshotPreviewData } from "$lib/types/snapshots";
+
+// Re-export type for consumers that import from this module
+export type { SnapshotPreviewData };
 
 /**
  * Calculate current snapshot data from accounts and goals
@@ -16,7 +20,7 @@ import { devLog } from "$lib/utils/logger";
 export async function calculateSnapshotData(
 	userId: number,
 	snapshotDate?: Date,
-) {
+): Promise<SnapshotPreviewData> {
 	const effectiveDate = snapshotDate ?? new Date();
 	devLog("calculateSnapshotData", "Calculating snapshot data", {
 		userId,
@@ -145,10 +149,3 @@ export function getTodayUTC(): string {
 	return today.toISOString().split("T")[0];
 }
 
-/**
- * Type for snapshot preview data
- * Exported for use in CreateSnapshotModal component
- */
-export type SnapshotPreviewData = Awaited<
-	ReturnType<typeof calculateSnapshotData>
->;

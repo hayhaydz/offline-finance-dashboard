@@ -5,7 +5,7 @@ import { encryptTOTPSecret, generateTOTPSecret } from "$lib/auth/mfa";
 import { hashPassword } from "$lib/auth/password";
 import { db } from "$lib/db/client";
 import { users } from "$lib/db/schema";
-import { devLog, logError, logFormData } from "$lib/utils/logger";
+import { devLog, logError, logFormData } from "$lib/server/logger";
 
 export const actions = {
 	default: async ({ request, cookies }) => {

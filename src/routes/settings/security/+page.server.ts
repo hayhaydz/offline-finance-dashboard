@@ -4,7 +4,7 @@ import { generateBackupCodes } from "$lib/auth/mfa";
 import { hashPassword, verifyPassword } from "$lib/auth/password";
 import { db } from "$lib/db/client";
 import { backupCodes, sessions, users } from "$lib/db/schema";
-import { devLog, logError, logFormData } from "$lib/utils/logger";
+import { devLog, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {

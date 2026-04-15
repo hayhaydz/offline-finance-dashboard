@@ -2,7 +2,7 @@ import { and, asc, desc, eq, inArray, lte } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { type Account, interestRates } from "$lib/db/schema";
 import { formatRate } from "$lib/utils/formatting";
-import { devLog, logError } from "$lib/utils/logger";
+import { devLog, logError } from "$lib/server/logger";
 
 export interface CreateInterestRateData {
 	accountId: number;

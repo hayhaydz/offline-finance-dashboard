@@ -1,4 +1,4 @@
-import { devLog } from "$lib/utils/logger";
+import { devLog } from "$lib/server/logger";
 import type { PayoffProjection } from "$lib/types/debt";
 export type { PayoffProjection } from "$lib/types/debt";
 

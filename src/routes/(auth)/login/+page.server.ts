@@ -11,7 +11,7 @@ import {
 	recordFailedAttempt,
 	recordSuccessfulAttempt,
 } from "$lib/security/rate-limiter";
-import { devLog, logError, logFormData } from "$lib/utils/logger";
+import { devLog, logError, logFormData } from "$lib/server/logger";
 
 export async function load({ cookies }) {
 	const appEnv = process.env.APP_ENV || "unknown";

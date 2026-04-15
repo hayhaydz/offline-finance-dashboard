@@ -9,7 +9,7 @@ import {
 	calculateReadyToAssign,
 } from "$lib/server/goals";
 import { parseCurrency } from "$lib/utils/currency";
-import { devLog, logError, logFormData } from "$lib/utils/logger";
+import { devLog, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 // Extended type for accounts with unallocated and balances

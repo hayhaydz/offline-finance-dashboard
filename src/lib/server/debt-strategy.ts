@@ -1,4 +1,4 @@
-import { devLog } from "$lib/utils/logger";
+import { devLog } from "$lib/server/logger";
 import { MS_PER_MONTH } from "$lib/utils/time-constants";
 import type {
 	DebtGoalInput,
