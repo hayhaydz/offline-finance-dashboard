@@ -1,3 +1,70 @@
+## [2026-04-15] — refactor: route UI decomposition (Phase 6)
+
+**Summary:** Decomposed 3 largest route page components into focused sub-components and extracted 9 shared UI components + 2 composables. Eliminated ~285 lines of duplicated pagination boilerplate across 10+ files.
+
+**New utilities:**
+- `src/lib/utils/use-url-pagination.svelte.ts` — Svelte 5 composable for URL-synced pagination state
+- `src/lib/utils/use-submit-feedback.svelte.ts` — Svelte 5 composable for form submission feedback
+
+**New shared components:**
+- `src/lib/components/SectionHeader.svelte` — Reusable section header (35+ instances consolidated)
+- `src/lib/components/KpiCard.svelte` + `StatGrid.svelte` — KPI stat display cards
+- `src/lib/components/TaxYearNav.svelte` — Tax year prev/next navigation
+- `src/lib/components/SystemIntegrityCheck.svelte` — Reconciliation status display
+- `src/lib/components/BreakdownPanel.svelte` — Tab panel container for breakdown tables
+- `src/lib/components/SubmitFeedback.svelte` — Form success/error feedback banner
+- `src/lib/components/account/AccountHeader.svelte` — Account metadata display
+- `src/lib/components/account/InterestRatesSection.svelte` — Rate CRUD + projections
+- `src/lib/components/account/DebtProjectionSection.svelte` — Simulator + scenarios + projection table
+- `src/lib/components/account/MonthlyBalancesSection.svelte` — Balance history table
+- `src/lib/components/account/NotesSection.svelte` — Notes CRUD
+- `src/lib/components/account/TransactionsSection.svelte` — Transaction display + edit
+- `src/lib/components/interest/InterestProjectionTable.svelte` — Projection assumptions table
+- `src/lib/components/isa/IsaPacingSection.svelte` — ISA subscription pacing
+
+**Refactored pages:**
+- `routes/accounts/[slug]/+page.svelte` — 1,650 → 328 lines (-80%)
+- `routes/accounts/interest/[year]/+page.svelte` — 839 → 493 lines (-41%)
+- `routes/accounts/isa/[year]/+page.svelte` — 763 → 500 lines (-34%)
+
+**Pagination migration:** 12 route files migrated from inline boilerplate to `useUrlPagination` composable.
+
+**Verification:** `npm run check` (0 errors), `npm test` (385/385 pass)
+
+**Suggested commit:** `refactor: route UI decomposition — Phase 6 complete`
+
+## [2026-04-15] — refactor: migrate remaining pagination consumers — Phase 6 Task 9
+
+**Summary:** Migrated the last inline pagination consumer (`routes/goals/[slug]/+page.svelte`) to `useUrlPagination`. Replaced 58 lines of manual pagination boilerplate (2 sections: `allocPage` + `srcPage`) with two composable calls (~10 lines).
+
+**Modified files:**
+- `src/routes/goals/[slug]/+page.svelte` — replaced inline `$state`/`$effect`/`goto` pagination with `useUrlPagination('allocPage')` and `useUrlPagination('srcPage')`. Removed unused `$app/navigation` and `$app/state` imports.
+
+**Suggested commit:** `refactor: migrate remaining pages to useUrlPagination — Phase 6`
+
+## [2026-04-15] — refactor: decompose interest year page using shared components — Phase 6 Task 7
+
+**Summary:** Decomposed the interest year page (`accounts/interest/[year]/+page.svelte`) to use shared components from Phase 6 Tasks 1-5. Extracted projection table into a standalone component.
+
+**New files:**
+- `src/lib/components/interest/InterestProjectionTable.svelte` — self-contained projection assumptions table with internal sort/pagination (93 lines)
+
+**Modified files:**
+- `src/routes/accounts/interest/[year]/+page.svelte` — reduced from ~742 to 493 lines using TaxYearNav, StatGrid+KpiCard, BreakdownPanel (snippet tables), SystemIntegrityCheck, SectionHeader
+- `src/lib/components/index.ts` — added InterestProjectionTable export
+
+**Shared components used:**
+- `TaxYearNav` — tax year prev/next navigation
+- `StatGrid` + `KpiCard` — 5 KPI cards (Posted, Estimated, Forecast, PSA Now, PSA Forecast)
+- `BreakdownPanel` — tab-based breakdown with 4 snippet table contents
+- `SystemIntegrityCheck` — reconciliation status display
+- `SectionHeader` — section titles with sort toggles
+- `InterestProjectionTable` — extracted projection assumptions table
+
+**Verification:** `npm run check` (0 errors), `npm test` (385/385 pass)
+
+**Suggested commit message:** `refactor: decompose interest year page using shared components — Phase 6`
+
 ## [2026-04-15] — refactor: server-side decomposition (Phase 5)
 
 **Summary:** Decomposed 6 large single-file modules into focused sub-modules and extracted pure calculations from DB-access code. All consumer imports preserved via barrel re-exports — zero breaking changes across 80+ consumers.

@@ -1,7 +1,6 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
-  import { page as pageState } from '$app/state';
   import { formatCurrency, formatDateShorthand, formatAccountType } from "$lib/utils/currency";
+  import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
   import { formatDays, getOnTrackClass, formatTaxWrapper } from "$lib/utils/formatting";
   import { getStaleness } from "$lib/utils/staleness";
   import { DISPLAY_LIMITS, truncateDisplay } from "$lib/utils/fieldLimits";
@@ -44,63 +43,17 @@
 
   let allocTableRef: HTMLElement | null = $state(null);
   let srcAccountsRef: HTMLElement | null = $state(null);
-  let allocPage = $state(0);
-  let srcPage = $state(0);
-  let isUpdatingAllocPage = $state(false);
-  let isUpdatingSrcPage = $state(false);
 
-  async function updateAllocPage(newPage: number) {
-    if (isUpdatingAllocPage) return;
-    isUpdatingAllocPage = true;
-    allocPage = newPage;
-    const url = new URL(pageState.url);
-    if (newPage + 1 !== 1) {
-      url.searchParams.set('allocPage', String(newPage + 1));
-    } else {
-      url.searchParams.delete('allocPage');
-    }
-    await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
-    isUpdatingAllocPage = false;
-  }
+  const allocPagination = useUrlPagination('allocPage');
+  const srcPagination = useUrlPagination('srcPage');
 
-  async function updateSrcPage(newPage: number) {
-    if (isUpdatingSrcPage) return;
-    isUpdatingSrcPage = true;
-    srcPage = newPage;
-    const url = new URL(pageState.url);
-    if (newPage + 1 !== 1) {
-      url.searchParams.set('srcPage', String(newPage + 1));
-    } else {
-      url.searchParams.delete('srcPage');
-    }
-    await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
-    isUpdatingSrcPage = false;
-  }
-
+  // Sync from server data (initial + navigation)
   $effect(() => {
-    if (isUpdatingAllocPage) return;
-    allocPage = data.allocPage;
+    allocPagination.page = data.allocPage;
   });
 
   $effect(() => {
-    if (isUpdatingSrcPage) return;
-    srcPage = data.srcPage;
-  });
-
-  $effect(() => {
-    if (isUpdatingAllocPage) return;
-    const urlPage = Number(pageState.url.searchParams.get('allocPage')) || 1;
-    if (allocPage !== urlPage - 1) {
-      allocPage = urlPage - 1;
-    }
-  });
-
-  $effect(() => {
-    if (isUpdatingSrcPage) return;
-    const urlPage = Number(pageState.url.searchParams.get('srcPage')) || 1;
-    if (srcPage !== urlPage - 1) {
-      srcPage = urlPage - 1;
-    }
+    srcPagination.page = data.srcPage;
   });
 
   const staleness = $derived(getStaleness(new Date(data.goal.updatedAt)));
@@ -201,9 +154,9 @@
       </tbody>
     </table>
     <PaginationClient
-      page={srcPage}
+      page={srcPagination.page}
       totalPages={data.srcTotalPages}
-      onPageChange={updateSrcPage}
+      onPageChange={srcPagination.updatePage}
       scrollTarget={srcAccountsRef}
     />
   </div>
@@ -514,9 +467,9 @@
       </table>
     {/if}
     <PaginationClient
-      page={allocPage}
+      page={allocPagination.page}
       totalPages={data.allocTotalPages}
-      onPageChange={updateAllocPage}
+      onPageChange={allocPagination.updatePage}
       scrollTarget={allocTableRef}
     />
   </div>

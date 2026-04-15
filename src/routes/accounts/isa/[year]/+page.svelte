@@ -3,84 +3,80 @@
 	import { formatTaxWrapper, getMonthName, renderProgressBar } from '$lib/utils/formatting';
 	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
+	import BreakdownPanel from '$lib/components/BreakdownPanel.svelte';
+	import KpiCard from '$lib/components/KpiCard.svelte';
+	import SectionHeader from '$lib/components/SectionHeader.svelte';
+	import StatGrid from '$lib/components/StatGrid.svelte';
+	import SystemIntegrityCheck from '$lib/components/SystemIntegrityCheck.svelte';
+	import TaxYearNav from '$lib/components/TaxYearNav.svelte';
+	import IsaPacingSection from '$lib/components/isa/IsaPacingSection.svelte';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
 
-	// Tab/accordion state for breakdown sections
+	// Tab state for breakdown sections
 	let activeBreakdown = $state<'account' | 'month' | 'institution' | 'wrapper'>('account');
 
-	// Helper function to format date range
-	function formatDateRange(start: Date, end: Date): string {
-		const startStr = formatDateShorthand(start);
-		const endStr = formatDateShorthand(end);
-		return `${startStr} to ${endStr}`;
-	}
-
-	// Pagination state for transactions
+	// Pagination (URL-synced)
 	const txPagination = useUrlPagination('txPage');
+	const breakdownsPagination = useUrlPagination('breakdownsPage');
 	const TRANSACTIONS_PER_PAGE = 25;
+	const BREAKDOWNS_PER_PAGE = 10;
 
-	// Filtering state for transactions
+	// Transaction filtering
 	let filterAccountId = $state<number | null>(null);
-	let filterMonth = $state<number | null>(null); // 1-12
+	let filterMonth = $state<number | null>(null);
 	let filterYear = $state<number | null>(null);
 	let filterInstitution = $state<string | null>(null);
 	let filterTaxWrapper = $state<string | null>(null);
-
-	// Sort state for transactions (default: date ascending)
 	let transactionsSortDesc = $state(false);
 
-	// Scroll targets for pagination
+	// Scroll targets
 	let transactionsSectionRef: HTMLElement | null = $state(null);
 	let breakdownsSectionRef: HTMLElement | null = $state(null);
 
-	// Derived filtered transactions (deposits only for allowance tracking)
+	// Filtered → sorted → paginated transaction pipeline (deposits only)
 	const filteredTransactions = $derived.by(() => {
 		return data.actual.transactions.filter(tx => {
 			if (tx.type !== 'deposit') return false;
-
 			if (filterAccountId !== null && tx.accountId !== filterAccountId) return false;
 			if (filterMonth !== null && tx.transactionDate.getUTCMonth() + 1 !== filterMonth) return false;
 			if (filterYear !== null && tx.transactionDate.getUTCFullYear() !== filterYear) return false;
 			if (filterInstitution !== null && tx.accountInstitution !== filterInstitution) return false;
 			if (filterTaxWrapper !== null && tx.accountTaxWrapper !== filterTaxWrapper) return false;
-
 			return true;
 		});
 	});
 
 	const sortedTransactions = $derived.by(() => {
 		const txs = [...filteredTransactions];
-		if (transactionsSortDesc) {
-			txs.reverse();
-		}
+		if (transactionsSortDesc) txs.reverse();
 		return txs;
 	});
 
-	// Paginated transactions
 	const paginatedTransactions = $derived.by(() => {
 		const start = txPagination.page * TRANSACTIONS_PER_PAGE;
-		const end = start + TRANSACTIONS_PER_PAGE;
-		return sortedTransactions.slice(start, end);
+		return sortedTransactions.slice(start, start + TRANSACTIONS_PER_PAGE);
 	});
 
 	const totalTransactionPages = $derived(Math.ceil(sortedTransactions.length / TRANSACTIONS_PER_PAGE));
 
-	// Breakdown pagination state
-	const breakdownsPagination = useUrlPagination('breakdownsPage');
-	const BREAKDOWNS_PER_PAGE = 10;
+	// Breakdown sort states
+	let accountsSortDesc = $state(true);
+	let monthsSortDesc = $state(false);
+	let institutionsSortDesc = $state(true);
+	let wrappersSortDesc = $state(true);
 
-	// Reset breakdown page when tab changes or sorts change
+	// Reset breakdown page when tab or sorts change
 	$effect(() => {
+		const _ = { activeBreakdown, accountsSortDesc, monthsSortDesc, institutionsSortDesc, wrappersSortDesc };
 		breakdownsPagination.page = 0;
 	});
 
-	// Reset page when filters change
+	// Reset tx page when filters change
 	$effect(() => {
+		const _ = { filterAccountId, filterMonth, filterYear, filterInstitution, filterTaxWrapper };
 		txPagination.page = 0;
-
-		// Scroll to transactions if a filter was applied
 		if (filterAccountId !== null || filterMonth !== null || filterInstitution !== null || filterTaxWrapper !== null) {
 			const anchor = document.getElementById('transactions-anchor');
 			if (anchor) anchor.scrollIntoView({ behavior: 'smooth' });
@@ -103,89 +99,94 @@
 		if (filterMonth !== null && filterYear !== null) {
 			return `Month: ${getMonthName(filterMonth)} ${filterYear}`;
 		}
-		if (filterInstitution !== null) {
-			return `Institution: ${filterInstitution}`;
-		}
-		if (filterTaxWrapper !== null) {
-			return `Wrapper: ${formatTaxWrapper(filterTaxWrapper)}`;
-		}
+		if (filterInstitution !== null) return `Institution: ${filterInstitution}`;
+		if (filterTaxWrapper !== null) return `Wrapper: ${formatTaxWrapper(filterTaxWrapper)}`;
 		return null;
 	});
 
-	// Sort state for account breakdown (default: amount descending)
-	let accountsSortDesc = $state(true);
+	// Breakdown sort + pagination
 	const sortedAccounts = $derived.by(() => {
-		const accounts = [...data.actual.byAccount];
-		accounts.sort((a, b) => accountsSortDesc ? b.total - a.total : a.total - b.total);
-		return accounts;
+		const items = [...data.actual.byAccount];
+		items.sort((a, b) => accountsSortDesc ? b.total - a.total : a.total - b.total);
+		return items;
 	});
-
-	const paginatedAccounts = $derived(sortedAccounts.slice(breakdownsPagination.page * BREAKDOWNS_PER_PAGE, (breakdownsPagination.page + 1) * BREAKDOWNS_PER_PAGE));
-	const totalAccountPages = $derived(Math.ceil(sortedAccounts.length / BREAKDOWNS_PER_PAGE));
-
-	// Sort state for month breakdown (default: chronological)
-	let monthsSortDesc = $state(false);
 	const sortedMonths = $derived.by(() => {
-		const months = [...data.actual.byMonth];
-		months.sort((a, b) => {
+		const items = [...data.actual.byMonth];
+		items.sort((a, b) => {
 			if (a.year !== b.year) return monthsSortDesc ? b.year - a.year : a.year - b.year;
 			return monthsSortDesc ? b.month - a.month : a.month - b.month;
 		});
-		return months;
+		return items;
 	});
-
-	const paginatedMonths = $derived(sortedMonths.slice(breakdownsPagination.page * BREAKDOWNS_PER_PAGE, (breakdownsPagination.page + 1) * BREAKDOWNS_PER_PAGE));
-	const totalMonthPages = $derived(Math.ceil(sortedMonths.length / BREAKDOWNS_PER_PAGE));
-
-	// Sort state for institution breakdown (default: amount descending)
-	let institutionsSortDesc = $state(true);
 	const sortedInstitutions = $derived.by(() => {
-		const institutions = [...data.actual.byInstitution];
-		institutions.sort((a, b) => institutionsSortDesc ? b.total - a.total : a.total - b.total);
-		return institutions;
+		const items = [...data.actual.byInstitution];
+		items.sort((a, b) => institutionsSortDesc ? b.total - a.total : a.total - b.total);
+		return items;
 	});
-
-	const paginatedInstitutions = $derived(sortedInstitutions.slice(breakdownsPagination.page * BREAKDOWNS_PER_PAGE, (breakdownsPagination.page + 1) * BREAKDOWNS_PER_PAGE));
-	const totalInstitutionPages = $derived(Math.ceil(sortedInstitutions.length / BREAKDOWNS_PER_PAGE));
-
-	// Sort state for wrapper breakdown (default: amount descending)
-	let wrappersSortDesc = $state(true);
 	const sortedWrappers = $derived.by(() => {
-		const wrappers = [...data.actual.byTaxWrapper];
-		wrappers.sort((a, b) => wrappersSortDesc ? b.total - a.total : a.total - b.total);
-		return wrappers;
+		const items = [...data.actual.byTaxWrapper];
+		items.sort((a, b) => wrappersSortDesc ? b.total - a.total : a.total - b.total);
+		return items;
 	});
 
-	const paginatedWrappers = $derived(sortedWrappers.slice(breakdownsPagination.page * BREAKDOWNS_PER_PAGE, (breakdownsPagination.page + 1) * BREAKDOWNS_PER_PAGE));
+	const bp = $derived(breakdownsPagination.page * BREAKDOWNS_PER_PAGE);
+	const paginatedAccounts = $derived(sortedAccounts.slice(bp, bp + BREAKDOWNS_PER_PAGE));
+	const paginatedMonths = $derived(sortedMonths.slice(bp, bp + BREAKDOWNS_PER_PAGE));
+	const paginatedInstitutions = $derived(sortedInstitutions.slice(bp, bp + BREAKDOWNS_PER_PAGE));
+	const paginatedWrappers = $derived(sortedWrappers.slice(bp, bp + BREAKDOWNS_PER_PAGE));
+
+	const totalAccountPages = $derived(Math.ceil(sortedAccounts.length / BREAKDOWNS_PER_PAGE));
+	const totalMonthPages = $derived(Math.ceil(sortedMonths.length / BREAKDOWNS_PER_PAGE));
+	const totalInstitutionPages = $derived(Math.ceil(sortedInstitutions.length / BREAKDOWNS_PER_PAGE));
 	const totalWrapperPages = $derived(Math.ceil(sortedWrappers.length / BREAKDOWNS_PER_PAGE));
 
-	// Tax year selector logic
+	// Tax year nav
 	const currentYearSlug = $derived(data.meta.taxYearStart.getUTCFullYear() + '-' + String(data.meta.taxYearEnd.getUTCFullYear()).slice(-2));
 
-	const currentIndex = $derived(data.availableTaxYears.findIndex(ty => ty.slug === currentYearSlug));
+	// Integrity check data
+	const integrityChecks = $derived([
+		{ label: 'Account cross-check', ok: data.reconciliation.totalVsByAccountDelta === 0, detail: data.reconciliation.totalVsByAccountDelta !== 0 ? formatCurrency(data.reconciliation.totalVsByAccountDelta) : undefined },
+		{ label: 'Monthly sum validation', ok: data.reconciliation.totalVsByMonthDelta === 0, detail: data.reconciliation.totalVsByMonthDelta !== 0 ? formatCurrency(data.reconciliation.totalVsByMonthDelta) : undefined },
+		{ label: 'Transaction reconciliation', ok: data.reconciliation.totalVsTransactionsDelta === 0, detail: data.reconciliation.totalVsTransactionsDelta !== 0 ? formatCurrency(data.reconciliation.totalVsTransactionsDelta) : undefined },
+	]);
+	const integrityFlags = $derived(data.reconciliation.flags.map(f => `[${f.type.toUpperCase()}] ${f.message}`));
 
-	const prevYear = $derived(currentIndex < data.availableTaxYears.length - 1 ? data.availableTaxYears[currentIndex + 1] : null);
-	const nextYear = $derived(currentIndex > 0 ? data.availableTaxYears[currentIndex - 1] : null);
+	// Utilization color helper
+	const utilizationColor = $derived(
+		data.meta.utilizationPercent >= 90 ? 'text-red-700'
+			: data.meta.utilizationPercent >= 75 ? 'text-amber-700'
+				: 'text-green-700'
+	);
+	const statusLabel = $derived(
+		data.meta.overAllowance ? 'EXCEEDED'
+			: data.meta.utilizationPercent >= 90 ? 'NEAR LIMIT'
+				: data.meta.utilizationPercent >= 75 ? 'ON TRACK'
+					: 'HEALTHY'
+	);
+	const statusColor = $derived(
+		data.meta.overAllowance ? 'text-red-700'
+			: data.meta.utilizationPercent >= 90 ? 'text-amber-700'
+				: data.meta.utilizationPercent >= 75 ? 'text-yellow-700'
+					: 'text-green-700'
+	);
 
-
-	// Derived sort label based on active breakdown
-	const sortLabel = $derived(() => {
-		switch (activeBreakdown) {
-			case 'account':
-				return accountsSortDesc ? 'Low-High' : 'High-Low';
-			case 'month':
-				return monthsSortDesc ? 'Newest-Oldest' : 'Oldest-Newest';
-			case 'institution':
-				return institutionsSortDesc ? 'Low-High' : 'High-Low';
-			case 'wrapper':
-				return wrappersSortDesc ? 'Low-High' : 'High-Low';
-			default:
-				return 'Sort';
-		}
+	// Breakdown sort label helper
+	const breakdownSortLabel = $derived.by(() => {
+		if (activeBreakdown === 'account') return accountsSortDesc ? 'Low-High' : 'High-Low';
+		if (activeBreakdown === 'month') return monthsSortDesc ? 'Newest-Oldest' : 'Oldest-Newest';
+		if (activeBreakdown === 'institution') return institutionsSortDesc ? 'Low-High' : 'High-Low';
+		return wrappersSortDesc ? 'Low-High' : 'High-Low';
 	});
+
+	function toggleBreakdownSort() {
+		if (activeBreakdown === 'account') accountsSortDesc = !accountsSortDesc;
+		else if (activeBreakdown === 'month') monthsSortDesc = !monthsSortDesc;
+		else if (activeBreakdown === 'institution') institutionsSortDesc = !institutionsSortDesc;
+		else wrappersSortDesc = !wrappersSortDesc;
+	}
 </script>
 
-<!-- HEADER SECTION -->
+<!-- HEADER -->
 <div class="border-b border-black p-2 flex justify-between items-start">
 	<div>
 		<h1 class="text-lg font-bold m-0 uppercase">ISA Subscription Breakdown</h1>
@@ -193,464 +194,265 @@
 			Tax Year: {data.meta.taxYearStart.getUTCFullYear()}-{String(data.meta.taxYearEnd.getUTCFullYear()).slice(-2)}
 		</div>
 		<div class="text-xs text-gray-600">
-			As of {formatDateShorthand(data.meta.asOfDate)} • {data.meta.daysRemainingInTaxYear} days remaining in tax year
+			As of {formatDateShorthand(data.meta.asOfDate)} &bull; {data.meta.daysRemainingInTaxYear} days remaining in tax year
 		</div>
 	</div>
 	<div class="flex flex-col items-end gap-2">
 		<div class="flex gap-2 mb-1">
 			<a href="/accounts/isa/all" class="bracket-link text-xs">[All Years]</a>
 		</div>
-		<div class="text-[10px] uppercase font-bold text-gray-600">Tax Year</div>
-		<div class="flex gap-1 items-center">
-			{#if prevYear}
-				<a href="/accounts/isa/{prevYear.slug}" class="bracket-link text-xs" data-sveltekit-noscroll>[Prev]</a>
-			{/if}
-			<span class="bracket-link bg-black text-white text-xs px-1">{currentYearSlug}</span>
-			{#if nextYear}
-				<a href="/accounts/isa/{nextYear.slug}" class="bracket-link text-xs" data-sveltekit-noscroll>[Next]</a>
-			{/if}
-		</div>
+		<TaxYearNav availableYears={data.availableTaxYears} currentSlug={currentYearSlug} basePath="/accounts/isa" />
 	</div>
 </div>
 
-<!-- KPI CARDS SECTION -->
+<!-- KPI CARDS -->
 <div class="border-b border-black">
-	<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-		<!-- Total Subscribed -->
-		<div class="border-r border-black p-2">
-			<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Total Subscribed</div>
-			<div class="text-lg font-bold text-green-700">{formatCurrency(data.meta.allowanceUsed)}</div>
-			<div class="text-[10px] text-gray-600 mt-1">
-				of {formatCurrency(data.meta.allowanceInCents)} allowance
-			</div>
-		</div>
-
-		<!-- Allowance Remaining -->
-		<div class="border-r border-black p-2">
-			<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Allowance Remaining</div>
-			<div class="text-lg font-bold {data.meta.allowanceRemaining > 0 ? 'text-green-700' : 'text-red-700'}">
-				{formatCurrency(data.meta.allowanceRemaining)}
-			</div>
-			<div class="text-[10px] text-gray-600 mt-1">
-				{data.meta.allowanceRemaining > 0 ? 'available to subscribe' : 'allowance exceeded'}
-			</div>
-		</div>
-
-		<!-- Utilization -->
-		<div class="border-r border-black p-2">
-			<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Utilization</div>
-			<div class="text-lg font-bold {data.meta.utilizationPercent >= 90 ? 'text-red-700' : data.meta.utilizationPercent >= 75 ? 'text-amber-700' : 'text-green-700'}">
-				{data.meta.utilizationPercent}%
-			</div>
-			<div class="text-[10px] text-mono mt-1 text-gray-600">
-				{renderProgressBar(data.meta.allowanceUsed, data.meta.allowanceInCents)}
-			</div>
-		</div>
-
-		<!-- Warning Status -->
-		<div class="p-2">
-			<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Status</div>
-			{#if data.meta.overAllowance}
-				<div class="text-sm font-bold text-red-700">
-					EXCEEDED
-				</div>
-			{:else if data.meta.utilizationPercent >= 90}
-				<div class="text-sm font-bold text-amber-700">
-					NEAR LIMIT
-				</div>
-			{:else if data.meta.utilizationPercent >= 75}
-				<div class="text-sm font-bold text-yellow-700">
-					ON TRACK
-				</div>
-			{:else}
-				<div class="text-sm font-bold text-green-700">
-					HEALTHY
-				</div>
-			{/if}
-			<div class="text-[10px] text-gray-600 mt-1">
-				{data.meta.daysRemainingInTaxYear} days left
-			</div>
-		</div>
-	</div>
+	<StatGrid cols={4}>
+		<KpiCard
+			label="Total Subscribed"
+			value={formatCurrency(data.meta.allowanceUsed)}
+			color="text-green-700"
+			detail="of {formatCurrency(data.meta.allowanceInCents)} allowance"
+		/>
+		<KpiCard
+			label="Allowance Remaining"
+			value={formatCurrency(data.meta.allowanceRemaining)}
+			color={data.meta.allowanceRemaining > 0 ? 'text-green-700' : 'text-red-700'}
+			detail={data.meta.allowanceRemaining > 0 ? 'available to subscribe' : 'allowance exceeded'}
+		/>
+		<KpiCard
+			label="Utilization"
+			value={`${data.meta.utilizationPercent}%`}
+			color={utilizationColor}
+			detail={renderProgressBar(data.meta.allowanceUsed, data.meta.allowanceInCents)}
+		/>
+		<KpiCard
+			label="Status"
+			value={statusLabel}
+			color={statusColor}
+			detail="{data.meta.daysRemainingInTaxYear} days left"
+		/>
+	</StatGrid>
 </div>
 
-<!-- ISA PACING (current tax year only) -->
+<!-- ISA PACING -->
 {#if data.pacing}
-	{@const p = data.pacing}
-	<div class="border-b border-black">
-		<div class="font-bold bg-gray-100 border-b border-black p-2 text-xs uppercase flex justify-between">
-			<span>ISA Pacing — {p.taxYearLabel}</span>
-			<span
-				class="font-bold"
-				class:text-green-700={p.status === 'full' || p.status === 'on-track'}
-				class:text-amber-700={p.status === 'behind'}
-				class:text-gray-400={p.status === 'no-data'}
-			>
-				{p.status === 'full' ? 'FULL' : p.status === 'on-track' ? 'ON TRACK' : p.status === 'behind' ? 'BEHIND' : 'NO DATA'}
-			</span>
-		</div>
-		{#if p.status === 'no-data'}
-			<div class="p-2 text-xs text-gray-500">No ISA deposits recorded this tax year yet.</div>
-		{:else if p.status === 'full'}
-			<div class="p-2 text-xs text-green-700 font-bold">ISA allowance fully used — well done!</div>
-		{:else}
-			<div class="grid grid-cols-2 md:grid-cols-4">
-				<div class="border-r border-black p-2">
-					<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Avg / Month</div>
-					<div class="text-lg font-bold">{formatCurrency(p.actualMonthlyAvgInCents)}</div>
-					<div class="text-[10px] text-gray-500">actual so far</div>
-				</div>
-				<div class="border-r border-black p-2">
-					<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">{p.isLastMonth ? 'Required Total' : 'Required / Month'}</div>
-					<div
-						class="text-lg font-bold"
-						class:text-amber-700={p.status === 'behind'}
-						class:text-green-700={p.status === 'on-track'}
-					>
-						{formatCurrency(p.requiredMonthlyInCents)}
-					</div>
-					<div class="text-[10px] text-gray-500">to reach £20k</div>
-				</div>
-				<div class="border-r border-black p-2">
-					<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Months Elapsed</div>
-					<div class="text-lg font-bold">{p.monthsElapsed}</div>
-					<div class="text-[10px] text-gray-500">
-						{#if p.isLastMonth && p.daysRemainingInTaxYear > 0}
-							{p.daysRemainingInTaxYear}d remaining
-						{:else}
-							{p.monthsRemaining} remaining
-						{/if}
-					</div>
-				</div>
-				<div class="p-2">
-					<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Remaining</div>
-					<div class="text-lg font-bold text-green-700">{formatCurrency(p.allowanceRemainingInCents)}</div>
-					<div class="text-[10px] text-gray-500">{p.daysRemainingInTaxYear}d left</div>
-				</div>
-			</div>
-			{#if p.status === 'behind'}
-				<div class="border-t border-black p-2 text-xs text-amber-700">
-					{#if p.isLastMonth}
-						You need to deposit {formatCurrency(p.allowanceRemainingInCents)} in the next {p.daysRemainingInTaxYear} days to use the full allowance.
-					{:else}
-						You need to deposit an extra {formatCurrency(p.requiredMonthlyInCents - p.actualMonthlyAvgInCents)} / month above your current average to use the full allowance.
-					{/if}
-				</div>
-			{/if}
-		{/if}
-	</div>
+	<IsaPacingSection pacing={data.pacing} />
 {/if}
 
-<!-- BREAKDOWN SECTIONS -->
+<!-- BREAKDOWNS -->
 <div class="border-b border-black">
-	<div class="p-2 font-bold uppercase">Breakdowns</div>
-
-	<!-- Tab buttons (Bracket style) -->
-	<div class="flex justify-between items-center border-b border-black p-2 gap-2">
-		<div class="flex gap-2">
-			<button
-				type="button"
-				class="bracket-link text-xs"
-				class:bg-black={activeBreakdown === 'account'}
-				class:text-white={activeBreakdown === 'account'}
-				onclick={() => activeBreakdown = 'account'}
-			>
-				By Account
-			</button>
-			<button
-				type="button"
-				class="bracket-link text-xs"
-				class:bg-black={activeBreakdown === 'month'}
-				class:text-white={activeBreakdown === 'month'}
-				onclick={() => activeBreakdown = 'month'}
-			>
-				By Month
-			</button>
-			<button
-				type="button"
-				class="bracket-link text-xs"
-				class:bg-black={activeBreakdown === 'institution'}
-				class:text-white={activeBreakdown === 'institution'}
-				onclick={() => activeBreakdown = 'institution'}
-			>
-				By Institution
-			</button>
-			<button
-				type="button"
-				class="bracket-link text-xs"
-				class:bg-black={activeBreakdown === 'wrapper'}
-				class:text-white={activeBreakdown === 'wrapper'}
-				onclick={() => activeBreakdown = 'wrapper'}
-			>
-				By Tax Wrapper
-			</button>
-		</div>
-		<button
-			type="button"
-			class="bracket-link text-xs"
-			onclick={() => {
-				if (activeBreakdown === 'account') accountsSortDesc = !accountsSortDesc;
-				else if (activeBreakdown === 'month') monthsSortDesc = !monthsSortDesc;
-				else if (activeBreakdown === 'institution') institutionsSortDesc = !institutionsSortDesc;
-				else if (activeBreakdown === 'wrapper') wrappersSortDesc = !wrappersSortDesc;
-			}}
-		>
-			{sortLabel()}
-		</button>
-	</div>
-
-	<!-- Account Breakdown -->
-	{#if activeBreakdown === 'account'}
-	<div bind:this={breakdownsSectionRef}>
-			<div class="overflow-x-auto">
-				<table class="w-full">
-					<thead>
-						<tr class="border-b border-black">
-							<th class="pl-3 text-left whitespace-nowrap uppercase text-[10px]">Account</th>
-							<th class="text-left whitespace-nowrap uppercase text-[10px]">Institution</th>
-							<th class="text-left whitespace-nowrap uppercase text-[10px]">Wrapper</th>
-							<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Subscribed</th>
-							<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Deposits</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each paginatedAccounts as account}
-							<tr
-								class="border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50"
-								class:bg-black={filterAccountId === account.accountId}
-								class:text-white={filterAccountId === account.accountId}
-								onclick={() => {
-									if (filterAccountId === account.accountId) filterAccountId = null;
-									else { clearFilters(); filterAccountId = account.accountId; }
-								}}
-							>
-								<td class="pl-3 text-sm whitespace-nowrap">
-									<a href="/accounts/{account.accountSlug}" class="bracket-link text-xs">{account.accountName}</a>
-								</td>
-								<td class="text-sm whitespace-nowrap">{account.accountInstitution || '-'}</td>
-								<td class="text-sm whitespace-nowrap">{formatTaxWrapper(account.accountTaxWrapper)}</td>
-								<td class="text-right pr-3 text-sm tabular-nums whitespace-nowrap" class:text-green-700={filterAccountId !== account.accountId}>
-									{formatCurrency(account.total)}
-								</td>
-								<td class="text-right pr-3 text-sm whitespace-nowrap">{account.transactionCount}</td>
+	<SectionHeader title="Breakdowns" />
+	<BreakdownPanel
+		bind:activeTab={activeBreakdown}
+		sortLabel={breakdownSortLabel}
+		onSortToggle={toggleBreakdownSort}
+	>
+		{#snippet account()}
+			<div bind:this={breakdownsSectionRef}>
+				<div class="overflow-x-auto">
+					<table class="w-full">
+						<thead>
+							<tr class="border-b border-black">
+								<th class="pl-3 text-left whitespace-nowrap uppercase text-[10px]">Account</th>
+								<th class="text-left whitespace-nowrap uppercase text-[10px]">Institution</th>
+								<th class="text-left whitespace-nowrap uppercase text-[10px]">Wrapper</th>
+								<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Subscribed</th>
+								<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Deposits</th>
 							</tr>
-						{/each}
-					</tbody>
-					<tfoot>
-						<tr class="border-t border-black">
-							<td colspan="4" class="pl-3 text-sm font-bold uppercase">Total</td>
-							<td class="text-right pr-3 text-sm tabular-nums font-bold text-green-700">
-								{formatCurrency(data.actual.total)}
-							</td>
-						</tr>
-					</tfoot>
-				</table>
-			</div>
-			<PaginationClient page={breakdownsPagination.page} onPageChange={breakdownsPagination.updatePage} totalPages={totalAccountPages} scrollTarget={breakdownsSectionRef} />
-		</div>
-	{/if}
-
-	<!-- Month Breakdown -->
-	{#if activeBreakdown === 'month'}
-		<div>
-			<div class="overflow-x-auto">
-				<table class="w-full">
-					<thead>
-						<tr class="border-b border-black">
-							<th class="pl-3 text-left whitespace-nowrap uppercase text-[10px]">Month</th>
-							<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Subscribed</th>
-							<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Deposits</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each paginatedMonths as month}
-							<tr
-								class="border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50"
-								class:bg-black={filterMonth === month.month && filterYear === month.year}
-								class:text-white={filterMonth === month.month && filterYear === month.year}
-								onclick={() => {
-									if (filterMonth === month.month && filterYear === month.year) { filterMonth = null; filterYear = null; }
-									else { clearFilters(); filterMonth = month.month; filterYear = month.year; }
-								}}
-							>
-								<td class="pl-3 text-sm whitespace-nowrap">{month.monthName} {month.year}</td>
-								<td class="text-right pr-3 text-sm tabular-nums whitespace-nowrap" class:text-green-700={!(filterMonth === month.month && filterYear === month.year)}>
-									{formatCurrency(month.total)}
-								</td>
-								<td class="text-right pr-3 text-sm whitespace-nowrap">{month.transactionCount}</td>
+						</thead>
+						<tbody>
+							{#each paginatedAccounts as account}
+								<tr
+									class="border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50"
+									class:bg-black={filterAccountId === account.accountId}
+									class:text-white={filterAccountId === account.accountId}
+									onclick={() => {
+										if (filterAccountId === account.accountId) filterAccountId = null;
+										else { clearFilters(); filterAccountId = account.accountId; }
+									}}
+								>
+									<td class="pl-3 text-sm whitespace-nowrap">
+										<a href="/accounts/{account.accountSlug}" class="bracket-link text-xs">{account.accountName}</a>
+									</td>
+									<td class="text-sm whitespace-nowrap">{account.accountInstitution || '-'}</td>
+									<td class="text-sm whitespace-nowrap">{formatTaxWrapper(account.accountTaxWrapper)}</td>
+									<td class="text-right pr-3 text-sm tabular-nums whitespace-nowrap" class:text-green-700={filterAccountId !== account.accountId}>
+										{formatCurrency(account.total)}
+									</td>
+									<td class="text-right pr-3 text-sm whitespace-nowrap">{account.transactionCount}</td>
+								</tr>
+							{/each}
+						</tbody>
+						<tfoot>
+							<tr class="border-t border-black">
+								<td colspan="4" class="pl-3 text-sm font-bold uppercase">Total</td>
+								<td class="text-right pr-3 text-sm tabular-nums font-bold text-green-700">{formatCurrency(data.actual.total)}</td>
 							</tr>
-						{/each}
-					</tbody>
-					<tfoot>
-						<tr class="border-t border-black">
-							<td class="pl-3 text-sm font-bold uppercase">Total</td>
-							<td class="text-right pr-3 text-sm tabular-nums font-bold text-green-700">
-								{formatCurrency(data.actual.total)}
-							</td>
-							<td class="text-right pr-3 text-sm font-bold">{data.actual.transactions.filter(t => t.type === 'deposit').length}</td>
-						</tr>
-					</tfoot>
-				</table>
+						</tfoot>
+					</table>
+				</div>
+				<PaginationClient page={breakdownsPagination.page} onPageChange={breakdownsPagination.updatePage} totalPages={totalAccountPages} scrollTarget={breakdownsSectionRef} />
 			</div>
-			<PaginationClient page={breakdownsPagination.page} onPageChange={breakdownsPagination.updatePage} totalPages={totalMonthPages} scrollTarget={breakdownsSectionRef} />
-		</div>
-	{/if}
+		{/snippet}
 
-	<!-- Institution Breakdown -->
-	{#if activeBreakdown === 'institution'}
-		<div>
-			<div class="overflow-x-auto">
-				<table class="w-full">
-					<thead>
-						<tr class="border-b border-black">
-							<th class="pl-3 text-left whitespace-nowrap uppercase text-[10px]">Institution</th>
-							<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Subscribed</th>
-							<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Deposits</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each paginatedInstitutions as inst}
-							<tr
-								class="border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50"
-								class:bg-black={filterInstitution === inst.institution}
-								class:text-white={filterInstitution === inst.institution}
-								onclick={() => {
-									if (filterInstitution === inst.institution) filterInstitution = null;
-									else { clearFilters(); filterInstitution = inst.institution; }
-								}}
-							>
-								<td class="pl-3 text-sm whitespace-nowrap">{inst.institution}</td>
-								<td class="text-right pr-3 text-sm tabular-nums whitespace-nowrap" class:text-green-700={filterInstitution !== inst.institution}>
-									{formatCurrency(inst.total)}
-								</td>
-								<td class="text-right pr-3 text-sm whitespace-nowrap">{inst.transactionCount}</td>
+		{#snippet month()}
+			<div>
+				<div class="overflow-x-auto">
+					<table class="w-full">
+						<thead>
+							<tr class="border-b border-black">
+								<th class="pl-3 text-left whitespace-nowrap uppercase text-[10px]">Month</th>
+								<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Subscribed</th>
+								<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Deposits</th>
 							</tr>
-						{/each}
-					</tbody>
-					<tfoot>
-						<tr class="border-t border-black">
-							<td class="pl-3 text-sm font-bold uppercase">Total</td>
-							<td class="text-right pr-3 text-sm tabular-nums font-bold text-green-700">
-								{formatCurrency(data.actual.total)}
-							</td>
-							<td class="text-right pr-3 text-sm font-bold">{data.actual.transactions.filter(t => t.type === 'deposit').length}</td>
-						</tr>
-					</tfoot>
-				</table>
+						</thead>
+						<tbody>
+							{#each paginatedMonths as month}
+								<tr
+									class="border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50"
+									class:bg-black={filterMonth === month.month && filterYear === month.year}
+									class:text-white={filterMonth === month.month && filterYear === month.year}
+									onclick={() => {
+										if (filterMonth === month.month && filterYear === month.year) { filterMonth = null; filterYear = null; }
+										else { clearFilters(); filterMonth = month.month; filterYear = month.year; }
+									}}
+								>
+									<td class="pl-3 text-sm whitespace-nowrap">{month.monthName} {month.year}</td>
+									<td class="text-right pr-3 text-sm tabular-nums whitespace-nowrap" class:text-green-700={!(filterMonth === month.month && filterYear === month.year)}>
+										{formatCurrency(month.total)}
+									</td>
+									<td class="text-right pr-3 text-sm whitespace-nowrap">{month.transactionCount}</td>
+								</tr>
+							{/each}
+						</tbody>
+						<tfoot>
+							<tr class="border-t border-black">
+								<td class="pl-3 text-sm font-bold uppercase">Total</td>
+								<td class="text-right pr-3 text-sm tabular-nums font-bold text-green-700">{formatCurrency(data.actual.total)}</td>
+								<td class="text-right pr-3 text-sm font-bold">{data.actual.transactions.filter(t => t.type === 'deposit').length}</td>
+							</tr>
+						</tfoot>
+					</table>
+				</div>
+				<PaginationClient page={breakdownsPagination.page} onPageChange={breakdownsPagination.updatePage} totalPages={totalMonthPages} scrollTarget={breakdownsSectionRef} />
 			</div>
-			<PaginationClient page={breakdownsPagination.page} onPageChange={breakdownsPagination.updatePage} totalPages={totalInstitutionPages} scrollTarget={breakdownsSectionRef} />
-		</div>
-	{/if}
+		{/snippet}
 
-	<!-- Tax Wrapper Breakdown -->
-	{#if activeBreakdown === 'wrapper'}
-		<div>
-			<div class="overflow-x-auto">
-				<table class="w-full">
-					<thead>
-						<tr class="border-b border-black">
-							<th class="pl-3 text-left whitespace-nowrap uppercase text-[10px]">Tax Wrapper</th>
-							<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Subscribed</th>
-							<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Deposits</th>
-						</tr>
-					</thead>
-					<tbody>
-						{#each paginatedWrappers as wrap}
-							<tr
-								class="border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50"
-								class:bg-black={filterTaxWrapper === wrap.taxWrapper}
-								class:text-white={filterTaxWrapper === wrap.taxWrapper}
-								onclick={() => {
-									if (filterTaxWrapper === wrap.taxWrapper) filterTaxWrapper = null;
-									else { clearFilters(); filterTaxWrapper = wrap.taxWrapper; }
-								}}
-							>
-								<td class="pl-3 text-sm whitespace-nowrap uppercase">
-									{wrap.displayName}
-								</td>
-								<td class="text-right pr-3 text-sm tabular-nums whitespace-nowrap" class:text-green-700={filterTaxWrapper !== wrap.taxWrapper}>
-									{formatCurrency(wrap.total)}
-								</td>
-								<td class="text-right pr-3 text-sm whitespace-nowrap">{wrap.transactionCount}</td>
+		{#snippet institution()}
+			<div>
+				<div class="overflow-x-auto">
+					<table class="w-full">
+						<thead>
+							<tr class="border-b border-black">
+								<th class="pl-3 text-left whitespace-nowrap uppercase text-[10px]">Institution</th>
+								<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Subscribed</th>
+								<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Deposits</th>
 							</tr>
-						{/each}
-					</tbody>
-					<tfoot>
-						<tr class="border-t border-black">
-							<td class="pl-3 text-sm font-bold uppercase">Total</td>
-							<td class="text-right pr-3 text-sm tabular-nums font-bold text-green-700">
-								{formatCurrency(data.actual.total)}
-							</td>
-							<td class="text-right pr-3 text-sm font-bold">{data.actual.transactions.filter(t => t.type === 'deposit').length}</td>
-						</tr>
-					</tfoot>
-				</table>
+						</thead>
+						<tbody>
+							{#each paginatedInstitutions as inst}
+								<tr
+									class="border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50"
+									class:bg-black={filterInstitution === inst.institution}
+									class:text-white={filterInstitution === inst.institution}
+									onclick={() => {
+										if (filterInstitution === inst.institution) filterInstitution = null;
+										else { clearFilters(); filterInstitution = inst.institution; }
+									}}
+								>
+									<td class="pl-3 text-sm whitespace-nowrap">{inst.institution}</td>
+									<td class="text-right pr-3 text-sm tabular-nums whitespace-nowrap" class:text-green-700={filterInstitution !== inst.institution}>
+										{formatCurrency(inst.total)}
+									</td>
+									<td class="text-right pr-3 text-sm whitespace-nowrap">{inst.transactionCount}</td>
+								</tr>
+							{/each}
+						</tbody>
+						<tfoot>
+							<tr class="border-t border-black">
+								<td class="pl-3 text-sm font-bold uppercase">Total</td>
+								<td class="text-right pr-3 text-sm tabular-nums font-bold text-green-700">{formatCurrency(data.actual.total)}</td>
+								<td class="text-right pr-3 text-sm font-bold">{data.actual.transactions.filter(t => t.type === 'deposit').length}</td>
+							</tr>
+						</tfoot>
+					</table>
+				</div>
+				<PaginationClient page={breakdownsPagination.page} onPageChange={breakdownsPagination.updatePage} totalPages={totalInstitutionPages} scrollTarget={breakdownsSectionRef} />
 			</div>
-			<PaginationClient page={breakdownsPagination.page} onPageChange={breakdownsPagination.updatePage} totalPages={totalWrapperPages} scrollTarget={breakdownsSectionRef} />
-		</div>
-	{/if}
+		{/snippet}
+
+		{#snippet wrapper()}
+			<div>
+				<div class="overflow-x-auto">
+					<table class="w-full">
+						<thead>
+							<tr class="border-b border-black">
+								<th class="pl-3 text-left whitespace-nowrap uppercase text-[10px]">Tax Wrapper</th>
+								<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Subscribed</th>
+								<th class="text-right pr-3 whitespace-nowrap uppercase text-[10px]">Deposits</th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each paginatedWrappers as wrap}
+								<tr
+									class="border-b border-gray-200 last:border-b-0 cursor-pointer hover:bg-gray-50"
+									class:bg-black={filterTaxWrapper === wrap.taxWrapper}
+									class:text-white={filterTaxWrapper === wrap.taxWrapper}
+									onclick={() => {
+										if (filterTaxWrapper === wrap.taxWrapper) filterTaxWrapper = null;
+										else { clearFilters(); filterTaxWrapper = wrap.taxWrapper; }
+									}}
+								>
+									<td class="pl-3 text-sm whitespace-nowrap uppercase">
+										{wrap.displayName}
+									</td>
+									<td class="text-right pr-3 text-sm tabular-nums whitespace-nowrap" class:text-green-700={filterTaxWrapper !== wrap.taxWrapper}>
+										{formatCurrency(wrap.total)}
+									</td>
+									<td class="text-right pr-3 text-sm whitespace-nowrap">{wrap.transactionCount}</td>
+								</tr>
+							{/each}
+						</tbody>
+						<tfoot>
+							<tr class="border-t border-black">
+								<td class="pl-3 text-sm font-bold uppercase">Total</td>
+								<td class="text-right pr-3 text-sm tabular-nums font-bold text-green-700">{formatCurrency(data.actual.total)}</td>
+								<td class="text-right pr-3 text-sm font-bold">{data.actual.transactions.filter(t => t.type === 'deposit').length}</td>
+							</tr>
+						</tfoot>
+					</table>
+				</div>
+				<PaginationClient page={breakdownsPagination.page} onPageChange={breakdownsPagination.updatePage} totalPages={totalWrapperPages} scrollTarget={breakdownsSectionRef} />
+			</div>
+		{/snippet}
+	</BreakdownPanel>
 </div>
 
 <!-- SYSTEM INTEGRITY CHECK -->
-<div class="border-b border-black">
-	<div class="p-2 font-bold uppercase">System Integrity Check</div>
-	<div class="p-2 font-mono text-[10px] space-y-1 uppercase">
-		<div class="flex justify-between max-w-md">
-			<span>Account cross-check</span>
-			<span class={data.reconciliation.totalVsByAccountDelta === 0 ? 'text-green-700' : 'text-red-700 font-bold'}>
-				{data.reconciliation.totalVsByAccountDelta === 0 ? 'OK' : 'FAIL ' + formatCurrency(data.reconciliation.totalVsByAccountDelta)}
-			</span>
-		</div>
-		<div class="flex justify-between max-w-md">
-			<span>Monthly sum validation</span>
-			<span class={data.reconciliation.totalVsByMonthDelta === 0 ? 'text-green-700' : 'text-red-700 font-bold'}>
-				{data.reconciliation.totalVsByMonthDelta === 0 ? 'OK' : 'FAIL ' + formatCurrency(data.reconciliation.totalVsByMonthDelta)}
-			</span>
-		</div>
-		<div class="flex justify-between max-w-md">
-			<span>Transaction reconciliation</span>
-			<span class={data.reconciliation.totalVsTransactionsDelta === 0 ? 'text-green-700' : 'text-red-700 font-bold'}>
-				{data.reconciliation.totalVsTransactionsDelta === 0 ? 'OK' : 'FAIL ' + formatCurrency(data.reconciliation.totalVsTransactionsDelta)}
-			</span>
-		</div>
+<SystemIntegrityCheck checks={integrityChecks} flags={integrityFlags} flagColor="amber" />
 
-		{#if data.reconciliation.flags.length > 0}
-			<div class="text-amber-700 mt-2 border-l-2 border-amber-700 pl-2 py-1">
-				[!] FLAGS DETECTED
-				<ul class="list-none pl-0 mt-1 space-y-1">
-					{#each data.reconciliation.flags as flag}
-						<li>- [{flag.type.toUpperCase()}] {flag.message}</li>
-					{/each}
-				</ul>
-			</div>
-		{:else}
-			<div class="text-green-700 mt-2 font-bold">
-				NOMINAL OPERATING STATE - ALL RECONCILED ✓
-			</div>
-		{/if}
-	</div>
-</div>
-
-<!-- TAX YEAR ISA SUBSCRIPTION RECORD SECTION -->
+<!-- TRANSACTION LEDGER -->
 <div id="transactions-anchor" bind:this={transactionsSectionRef}>
-	<div class="p-2 font-bold flex justify-between items-center uppercase border-b border-black">
-		<div class="flex flex-col gap-1">
-			<span>Tax Year Subscription Record ({sortedTransactions.length} results)</span>
-			{#if activeFilterLabel}
-				<div class="flex items-center gap-2">
-					<span class="text-[10px] bg-black text-white px-1 font-bold">FILTERED BY {activeFilterLabel.toUpperCase()}</span>
-					<button type="button" class="bracket-link text-[10px] font-bold" onclick={clearFilters}>[Clear Filter]</button>
-				</div>
-			{/if}
-		</div>
-		<button
-			type="button"
-			class="bracket-link text-xs"
-			onclick={() => transactionsSortDesc = !transactionsSortDesc}
-		>
-			{transactionsSortDesc ? 'Oldest First' : 'Newest First'}
-		</button>
-	</div>
+	<SectionHeader title="Tax Year Subscription Record ({sortedTransactions.length} results)">
+		{#snippet action()}
+			<div class="flex items-center gap-3">
+				{#if activeFilterLabel}
+					<div class="flex items-center gap-2">
+						<span class="text-[10px] bg-black text-white px-1 font-bold">FILTERED BY {activeFilterLabel.toUpperCase()}</span>
+						<button type="button" class="bracket-link text-[10px] font-bold" onclick={clearFilters}>[Clear Filter]</button>
+					</div>
+				{/if}
+				<button
+					type="button"
+					class="bracket-link text-xs"
+					onclick={() => transactionsSortDesc = !transactionsSortDesc}
+				>
+					{transactionsSortDesc ? 'Oldest First' : 'Newest First'}
+				</button>
+			</div>
+		{/snippet}
+	</SectionHeader>
 	{#if sortedTransactions.length === 0}
 		<p class="text-gray-600 text-xs p-2 uppercase">No ISA subscriptions posted yet.</p>
 	{:else}
