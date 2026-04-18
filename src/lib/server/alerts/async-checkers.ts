@@ -20,6 +20,7 @@ import { MS_PER_DAY } from '$lib/utils/time-constants';
 import { PSA_BY_BAND, daysUntil, daysSince, makeAccountAlert, makeGlobalAlert } from './constants';
 import type { AccountRow } from './constants';
 import { devLog } from "$lib/server/logger";
+import { formatCents } from "$lib/utils/formatting";
 
 // ─── Async alert checkers ─────────────────────────────────────────────────────
 
@@ -304,8 +305,6 @@ export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
 	const monthSlug = `${year}-${String(month).padStart(2, '0')}`;
 	const href = `/overview/budgets/${monthSlug}`;
 
-	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
-
 	const status = await getBudgetStatus(userId, year, month);
 
 	// No budget configured for current month — skip entirely
@@ -323,7 +322,7 @@ export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
 				'BUDGET_OVERSPEND',
 				'red',
 				'Monthly budget exceeded',
-				`Spent ${fmt(totalSpent)} of ${fmt(target)} budget (${percentOver}% over)`,
+				`Spent ${formatCents(totalSpent)} of ${formatCents(target)} budget (${percentOver}% over)`,
 				href,
 			),
 		);
@@ -336,7 +335,7 @@ export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
 				'BUDGET_PROJECTED_OVERSPEND',
 				'amber',
 				'Budget overspend projected',
-				`Projected to spend ${fmt(projectedTotal)} against a ${fmt(target)} target (${daysRemaining} days remaining)`,
+				`Projected to spend ${formatCents(projectedTotal)} against a ${formatCents(target)} target (${daysRemaining} days remaining)`,
 				href,
 			),
 		);
@@ -359,7 +358,7 @@ export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
 				type: 'CATEGORY_BUDGET_EXCEEDED',
 				severity: 'amber',
 				title: `${cat.name} over budget`,
-				message: `Spent ${fmt(cat.spent)}, exceeding the ${fmt(cat.target)} target by ${fmt(over)}`,
+				message: `Spent ${formatCents(cat.spent)}, exceeding the ${formatCents(cat.target)} target by ${formatCents(over)}`,
 				href,
 				triggeredAt: Date.now(),
 			});
@@ -371,7 +370,7 @@ export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
 				type: 'CATEGORY_BUDGET_APPROACHING',
 				severity: 'info',
 				title: `${cat.name} approaching budget`,
-				message: `Spent ${fmt(cat.spent)} of ${fmt(cat.target)} (${Math.round(pct)}%)`,
+				message: `Spent ${formatCents(cat.spent)} of ${formatCents(cat.target)} (${Math.round(pct)}%)`,
 				href,
 				triggeredAt: Date.now(),
 			});
@@ -388,7 +387,7 @@ export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
 					'HIGH_UNCATEGORISED_SPEND',
 					'amber',
 					'High uncategorised spending',
-					`${Math.round(uncategorisedPct)}% of spending (${fmt(uncategorisedEntry.spent)}) is uncategorised this month`,
+					`${Math.round(uncategorisedPct)}% of spending (${formatCents(uncategorisedEntry.spent)}) is uncategorised this month`,
 					href,
 				),
 			);
@@ -398,7 +397,7 @@ export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
 					'HIGH_UNCATEGORISED_SPEND',
 					'info',
 					'High uncategorised spending',
-					`${Math.round(uncategorisedPct)}% of spending (${fmt(uncategorisedEntry.spent)}) is uncategorised this month`,
+					`${Math.round(uncategorisedPct)}% of spending (${formatCents(uncategorisedEntry.spent)}) is uncategorised this month`,
 					href,
 				),
 			);
@@ -411,7 +410,6 @@ export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
 export async function checkNetWorthAlerts(userId: number): Promise<Alert[]> {
 	devLog("checkNetWorthAlerts", "Checking net worth alerts", { userId });
 	const alerts: Alert[] = [];
-	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
 
 	const rows = await db
 		.select({
@@ -435,7 +433,7 @@ export async function checkNetWorthAlerts(userId: number): Promise<Alert[]> {
 				'NET_WORTH_DECLINING',
 				'amber',
 				'Net worth declining',
-				`Decreased by ${fmt(diff)} since last snapshot (${prev.snapshotDate})`,
+				`Decreased by ${formatCents(diff)} since last snapshot (${prev.snapshotDate})`,
 				'/overview/snapshots',
 			),
 		);
@@ -470,7 +468,6 @@ export async function checkNetWorthAlerts(userId: number): Promise<Alert[]> {
 export async function checkDebtPayoffAlerts(userId: number): Promise<Alert[]> {
 	devLog("checkDebtPayoffAlerts", "Checking debt payoff alerts", { userId });
 	const alerts: Alert[] = [];
-	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
 
 	const openLiabilities = await db
 		.select()
@@ -551,7 +548,7 @@ export async function checkDebtPayoffAlerts(userId: number): Promise<Alert[]> {
 					'DEBT_NEVER_PAYS_OFF',
 					'red',
 					`${account.name} — debt growing`,
-					`Monthly payment (${fmt(Math.round(avgMonthlyPayment))}) doesn't cover interest (${fmt(Math.round(monthlyInterest))})`,
+					`Monthly payment (${formatCents(Math.round(avgMonthlyPayment))}) doesn't cover interest (${formatCents(Math.round(monthlyInterest))})`,
 					account,
 				),
 			);
@@ -564,7 +561,6 @@ export async function checkDebtPayoffAlerts(userId: number): Promise<Alert[]> {
 export async function checkGoalAutoReduceAlerts(userId: number): Promise<Alert[]> {
 	devLog("checkGoalAutoReduceAlerts", "Checking goal auto-reduce alerts", { userId });
 	const alerts: Alert[] = [];
-	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
 
 	const sevenDaysAgo = new Date();
 	sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -592,7 +588,7 @@ export async function checkGoalAutoReduceAlerts(userId: number): Promise<Alert[]
 			type: 'GOAL_AUTO_REDUCE_TRIGGERED',
 			severity: 'red',
 			title: `${r.goalName} allocation reduced`,
-			message: `${fmt(Math.abs(r.amount))} automatically unallocated due to negative account balance`,
+			message: `${formatCents(Math.abs(r.amount))} automatically unallocated due to negative account balance`,
 			href: '/goals',
 			triggeredAt: Date.now(),
 		});
@@ -604,7 +600,6 @@ export async function checkGoalAutoReduceAlerts(userId: number): Promise<Alert[]
 export async function checkISAPacingAlerts(userId: number): Promise<Alert[]> {
 	devLog("checkISAPacingAlerts", "Checking ISA pacing alerts", { userId });
 	const alerts: Alert[] = [];
-	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
 
 	const pacing = await calculateISAPacing(userId);
 
@@ -619,7 +614,7 @@ export async function checkISAPacingAlerts(userId: number): Promise<Alert[]> {
 			'ISA_PACING_BEHIND',
 			'info',
 			'ISA contributions behind pace',
-			`Deposited ${fmt(deposited)} of ${fmt(target)} — ${fmt(monthlyNeeded)}/month needed to reach limit`,
+			`Deposited ${formatCents(deposited)} of ${formatCents(target)} — ${formatCents(monthlyNeeded)}/month needed to reach limit`,
 			'/accounts',
 		),
 	);
@@ -631,7 +626,6 @@ export async function checkLISAAlerts(userId: number): Promise<Alert[]> {
 	devLog("checkLISAAlerts", "Checking LISA alerts", { userId });
 	const alerts: Alert[] = [];
 	const now = new Date();
-	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
 	const { start: taxYearStart } = getUkTaxYearBounds(now);
 
 	const lisaAccounts = await db.query.accounts.findMany({
@@ -678,7 +672,7 @@ export async function checkLISAAlerts(userId: number): Promise<Alert[]> {
 					'LISA_CONTRIBUTION_LIMIT',
 					'amber',
 					`${account.name} — LISA limit exceeded`,
-					`Deposited ${fmt(deposited)} of £4,000 limit this tax year`,
+					`Deposited ${formatCents(deposited)} of £4,000 limit this tax year`,
 					account,
 				),
 			);
@@ -777,7 +771,6 @@ export async function checkBoERateAlerts(userId: number): Promise<Alert[]> {
 export async function checkOrphanedTransfers(userId: number): Promise<Alert[]> {
 	devLog("checkOrphanedTransfers", "Checking orphaned transfers", { userId });
 	const alerts: Alert[] = [];
-	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
 
 	const thirtyDaysAgo = new Date();
 	thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -837,7 +830,7 @@ export async function checkOrphanedTransfers(userId: number): Promise<Alert[]> {
 			if (!account) continue;
 
 			const txDate = new Date(txDateMs);
-			const formattedAmount = fmt(Math.abs(tx.amount));
+			const formattedAmount = formatCents(Math.abs(tx.amount));
 			const formattedDate = txDate.toLocaleDateString('en-GB');
 
 			alerts.push(

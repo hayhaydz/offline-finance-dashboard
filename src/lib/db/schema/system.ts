@@ -269,9 +269,9 @@ export const budgetMonths = sqliteTable(
 			.references(() => users.id),
 		month: text("month").notNull(), // "2026-04" (YYYY-MM)
 		totalTargetInCents: integer("total_target_in_cents").notNull().default(0),
-		excludedCategoryIds: text("excluded_category_ids").notNull().default("[]"), // JSON array
-		excludedAccountIds: text("excluded_account_ids").notNull().default("[]"), // JSON array
-		categoryTargets: text("category_targets").notNull().default("{}"), // JSON object: categoryId → cents
+		excludedCategoryIds: text("excluded_category_ids", { mode: "json" }).$type<number[]>().notNull().default([]),
+		excludedAccountIds: text("excluded_account_ids", { mode: "json" }).$type<number[]>().notNull().default([]),
+		categoryTargets: text("category_targets", { mode: "json" }).$type<Record<string, number>>().notNull().default({}),
 		createdAt: integer("created_at", { mode: "timestamp" })
 			.notNull()
 			.default(sql`CURRENT_TIMESTAMP`),

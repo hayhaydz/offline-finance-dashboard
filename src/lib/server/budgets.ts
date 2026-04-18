@@ -18,9 +18,9 @@ export const UNCATEGORISED_ID = -1;
 function parseBudgetConfig(row: typeof budgetMonths.$inferSelect): BudgetConfig {
 	return {
 		totalTargetInCents: row.totalTargetInCents,
-		excludedCategoryIds: JSON.parse(row.excludedCategoryIds) as number[],
-		excludedAccountIds: JSON.parse(row.excludedAccountIds) as number[],
-		categoryTargets: JSON.parse(row.categoryTargets) as Record<number, number>,
+		excludedCategoryIds: row.excludedCategoryIds,
+		excludedAccountIds: row.excludedAccountIds,
+		categoryTargets: row.categoryTargets,
 	};
 }
 
@@ -340,9 +340,9 @@ export async function saveBudgetRow(
 			userId,
 			month: monthStr,
 			totalTargetInCents: updates.totalTargetInCents ?? 0,
-			excludedCategoryIds: updates.excludedCategoryIds ?? "[]",
-			excludedAccountIds: updates.excludedAccountIds ?? "[]",
-			categoryTargets: updates.categoryTargets ?? "{}",
+			excludedCategoryIds: updates.excludedCategoryIds ?? [],
+			excludedAccountIds: updates.excludedAccountIds ?? [],
+			categoryTargets: updates.categoryTargets ?? {},
 		});
 	}
 }

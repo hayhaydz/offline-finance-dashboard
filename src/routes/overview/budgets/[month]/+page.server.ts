@@ -1,7 +1,9 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { and, eq, isNull } from "drizzle-orm";
+import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, spendingCategories } from "$lib/db/schema";
+import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import { parseCurrency } from "$lib/utils/currency";
 import { logFormData } from "$lib/server/logger";
 import {
@@ -110,12 +112,12 @@ export const actions: Actions = {
 
 			const row = await getBudgetRow(locals.user.id, monthStr);
 			const existingTargets = row
-				? JSON.parse(row.categoryTargets) as Record<string, number>
+				? row.categoryTargets
 				: {};
 
 			await saveBudgetRow(locals.user.id, monthStr, {
 				totalTargetInCents: amountInCents,
-				categoryTargets: JSON.stringify(existingTargets),
+				categoryTargets: existingTargets,
 			});
 
 			return { success: true };
@@ -148,7 +150,7 @@ export const actions: Actions = {
 		const row = await getBudgetRow(locals.user.id, monthStr);
 		if (!row) return fail(400, { error: "No budget set for this month" });
 
-		const targets = JSON.parse(row.categoryTargets) as Record<string, number>;
+		const targets = row.categoryTargets;
 
 		if (amountStr && amountStr !== "0") {
 			try {
@@ -168,7 +170,7 @@ export const actions: Actions = {
 
 		await saveBudgetRow(locals.user.id, monthStr, {
 			totalTargetInCents: totalTarget,
-			categoryTargets: JSON.stringify(targets),
+			categoryTargets: targets,
 		});
 
 		return { success: true };
@@ -200,8 +202,8 @@ export const actions: Actions = {
 		const row = await getBudgetRow(locals.user.id, monthStr);
 		if (!row) return fail(400, { error: "No budget set" });
 
-		const excluded = JSON.parse(row.excludedCategoryIds) as number[];
-		const targets = JSON.parse(row.categoryTargets) as Record<string, number>;
+		const excluded = row.excludedCategoryIds;
+		const targets = row.categoryTargets;
 
 		if (included) {
 			const idx = excluded.indexOf(categoryId);
@@ -214,8 +216,8 @@ export const actions: Actions = {
 		const totalTarget = Object.values(targets).reduce((sum, v) => sum + v, 0);
 
 		await saveBudgetRow(locals.user.id, monthStr, {
-			excludedCategoryIds: JSON.stringify(excluded),
-			categoryTargets: JSON.stringify(targets),
+			excludedCategoryIds: excluded,
+			categoryTargets: targets,
 			totalTargetInCents: totalTarget,
 		});
 
@@ -244,7 +246,7 @@ export const actions: Actions = {
 		const row = await getBudgetRow(locals.user.id, monthStr);
 		if (!row) return fail(400, { error: "No budget set" });
 
-		const excluded = JSON.parse(row.excludedAccountIds) as number[];
+		const excluded = row.excludedAccountIds;
 
 		if (included) {
 			const idx = excluded.indexOf(accountId);
@@ -254,7 +256,7 @@ export const actions: Actions = {
 		}
 
 		await saveBudgetRow(locals.user.id, monthStr, {
-			excludedAccountIds: JSON.stringify(excluded),
+			excludedAccountIds: excluded,
 		});
 
 		return { success: true };

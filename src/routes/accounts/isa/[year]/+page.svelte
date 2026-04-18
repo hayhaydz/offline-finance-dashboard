@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { formatCurrency, formatDateShorthand } from '$lib/utils/currency';
-	import { formatTaxWrapper, getMonthName, renderProgressBar } from '$lib/utils/formatting';
+	import { formatTaxWrapper, renderProgressBar } from '$lib/utils/formatting';
 	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
-	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import BreakdownPanel from '$lib/components/BreakdownPanel.svelte';
 	import KpiCard from '$lib/components/KpiCard.svelte';
+	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import StatGrid from '$lib/components/StatGrid.svelte';
 	import SystemIntegrityCheck from '$lib/components/SystemIntegrityCheck.svelte';
 	import TaxYearNav from '$lib/components/TaxYearNav.svelte';
+	import TransactionFilterBar from '$lib/components/TransactionFilterBar.svelte';
 	import IsaPacingSection from '$lib/components/isa/IsaPacingSection.svelte';
 	import type { PageData } from './$types';
 
@@ -18,48 +19,26 @@
 	let activeBreakdown = $state<'account' | 'month' | 'institution' | 'wrapper'>('account');
 
 	// Pagination (URL-synced)
-	const txPagination = useUrlPagination('txPage');
 	const breakdownsPagination = useUrlPagination('breakdownsPage');
-	const TRANSACTIONS_PER_PAGE = 25;
 	const BREAKDOWNS_PER_PAGE = 10;
 
-	// Transaction filtering
+	// Transaction filtering (shared with TransactionFilterBar via bindable props)
 	let filterAccountId = $state<number | null>(null);
 	let filterMonth = $state<number | null>(null);
 	let filterYear = $state<number | null>(null);
 	let filterInstitution = $state<string | null>(null);
 	let filterTaxWrapper = $state<string | null>(null);
-	let transactionsSortDesc = $state(false);
 
 	// Scroll targets
-	let transactionsSectionRef: HTMLElement | null = $state(null);
 	let breakdownsSectionRef: HTMLElement | null = $state(null);
 
-	// Filtered → sorted → paginated transaction pipeline (deposits only)
-	const filteredTransactions = $derived.by(() => {
-		return data.actual.transactions.filter(tx => {
-			if (tx.type !== 'deposit') return false;
-			if (filterAccountId !== null && tx.accountId !== filterAccountId) return false;
-			if (filterMonth !== null && tx.transactionDate.getUTCMonth() + 1 !== filterMonth) return false;
-			if (filterYear !== null && tx.transactionDate.getUTCFullYear() !== filterYear) return false;
-			if (filterInstitution !== null && tx.accountInstitution !== filterInstitution) return false;
-			if (filterTaxWrapper !== null && tx.accountTaxWrapper !== filterTaxWrapper) return false;
-			return true;
-		});
-	});
-
-	const sortedTransactions = $derived.by(() => {
-		const txs = [...filteredTransactions];
-		if (transactionsSortDesc) txs.reverse();
-		return txs;
-	});
-
-	const paginatedTransactions = $derived.by(() => {
-		const start = txPagination.page * TRANSACTIONS_PER_PAGE;
-		return sortedTransactions.slice(start, start + TRANSACTIONS_PER_PAGE);
-	});
-
-	const totalTransactionPages = $derived(Math.ceil(sortedTransactions.length / TRANSACTIONS_PER_PAGE));
+	function clearFilters() {
+		filterAccountId = null;
+		filterMonth = null;
+		filterYear = null;
+		filterInstitution = null;
+		filterTaxWrapper = null;
+	}
 
 	// Breakdown sort states
 	let accountsSortDesc = $state(true);
@@ -71,37 +50,6 @@
 	$effect(() => {
 		const _ = { activeBreakdown, accountsSortDesc, monthsSortDesc, institutionsSortDesc, wrappersSortDesc };
 		breakdownsPagination.page = 0;
-	});
-
-	// Reset tx page when filters change
-	$effect(() => {
-		const _ = { filterAccountId, filterMonth, filterYear, filterInstitution, filterTaxWrapper };
-		txPagination.page = 0;
-		if (filterAccountId !== null || filterMonth !== null || filterInstitution !== null || filterTaxWrapper !== null) {
-			const anchor = document.getElementById('transactions-anchor');
-			if (anchor) anchor.scrollIntoView({ behavior: 'smooth' });
-		}
-	});
-
-	function clearFilters() {
-		filterAccountId = null;
-		filterMonth = null;
-		filterYear = null;
-		filterInstitution = null;
-		filterTaxWrapper = null;
-	}
-
-	const activeFilterLabel = $derived.by(() => {
-		if (filterAccountId !== null) {
-			const acc = data.actual.byAccount.find(a => a.accountId === filterAccountId);
-			return `Account: ${acc?.accountName || 'Unknown'}`;
-		}
-		if (filterMonth !== null && filterYear !== null) {
-			return `Month: ${getMonthName(filterMonth)} ${filterYear}`;
-		}
-		if (filterInstitution !== null) return `Institution: ${filterInstitution}`;
-		if (filterTaxWrapper !== null) return `Wrapper: ${formatTaxWrapper(filterTaxWrapper)}`;
-		return null;
 	});
 
 	// Breakdown sort + pagination
@@ -433,29 +381,21 @@
 <SystemIntegrityCheck checks={integrityChecks} flags={integrityFlags} flagColor="amber" />
 
 <!-- TRANSACTION LEDGER -->
-<div id="transactions-anchor" bind:this={transactionsSectionRef}>
-	<SectionHeader title="Tax Year Subscription Record ({sortedTransactions.length} results)">
-		{#snippet action()}
-			<div class="flex items-center gap-3">
-				{#if activeFilterLabel}
-					<div class="flex items-center gap-2">
-						<span class="text-[10px] bg-black text-white px-1 font-bold">FILTERED BY {activeFilterLabel.toUpperCase()}</span>
-						<button type="button" class="bracket-link text-[10px] font-bold" onclick={clearFilters}>[Clear Filter]</button>
-					</div>
-				{/if}
-				<button
-					type="button"
-					class="bracket-link text-xs"
-					onclick={() => transactionsSortDesc = !transactionsSortDesc}
-				>
-					{transactionsSortDesc ? 'Oldest First' : 'Newest First'}
-				</button>
-			</div>
-		{/snippet}
-	</SectionHeader>
-	{#if sortedTransactions.length === 0}
-		<p class="text-gray-600 text-xs p-2 uppercase">No ISA subscriptions posted yet.</p>
-	{:else}
+<TransactionFilterBar
+	transactions={data.actual.transactions}
+	typeFilter={(tx) => tx.type === 'deposit'}
+	perPage={25}
+	byAccount={data.actual.byAccount}
+	title="Tax Year Subscription Record"
+	emptyMessage="No ISA subscriptions posted yet."
+	technicalNote="Running total shows cumulative ISA subscription since April 6th. Only deposits count toward the £20,000 allowance. Transfers between ISAs are tracked but do not consume additional allowance."
+	bind:filterAccountId
+	bind:filterMonth
+	bind:filterYear
+	bind:filterInstitution
+	bind:filterTaxWrapper
+>
+	{#snippet children({ paginatedTransactions })}
 		<div class="overflow-x-auto">
 			<table class="min-w-[800px] w-full">
 				<thead>
@@ -490,11 +430,5 @@
 				</tbody>
 			</table>
 		</div>
-		<div class="border-t border-black empty:hidden">
-			<PaginationClient page={txPagination.page} totalPages={totalTransactionPages} onPageChange={txPagination.updatePage} scrollTarget={transactionsSectionRef} />
-		</div>
-	{/if}
-	<div class="p-2 text-[10px] text-gray-600 border-t border-black uppercase font-mono">
-		[TECHNICAL NOTE] Running total shows cumulative ISA subscription since April 6th. Only deposits count toward the £20,000 allowance. Transfers between ISAs are tracked but do not consume additional allowance.
-	</div>
-</div>
+	{/snippet}
+</TransactionFilterBar>

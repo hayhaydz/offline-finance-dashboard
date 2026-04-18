@@ -1,8 +1,9 @@
 import { redirect } from "@sveltejs/kit";
+import { requireAuth } from "$lib/server/utils/auth-guard";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user) redirect(302, "/login");
+	requireAuth(locals);
 
 	const now = new Date();
 	const month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;

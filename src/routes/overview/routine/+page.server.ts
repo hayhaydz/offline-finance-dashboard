@@ -1,24 +1,21 @@
-import { redirect } from "@sveltejs/kit";
 import {
 	calculateStreak,
 	currentYearMonth,
 	getReviewHistory,
 } from "$lib/server/reviews";
+import { requireAuth } from "$lib/server/utils/auth-guard";
 import { devLog } from "$lib/server/logger";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user) {
-		devLog("review", "Unauthenticated user, redirecting to login");
-		redirect(302, "/login");
-	}
+	const { id } = requireAuth(locals);
 
-	const history = await getReviewHistory(locals.user.id);
+	const history = await getReviewHistory(id);
 	const streak = calculateStreak(history);
 	const thisMonth = currentYearMonth();
 
 	devLog("review", "Loaded review index", {
-		userId: locals.user.id,
+		userId: id,
 		historyCount: history.length,
 		currentStreak: streak.currentStreak,
 	});

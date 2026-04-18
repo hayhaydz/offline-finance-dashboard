@@ -6,6 +6,22 @@
  * implementation — route files should import rather than redefining locally.
  */
 
+// ── Currency Formatting (alert messages) ──────────────────────
+
+/**
+ * Format a value in pence/cents as a GBP string for alert messages.
+ *
+ * Unlike `formatCurrency` (which uses Intl.NumberFormat for UI display),
+ * this uses `toLocaleString('en-GB')` — matching the inline lambdas
+ * previously scattered across async-checkers.
+ *
+ * @param cents - Value in pence (e.g. 12345 = £123.45)
+ * @returns Formatted string like "£123.45" or "£1,000"
+ */
+export function formatCents(cents: number): string {
+	return `£${(cents / 100).toLocaleString('en-GB')}`;
+}
+
 // ── Tax Wrapper Formatting ─────────────────────────────────────
 
 /**
