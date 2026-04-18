@@ -34,9 +34,11 @@ import type { Actions, PageServerLoad } from "./$types";
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const user = requireAuth(locals);
 
-	devLog("homePage", "Loading net worth data for user", {
+	if (isVerboseDebug()) {
+		devLog("homePage", "Loading net worth data for user", {
 		userId: user.id,
-	});
+		});
+	}
 
 	// Pagination for goals
 	const GOALS_PAGE_SIZE = 10;
@@ -74,9 +76,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		lastUpdated: latestTransactionDates.get(account.id) ?? null,
 	}));
 
-	devLog("homePage", "Fetched user accounts", {
+	if (isVerboseDebug()) {
+		devLog("homePage", "Fetched user accounts", {
 		accountCount: userAccounts.length,
-	});
+		});
+	}
 
 	// Fetch paginated goals for homepage preview
 	const userGoals = await db.query.goals.findMany({
@@ -185,7 +189,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		}),
 	);
 
-	devLog("homePage", "Fetched user goals", { goalCount: activeGoals.length });
+	if (isVerboseDebug()) {
+		devLog("homePage", "Fetched user goals", { goalCount: activeGoals.length });
+	}
 
 	// Calculate net worth summary (shared utility)
 	const netWorthSummary = await getNetWorthSummary(user.id);
@@ -306,37 +312,43 @@ export const actions: Actions = {
 		}
 
 		if (typeUpdates.size === 0) {
-			devLog("updateExclusions", "No valid type updates in form data");
-			return fail(400, { error: "No account types selected" });
+			if (isVerboseDebug()) {
+				devLog("updateExclusions", "No valid type updates in form data");
+				return fail(400, { error: "No account types selected" });
+			}
 		}
 
-		devLog("updateExclusions", "Processing type-level exclusion updates", {
+		if (isVerboseDebug()) {
+			devLog("updateExclusions", "Processing type-level exclusion updates", {
 			userId: user.id,
 			typeCount: typeUpdates.size,
 			typeUpdates: Array.from(typeUpdates.entries()).map(
-				([type, excluded]) => ({ type, excluded }),
+			([type, excluded]) => ({ type, excluded }),
 			),
-		});
+			});
+		}
 
 		if (isVerboseDebug()) {
 			const beforeUpdate = await db.query.accounts.findMany({
 				where: withUserFilter(user.id, accounts),
 				columns: { id: true, type: true, excludedFromNetWorth: true },
 			});
-			devLog("updateExclusions", "Database state BEFORE update", {
+			if (isVerboseDebug()) {
+				devLog("updateExclusions", "Database state BEFORE update", {
 				accountsExcludedByType: beforeUpdate.reduce(
-					(acc, a) => {
-						if (a.excludedFromNetWorth) {
-							acc[a.type] = (acc[a.type] || 0) + 1;
-						}
-						return acc;
-					},
-					{} as Record<string, number>,
+				(acc, a) => {
+				if (a.excludedFromNetWorth) {
+				acc[a.type] = (acc[a.type] || 0) + 1;
+				}
+				return acc;
+				},
+				{} as Record<string, number>,
 				),
 				totalExcludedTypes: new Set(
-					beforeUpdate.filter((a) => a.excludedFromNetWorth).map((a) => a.type),
+				beforeUpdate.filter((a) => a.excludedFromNetWorth).map((a) => a.type),
 				).size,
-			});
+				});
+			}
 		}
 
 		try {
@@ -357,33 +369,37 @@ export const actions: Actions = {
 				return { success: result.message };
 			}
 
-			devLog("updateExclusions", "Type-based bulk update successful", {
+			if (isVerboseDebug()) {
+				devLog("updateExclusions", "Type-based bulk update successful", {
 				userId: user.id,
 				affectedRows: result.affectedRows,
 				typesUpdated: Array.from(typeUpdates.keys()),
-			});
+				});
+			}
 
 			if (isVerboseDebug()) {
 				const afterUpdate = await db.query.accounts.findMany({
 					where: withUserFilter(user.id, accounts),
 					columns: { id: true, type: true, excludedFromNetWorth: true },
 				});
-				devLog("updateExclusions", "Database state AFTER update", {
+				if (isVerboseDebug()) {
+					devLog("updateExclusions", "Database state AFTER update", {
 					accountsExcludedByType: afterUpdate.reduce(
-						(acc, a) => {
-							if (a.excludedFromNetWorth) {
-								acc[a.type] = (acc[a.type] || 0) + 1;
-							}
-							return acc;
-						},
-						{} as Record<string, number>,
+					(acc, a) => {
+					if (a.excludedFromNetWorth) {
+					acc[a.type] = (acc[a.type] || 0) + 1;
+					}
+					return acc;
+					},
+					{} as Record<string, number>,
 					),
 					totalExcludedTypes: new Set(
-						afterUpdate
-							.filter((a) => a.excludedFromNetWorth)
-							.map((a) => a.type),
+					afterUpdate
+					.filter((a) => a.excludedFromNetWorth)
+					.map((a) => a.type),
 					).size,
-				});
+					});
+				}
 			}
 
 			return { success: result.message };

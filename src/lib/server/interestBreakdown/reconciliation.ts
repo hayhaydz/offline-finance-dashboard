@@ -6,7 +6,7 @@
  */
 
 import { formatCurrency } from "$lib/utils/currency";
-import { devLog } from "$lib/server/logger";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 
 import type {
 	ReconciliationFlag,
@@ -31,12 +31,14 @@ export async function getInterestReconciliationReport(
 	taxYearEnd: Date,
 	asOfDate?: Date,
 ): Promise<InterestReconciliationReport> {
-	devLog("getInterestReconciliationReport", "Running reconciliation", {
-		userId,
-		taxYearStart,
-		taxYearEnd,
-		asOfDate,
-	});
+	if (isVerboseDebug()) {
+		devLog("getInterestReconciliationReport", "Running reconciliation", {
+			userId,
+			taxYearStart,
+			taxYearEnd,
+			asOfDate,
+		});
+	}
 
 	const flags: ReconciliationFlag[] = [];
 
@@ -95,12 +97,7 @@ export async function getInterestReconciliationReport(
 		});
 	}
 
-	devLog("getInterestReconciliationReport", "Reconciliation complete", {
-		actualVsTransactionsDelta,
-		actualVsByAccountDelta,
-		actualVsByMonthDelta,
-		flagCount: flags.length,
-	});
+
 
 	return {
 		actualVsTransactionsDelta,

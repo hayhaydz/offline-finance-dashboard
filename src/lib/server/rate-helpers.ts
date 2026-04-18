@@ -1,7 +1,6 @@
 import { and, desc, eq, lte } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { interestRates } from "$lib/db/schema";
-import { devLog } from "$lib/server/logger";
 
 /**
  * Get the current effective interest rate for an account
@@ -10,7 +9,6 @@ import { devLog } from "$lib/server/logger";
  * @returns Rate in basis points, or 0 if no rate found
  */
 export async function getCurrentRate(accountId: number): Promise<number> {
-	devLog("getCurrentRate", "Fetching current rate", { accountId });
 	const today = new Date();
 
 	// Note: RLS filtering happens at the query layer via withUserFilter

@@ -11,7 +11,7 @@ import {
 	recordFailedAttempt,
 	recordSuccessfulAttempt,
 } from "$lib/security/rate-limiter";
-import { devLog, logError, logFormData } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 
 export async function load({ cookies }) {
 	const appEnv = process.env.APP_ENV || "unknown";
@@ -19,7 +19,7 @@ export async function load({ cookies }) {
 
 	// Auto-login only works in development with DEV_AUTO_LOGIN enabled
 	if (appEnv === "development" && devAutoLogin) {
-		devLog("login", "Development auto-login initiated");
+		if (isVerboseDebug()) devLog("login", "Development auto-login initiated");
 
 		// Find the admin user (created by seed script)
 		const adminUser = await db.query.users.findFirst({
@@ -55,11 +55,13 @@ export async function load({ cookies }) {
 			maxAge: 60 * 60 * 24 * 30, // 30 days in development
 		});
 
-		devLog("login", "Development auto-login successful", {
-			username: adminUser.username,
-			userId: adminUser.id,
-			sessionMaxAge: "30 days",
-		});
+		if (isVerboseDebug()) {
+			devLog("login", "Development auto-login successful", {
+				username: adminUser.username,
+				userId: adminUser.id,
+				sessionMaxAge: "30 days",
+			});
+		}
 
 		// Redirect to home page
 		throw redirect(302, HOME_ROUTE);

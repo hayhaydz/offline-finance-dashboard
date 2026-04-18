@@ -4,7 +4,7 @@ import { validateUserAccess } from "$lib/auth/row-security";
 import { requireAuth } from "$lib/server/utils/auth-guard";
 import { db } from "$lib/db/client";
 import { accountNotes, accounts } from "$lib/db/schema";
-import { devLog, logError } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -54,11 +54,13 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		error(404, "Note not found");
 	}
 
-	devLog("noteDetail", "Note loaded", {
-		accountSlug,
-		noteSlug,
-		contentLength: note.content.length,
-	});
+	if (isVerboseDebug()) {
+		devLog("noteDetail", "Note loaded", {
+			accountSlug,
+			noteSlug,
+			contentLength: note.content.length,
+		});
+	}
 
 	return {
 		account,

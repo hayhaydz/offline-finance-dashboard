@@ -25,7 +25,7 @@ import {
 	calculatePagination,
 	parsePagination,
 } from "$lib/server/utils/pagination";
-import { devLog, logError } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 import { MS_PER_DAY } from "$lib/utils/time-constants";
 import { isTaxFreeWrapper } from "$lib/utils/tax-classification";
 import type { Actions, PageServerLoad } from "./$types";
@@ -311,8 +311,10 @@ export const actions: Actions = {
 		}
 
 		if (typeUpdates.size === 0) {
-			devLog("updateExclusions", "No valid type updates in form data");
-			return fail(400, { error: "No account types selected" });
+			if (isVerboseDebug()) {
+				devLog("updateExclusions", "No valid type updates in form data");
+				return fail(400, { error: "No account types selected" });
+			}
 		}
 
 		try {
@@ -321,10 +323,12 @@ export const actions: Actions = {
 				typeUpdates,
 			});
 
-			devLog("updateExclusions", "Type-based bulk update successful", {
+			if (isVerboseDebug()) {
+				devLog("updateExclusions", "Type-based bulk update successful", {
 				userId: user.id,
 				affectedRows: result.affectedRows,
-			});
+				});
+			}
 
 			return { success: result.message };
 		} catch (error) {

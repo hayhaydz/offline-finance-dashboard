@@ -6,7 +6,7 @@ import { goals, accountTransactions, goalMilestones, interestRates } from "$lib/
 import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
 import { getDebtGoalProgress, checkMilestones } from "$lib/server/goals";
 import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
-import { devLog, logError } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 import { MS_PER_MONTH } from "$lib/utils/time-constants";
 import type { Actions, PageServerLoad } from "./$types";
 
@@ -153,11 +153,13 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     ? projectedPayoffDate <= new Date(goal.targetDate)
     : null;
 
-  devLog("debtGoalDetail", "Loaded debt goal detail", {
-    goalId: goal.id,
-    progress: progress.percent,
-    newlyReachedMilestones: newlyReachedIds.length,
-  });
+  if (isVerboseDebug()) {
+    devLog("debtGoalDetail", "Loaded debt goal detail", {
+      goalId: goal.id,
+      progress: progress.percent,
+      newlyReachedMilestones: newlyReachedIds.length,
+    });
+  }
 
   return {
     goal,

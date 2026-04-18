@@ -9,7 +9,7 @@ import { and, asc, eq, inArray, lte, gte } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
-import { devLog } from "$lib/server/logger";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 
 import type { InterestTransaction } from "$lib/types/breakdown";
 
@@ -27,11 +27,13 @@ export async function getInterestTransactions(
 	taxYearStart: Date,
 	taxYearEnd: Date,
 ): Promise<InterestTransaction[]> {
-	devLog("getInterestTransactions", "Fetching interest transactions", {
-		userId,
-		taxYearStart,
-		taxYearEnd,
-	});
+	if (isVerboseDebug()) {
+		devLog("getInterestTransactions", "Fetching interest transactions", {
+			userId,
+			taxYearStart,
+			taxYearEnd,
+		});
+	}
 
 	// Get all user accounts first to create opening balance rows
 	const userAccounts = await db.query.accounts.findMany({
@@ -117,11 +119,6 @@ export async function getInterestTransactions(
 		(a, b) =>
 			a.transactionDate.getTime() - b.transactionDate.getTime() || a.id - b.id,
 	);
-
-	devLog("getInterestTransactions", "Fetched transactions", {
-		count: result.length,
-		total: runningTotal,
-	});
 
 	return result;
 }

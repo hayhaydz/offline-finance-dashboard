@@ -24,7 +24,7 @@ import {
 	getActualInterestBreakdown,
 	getProjectedInterestBreakdown,
 } from "$lib/server/interestBreakdown";
-import { devLog } from "$lib/server/logger";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 
 /**
  * ISA allowance breakdown for snapshot storage (standalone with metadata)
@@ -133,10 +133,12 @@ export async function calculateISAAllowanceBreakdown(
 	userId: number,
 	snapshotDate: Date,
 ): Promise<ISAAllowanceBreakdown> {
-	devLog("calculateISAAllowanceBreakdown", "Calculating ISA allowance", {
-		userId,
-		snapshotDate,
-	});
+	if (isVerboseDebug()) {
+		devLog("calculateISAAllowanceBreakdown", "Calculating ISA allowance", {
+			userId,
+			snapshotDate,
+		});
+	}
 
 	// Get tax year bounds for snapshot date
 	const { start: taxYearStart, end: taxYearEnd } =
@@ -158,10 +160,7 @@ export async function calculateISAAllowanceBreakdown(
 	// Generate tax year label
 	const label = `${taxYearStart.getUTCFullYear()}-${String(taxYearEnd.getUTCFullYear()).slice(-2)}`;
 
-	devLog("calculateISAAllowanceBreakdown", "ISA allowance calculated", {
-		totalISAUsed,
-		usedThisSnapshotDate,
-	});
+
 
 	return {
 		snapshotTakenAt: new Date().toISOString(),
@@ -197,11 +196,13 @@ export async function calculateInterestBreakdown(
 	snapshotDate: Date,
 	taxBand: TaxBand,
 ): Promise<InterestBreakdownDetail> {
-	devLog("calculateInterestBreakdown", "Calculating interest breakdown", {
-		userId,
-		snapshotDate,
-		taxBand,
-	});
+	if (isVerboseDebug()) {
+		devLog("calculateInterestBreakdown", "Calculating interest breakdown", {
+			userId,
+			snapshotDate,
+			taxBand,
+		});
+	}
 
 	// Get tax year bounds for snapshot date
 	const { start: taxYearStart, end: taxYearEnd } =
@@ -277,11 +278,7 @@ export async function calculateInterestBreakdown(
 	// Generate tax year label
 	const label = `${taxYearStart.getUTCFullYear()}-${String(taxYearEnd.getUTCFullYear()).slice(-2)}`;
 
-	devLog("calculateInterestBreakdown", "Interest breakdown calculated", {
-		actualTotal,
-		projectedTotal,
-		accountCount: perAccountBreakdown.length,
-	});
+
 
 	return {
 		snapshotTakenAt: new Date().toISOString(),

@@ -1,5 +1,5 @@
 import { calculatePayoffProjection } from "$lib/server/debtMetrics";
-import { devLog } from "$lib/server/logger";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 import { MS_PER_MONTH } from "$lib/utils/time-constants";
 import type {
 	DebtGoalInput,
@@ -117,13 +117,15 @@ export function calculateDebtStrategyMetrics(
 	);
 	const monthsSavedByAvalanche = snowballMaxMonths - avalancheMaxMonths;
 
-	devLog("debtStrategy", "Calculated debt strategy metrics", {
-		totalDebtInCents,
-		totalMonthlyMinimumInCents,
-		debtCount: debts.length,
-		interestSavedByAvalancheInCents,
-		monthsSavedByAvalanche,
-	});
+	if (isVerboseDebug()) {
+		devLog("debtStrategy", "Calculated debt strategy metrics", {
+			totalDebtInCents,
+			totalMonthlyMinimumInCents,
+			debtCount: debts.length,
+			interestSavedByAvalancheInCents,
+			monthsSavedByAvalanche,
+		});
+	}
 
 	return {
 		totalDebtInCents,

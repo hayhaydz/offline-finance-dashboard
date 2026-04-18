@@ -1,7 +1,7 @@
 import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { accountTransactions } from "$lib/db/schema";
-import { devLog } from "$lib/server/logger";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 
 export interface MonthlyBalancePoint {
 	monthKey: string; // YYYY-MM
@@ -13,7 +13,6 @@ export interface MonthlyBalancePoint {
 export async function getCurrentBalanceForAccount(
 	accountId: number,
 ): Promise<number> {
-	devLog("getCurrentBalanceForAccount", "Fetching balance", { accountId });
 	const balances = await getCurrentBalancesForAccounts([accountId]);
 	return balances.get(accountId) ?? 0;
 }
@@ -21,7 +20,7 @@ export async function getCurrentBalanceForAccount(
 export async function getCurrentBalancesForAccounts(
 	accountIds: number[],
 ): Promise<Map<number, number>> {
-	devLog("getCurrentBalancesForAccounts", "Fetching balances", { count: accountIds.length });
+	if (isVerboseDebug()) devLog("getCurrentBalancesForAccounts", "Fetching balances", { count: accountIds.length });
 	if (accountIds.length === 0) return new Map();
 
 	const rows = await db
@@ -44,7 +43,7 @@ export async function getCurrentBalancesForAccounts(
 export async function getLatestTransactionDateForAccounts(
 	accountIds: number[],
 ): Promise<Map<number, Date | null>> {
-	devLog("getLatestTransactionDateForAccounts", "Fetching latest tx dates", { count: accountIds.length });
+	if (isVerboseDebug()) devLog("getLatestTransactionDateForAccounts", "Fetching latest tx dates", { count: accountIds.length });
 	if (accountIds.length === 0) return new Map();
 
 	const rows = await db
@@ -85,7 +84,7 @@ export async function getMonthlyBalanceHistory(
 	accountId: number,
 	limitMonths = 24,
 ): Promise<MonthlyBalancePoint[]> {
-	devLog("getMonthlyBalanceHistory", "Fetching monthly history", { accountId, limitMonths });
+	if (isVerboseDebug()) devLog("getMonthlyBalanceHistory", "Fetching monthly history", { accountId, limitMonths });
 	const monthExpr = sql<string>`strftime('%Y-%m', ${accountTransactions.transactionDate}, 'unixepoch')`;
 
 	const rows = await db

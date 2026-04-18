@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { snapshots } from "$lib/db/schema";
-import { devLog, logError, logFormData } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
@@ -31,10 +31,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		throw error(403, "You do not have permission to edit this snapshot");
 	}
 
-	devLog("editSnapshotNotes", "Snapshot loaded for editing", {
-		slug: params.slug,
-		userId: user.id,
-	});
+	if (isVerboseDebug()) {
+		devLog("editSnapshotNotes", "Snapshot loaded for editing", {
+			slug: params.slug,
+			userId: user.id,
+		});
+	}
 
 	return {
 		user,
@@ -96,11 +98,13 @@ export const actions: Actions = {
 				.set({ notes: notes || null })
 				.where(eq(snapshots.slug, params.slug));
 
-			devLog("updateNotes", "Snapshot notes updated successfully", {
-				slug: params.slug,
-				userId: user.id,
-				hasNotes: !!notes,
-			});
+			if (isVerboseDebug()) {
+				devLog("updateNotes", "Snapshot notes updated successfully", {
+					slug: params.slug,
+					userId: user.id,
+					hasNotes: !!notes,
+				});
+			}
 
 			throw redirect(302, "/snapshots");
 		} catch (err) {

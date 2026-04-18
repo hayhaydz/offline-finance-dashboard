@@ -6,16 +6,18 @@ import { parseCurrency } from "$lib/utils/currency";
 import { isValidHexColour } from "$lib/utils/category-colours";
 import { getCategories, createCategory, updateCategory, deleteCategory } from "$lib/server/categories";
 import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
-import { devLog, logError, logFormData } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const user = requireAuth(locals);
 
-	devLog("settings-general", "General settings page loaded", {
-		username: user.username,
-		userId: user.id,
-	});
+	if (isVerboseDebug()) {
+		devLog("settings-general", "General settings page loaded", {
+			username: user.username,
+			userId: user.id,
+		});
+	}
 
 	// Query monthly expenses from system_metadata
 	const metadataRow = await db

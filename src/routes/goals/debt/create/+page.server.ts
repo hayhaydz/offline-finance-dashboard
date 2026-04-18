@@ -7,7 +7,7 @@ import { accounts, goals, goalMilestones } from "$lib/db/schema";
 import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
 import { generateDefaultMilestones } from "$lib/server/goals";
 import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
-import { devLog, logError, logFormData } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -96,12 +96,14 @@ export const actions: Actions = {
 		const currentBalance = await getCurrentBalanceForAccount(linkedAccountId);
 		const startingBalanceInCents = currentBalance;
 
-		devLog("debtGoalCreate", "Validation passed", {
-			linkedAccountId,
-			name: name.trim(),
-			startingBalanceInCents,
-			targetDate: targetDate?.toISOString(),
-		});
+		if (isVerboseDebug()) {
+			devLog("debtGoalCreate", "Validation passed", {
+				linkedAccountId,
+				name: name.trim(),
+				startingBalanceInCents,
+				targetDate: targetDate?.toISOString(),
+			});
+		}
 
 		const slug = nanoid(16);
 		const userId = user.id;
@@ -139,11 +141,13 @@ export const actions: Actions = {
 				return [goal];
 			});
 
-			devLog("debtGoalCreate", "Debt goal created", {
-				goalId: newGoal.id,
-				slug,
-				name: newGoal.name,
-			});
+			if (isVerboseDebug()) {
+				devLog("debtGoalCreate", "Debt goal created", {
+					goalId: newGoal.id,
+					slug,
+					name: newGoal.name,
+				});
+			}
 
 			redirect(303, "/goals/debt");
 		} catch (err) {

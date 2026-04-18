@@ -3,7 +3,7 @@ import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, goalAllocations, goals } from "$lib/db/schema";
 import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
-import { devLog } from "$lib/server/logger";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 
 // Re-export all pure calculations + types for backward compatibility
 export {
@@ -197,13 +197,15 @@ export async function calculatePerAccountUnallocated(params: {
 		);
 		const unallocated = Math.max(0, accountBalance - totalAllocatedFromAccount);
 
-		devLog("perAccountUnallocated", "Calculated for account", {
-			accountId: account.id,
-			accountName: account.name,
-			accountBalance,
-			totalAllocatedFromAccount,
-			unallocated,
-		});
+		if (isVerboseDebug()) {
+			devLog("perAccountUnallocated", "Calculated for account", {
+				accountId: account.id,
+				accountName: account.name,
+				accountBalance,
+				totalAllocatedFromAccount,
+				unallocated,
+			});
+		}
 
 		return {
 			...account,

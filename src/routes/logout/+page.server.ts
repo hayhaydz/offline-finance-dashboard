@@ -2,16 +2,18 @@ import { redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { sessions } from "$lib/db/schema";
-import { devLog, logError } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 
 export const actions = {
 	default: async ({ cookies, locals }) => {
 		try {
 			const username = locals.user?.username || "unknown";
-			devLog("logout", "User logging out", {
-				username,
-				userId: locals.user?.id,
-			});
+			if (isVerboseDebug()) {
+				devLog("logout", "User logging out", {
+					username,
+					userId: locals.user?.id,
+				});
+			}
 
 			// Get session token from cookie
 			const sessionToken = cookies.get("session");
@@ -19,13 +21,13 @@ export const actions = {
 			if (sessionToken) {
 				// Delete session from database
 				await db.delete(sessions).where(eq(sessions.token, sessionToken));
-				devLog("logout", "Session deleted from database", { username });
+				if (isVerboseDebug()) devLog("logout", "Session deleted from database", { username });
 			}
 
 			// Clear session cookie
 			cookies.delete("session", { path: "/" });
 
-			devLog("logout", "Logout successful", { username });
+			if (isVerboseDebug()) devLog("logout", "Logout successful", { username });
 		} catch (error) {
 			logError("logout", "Unexpected error during logout", error);
 		}

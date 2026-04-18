@@ -1,5 +1,5 @@
 import { MS_PER_DAY } from "$lib/utils/time-constants";
-import { devLog } from "$lib/server/logger";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 
 export interface RecurringPattern {
 	description: string;
@@ -18,7 +18,7 @@ export function detectRecurringPatterns(
 		transactionDate: Date;
 	}>,
 ): RecurringPattern[] {
-	devLog("detectRecurringPatterns", "Detecting recurring patterns", { txCount: txs.length });
+	if (isVerboseDebug()) devLog("detectRecurringPatterns", "Detecting recurring patterns", { txCount: txs.length });
 	const groups = new Map<string, typeof txs>();
 
 	for (const tx of txs) {

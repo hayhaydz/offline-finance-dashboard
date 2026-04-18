@@ -9,7 +9,7 @@ import {
 	FIELD_LIMITS,
 } from "$lib/server/validation";
 import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
-import { devLog, logError, logFormData } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -79,12 +79,14 @@ export const actions: Actions = {
 			});
 		}
 
-		devLog("goals-create", "Validation passed", {
-			name: name.trim(),
-			targetAmountInCents: amountResult.ok ? amountResult.valueInCents : 0,
-			isEmergencyFund,
-			targetDate: targetDate?.toISOString(),
-		});
+		if (isVerboseDebug()) {
+			devLog("goals-create", "Validation passed", {
+				name: name.trim(),
+				targetAmountInCents: amountResult.ok ? amountResult.valueInCents : 0,
+				isEmergencyFund,
+				targetDate: targetDate?.toISOString(),
+			});
+		}
 
 		// Generate unique slug
 		const slug = nanoid(16);
@@ -103,11 +105,13 @@ export const actions: Actions = {
 			})
 			.returning();
 
-		devLog("goals-create", "Goal created", {
-			goalId: newGoal.id,
-			slug,
-			name: newGoal.name,
-		});
+		if (isVerboseDebug()) {
+			devLog("goals-create", "Goal created", {
+				goalId: newGoal.id,
+				slug,
+				name: newGoal.name,
+			});
+		}
 
 		// Redirect to goals list
 		redirect(303, "/goals");

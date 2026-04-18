@@ -1,5 +1,5 @@
 import { MS_PER_DAY, MS_PER_MONTH } from "$lib/utils/time-constants";
-import { devLog } from "$lib/server/logger";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 import type {
 	AccountAllocationWithLiquidity,
 	AllocationHistoryEntry,
@@ -34,7 +34,9 @@ export function calculateLiquidityBreakdown(
 	accountAllocations: AccountAllocationWithLiquidity[],
 	targetDate: Date | null = null,
 ): LiquidityBreakdown {
-	devLog("calculateLiquidityBreakdown", "Calculating liquidity breakdown", { allocationCount: accountAllocations.length });
+	if (isVerboseDebug()) {
+		devLog("calculateLiquidityBreakdown", "Calculating liquidity breakdown", { allocationCount: accountAllocations.length });
+	}
 	const totalAllocatedInCents = accountAllocations.reduce(
 		(sum, a) => sum + a.netAllocated,
 		0,
@@ -113,7 +115,9 @@ export function calculateLiquidityBreakdown(
 export function calculateContributionStats(
 	allocationHistory: AllocationHistoryEntry[],
 ): ContributionStats {
-	devLog("calculateContributionStats", "Calculating contribution stats", { entryCount: allocationHistory.length });
+	if (isVerboseDebug()) {
+		devLog("calculateContributionStats", "Calculating contribution stats", { entryCount: allocationHistory.length });
+	}
 	if (allocationHistory.length === 0) {
 		return {
 			daysSinceLastContribution: null,
@@ -187,7 +191,9 @@ export function calculatePaceMetrics(params: {
 	targetDate: Date | null;
 	firstContributionDate?: Date | null;
 }): PaceMetrics {
-	devLog("calculatePaceMetrics", "Calculating pace metrics");
+	if (isVerboseDebug()) {
+		devLog("calculatePaceMetrics", "Calculating pace metrics");
+	}
 	const {
 		targetAmountInCents,
 		currentAllocationInCents,
@@ -271,7 +277,9 @@ export function getDebtGoalProgress(params: {
 	startingBalanceInCents: number;
 	currentBalanceInCents: number;
 }): DebtGoalProgress {
-	devLog("getDebtGoalProgress", "Calculating debt goal progress");
+	if (isVerboseDebug()) {
+		devLog("getDebtGoalProgress", "Calculating debt goal progress");
+	}
 	const { startingBalanceInCents, currentBalanceInCents } = params;
 
 	const totalInCents = Math.abs(startingBalanceInCents);
@@ -294,7 +302,9 @@ export function projectPayoffDate(params: {
 	totalPaidInCents: number;
 	firstPaymentDate: Date | null;
 }): Date | null {
-	devLog("projectPayoffDate", "Projecting payoff date");
+	if (isVerboseDebug()) {
+		devLog("projectPayoffDate", "Projecting payoff date");
+	}
 	const { remainingInCents, totalPaidInCents, firstPaymentDate } = params;
 
 	if (!firstPaymentDate || totalPaidInCents <= 0 || remainingInCents <= 0) {
@@ -318,7 +328,9 @@ export function projectPayoffDate(params: {
 export function generateDefaultMilestones(params: {
 	startingBalanceInCents: number;
 }): MilestoneTemplate[] {
-	devLog("generateDefaultMilestones", "Generating default milestones");
+	if (isVerboseDebug()) {
+		devLog("generateDefaultMilestones", "Generating default milestones");
+	}
 	const { startingBalanceInCents } = params;
 	const absStarting = Math.abs(startingBalanceInCents);
 
@@ -334,7 +346,9 @@ export function checkMilestones(params: {
 	currentBalanceInCents: number;
 	milestones: MilestoneWithReached[];
 }): number[] {
-	devLog("checkMilestones", "Checking milestones");
+	if (isVerboseDebug()) {
+		devLog("checkMilestones", "Checking milestones");
+	}
 	const { currentBalanceInCents, milestones } = params;
 	const absCurrent = Math.abs(currentBalanceInCents);
 
@@ -357,7 +371,6 @@ export function distributeWithdrawalAcrossAccounts(params: {
 	amountInCents: number;
 	contributions: Array<{ accountId: number; netAllocated: number }>;
 }): Array<{ accountId: number; amountInCents: number }> {
-	devLog("distributeWithdrawalAcrossAccounts", "Distributing withdrawal", { amount: params.amountInCents });
 	const { amountInCents, contributions } = params;
 	const positive = contributions.filter((c) => c.netAllocated > 0);
 	const total = positive.reduce((sum, c) => sum + c.netAllocated, 0);

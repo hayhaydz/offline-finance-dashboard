@@ -1,5 +1,5 @@
 import type { TTZResult, OverpaymentScenario, RateStressScenario } from "$lib/types/debt";
-import { devLog } from "$lib/server/logger";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 export type { OverpaymentScenario, RateStressScenario } from "$lib/types/debt";
 
 /** Minimal TTZ result shape needed by the scenario formatters. */
@@ -15,7 +15,7 @@ export function buildOverpaymentScenarios(
 	currentPayment: number,
 	now: Date,
 ): OverpaymentScenario[] {
-	devLog("buildOverpaymentScenarios", "Building overpayment scenarios", { count: scenarios.length });
+	if (isVerboseDebug()) devLog("buildOverpaymentScenarios", "Building overpayment scenarios", { count: scenarios.length });
 	return scenarios.map(({ multiplier, ttzResult }) => {
 		const payment = Math.round(currentPayment * multiplier);
 		const label =
@@ -57,7 +57,7 @@ export function buildRateStressScenarios(
 	baseTTZMonths: number | null,
 	now: Date,
 ): RateStressScenario[] {
-	devLog("buildRateStressScenarios", "Building rate stress scenarios", { count: scenarios.length });
+	if (isVerboseDebug()) devLog("buildRateStressScenarios", "Building rate stress scenarios", { count: scenarios.length });
 	return scenarios.map(({ basisPointDelta, scenarioRate, ttzResult }) => {
 		const cappedMonths =
 			ttzResult.months !== null ? Math.min(ttzResult.months, 300) : null;
@@ -97,7 +97,7 @@ export function calculateBreakEvenMonth(
 	projection: Array<{ month: number; interest: number; balance: number }>,
 	originalPrincipal: number,
 ): number | null {
-	devLog("calculateBreakEvenMonth", "Calculating break-even month", { projectionLength: projection.length });
+	if (isVerboseDebug()) devLog("calculateBreakEvenMonth", "Calculating break-even month", { projectionLength: projection.length });
 	if (projection.length === 0) return null;
 
 	let cumulative = 0;

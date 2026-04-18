@@ -8,11 +8,11 @@ import { getCurrentBalancesForAccounts } from '$lib/server/derivedBalances';
 import type { Alert } from '$lib/types/alerts';
 import { MS_PER_DAY } from '$lib/utils/time-constants';
 import { makeAccountAlert, makeGlobalAlert } from './constants';
-import { devLog } from '$lib/server/logger';
+import { devLog, isVerboseDebug } from '$lib/server/logger';
 import { formatCents } from '$lib/utils/formatting';
 
 export async function checkNetWorthAlerts(userId: number): Promise<Alert[]> {
-	devLog("checkNetWorthAlerts", "Checking net worth alerts", { userId });
+	if (isVerboseDebug()) devLog("checkNetWorthAlerts", "Checking net worth alerts", { userId });
 	const alerts: Alert[] = [];
 
 	const rows = await db
@@ -70,7 +70,7 @@ export async function checkNetWorthAlerts(userId: number): Promise<Alert[]> {
 }
 
 export async function checkDebtPayoffAlerts(userId: number): Promise<Alert[]> {
-	devLog("checkDebtPayoffAlerts", "Checking debt payoff alerts", { userId });
+	if (isVerboseDebug()) devLog("checkDebtPayoffAlerts", "Checking debt payoff alerts", { userId });
 	const alerts: Alert[] = [];
 
 	const openLiabilities = await db
@@ -163,7 +163,7 @@ export async function checkDebtPayoffAlerts(userId: number): Promise<Alert[]> {
 }
 
 export async function checkBoERateAlerts(userId: number): Promise<Alert[]> {
-	devLog("checkBoERateAlerts", "Checking BoE rate alerts", { userId });
+	if (isVerboseDebug()) devLog("checkBoERateAlerts", "Checking BoE rate alerts", { userId });
 	const alerts: Alert[] = [];
 
 	const boeSetting = await db.query.settings.findFirst({
@@ -249,7 +249,7 @@ export async function checkBoERateAlerts(userId: number): Promise<Alert[]> {
 }
 
 export async function checkOrphanedTransfers(userId: number): Promise<Alert[]> {
-	devLog("checkOrphanedTransfers", "Checking orphaned transfers", { userId });
+	if (isVerboseDebug()) devLog("checkOrphanedTransfers", "Checking orphaned transfers", { userId });
 	const alerts: Alert[] = [];
 
 	const thirtyDaysAgo = new Date();

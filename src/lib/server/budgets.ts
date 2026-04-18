@@ -7,7 +7,7 @@ import {
 	spendingCategories,
 } from "$lib/db/schema";
 import { withUserFilter } from "$lib/auth/row-security";
-import { devLog } from "$lib/server/logger";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 import type { BudgetConfig, CategoryBreakdown, BudgetStatus } from "$lib/types/budget";
 
 export type { BudgetConfig, CategoryBreakdown, BudgetStatus };
@@ -90,13 +90,7 @@ export async function getBudgetStatus(
 	const avgPerDay = totalSpent / Math.max(daysElapsed, 1);
 	const projectedTotal = avgPerDay * totalDays;
 
-	devLog("getBudgetStatus", "Budget status computed", {
-		month: monthStr,
-		totalSpent,
-		daysElapsed,
-		totalDays,
-		hasBudget: !!budget,
-	});
+
 
 	return {
 		budget,

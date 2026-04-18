@@ -17,14 +17,14 @@ import { calculateISAPacing } from '$lib/server/isaPacing';
 import type { Alert, AlertSeverity } from '$lib/types/alerts';
 import { PSA_BY_BAND, daysSince, makeAccountAlert, makeGlobalAlert } from './constants';
 import type { AccountRow } from './constants';
-import { devLog } from "$lib/server/logger";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 import { formatCents } from "$lib/utils/formatting";
 
 export async function checkIsaAlerts(
 	userId: number,
 	taxYear: { start: Date; end: Date },
 ): Promise<Alert[]> {
-	devLog("checkIsaAlerts", "Checking ISA alerts", { userId });
+	if (isVerboseDebug()) devLog("checkIsaAlerts", "Checking ISA alerts", { userId });
 	const alerts: Alert[] = [];
 	const used = await getISAAllowanceUsed(userId, taxYear.start, taxYear.end);
 	const pct = used / ISA_ALLOWANCE_IN_CENTS;
@@ -55,7 +55,7 @@ export async function checkPsaAlerts(
 	taxBand: string,
 	hasSavingsAccounts: boolean,
 ): Promise<Alert[]> {
-	devLog("checkPsaAlerts", "Checking PSA alerts", { userId, taxBand });
+	if (isVerboseDebug()) devLog("checkPsaAlerts", "Checking PSA alerts", { userId, taxBand });
 	const alerts: Alert[] = [];
 
 	if (taxBand === 'additional') {
@@ -109,7 +109,7 @@ export async function checkPsaAlerts(
 }
 
 export async function checkTaxYearReviewAlerts(now: Date): Promise<Alert[]> {
-	devLog("checkTaxYearReviewAlerts", "Checking tax year review alerts");
+	if (isVerboseDebug()) devLog("checkTaxYearReviewAlerts", "Checking tax year review alerts");
 	const taxYear = getUkTaxYearBounds(now);
 	const daysSinceNewTaxYear = daysSince(taxYear.start, now);
 
@@ -149,7 +149,7 @@ export async function checkTaxYearReviewAlerts(now: Date): Promise<Alert[]> {
 }
 
 export async function checkISAPacingAlerts(userId: number): Promise<Alert[]> {
-	devLog("checkISAPacingAlerts", "Checking ISA pacing alerts", { userId });
+	if (isVerboseDebug()) devLog("checkISAPacingAlerts", "Checking ISA pacing alerts", { userId });
 	const alerts: Alert[] = [];
 
 	const pacing = await calculateISAPacing(userId);
@@ -174,7 +174,7 @@ export async function checkISAPacingAlerts(userId: number): Promise<Alert[]> {
 }
 
 export async function checkLISAAlerts(userId: number): Promise<Alert[]> {
-	devLog("checkLISAAlerts", "Checking LISA alerts", { userId });
+	if (isVerboseDebug()) devLog("checkLISAAlerts", "Checking LISA alerts", { userId });
 	const alerts: Alert[] = [];
 	const now = new Date();
 	const { start: taxYearStart } = getUkTaxYearBounds(now);

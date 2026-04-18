@@ -4,17 +4,19 @@ import { generateBackupCodes } from "$lib/auth/mfa";
 import { hashPassword, verifyPassword } from "$lib/auth/password";
 import { db } from "$lib/db/client";
 import { backupCodes, sessions, users } from "$lib/db/schema";
-import { devLog, logError, logFormData } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const user = requireAuth(locals);
 
-	devLog("settings-security", "Security settings page loaded", {
-		username: user.username,
-		userId: user.id,
-	});
+	if (isVerboseDebug()) {
+		devLog("settings-security", "Security settings page loaded", {
+			username: user.username,
+			userId: user.id,
+		});
+	}
 
 	// Query user data for MFA status
 	const userData = await db

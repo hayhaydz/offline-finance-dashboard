@@ -10,11 +10,11 @@ import { getDebtGoalProgress } from '../goals';
 import type { Alert, AlertSeverity } from '$lib/types/alerts';
 import { daysUntil, daysSince, makeGlobalAlert } from './constants';
 import type { AccountRow } from './constants';
-import { devLog } from "$lib/server/logger";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 import { formatCents } from "$lib/utils/formatting";
 
 export async function checkGoalAlerts(userId: number): Promise<Alert[]> {
-	devLog("checkGoalAlerts", "Checking goal alerts", { userId });
+	if (isVerboseDebug()) devLog("checkGoalAlerts", "Checking goal alerts", { userId });
 	const alerts: Alert[] = [];
 	const now = new Date();
 
@@ -96,7 +96,7 @@ export async function checkGoalAlerts(userId: number): Promise<Alert[]> {
 }
 
 export async function checkSnapshotAlerts(userId: number): Promise<Alert[]> {
-	devLog("checkSnapshotAlerts", "Checking snapshot alerts", { userId });
+	if (isVerboseDebug()) devLog("checkSnapshotAlerts", "Checking snapshot alerts", { userId });
 	const [row] = await db
 		.select({ maxDate: sql<string | null>`max(${snapshots.snapshotDate})` })
 		.from(snapshots)
@@ -124,7 +124,7 @@ export async function checkSnapshotAlerts(userId: number): Promise<Alert[]> {
 }
 
 export async function checkMonthlyReviewAlerts(userId: number): Promise<Alert[]> {
-	devLog("checkMonthlyReviewAlerts", "Checking monthly review alerts", { userId });
+	if (isVerboseDebug()) devLog("checkMonthlyReviewAlerts", "Checking monthly review alerts", { userId });
 	const now = new Date();
 	const yearMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
 
@@ -158,7 +158,7 @@ export async function checkMonthlyReviewAlerts(userId: number): Promise<Alert[]>
 }
 
 export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
-	devLog("checkBudgetAlerts", "Checking budget alerts", { userId });
+	if (isVerboseDebug()) devLog("checkBudgetAlerts", "Checking budget alerts", { userId });
 	const alerts: Alert[] = [];
 	const now = new Date();
 	const year = now.getUTCFullYear();
@@ -269,7 +269,7 @@ export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
 }
 
 export async function checkGoalAutoReduceAlerts(userId: number): Promise<Alert[]> {
-	devLog("checkGoalAutoReduceAlerts", "Checking goal auto-reduce alerts", { userId });
+	if (isVerboseDebug()) devLog("checkGoalAutoReduceAlerts", "Checking goal auto-reduce alerts", { userId });
 	const alerts: Alert[] = [];
 
 	const sevenDaysAgo = new Date();

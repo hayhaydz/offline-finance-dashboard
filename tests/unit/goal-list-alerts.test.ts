@@ -33,6 +33,7 @@ vi.mock('$lib/server/goals', () => ({
 vi.mock('$lib/server/logger', () => ({
 	devLog: vi.fn(),
 	logError: vi.fn(),
+	isVerboseDebug: vi.fn(() => false),
 }));
 
 describe('getGoalListAlerts', () => {

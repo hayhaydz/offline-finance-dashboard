@@ -13,7 +13,7 @@ import {
 	VALID_LIQUIDITY,
 	FIELD_LIMITS,
 } from "$lib/server/validation";
-import { devLog, logError, logFormData } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -37,7 +37,7 @@ export const actions: Actions = {
 			}
 
 			const formData = await request.formData();
-			devLog("createAccount", "Form received", Object.fromEntries(formData));
+			if (isVerboseDebug()) devLog("createAccount", "Form received", Object.fromEntries(formData));
 
 			const name = formData.get("name") as string;
 			const type = formData.get("type") as string;
@@ -122,15 +122,17 @@ export const actions: Actions = {
 				});
 			}
 
-			devLog("createAccount", "Validation passed", {
-				name: name.trim(),
-				type,
-				taxWrapper,
-				category,
-				institution: institution?.trim() || null,
-				liquidity: liquidity || null,
-				balanceInCents,
-			});
+			if (isVerboseDebug()) {
+				devLog("createAccount", "Validation passed", {
+					name: name.trim(),
+					type,
+					taxWrapper,
+					category,
+					institution: institution?.trim() || null,
+					liquidity: liquidity || null,
+					balanceInCents,
+				});
+			}
 
 			// Insert account with user_id for row-level security and slug
 			const accountSlug = nanoid(16);
@@ -157,10 +159,12 @@ export const actions: Actions = {
 				})
 				.returning();
 
-			devLog("createAccount", "Account created", {
-				accountId: newAccount.id,
-				slug: accountSlug,
-			});
+			if (isVerboseDebug()) {
+				devLog("createAccount", "Account created", {
+					accountId: newAccount.id,
+					slug: accountSlug,
+				});
+			}
 
 			// If initial balance provided, create an opening deposit transaction.
 			if (balanceInCents !== null) {
@@ -177,15 +181,17 @@ export const actions: Actions = {
 					transactionDate: todayMidnight,
 					createdAt: new Date(),
 				});
-				devLog("createAccount", "Opening transaction added", {
-					accountId: newAccount.id,
-					amountInCents: balanceInCents,
-					transactionDate: todayMidnight.toISOString(),
-				});
+				if (isVerboseDebug()) {
+					devLog("createAccount", "Opening transaction added", {
+						accountId: newAccount.id,
+						amountInCents: balanceInCents,
+						transactionDate: todayMidnight.toISOString(),
+					});
+				}
 			}
 
 			// Redirect to accounts list on success
-			devLog("createAccount", "Redirecting to accounts list", { accountSlug });
+			if (isVerboseDebug()) devLog("createAccount", "Redirecting to accounts list", { accountSlug });
 			redirect(303, "/accounts");
 		} catch (error) {
 			// SvelteKit's redirect() throws an error with status code - let it through

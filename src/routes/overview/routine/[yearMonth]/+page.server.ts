@@ -3,7 +3,7 @@ import { error, fail } from "@sveltejs/kit";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { goals, snapshots } from "$lib/db/schema";
-import { devLog, logError } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import {
 	CHECKLIST_ITEMS,
@@ -84,13 +84,15 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const isCurrentMonth = yearMonth === thisMonth;
 	const label = formatYearMonth(yearMonth);
 
-	devLog("review/month", "Loaded review month", {
-		userId: user.id,
-		yearMonth,
-		completedItems: review.completedItems,
-		goalCount: userGoals.length,
-		hasPriorSnapshot: !!priorSnapshot,
-	});
+	if (isVerboseDebug()) {
+		devLog("review/month", "Loaded review month", {
+			userId: user.id,
+			yearMonth,
+			completedItems: review.completedItems,
+			goalCount: userGoals.length,
+			hasPriorSnapshot: !!priorSnapshot,
+		});
+	}
 
 	return {
 		review,

@@ -10,7 +10,7 @@ import {
 } from "$lib/server/goals";
 import { parseCurrency } from "$lib/utils/currency";
 import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
-import { devLog, logError, logFormData } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 // Extended type for accounts with unallocated and balances
@@ -50,13 +50,15 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		userId: user.id,
 	});
 
-	devLog("goalsAdd", "Loaded add money page", {
-		goalId: goal.id,
-		goalSlug: goal.slug,
-		availableAccounts: accountsWithUnallocated.length,
-		readyToAssign,
-		totalAssets,
-	});
+	if (isVerboseDebug()) {
+		devLog("goalsAdd", "Loaded add money page", {
+			goalId: goal.id,
+			goalSlug: goal.slug,
+			availableAccounts: accountsWithUnallocated.length,
+			readyToAssign,
+			totalAssets,
+		});
+	}
 
 	return {
 		goal,
@@ -217,12 +219,14 @@ export const actions: Actions = {
 				.run();
 		});
 
-		devLog("goalsAdd", "Allocation batch added", {
+		if (isVerboseDebug()) {
+			devLog("goalsAdd", "Allocation batch added", {
 			goalId: goal.id,
 			rows: mergedRows.length,
 			totalAdding,
 			newAllocation,
-		});
+			});
+		}
 
 		// Redirect to goals list (no success modal per user decision)
 		redirect(303, `/goals/${params.slug}`);

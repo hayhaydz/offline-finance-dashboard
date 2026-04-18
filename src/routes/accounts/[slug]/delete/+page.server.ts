@@ -4,14 +4,14 @@ import { validateUserAccess } from "$lib/auth/row-security";
 import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import { db } from "$lib/db/client";
 import { accounts } from "$lib/db/schema";
-import { devLog, logError } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const user = requireAuth(locals);
 
 	const accountSlug = params.slug;
-	devLog("closeAccount", "Loading account for close", { accountSlug });
+	if (isVerboseDebug()) devLog("closeAccount", "Loading account for close", { accountSlug });
 
 	// Get account and validate ownership using slug
 	const account = await db.query.accounts.findFirst({
@@ -73,10 +73,12 @@ export const actions: Actions = {
 
 		validateUserAccess(account, user, "Account");
 
-		devLog("closeAccount", "Closing account", {
-			accountSlug,
-			accountId: account.id,
-		});
+		if (isVerboseDebug()) {
+			devLog("closeAccount", "Closing account", {
+				accountSlug,
+				accountId: account.id,
+			});
+		}
 
 		// Soft-delete by setting closedAt timestamp
 		const closedAt = new Date();
@@ -88,14 +90,16 @@ export const actions: Actions = {
 			})
 			.where(eq(accounts.id, account.id));
 
-		devLog("closeAccount", "Account closed successfully (soft-delete)", {
-			accountId: account.id,
-			accountSlug,
-			closedAt: closedAt.toISOString(),
-		});
+		if (isVerboseDebug()) {
+			devLog("closeAccount", "Account closed successfully (soft-delete)", {
+				accountId: account.id,
+				accountSlug,
+				closedAt: closedAt.toISOString(),
+			});
+		}
 
 		// Redirect to accounts list
-		devLog("closeAccount", "Redirecting to accounts list", { accountSlug });
+		if (isVerboseDebug()) devLog("closeAccount", "Redirecting to accounts list", { accountSlug });
 		redirect(303, "/accounts");
 	},
 };

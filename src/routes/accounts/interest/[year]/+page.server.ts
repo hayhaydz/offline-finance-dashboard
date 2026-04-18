@@ -5,7 +5,7 @@ import { db } from "$lib/db/client";
 import { accounts, accountTransactions, users } from "$lib/db/schema";
 import { getUkTaxYearBounds } from "$lib/utils/tax-year-utils";
 import { getInterestBreakdownReport } from "$lib/server/interestBreakdown";
-import { devLog, logError } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -14,10 +14,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const { year } = params;
 	const taxYear = getUkTaxYearBounds(year);
 
-	devLog("accountsInterest", "Loading interest breakdown report", {
+	if (isVerboseDebug()) {
+		devLog("accountsInterest", "Loading interest breakdown report", {
 		userId: user.id,
 		year,
-	});
+		});
+	}
 
 	// Get user's tax band for PSA calculation
 	const userWithTaxBand = await db.query.users.findFirst({
@@ -27,10 +29,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	const taxBand = userWithTaxBand?.taxBand ?? "basic";
 
-	devLog("accountsInterest", "Retrieved user tax band", {
+	if (isVerboseDebug()) {
+		devLog("accountsInterest", "Retrieved user tax band", {
 		userId: user.id,
 		taxBand,
-	});
+		});
+	}
 
 	try {
 		// Get user accounts for filtering transactions
@@ -83,7 +87,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			taxYearEnd: taxYear.end,
 		});
 
-		devLog("accountsInterest", "Interest breakdown report generated", {
+		if (isVerboseDebug()) {
+			devLog("accountsInterest", "Interest breakdown report generated", {
 			userId: user.id,
 			actualTotal: report.actual.total,
 			projectedTotal: report.projected.total,
@@ -92,7 +97,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			taxYearEnd: report.meta.taxYearEnd,
 			daysRemaining: report.meta.daysRemainingInTaxYear,
 			reconciliationFlags: report.reconciliation.flags.length,
-		});
+			});
+		}
 
 		return {
 			user: {

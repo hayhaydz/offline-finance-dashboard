@@ -4,7 +4,7 @@ import { db } from "$lib/db/client";
 import { goals } from "$lib/db/schema";
 import { calculateReadyToAssign } from "$lib/server/goals";
 import { requireAuth } from "$lib/server/utils/auth-guard";
-import { devLog } from "$lib/server/logger";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -40,9 +40,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		offset,
 	});
 
-	devLog("goalsArchived", "Loaded archived goals", {
+	if (isVerboseDebug()) {
+		devLog("goalsArchived", "Loaded archived goals", {
 		count: archivedGoals.length,
-	});
+		});
+	}
 
 	// Calculate Ready to Assign (for context, though archived page is read-only)
 	const { readyToAssign, totalAssets, totalSavingsAllocated } =

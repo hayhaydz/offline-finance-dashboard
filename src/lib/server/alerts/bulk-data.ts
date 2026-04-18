@@ -8,7 +8,7 @@ import {
 	getLatestTransactionDateForAccounts,
 } from '$lib/server/derivedBalances';
 import type { AccountRow, RateRow, TxSummary } from './constants';
-import { devLog } from "$lib/server/logger";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 
 export interface BulkData {
 	allAccounts: AccountRow[];
@@ -24,7 +24,7 @@ export interface BulkData {
 }
 
 export async function fetchBulkData(userId: number): Promise<BulkData> {
-	devLog("fetchBulkData", "Fetching bulk data", { userId });
+	if (isVerboseDebug()) devLog("fetchBulkData", "Fetching bulk data", { userId });
 	const now = new Date();
 	now.setUTCHours(0, 0, 0, 0);
 

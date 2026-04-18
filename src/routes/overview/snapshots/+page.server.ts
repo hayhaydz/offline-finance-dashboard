@@ -2,7 +2,7 @@ import { count, desc, eq } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { snapshots } from "$lib/db/schema";
-import { devLog } from "$lib/server/logger";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 import { requireAuth } from "$lib/server/utils/auth-guard";
 import { getMostRecentDate, getStaleness } from "$lib/utils/staleness";
 import type { PageServerLoad } from "./$types";
@@ -12,10 +12,12 @@ const PAGE_SIZE = 25;
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const user = requireAuth(locals);
 
-	devLog("snapshots", "Snapshots page loaded", {
-		username: user.username,
-		userId: user.id,
-	});
+	if (isVerboseDebug()) {
+		devLog("snapshots", "Snapshots page loaded", {
+			username: user.username,
+			userId: user.id,
+		});
+	}
 
 	const pageParam = url.searchParams.get("page");
 	const page = Math.max(0, pageParam ? parseInt(pageParam, 10) - 1 : 0);
@@ -44,11 +46,13 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		offset: safeOffset,
 	});
 
-	devLog("snapshots", "Snapshots loaded", {
-		count: snapshotsList.length,
-		page: safePage,
-		totalPages,
-	});
+	if (isVerboseDebug()) {
+		devLog("snapshots", "Snapshots loaded", {
+			count: snapshotsList.length,
+			page: safePage,
+			totalPages,
+		});
+	}
 
 	const snapshotDates = snapshotsList.map((s) => new Date(s.snapshotDate));
 	const mostRecentSnapshotDate = getMostRecentDate(snapshotDates);

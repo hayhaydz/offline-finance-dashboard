@@ -10,7 +10,7 @@ import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
 import { getUkTaxYearBounds } from "$lib/utils/tax-year-utils";
-import { devLog } from "$lib/server/logger";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 
 import type { ISATransaction } from "$lib/types/breakdown";
 
@@ -28,11 +28,13 @@ export async function getISATransactions(params: {
 }): Promise<ISATransaction[]> {
 	const { userId, taxYearStart, taxYearEnd } = params;
 
-	devLog("isaBreakdown", "Fetching ISA transactions", {
-		userId,
-		taxYearStart: taxYearStart.toISOString(),
-		taxYearEnd: taxYearEnd.toISOString(),
-	});
+	if (isVerboseDebug()) {
+		devLog("isaBreakdown", "Fetching ISA transactions", {
+			userId,
+			taxYearStart: taxYearStart.toISOString(),
+			taxYearEnd: taxYearEnd.toISOString(),
+		});
+	}
 
 	const isaAccounts = await db.query.accounts.findMany({
 		where: and(
@@ -50,7 +52,6 @@ export async function getISATransactions(params: {
 	});
 
 	if (isaAccounts.length === 0) {
-		devLog("isaBreakdown", "No ISA accounts found for user", { userId });
 		return [];
 	}
 
@@ -79,10 +80,12 @@ export async function getISATransactions(params: {
 		},
 	});
 
-	devLog("isaBreakdown", "Fetched ISA transactions", {
-		userId,
-		transactionCount: transactions.length,
-	});
+	if (isVerboseDebug()) {
+		devLog("isaBreakdown", "Fetched ISA transactions", {
+			userId,
+			transactionCount: transactions.length,
+		});
+	}
 
 	const allowanceTransactions: ISATransaction[] = [];
 	let runningTotal = 0;

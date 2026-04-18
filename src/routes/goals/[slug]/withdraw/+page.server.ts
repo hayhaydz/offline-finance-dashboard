@@ -6,7 +6,7 @@ import { accounts, goalAllocations, goals } from "$lib/db/schema";
 import { getGoalAccountNetAllocations } from "$lib/server/goals";
 import { parseCurrency } from "$lib/utils/currency";
 import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
-import { devLog, logError, logFormData } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -48,12 +48,14 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		}))
 		.filter((row) => row.availableToWithdraw > 0);
 
-	devLog("goalsWithdraw", "Loaded withdraw page", {
+	if (isVerboseDebug()) {
+		devLog("goalsWithdraw", "Loaded withdraw page", {
 		goalId: goal.id,
 		goalSlug: goal.slug,
 		currentAllocation: goal.currentAllocation,
 		accountCount: withdrawalAccounts.length,
-	});
+		});
+	}
 
 	return {
 		goal,
@@ -213,12 +215,14 @@ export const actions: Actions = {
 				.run();
 		});
 
-		devLog("goalsWithdraw", "Withdrawal processed", {
+		if (isVerboseDebug()) {
+			devLog("goalsWithdraw", "Withdrawal processed", {
 			goalId: goal.id,
 			amount: amountInCents,
 			newAllocation,
 			distributionCount: distribution.length,
-		});
+			});
+		}
 
 		// Redirect to goals list (no success modal per user decision)
 		redirect(303, `/goals/${params.slug}`);

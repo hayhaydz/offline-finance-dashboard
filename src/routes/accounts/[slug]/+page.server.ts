@@ -42,7 +42,7 @@ import {
 } from "$lib/server/transactions";
 import type { TransactionType } from "$lib/utils/domain-constants";
 import { calculateTTZ } from "$lib/utils/debt-calculator";
-import { devLog, logError } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 import {
 	formatTaxYearStartParam,
 	getTaxYearEndFromStart,
@@ -520,12 +520,14 @@ export const actions: Actions = {
 				return fail(500, { error: result.error });
 			}
 
-			devLog("addTransaction", "Transaction created successfully", {
+			if (isVerboseDebug()) {
+				devLog("addTransaction", "Transaction created successfully", {
 				accountSlug: params.slug,
 				transactionSlug: result.data,
 				type,
 				amount,
-			});
+				});
+			}
 
 			return { success: true, transactionSlug: result.data };
 		} catch (err) {
@@ -567,10 +569,12 @@ export const actions: Actions = {
 					return fail(500, { error: result.error });
 				}
 
-				devLog("deleteTransaction", "Transaction deleted successfully", {
-				accountSlug: params.slug,
-				transactionSlug,
-			});
+				if (isVerboseDebug()) {
+					devLog("deleteTransaction", "Transaction deleted successfully", {
+					accountSlug: params.slug,
+					transactionSlug,
+					});
+				}
 
 			return { success: true };
 		} catch (err) {
@@ -621,12 +625,14 @@ export const actions: Actions = {
 				return fail(500, { error: result.error });
 			}
 
-			devLog("addInterestRate", "Interest rate created successfully", {
+			if (isVerboseDebug()) {
+				devLog("addInterestRate", "Interest rate created successfully", {
 				accountSlug: params.slug,
 				rateId: result.data,
 				rate,
 				effectiveFrom: effectiveFromStr,
-			});
+				});
+			}
 
 			return { success: true, rateId: result.data };
 		} catch (err) {
@@ -670,10 +676,12 @@ export const actions: Actions = {
 				return fail(500, { error: deleteResult.error });
 			}
 
-			devLog("deleteInterestRate", "Interest rate deleted successfully", {
+			if (isVerboseDebug()) {
+				devLog("deleteInterestRate", "Interest rate deleted successfully", {
 				accountSlug: params.slug,
 				rateId,
-			});
+				});
+			}
 
 			return { success: true };
 		} catch (err) {
@@ -712,10 +720,12 @@ export const actions: Actions = {
 				return fail(500, { error: result.error });
 			}
 
-			devLog("addNote", "Note created successfully", {
+			if (isVerboseDebug()) {
+				devLog("addNote", "Note created successfully", {
 				accountSlug: params.slug,
 				noteSlug: result.data,
-			});
+				});
+			}
 
 			return { success: true, noteSlug: result.data };
 		} catch (err) {
@@ -748,10 +758,12 @@ export const actions: Actions = {
 
 			await deleteNote(noteSlug);
 
-			devLog("deleteNote", "Note deleted successfully", {
+			if (isVerboseDebug()) {
+				devLog("deleteNote", "Note deleted successfully", {
 				accountSlug: params.slug,
 				noteSlug,
-			});
+				});
+			}
 
 			return { success: true };
 		} catch (err) {

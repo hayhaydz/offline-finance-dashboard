@@ -2,7 +2,7 @@ import { and, inArray, isNull, type SQL, sql } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts } from "$lib/db/schema";
-import { devLog, logError } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 
 export interface UpdateTypeExclusionsParams {
 	userId: number;
@@ -18,7 +18,7 @@ export async function updateTypeExclusions({
 	userId,
 	typeUpdates,
 }: UpdateTypeExclusionsParams): Promise<UpdateTypeExclusionsResult> {
-	devLog("updateTypeExclusions", "Updating type exclusions", { userId, typeCount: typeUpdates.size });
+	if (isVerboseDebug()) devLog("updateTypeExclusions", "Updating type exclusions", { userId, typeCount: typeUpdates.size });
 	const userAccounts = await db.query.accounts.findMany({
 		where: and(withUserFilter(userId, accounts), isNull(accounts.closedAt)),
 		columns: { id: true, type: true },

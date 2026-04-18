@@ -112,12 +112,14 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		return goal;
 	});
 
-	devLog("goals", "Loaded user goals", {
-		count: goalsWithProgress.length,
-		page: safePage,
-		totalPages,
-		filterType: validType,
-	});
+	if (isVerboseDebug()) {
+		devLog("goals", "Loaded user goals", {
+			count: goalsWithProgress.length,
+			page: safePage,
+			totalPages,
+			filterType: validType,
+		});
+	}
 
 	// Compute debt strategy metrics (only when debt goals exist)
 	let debtStrategyMetrics = null;
@@ -311,7 +313,7 @@ export const actions: Actions = {
 				}
 			});
 
-			devLog("moveTo", "Goal reordered", { slug, targetIndex });
+			if (isVerboseDebug()) devLog("moveTo", "Goal reordered", { slug, targetIndex });
 		} catch (error) {
 			if (error instanceof Error && error.message === "GOAL_NOT_FOUND") {
 				return fail(404, { error: "Goal not found" });
@@ -409,10 +411,12 @@ export const actions: Actions = {
 				});
 
 				if (!goalAbove) {
-					devLog("moveUp", "No goal found above (at top position)", {
-						slug,
-						currentSortOrder: currentGoal.sortOrder,
-					});
+					if (isVerboseDebug()) {
+						devLog("moveUp", "No goal found above (at top position)", {
+							slug,
+							currentSortOrder: currentGoal.sortOrder,
+						});
+					}
 				} else {
 					if (isVerboseDebug()) {
 						devLog("moveUp", "Found goal above to swap with", {
@@ -440,11 +444,13 @@ export const actions: Actions = {
 						.set({ sortOrder: temp })
 						.where(eq(goals.id, goalAbove.id));
 
-					devLog("moveUp", "Swap complete, redirecting to /goals", {
-						slug,
-						oldSortOrder: temp,
-						newSortOrder: goalAbove.sortOrder,
-					});
+					if (isVerboseDebug()) {
+						devLog("moveUp", "Swap complete, redirecting to /goals", {
+							slug,
+							oldSortOrder: temp,
+							newSortOrder: goalAbove.sortOrder,
+						});
+					}
 				}
 			});
 		} catch (error) {
@@ -463,7 +469,7 @@ export const actions: Actions = {
 		}
 
 		// Redirect after successful move (outside try-catch so redirect exception propagates)
-		devLog("moveUp", "Action complete, redirecting to /goals");
+		if (isVerboseDebug()) devLog("moveUp", "Action complete, redirecting to /goals");
 		redirect(302, "/goals");
 	},
 
@@ -509,7 +515,7 @@ export const actions: Actions = {
 				});
 
 				if (!goalBelow) {
-					devLog("moveDown", "Goal already at bottom, redirecting", { slug });
+					if (isVerboseDebug()) devLog("moveDown", "Goal already at bottom, redirecting", { slug });
 				} else {
 					// Swap sortOrder values atomically
 					const temp = currentGoal.sortOrder;
@@ -522,10 +528,12 @@ export const actions: Actions = {
 						.set({ sortOrder: temp })
 						.where(eq(goals.id, goalBelow.id));
 
-					devLog("moveDown", "Successfully moved goal down", {
-						slug,
-						swappedWith: goalBelow.slug,
-					});
+					if (isVerboseDebug()) {
+						devLog("moveDown", "Successfully moved goal down", {
+							slug,
+							swappedWith: goalBelow.slug,
+						});
+					}
 				}
 			});
 		} catch (error) {

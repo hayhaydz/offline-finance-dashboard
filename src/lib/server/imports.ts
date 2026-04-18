@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { accountTransactions, accounts } from "$lib/db/schema";
 import { type TransactionType } from "$lib/utils/csv-parser";
-import { devLog, logError } from "$lib/server/logger";
+import { devLog, logError, logInfo } from "$lib/server/logger";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -147,7 +147,7 @@ export async function batchInsertTransactions(
 			}
 		});
 
-		devLog("batchInsertTransactions", `Inserted ${inserted} transactions`, {
+		logInfo("batchInsertTransactions", `Inserted ${inserted} transactions`, {
 			accountId,
 			rowCount: rows.length,
 		});

@@ -12,10 +12,10 @@ import { hashPassword } from "$lib/auth/password";
 import { HOME_ROUTE, LOGIN_ROUTE, REGISTER_ROUTE } from "$lib/constants/routes";
 import { db } from "$lib/db/client";
 import { backupCodes, sessions, users } from "$lib/db/schema";
-import { devLog, logError, logFormData } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 
 export async function load({ cookies, locals }) {
-	devLog("mfaSetup", "Loading MFA setup page");
+	if (isVerboseDebug()) devLog("mfaSetup", "Loading MFA setup page");
 
 	// Check if we just finished setup (to skip redirection)
 	const justFinished = cookies.get("mfa-just-finished") === "true";

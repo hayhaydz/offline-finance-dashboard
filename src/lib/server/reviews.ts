@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { monthlyReviews } from "$lib/db/schema";
-import { devLog, logError } from "$lib/server/logger";
+import { devLog, logError, logInfo } from "$lib/server/logger";
 import { CHECKLIST_ITEMS, formatYearMonth } from "$lib/utils/reviews";
 
 export type { ChecklistItem } from "$lib/utils/reviews";
@@ -105,7 +105,7 @@ export async function toggleChecklistItem(
 		.where(eq(monthlyReviews.slug, reviewSlug))
 		.returning();
 
-	devLog("reviews", "Toggled checklist item", {
+	logInfo("reviews", "Toggled checklist item", {
 		reviewSlug,
 		itemKey,
 		wasChecked: current.includes(itemKey),

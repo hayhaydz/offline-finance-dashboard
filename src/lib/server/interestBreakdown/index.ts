@@ -22,7 +22,7 @@ import {
 	getCurrentBalanceForAccount,
 } from "$lib/server/derivedBalances";
 import { getCurrentRate } from "$lib/server/interestRates";
-import { devLog, logError } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 import { MS_PER_DAY } from "$lib/utils/time-constants";
 
 import type {
@@ -101,14 +101,16 @@ export async function getInterestBreakdownReport(params: {
 		Math.ceil((calculatedTaxYearEnd.getTime() - now.getTime()) / msPerDay),
 	);
 
-	devLog("getInterestBreakdownReport", "Generating complete report", {
-		userId,
-		taxYearStart: calculatedTaxYearStart,
-		taxYearEnd: calculatedTaxYearEnd,
-		asOfDate: now,
-		taxBand,
-		daysRemainingInTaxYear,
-	});
+	if (isVerboseDebug()) {
+		devLog("getInterestBreakdownReport", "Generating complete report", {
+			userId,
+			taxYearStart: calculatedTaxYearStart,
+			taxYearEnd: calculatedTaxYearEnd,
+			asOfDate: now,
+			taxBand,
+			daysRemainingInTaxYear,
+		});
+	}
 
 	// Get all breakdowns in parallel
 	const [actual, projected, reconciliation] = await Promise.all([
@@ -155,15 +157,6 @@ export async function getInterestBreakdownReport(params: {
 		psaStatusForecast,
 	};
 
-	devLog("getInterestBreakdownReport", "Report generated", {
-		actualTotal: actual.total,
-		projectedTotal: projected.total,
-		forecastTotal: total,
-		taxableTotal,
-		taxFreeTotal,
-		flagCount: reconciliation.flags.length,
-	});
-
 	return {
 		meta,
 		actual,
@@ -195,11 +188,13 @@ export async function getAccountInterestSummary(params: {
 		taxBand = "basic",
 	} = params;
 
-	devLog("getAccountInterestSummary", "Fetching account interest summary", {
-		accountId,
-		taxYearStart,
-		taxYearEnd,
-	});
+	if (isVerboseDebug()) {
+		devLog("getAccountInterestSummary", "Fetching account interest summary", {
+			accountId,
+			taxYearStart,
+			taxYearEnd,
+		});
+	}
 
 	// Get the account
 	const account = await db.query.accounts.findFirst({
@@ -286,14 +281,6 @@ export async function getAccountInterestSummary(params: {
 		taxYearEnd,
 		taxFreeStatus,
 	};
-
-	devLog("getAccountInterestSummary", "Summary calculated", {
-		accountId,
-		actualInterest,
-		projectedInterest,
-		totalExpectedInterest,
-		exclusionReason: exclusionReason,
-	});
 
 	return summary;
 }

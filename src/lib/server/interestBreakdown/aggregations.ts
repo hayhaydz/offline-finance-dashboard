@@ -23,7 +23,7 @@ import {
 } from "$lib/server/interestRates";
 import { getMonthName } from "$lib/utils/formatting";
 import { isTaxFreeWrapper } from "$lib/utils/tax-classification";
-import { devLog } from "$lib/server/logger";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 import { MS_PER_DAY } from "$lib/utils/time-constants";
 
 import type {
@@ -267,13 +267,7 @@ export async function getActualInterestBreakdown(
 		(a, b) => b.total - a.total,
 	);
 
-	devLog("getActualInterestBreakdown", "Calculated breakdown", {
-		total,
-		taxableTotal,
-		taxFreeTotal,
-		transactionCount: transactions.length - userAccounts.length, // excluding opening balances
-		accountCount: byAccount.length,
-	});
+
 
 	return {
 		total,
@@ -304,12 +298,14 @@ export async function getProjectedInterestBreakdown(
 	asOfDate?: Date,
 ): Promise<ProjectedInterestBreakdown> {
 	const now = asOfDate ?? new Date();
-	devLog("getProjectedInterestBreakdown", "Calculating projected interest", {
-		userId,
-		taxYearStart,
-		taxYearEnd,
-		asOfDate: now,
-	});
+	if (isVerboseDebug()) {
+		devLog("getProjectedInterestBreakdown", "Calculating projected interest", {
+			userId,
+			taxYearStart,
+			taxYearEnd,
+			asOfDate: now,
+		});
+	}
 
 	// Calculate days remaining in tax year
 	const msPerDay = MS_PER_DAY;
@@ -411,13 +407,7 @@ export async function getProjectedInterestBreakdown(
 	// Sort by projected amount descending
 	byAccount.sort((a, b) => b.projectedInterest - a.projectedInterest);
 
-	devLog("getProjectedInterestBreakdown", "Calculated projections", {
-		total,
-		taxableTotal,
-		taxFreeTotal,
-		accountCount: byAccount.length,
-		daysRemainingInTaxYear,
-	});
+
 
 	return {
 		total,

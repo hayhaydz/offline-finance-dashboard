@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { HOME_ROUTE } from "$lib/constants/routes";
 import { db } from "$lib/db/client";
 import { sessions, users } from "$lib/db/schema";
-import { devLog, logError } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 
 export async function load({ cookies }) {
 	const appEnv = process.env.APP_ENV || "unknown";
@@ -15,7 +15,7 @@ export async function load({ cookies }) {
 		throw error(404, "Not Found");
 	}
 
-	devLog("devLogin", "Development auto-login initiated");
+	if (isVerboseDebug()) devLog("devLogin", "Development auto-login initiated");
 
 	// Find the admin user (created by seed script)
 	const adminUser = await db.query.users.findFirst({
@@ -46,11 +46,13 @@ export async function load({ cookies }) {
 		maxAge: 60 * 60 * 24 * 30, // 30 days in development
 	});
 
-	devLog("devLogin", "Development auto-login successful", {
-		username: adminUser.username,
-		userId: adminUser.id,
-		sessionMaxAge: "30 days",
-	});
+	if (isVerboseDebug()) {
+		devLog("devLogin", "Development auto-login successful", {
+			username: adminUser.username,
+			userId: adminUser.id,
+			sessionMaxAge: "30 days",
+		});
+	}
 
 	// Redirect to the homepage
 	throw redirect(302, HOME_ROUTE);

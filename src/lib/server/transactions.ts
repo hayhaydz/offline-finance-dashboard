@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { type Account, accounts, accountTransactions } from "$lib/db/schema";
 import type { TransactionType } from "$lib/utils/domain-constants";
-import { devLog, logError } from "$lib/server/logger";
+import { devLog, logError, logInfo } from "$lib/server/logger";
 import { withUserFilter } from "$lib/auth/row-security";
 import { type Result, type VoidResult, ok, err, okVoid } from "$lib/server/utils/result";
 
@@ -48,7 +48,7 @@ export async function createTransaction(
 		createdAt: new Date(),
 	});
 
-	devLog("createTransaction", "Transaction created", {
+	logInfo("createTransaction", "Transaction created", {
 		transactionSlug: slug,
 		accountId: account.id,
 		type: data.type,
@@ -155,7 +155,7 @@ export async function updateTransaction(
 		return err("Transaction not found");
 	}
 
-	devLog("updateTransaction", "Transaction updated", { slug });
+	logInfo("updateTransaction", "Transaction updated", { slug });
 
 	return okVoid();
 }
@@ -176,7 +176,7 @@ export async function deleteTransaction(
 		return err("Transaction not found");
 	}
 
-	devLog("deleteTransaction", "Transaction deleted", { slug });
+	logInfo("deleteTransaction", "Transaction deleted", { slug });
 
 	return okVoid();
 }

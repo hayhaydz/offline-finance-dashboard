@@ -17,7 +17,7 @@ import {
 } from "$lib/server/goals";
 import { parseCurrency } from "$lib/utils/currency";
 import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
-import { devLog, logError, logFormData } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 type AccountWithUnallocated = Account & {
@@ -224,20 +224,24 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 				recentAveragePayment: recentAverage,
 			};
 
-			devLog("goalsDetail", "Loaded debt data for goal", {
-				goalId: goal.id,
-				linkedAccountId: goal.linkedAccountId,
-				apr,
-				recentAverage,
-			});
+			if (isVerboseDebug()) {
+				devLog("goalsDetail", "Loaded debt data for goal", {
+					goalId: goal.id,
+					linkedAccountId: goal.linkedAccountId,
+					apr,
+					recentAverage,
+				});
+			}
 		}
 	}
 
-	devLog("goalsDetail", "Loaded goal detail page", {
-		goalId: goal.id,
-		goalSlug: goal.slug,
-		allocationCount: allocationHistory.length,
-	});
+	if (isVerboseDebug()) {
+		devLog("goalsDetail", "Loaded goal detail page", {
+			goalId: goal.id,
+			goalSlug: goal.slug,
+			allocationCount: allocationHistory.length,
+		});
+	}
 
 	return {
 		goal,

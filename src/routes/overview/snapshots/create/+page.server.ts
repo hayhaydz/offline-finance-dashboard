@@ -2,7 +2,7 @@ import { error, fail, redirect } from "@sveltejs/kit";
 import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { snapshots } from "$lib/db/schema";
-import { devLog, logError, logFormData } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import {
 	calculateSnapshotData,
@@ -20,11 +20,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// Default to today's date
 	const today = getTodayUTC();
 
-	devLog("createSnapshot", "Preview data calculated", {
-		netWorth: previewData.netWorth,
-		accountsCount: previewData.accountsBreakdown.accounts.length,
-		goalsCount: previewData.goalsBreakdown.goals.length,
-	});
+	if (isVerboseDebug()) {
+		devLog("createSnapshot", "Preview data calculated", {
+			netWorth: previewData.netWorth,
+			accountsCount: previewData.accountsBreakdown.accounts.length,
+			goalsCount: previewData.goalsBreakdown.goals.length,
+		});
+	}
 
 	return {
 		user,
@@ -100,12 +102,14 @@ export const actions: Actions = {
 				notes: notes || null,
 			});
 
-			devLog("createSnapshot", "Snapshot created successfully", {
-				slug,
-				userId: user.id,
-				snapshotDate,
-				netWorthInCents: netWorth,
-			});
+			if (isVerboseDebug()) {
+				devLog("createSnapshot", "Snapshot created successfully", {
+					slug,
+					userId: user.id,
+					snapshotDate,
+					netWorthInCents: netWorth,
+				});
+			}
 
 			throw redirect(302, "/snapshots");
 		} catch (err) {

@@ -4,15 +4,17 @@ import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { goalAllocations, goals } from "$lib/db/schema";
 import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
-import { devLog, logError, logFormData } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ params, locals }) => {
 	const user = requireAuth(locals);
 
-	devLog("goalsArchiveConfirm", "Loading archive confirmation page", {
+	if (isVerboseDebug()) {
+		devLog("goalsArchiveConfirm", "Loading archive confirmation page", {
 		slug: params.slug,
-	});
+		});
+	}
 
 	// Fetch goal by slug
 	const goal = await db.query.goals.findFirst({
@@ -72,14 +74,16 @@ export const actions: Actions = {
 				.set({ deletedAt: new Date() })
 				.where(eq(goals.id, goal.id));
 
-			devLog(
-				"goalsArchiveConfirm",
-				"Goal archived successfully, redirecting to /goals",
-				{
-					slug: params.slug,
-					returnedAmount: goal.currentAllocation,
-				},
-			);
+			if (isVerboseDebug()) {
+				devLog(
+					"goalsArchiveConfirm",
+					"Goal archived successfully, redirecting to /goals",
+					{
+						slug: params.slug,
+						returnedAmount: goal.currentAllocation,
+					},
+				);
+			}
 		} catch (err) {
 			logError("goalsArchiveConfirm", "Failed to archive goal", err);
 			return fail(500, { error: "Failed to archive goal. Please try again." });

@@ -14,7 +14,7 @@
 
 import { ISA_ALLOWANCE_IN_CENTS } from "$lib/utils/tax-year-utils";
 import { reconcileBreakdowns, addWarningFlag } from "$lib/server/utils/reconciliation";
-import { devLog } from "$lib/server/logger";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 import { MS_PER_DAY } from "$lib/utils/time-constants";
 
 import { getISATransactions, getISAAvailableTaxYears } from "./queries";
@@ -63,11 +63,13 @@ export async function getISABreakdownReport(params: {
 }): Promise<ISABreakdownReport> {
 	const { userId, taxYearStart, taxYearEnd } = params;
 
-	devLog("isaBreakdown", "Generating ISA breakdown report", {
-		userId,
-		taxYearStart: taxYearStart.toISOString(),
-		taxYearEnd: taxYearEnd.toISOString(),
-	});
+	if (isVerboseDebug()) {
+		devLog("isaBreakdown", "Generating ISA breakdown report", {
+			userId,
+			taxYearStart: taxYearStart.toISOString(),
+			taxYearEnd: taxYearEnd.toISOString(),
+		});
+	}
 
 	const asOfDate = new Date();
 	const daysRemainingInTaxYear = Math.max(
@@ -155,13 +157,6 @@ export async function getISABreakdownReport(params: {
 		totalVsTransactionsDelta: deltas.transactions ?? 0,
 		flags,
 	};
-
-	devLog("isaBreakdown", "ISA breakdown report generated", {
-		userId,
-		allowanceUsed,
-		utilizationPercent,
-		reconciliationFlags: flags.length,
-	});
 
 	return {
 		meta,

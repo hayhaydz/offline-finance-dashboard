@@ -1,6 +1,6 @@
 import { getUkTaxYearBounds, ISA_ALLOWANCE_IN_CENTS } from "$lib/utils/tax-year-utils";
 import { getISABreakdownReport } from "$lib/server/isaBreakdown";
-import { devLog } from "$lib/server/logger";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 import { MS_PER_MONTH } from "$lib/utils/time-constants";
 
 export type ISAPacingStatus = "full" | "on-track" | "behind" | "no-data";

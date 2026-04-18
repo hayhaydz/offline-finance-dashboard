@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { spendingCategories } from "$lib/db/schema";
 import { withUserFilter } from "$lib/auth/row-security";
-import { devLog, logError } from "$lib/server/logger";
+import { devLog, logError, logInfo } from "$lib/server/logger";
 import { type Result, type VoidResult, ok, err, okVoid } from "$lib/server/utils/result";
 import { isValidHexColour } from "$lib/utils/category-colours";
 
@@ -95,7 +95,7 @@ export async function createCategory(data: CreateCategoryData): Promise<Result<s
 			})
 			.run();
 
-		devLog("createCategory", "Category created", { slug, key: normalizedKey });
+		logInfo("createCategory", "Category created", { slug, key: normalizedKey });
 
 		return ok(slug);
 	} catch (error) {
@@ -138,7 +138,7 @@ export async function updateCategory(
 			.where(eq(spendingCategories.slug, slug))
 			.run();
 
-		devLog("updateCategory", "Category updated", { slug, updates });
+		logInfo("updateCategory", "Category updated", { slug, updates });
 
 		return okVoid();
 	} catch (error) {
@@ -165,7 +165,7 @@ export async function deleteCategory(
 			.where(eq(spendingCategories.slug, slug))
 			.run();
 
-		devLog("deleteCategory", "Category soft-deleted", { slug });
+		logInfo("deleteCategory", "Category soft-deleted", { slug });
 
 		return okVoid();
 	} catch (error) {

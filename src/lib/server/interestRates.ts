@@ -2,7 +2,7 @@ import { and, asc, desc, eq, inArray, lte } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { type Account, interestRates } from "$lib/db/schema";
 import { formatRate } from "$lib/utils/formatting";
-import { devLog, logError } from "$lib/server/logger";
+import { devLog, logError, logInfo } from "$lib/server/logger";
 import { type Result, type VoidResult, ok, err, okVoid } from "$lib/server/utils/result";
 
 export interface CreateInterestRateData {
@@ -36,7 +36,7 @@ export async function createInterestRate(
 		})
 		.returning({ id: interestRates.id });
 
-	devLog("createInterestRate", "Interest rate created", {
+	logInfo("createInterestRate", "Interest rate created", {
 		accountId: account.id,
 		rate: data.rate,
 		effectiveFrom: data.effectiveFrom,
@@ -198,7 +198,7 @@ export async function updateInterestRate(
 		})
 		.where(eq(interestRates.id, id));
 
-	devLog("updateInterestRate", "Interest rate updated", { id });
+	logInfo("updateInterestRate", "Interest rate updated", { id });
 
 	return okVoid();
 }
@@ -218,7 +218,7 @@ export async function deleteInterestRate(
 
 	await db.delete(interestRates).where(eq(interestRates.id, id));
 
-	devLog("deleteInterestRate", "Interest rate deleted", { id });
+	logInfo("deleteInterestRate", "Interest rate deleted", { id });
 
 	return okVoid();
 }

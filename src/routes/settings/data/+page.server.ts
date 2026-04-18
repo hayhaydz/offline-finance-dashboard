@@ -2,7 +2,7 @@ import { fail } from "@sveltejs/kit";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { accounts, spendingCategories } from "$lib/db/schema";
-import { devLog, logError, logFormData } from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 import {
 	getOverlappingTransactions,
 	batchInsertTransactions,
@@ -14,10 +14,12 @@ import type { Actions, PageServerLoad } from "./$types";
 export const load: PageServerLoad = async ({ locals }) => {
 	const user = requireAuth(locals);
 
-	devLog("settings-data", "Data settings loaded", {
-		username: user.username,
-		userId: user.id,
-	});
+	if (isVerboseDebug()) {
+		devLog("settings-data", "Data settings loaded", {
+			username: user.username,
+			userId: user.id,
+		});
+	}
 
 	// Get user's open accounts (for dropdown)
 	const userAccounts = await db.query.accounts.findMany({

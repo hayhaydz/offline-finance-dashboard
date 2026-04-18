@@ -89,24 +89,14 @@ export function devLog(
 		return;
 	}
 
-	const timestamp = getTimestamp();
-	const prefix = `[DEV] [${category}] ${message}`;
+	const maskedData = data !== undefined ? maskSensitiveData(data) : undefined;
 
-	if (data !== undefined) {
-		const maskedData = maskSensitiveData(data);
-		logger.debug(prefix, {
-			timestamp,
-			category,
-			message,
-			data: maskedData,
-		});
-	} else {
-		logger.debug(prefix, {
-			timestamp,
-			category,
-			message,
-		});
-	}
+	logger.debug({
+		level: "debug",
+		message: `[DEV] [${category}] ${message}`,
+		category,
+		data: maskedData,
+	});
 }
 
 /**
@@ -135,6 +125,25 @@ export function logError(
 			message,
 		});
 	}
+}
+
+/**
+ * Info-level logging for significant business events (all environments)
+ * Use for: transactions created/deleted, imports completed, state mutations
+ */
+export function logInfo(
+	category: string,
+	message: string,
+	data?: unknown,
+): void {
+	const maskedData = data !== undefined ? maskSensitiveData(data) : undefined;
+
+	logger.info({
+		level: "info",
+		message: `[INFO] [${category}] ${message}`,
+		category,
+		data: maskedData,
+	});
 }
 
 /**
