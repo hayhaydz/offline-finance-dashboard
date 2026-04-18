@@ -15,12 +15,18 @@ export type { BudgetConfig, CategoryBreakdown, BudgetStatus };
 /** Sentinel ID for the virtual "Uncategorised" catch-all category */
 export const UNCATEGORISED_ID = -1;
 
+/** Parse budget JSON columns — Drizzle's mapFromDriverValue is not invoked by
+ *  better-sqlite3-multiple-ciphers, so these arrive as raw strings. */
+function parseJsonCol<T>(value: T | string): T {
+	return typeof value === "string" ? (JSON.parse(value) as T) : value;
+}
+
 function parseBudgetConfig(row: typeof budgetMonths.$inferSelect): BudgetConfig {
 	return {
 		totalTargetInCents: row.totalTargetInCents,
-		excludedCategoryIds: row.excludedCategoryIds,
-		excludedAccountIds: row.excludedAccountIds,
-		categoryTargets: row.categoryTargets,
+		excludedCategoryIds: parseJsonCol<number[]>(row.excludedCategoryIds),
+		excludedAccountIds: parseJsonCol<number[]>(row.excludedAccountIds),
+		categoryTargets: parseJsonCol<Record<string, number>>(row.categoryTargets),
 	};
 }
 
@@ -298,9 +304,9 @@ async function ensureCurrentMonth(
 			userId,
 			month: monthStr,
 			totalTargetInCents: previous.totalTargetInCents,
-			excludedCategoryIds: previous.excludedCategoryIds,
-			excludedAccountIds: previous.excludedAccountIds,
-			categoryTargets: previous.categoryTargets,
+			excludedCategoryIds: parseJsonCol<number[]>(previous.excludedCategoryIds),
+			excludedAccountIds: parseJsonCol<number[]>(previous.excludedAccountIds),
+			categoryTargets: parseJsonCol<Record<string, number>>(previous.categoryTargets),
 		})
 		.returning();
 
@@ -342,5 +348,12 @@ export async function saveBudgetRow(
 }
 
 export async function getBudgetRow(userId: number, monthStr: string) {
-	return ensureCurrentMonth(userId, monthStr);
+	const row = await ensureCurrentMonth(userId, monthStr);
+	if (!row) return null;
+	return {
+		...row,
+		excludedCategoryIds: parseJsonCol<number[]>(row.excludedCategoryIds),
+		excludedAccountIds: parseJsonCol<number[]>(row.excludedAccountIds),
+		categoryTargets: parseJsonCol<Record<string, number>>(row.categoryTargets),
+	};
 }
