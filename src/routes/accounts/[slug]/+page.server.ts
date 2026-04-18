@@ -513,14 +513,21 @@ export const actions: Actions = {
 				account,
 			);
 
+			if (!result.ok) {
+				logError("addTransaction", "Failed to create transaction", {
+					error: result.error,
+				});
+				return fail(500, { error: result.error });
+			}
+
 			devLog("addTransaction", "Transaction created successfully", {
 				accountSlug: params.slug,
-				transactionSlug: result.transactionSlug,
+				transactionSlug: result.data,
 				type,
 				amount,
 			});
 
-			return { success: true, transactionSlug: result.transactionSlug };
+			return { success: true, transactionSlug: result.data };
 		} catch (err) {
 			logError("addTransaction", "Failed to create transaction", {
 				error: err instanceof Error ? err.message : String(err),
@@ -552,9 +559,15 @@ export const actions: Actions = {
 				return fail(404, { error: "Transaction not found" });
 			}
 
-			await deleteTransaction(transactionSlug);
+			const result = await deleteTransaction(transactionSlug);
+				if (!result.ok) {
+					logError("deleteTransaction", "Failed to delete transaction", {
+						error: result.error,
+					});
+					return fail(500, { error: result.error });
+				}
 
-			devLog("deleteTransaction", "Transaction deleted successfully", {
+				devLog("deleteTransaction", "Transaction deleted successfully", {
 				accountSlug: params.slug,
 				transactionSlug,
 			});

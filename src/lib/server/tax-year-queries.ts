@@ -8,6 +8,7 @@
 import { and, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
+import { withUserFilter } from "$lib/auth/row-security";
 import {
 	getCurrentBalanceForAccount,
 	getCurrentBalancesForAccounts,
@@ -37,7 +38,7 @@ export async function getISAAllowanceUsed(
 		.innerJoin(accounts, eq(accountTransactions.accountId, accounts.id))
 		.where(
 			and(
-				eq(accounts.userId, userId),
+				withUserFilter(userId, accounts),
 				inArray(accounts.taxWrapper, ["isa", "lisa"]),
 				eq(accountTransactions.type, "deposit"),
 				gte(accountTransactions.transactionDate, taxYearStart),
@@ -64,7 +65,7 @@ export async function getActualInterestEarned(
 		.innerJoin(accounts, eq(accountTransactions.accountId, accounts.id))
 		.where(
 			and(
-				eq(accounts.userId, userId),
+				withUserFilter(userId, accounts),
 				eq(accountTransactions.type, "interest"),
 				gte(accountTransactions.transactionDate, taxYearStart),
 				lte(accountTransactions.transactionDate, taxYearEnd),
@@ -97,7 +98,7 @@ export async function getActualInterestByTaxWrapper(
 		.innerJoin(accounts, eq(accountTransactions.accountId, accounts.id))
 		.where(
 			and(
-				eq(accounts.userId, userId),
+				withUserFilter(userId, accounts),
 				eq(accountTransactions.type, "interest"),
 				gte(accountTransactions.transactionDate, taxYearStart),
 				lte(accountTransactions.transactionDate, taxYearEnd),
@@ -146,7 +147,7 @@ export async function getProjectedInterestByTaxWrapper(
 	// Fetch ALL savings/investment accounts for this user
 	const allAccounts = await db.query.accounts.findMany({
 		where: and(
-			eq(accounts.userId, userId),
+			withUserFilter(userId, accounts),
 			or(eq(accounts.type, "savings"), eq(accounts.type, "investment")),
 		),
 	});
@@ -290,7 +291,7 @@ export async function getCumulativeISADeposits(
 		.innerJoin(accounts, eq(accountTransactions.accountId, accounts.id))
 		.where(
 			and(
-				eq(accounts.userId, userId),
+				withUserFilter(userId, accounts),
 				inArray(accounts.taxWrapper, ["isa", "lisa"]),
 				eq(accountTransactions.type, "deposit"),
 				lte(accountTransactions.transactionDate, asOfDate),

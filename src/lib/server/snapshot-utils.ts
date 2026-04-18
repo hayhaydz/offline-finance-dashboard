@@ -1,6 +1,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { accounts, goals, snapshots } from "$lib/db/schema";
+import { withUserFilter } from "$lib/auth/row-security";
 import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
 import { calculateAssetsAndLiabilities } from "$lib/server/finance";
 import {
@@ -30,7 +31,7 @@ export async function calculateSnapshotData(
 	// Fetch all user accounts
 	const allAccounts = await db.query.accounts.findMany({
 		where: and(
-			eq(accounts.userId, userId),
+			withUserFilter(userId, accounts),
 			isNull(accounts.closedAt), // Only open accounts
 		),
 	});
@@ -40,7 +41,7 @@ export async function calculateSnapshotData(
 
 	// Fetch all active goals
 	const allGoals = await db.query.goals.findMany({
-		where: and(eq(goals.userId, userId), isNull(goals.deletedAt)),
+		where: and(withUserFilter(userId, goals), isNull(goals.deletedAt)),
 	});
 
 	// Calculate totals (only include accounts not excluded from net worth)
@@ -133,7 +134,7 @@ export async function getSnapshotByDate(
 			slug: true,
 		},
 		where: and(
-			eq(snapshots.userId, userId),
+			withUserFilter(userId, snapshots),
 			eq(snapshots.snapshotDate, snapshotDate),
 		),
 	});

@@ -205,9 +205,9 @@ export const actions: Actions = {
 				colour,
 			});
 
-			devLog("settings-general:createCategory", "Result", { success: result.success });
+			devLog("settings-general:createCategory", "Result", { ok: result.ok });
 
-			if (!result.success) {
+			if (!result.ok) {
 				return fail(400, { error: result.error });
 			}
 
@@ -241,7 +241,7 @@ export const actions: Actions = {
 				colour: colour && isValidHexColour(colour) ? colour : undefined,
 			});
 
-			if (!result.success) {
+			if (!result.ok) {
 				return fail(400, { error: result.error });
 			}
 
@@ -270,7 +270,7 @@ export const actions: Actions = {
 		try {
 			const result = await deleteCategory(slug, user.id);
 
-			if (!result.success) {
+			if (!result.ok) {
 				return fail(400, { error: result.error });
 			}
 

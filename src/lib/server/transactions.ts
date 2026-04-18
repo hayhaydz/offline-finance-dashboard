@@ -4,6 +4,8 @@ import { db } from "$lib/db/client";
 import { type Account, accounts, accountTransactions } from "$lib/db/schema";
 import type { TransactionType } from "$lib/utils/domain-constants";
 import { devLog, logError } from "$lib/server/logger";
+import { withUserFilter } from "$lib/auth/row-security";
+import { type Result, type VoidResult, ok, err, okVoid } from "$lib/server/utils/result";
 
 export type { TransactionType };
 
@@ -32,7 +34,7 @@ export interface TransactionFilter {
 export async function createTransaction(
 	data: CreateTransactionData,
 	account: Account,
-): Promise<{ success: boolean; transactionSlug: string }> {
+): Promise<Result<string>> {
 	const slug = nanoid(21);
 
 	await db.insert(accountTransactions).values({
@@ -53,7 +55,7 @@ export async function createTransaction(
 		amount: data.amount,
 	});
 
-	return { success: true, transactionSlug: slug };
+	return ok(slug);
 }
 
 /**
@@ -64,7 +66,7 @@ export async function getTransactions(
 	userId: number,
 	filter: TransactionFilter = {},
 ) {
-	const conditions = [eq(accounts.userId, userId)];
+	const conditions = [withUserFilter(userId, accounts)];
 
 	if (filter.accountId) {
 		conditions.push(eq(accountTransactions.accountId, filter.accountId));
@@ -141,7 +143,7 @@ export async function updateTransaction(
 		categoryId?: number | null;
 		transactionDate?: Date;
 	},
-): Promise<{ success: boolean }> {
+): Promise<VoidResult> {
 	const result = await db
 		.update(accountTransactions)
 		.set(data)
@@ -150,12 +152,12 @@ export async function updateTransaction(
 
 	if (result.length === 0) {
 		logError("updateTransaction", "Transaction not found", { slug });
-		throw new Error("Transaction not found");
+		return err("Transaction not found");
 	}
 
 	devLog("updateTransaction", "Transaction updated", { slug });
 
-	return { success: true };
+	return okVoid();
 }
 
 /**
@@ -163,7 +165,7 @@ export async function updateTransaction(
  */
 export async function deleteTransaction(
 	slug: string,
-): Promise<{ success: boolean }> {
+): Promise<VoidResult> {
 	const result = await db
 		.delete(accountTransactions)
 		.where(eq(accountTransactions.slug, slug))
@@ -171,12 +173,12 @@ export async function deleteTransaction(
 
 	if (result.length === 0) {
 		logError("deleteTransaction", "Transaction not found", { slug });
-		throw new Error("Transaction not found");
+		return err("Transaction not found");
 	}
 
 	devLog("deleteTransaction", "Transaction deleted", { slug });
 
-	return { success: true };
+	return okVoid();
 }
 
 /**

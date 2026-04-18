@@ -1,3 +1,28 @@
+## [2026-04-18] — refactor: consistency passes (Phase 7)
+
+**Summary:** Standardized error handling, auth checks, and logging across all server files.
+
+**Error handling:**
+- Created `src/lib/server/utils/result.ts` — generic `Result<T>` discriminated union type
+- Migrated `categories.ts` and `transactions.ts` from ad-hoc `{ success }` to `Result<T>`
+- Created `src/lib/server/utils/with-logging.ts` — auto-logging wrapper for server functions
+
+**Auth standardization:**
+- Migrated 5 server files from manual `eq(table.userId, userId)` to `withUserFilter()`
+- Files: `budgets.ts` (9 replacements), `transactions.ts` (1), `tax-year-queries.ts` (5), `categories.ts` (3), `snapshot-utils.ts` (3)
+
+**Logging consistency:**
+- Added `devLog`/`logError` to 11 previously unlogged server files
+- Zero `console.log` in server code maintained
+
+**Known remaining patterns** (outside Phase 7 scope):
+- `notes.ts`, `interestRates.ts` still use `{ success: boolean }` — candidates for future migration
+- `interestBreakdown/queries.ts` has 1 manual `eq(accounts.userId, userId)` — candidate for `withUserFilter`
+
+**Verification:** `npm run check` (0 errors), `npm test` (385/385 pass)
+
+**Suggested commit:** `refactor: consistency passes — Phase 7 complete`
+
 ## [2026-04-15] — refactor: route UI decomposition (Phase 6)
 
 **Summary:** Decomposed 3 largest route page components into focused sub-components and extracted 9 shared UI components + 2 composables. Eliminated ~285 lines of duplicated pagination boilerplate across 10+ files.

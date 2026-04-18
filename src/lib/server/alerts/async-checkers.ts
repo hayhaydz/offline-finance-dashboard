@@ -19,6 +19,7 @@ import { calculateISAPacing } from '$lib/server/isaPacing';
 import { MS_PER_DAY } from '$lib/utils/time-constants';
 import { PSA_BY_BAND, daysUntil, daysSince, makeAccountAlert, makeGlobalAlert } from './constants';
 import type { AccountRow } from './constants';
+import { devLog } from "$lib/server/logger";
 
 // ─── Async alert checkers ─────────────────────────────────────────────────────
 
@@ -26,6 +27,7 @@ export async function checkIsaAlerts(
 	userId: number,
 	taxYear: { start: Date; end: Date },
 ): Promise<Alert[]> {
+	devLog("checkIsaAlerts", "Checking ISA alerts", { userId });
 	const alerts: Alert[] = [];
 	const used = await getISAAllowanceUsed(userId, taxYear.start, taxYear.end);
 	const pct = used / ISA_ALLOWANCE_IN_CENTS;
@@ -56,6 +58,7 @@ export async function checkPsaAlerts(
 	taxBand: string,
 	hasSavingsAccounts: boolean,
 ): Promise<Alert[]> {
+	devLog("checkPsaAlerts", "Checking PSA alerts", { userId, taxBand });
 	const alerts: Alert[] = [];
 
 	if (taxBand === 'additional') {
@@ -109,6 +112,7 @@ export async function checkPsaAlerts(
 }
 
 export async function checkGoalAlerts(userId: number): Promise<Alert[]> {
+	devLog("checkGoalAlerts", "Checking goal alerts", { userId });
 	const alerts: Alert[] = [];
 	const now = new Date();
 
@@ -190,6 +194,7 @@ export async function checkGoalAlerts(userId: number): Promise<Alert[]> {
 }
 
 export async function checkSnapshotAlerts(userId: number): Promise<Alert[]> {
+	devLog("checkSnapshotAlerts", "Checking snapshot alerts", { userId });
 	const [row] = await db
 		.select({ maxDate: sql<string | null>`max(${snapshots.snapshotDate})` })
 		.from(snapshots)
@@ -217,6 +222,7 @@ export async function checkSnapshotAlerts(userId: number): Promise<Alert[]> {
 }
 
 export async function checkTaxYearReviewAlerts(now: Date): Promise<Alert[]> {
+	devLog("checkTaxYearReviewAlerts", "Checking tax year review alerts");
 	const taxYear = getUkTaxYearBounds(now);
 	const daysSinceNewTaxYear = daysSince(taxYear.start, now);
 
@@ -256,6 +262,7 @@ export async function checkTaxYearReviewAlerts(now: Date): Promise<Alert[]> {
 }
 
 export async function checkMonthlyReviewAlerts(userId: number): Promise<Alert[]> {
+	devLog("checkMonthlyReviewAlerts", "Checking monthly review alerts", { userId });
 	const now = new Date();
 	const yearMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
 
@@ -289,6 +296,7 @@ export async function checkMonthlyReviewAlerts(userId: number): Promise<Alert[]>
 }
 
 export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
+	devLog("checkBudgetAlerts", "Checking budget alerts", { userId });
 	const alerts: Alert[] = [];
 	const now = new Date();
 	const year = now.getUTCFullYear();
@@ -401,6 +409,7 @@ export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
 }
 
 export async function checkNetWorthAlerts(userId: number): Promise<Alert[]> {
+	devLog("checkNetWorthAlerts", "Checking net worth alerts", { userId });
 	const alerts: Alert[] = [];
 	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
 
@@ -459,6 +468,7 @@ export async function checkNetWorthAlerts(userId: number): Promise<Alert[]> {
 }
 
 export async function checkDebtPayoffAlerts(userId: number): Promise<Alert[]> {
+	devLog("checkDebtPayoffAlerts", "Checking debt payoff alerts", { userId });
 	const alerts: Alert[] = [];
 	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
 
@@ -552,6 +562,7 @@ export async function checkDebtPayoffAlerts(userId: number): Promise<Alert[]> {
 }
 
 export async function checkGoalAutoReduceAlerts(userId: number): Promise<Alert[]> {
+	devLog("checkGoalAutoReduceAlerts", "Checking goal auto-reduce alerts", { userId });
 	const alerts: Alert[] = [];
 	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
 
@@ -591,6 +602,7 @@ export async function checkGoalAutoReduceAlerts(userId: number): Promise<Alert[]
 }
 
 export async function checkISAPacingAlerts(userId: number): Promise<Alert[]> {
+	devLog("checkISAPacingAlerts", "Checking ISA pacing alerts", { userId });
 	const alerts: Alert[] = [];
 	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
 
@@ -616,6 +628,7 @@ export async function checkISAPacingAlerts(userId: number): Promise<Alert[]> {
 }
 
 export async function checkLISAAlerts(userId: number): Promise<Alert[]> {
+	devLog("checkLISAAlerts", "Checking LISA alerts", { userId });
 	const alerts: Alert[] = [];
 	const now = new Date();
 	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
@@ -676,6 +689,7 @@ export async function checkLISAAlerts(userId: number): Promise<Alert[]> {
 }
 
 export async function checkBoERateAlerts(userId: number): Promise<Alert[]> {
+	devLog("checkBoERateAlerts", "Checking BoE rate alerts", { userId });
 	const alerts: Alert[] = [];
 
 	const boeSetting = await db.query.settings.findFirst({
@@ -761,6 +775,7 @@ export async function checkBoERateAlerts(userId: number): Promise<Alert[]> {
 }
 
 export async function checkOrphanedTransfers(userId: number): Promise<Alert[]> {
+	devLog("checkOrphanedTransfers", "Checking orphaned transfers", { userId });
 	const alerts: Alert[] = [];
 	const fmt = (cents: number) => `£${(cents / 100).toLocaleString('en-GB')}`;
 

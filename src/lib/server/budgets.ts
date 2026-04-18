@@ -6,6 +6,7 @@ import {
 	budgetMonths,
 	spendingCategories,
 } from "$lib/db/schema";
+import { withUserFilter } from "$lib/auth/row-security";
 import { devLog } from "$lib/server/logger";
 import type { BudgetConfig, CategoryBreakdown, BudgetStatus } from "$lib/types/budget";
 
@@ -57,7 +58,7 @@ export async function getBudgetStatus(
 	const daysElapsed = getDaysElapsed(year, month);
 
 	const conditions = [
-		eq(accounts.userId, userId),
+		withUserFilter(userId, accounts),
 		gte(accountTransactions.transactionDate, start),
 		lte(accountTransactions.transactionDate, end),
 		sql`${accountTransactions.type} IN ('withdrawal', 'charge')`,
@@ -117,14 +118,14 @@ export async function getCategoryBreakdown(
 
 	const allCategories = await db.query.spendingCategories.findMany({
 		where: and(
-			eq(spendingCategories.userId, userId),
+			withUserFilter(userId, spendingCategories),
 			isNull(spendingCategories.deletedAt),
 		),
 		orderBy: (categories, { asc }) => [asc(categories.name)],
 	});
 
 	const conditions = [
-		eq(accounts.userId, userId),
+		withUserFilter(userId, accounts),
 		gte(accountTransactions.transactionDate, start),
 		lte(accountTransactions.transactionDate, end),
 		sql`${accountTransactions.type} IN ('withdrawal', 'charge')`,
@@ -217,12 +218,12 @@ export async function getBudgetHistory(
 	const [{ total }] = await db
 		.select({ total: count() })
 		.from(budgetMonths)
-		.where(eq(budgetMonths.userId, userId));
+		.where(withUserFilter(userId, budgetMonths));
 
 	const totalPages = Math.ceil(total / pageSize);
 
 	const months = await db.query.budgetMonths.findMany({
-		where: eq(budgetMonths.userId, userId),
+		where: withUserFilter(userId, budgetMonths),
 		orderBy: desc(budgetMonths.month),
 		limit: pageSize,
 		offset,
@@ -237,7 +238,7 @@ export async function getBudgetHistory(
 			const config = parseBudgetConfig(row);
 
 			const conditions = [
-				eq(accounts.userId, userId),
+				withUserFilter(userId, accounts),
 				gte(accountTransactions.transactionDate, start),
 				lte(accountTransactions.transactionDate, end),
 				sql`${accountTransactions.type} IN ('withdrawal', 'charge')`,
@@ -280,7 +281,7 @@ async function ensureCurrentMonth(
 ): Promise<typeof budgetMonths.$inferSelect | null> {
 	const existing = await db.query.budgetMonths.findFirst({
 		where: and(
-			eq(budgetMonths.userId, userId),
+			withUserFilter(userId, budgetMonths),
 			eq(budgetMonths.month, monthStr),
 		),
 	});
@@ -289,7 +290,7 @@ async function ensureCurrentMonth(
 
 	const previous = await db.query.budgetMonths.findFirst({
 		where: and(
-			eq(budgetMonths.userId, userId),
+			withUserFilter(userId, budgetMonths),
 			sql`${budgetMonths.month} < ${monthStr}`,
 		),
 		orderBy: desc(budgetMonths.month),
@@ -324,7 +325,7 @@ export async function saveBudgetRow(
 ): Promise<void> {
 	const existing = await db.query.budgetMonths.findFirst({
 		where: and(
-			eq(budgetMonths.userId, userId),
+			withUserFilter(userId, budgetMonths),
 			eq(budgetMonths.month, monthStr),
 		),
 	});

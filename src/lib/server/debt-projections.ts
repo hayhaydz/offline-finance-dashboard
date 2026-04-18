@@ -1,8 +1,10 @@
 import { calculateTTZ } from "$lib/utils/debt-calculator";
+import { devLog } from "$lib/server/logger";
 
 // ── Tax year date helpers ──────────────────────────────────────
 
 export function formatTaxYearStartParam(date: Date): string {
+	devLog("formatTaxYearStartParam", "Formatting tax year start param");
 	const year = date.getUTCFullYear();
 	const month = String(date.getUTCMonth() + 1).padStart(2, "0");
 	const day = String(date.getUTCDate()).padStart(2, "0");
@@ -10,12 +12,14 @@ export function formatTaxYearStartParam(date: Date): string {
 }
 
 export function getTaxYearEndFromStart(taxYearStart: Date): Date {
+	devLog("getTaxYearEndFromStart", "Getting tax year end from start");
 	return new Date(
 		Date.UTC(taxYearStart.getUTCFullYear() + 1, 3, 5, 23, 59, 59, 999),
 	);
 }
 
 export function parseTaxYearStart(value: string | null): Date | null {
+	devLog("parseTaxYearStart", "Parsing tax year start", { value });
 	if (!value) return null;
 	const parsed = new Date(`${value}T00:00:00.000Z`);
 	if (Number.isNaN(parsed.getTime())) return null;
@@ -35,6 +39,7 @@ export function getDebtHealthStatus(ttz: {
 	months: number | null;
 	years: number | null;
 }): { label: string; class: string } {
+	devLog("getDebtHealthStatus", "Getting debt health status");
 	if (ttz.months === null) {
 		return { label: "[CRITICAL]", class: "text-red-700" };
 	}
@@ -55,6 +60,7 @@ export function calculateMinimumPayment(
 	_rate: number,
 	rule: { type: string; flat: number | null; percentage: number | null },
 ): number {
+	devLog("calculateMinimumPayment", "Calculating minimum payment", { ruleType: rule.type });
 	if (rule.type === "flat" && rule.flat !== null) {
 		return rule.flat;
 	}
@@ -82,6 +88,7 @@ export function calculatePaymentSuggestion(
 	monthsSaved: number;
 	interestSaved: number;
 } | null {
+	devLog("calculatePaymentSuggestion", "Calculating payment suggestion", { balance, currentPayment });
 	// No suggestion if never pays off or already fast (< 6 months)
 	if (ttz.months === null || ttz.months < 6) {
 		return null;

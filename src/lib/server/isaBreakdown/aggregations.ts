@@ -7,6 +7,7 @@
 
 import { MONTH_NAMES } from "$lib/utils/domain-constants";
 import { aggregateByKey } from "$lib/server/utils/aggregate";
+import { devLog } from "$lib/server/logger";
 
 import type {
 	ISATransaction,
@@ -20,6 +21,7 @@ import type {
 export function getISABreakdownByAccount(
 	transactions: ISATransaction[],
 ): ISAAccountBreakdown[] {
+	devLog("getISABreakdownByAccount", "Aggregating ISA by account", { txCount: transactions.length });
 	const byAccount = new Map<number, ISAAccountBreakdown>();
 
 	for (const tx of transactions) {
@@ -50,6 +52,7 @@ export function getISABreakdownByAccount(
 export function getISABreakdownByMonth(
 	transactions: ISATransaction[],
 ): ISAMonthBreakdown[] {
+	devLog("getISABreakdownByMonth", "Aggregating ISA by month", { txCount: transactions.length });
 	const byMonth = new Map<string, ISAMonthBreakdown>();
 
 	for (const tx of transactions) {
@@ -81,6 +84,7 @@ export function getISABreakdownByMonth(
 export function getISABreakdownByInstitution(
 	transactions: ISATransaction[],
 ): ISAInstitutionBreakdown[] {
+	devLog("getISABreakdownByInstitution", "Aggregating ISA by institution", { txCount: transactions.length });
 	const deposits = transactions.filter((tx) => tx.type === "deposit");
 
 	return aggregateByKey(
@@ -98,6 +102,7 @@ export function getISABreakdownByInstitution(
 export function getISABreakdownByTaxWrapper(
 	transactions: ISATransaction[],
 ): ISATaxWrapperBreakdown[] {
+	devLog("getISABreakdownByTaxWrapper", "Aggregating ISA by tax wrapper", { txCount: transactions.length });
 	const displayNames: Record<string, string> = {
 		isa: "ISA",
 		lisa: "LISA",
