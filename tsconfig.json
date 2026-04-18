@@ -11,6 +11,7 @@
 		"strict": true,
 		"moduleResolution": "bundler",
 		"module": "esnext",
-		"noEmit": true
+		"noEmit": true,
+    "types": ["node"]
 	}
 }

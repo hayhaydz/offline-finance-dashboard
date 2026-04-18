@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import * as schema from "../../../src/lib/db/schema.js";
+import * as schema from "../../../src/lib/db/schema/index";
 import type { DB } from "../lib/db.js";
 import { daysAgo, formatGBP, loadFixture, slug } from "../lib/helpers.js";
 import { createSnapshot } from "../lib/snapshot.js";

@@ -2,7 +2,7 @@ import "dotenv/config";
 import fs from "node:fs";
 import Database from "better-sqlite3-multiple-ciphers";
 import { drizzle } from "drizzle-orm/better-sqlite3";
-import * as schema from "../../../src/lib/db/schema.js";
+import * as schema from "../../../src/lib/db/schema/index";
 
 const appEnv = process.env.APP_ENV || "development";
 const dbPath = appEnv === "test" ? "storage/test.db" : "storage/dev.db";

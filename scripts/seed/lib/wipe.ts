@@ -1,5 +1,5 @@
 import { eq, inArray } from "drizzle-orm";
-import * as schema from "../../../src/lib/db/schema.js";
+import * as schema from "../../../src/lib/db/schema/index";
 import type { DB } from "./db.js";
 
 export async function wipeUserData(db: DB, userId: number): Promise<void> {

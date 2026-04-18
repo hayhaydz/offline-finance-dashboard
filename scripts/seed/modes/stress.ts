@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import * as schema from "../../../src/lib/db/schema.js";
+import * as schema from "../../../src/lib/db/schema/index";
 import type { DB } from "../lib/db.js";
 import { daysAgo, randomBetween, slug } from "../lib/helpers.js";
 import { wipeUserData } from "../lib/wipe.js";

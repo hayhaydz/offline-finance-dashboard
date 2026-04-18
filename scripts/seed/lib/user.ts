@@ -5,7 +5,7 @@ import {
 	generateTOTPSecret,
 } from "../../../src/lib/auth/mfa.js";
 import { hashPassword } from "../../../src/lib/auth/password.js";
-import * as schema from "../../../src/lib/db/schema.js";
+import * as schema from "../../../src/lib/db/schema/index";
 import type { DB } from "./db.js";
 
 export async function ensureAdminUser(db: DB): Promise<number> {

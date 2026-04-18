@@ -1,5 +1,5 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
-import * as schema from "../../../src/lib/db/schema.js";
+import * as schema from "../../../src/lib/db/schema/index";
 import { calculateProjectedInterestInCents } from "../../../src/lib/utils/tax-year-utils.js";
 import type { DB } from "./db.js";
 import { slug } from "./helpers.js";

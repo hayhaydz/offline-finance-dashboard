@@ -19,7 +19,7 @@ const getDatabasePath = (): string => {
 };
 
 export default defineConfig({
-	schema: "./src/lib/db/schema.ts",
+	schema: "./src/lib/db/schema/index.ts",
 	out: "./src/lib/db/migrations",
 	dialect: "sqlite",
 	dbCredentials: {
