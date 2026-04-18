@@ -57,7 +57,7 @@ export async function getInterestTransactions(
 		.innerJoin(accounts, eq(accountTransactions.accountId, accounts.id))
 		.where(
 			and(
-				eq(accounts.userId, userId),
+				withUserFilter(userId, accounts),
 				inArray(accountTransactions.type, ["interest", "interest_accrued"]),
 				gte(accountTransactions.transactionDate, taxYearStart),
 				lte(accountTransactions.transactionDate, taxYearEnd),

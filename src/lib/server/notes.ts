@@ -5,6 +5,7 @@ import { accountNotes } from "$lib/db/schema";
 import { FIELD_LIMITS } from "$lib/utils/fieldLimits";
 import { sanitizeNoteContent } from "$lib/utils/sanitize";
 import { devLog } from "$lib/server/logger";
+import { type Result, ok, err } from "$lib/server/utils/result";
 
 export interface CreateNoteData {
 	accountId: number;
@@ -13,16 +14,16 @@ export interface CreateNoteData {
 
 export async function createNote(
 	data: CreateNoteData,
-): Promise<{ success: boolean; noteSlug: string }> {
+): Promise<Result<string>> {
 	// Validate content length
 	if (data.content.length > FIELD_LIMITS.NOTE_CONTENT) {
-		throw new Error(
+		return err(
 			`Note content exceeds maximum length of ${FIELD_LIMITS.NOTE_CONTENT} characters`,
 		);
 	}
 
 	if (data.content.trim().length === 0) {
-		throw new Error("Note content cannot be empty");
+		return err("Note content cannot be empty");
 	}
 
 	const slug = nanoid(21);
@@ -41,7 +42,7 @@ export async function createNote(
 		contentLength: sanitizedContent.length,
 	});
 
-	return { success: true, noteSlug: slug };
+	return ok(slug);
 }
 
 export async function getNotesByAccountId(accountId: number) {

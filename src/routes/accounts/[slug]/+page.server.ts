@@ -614,14 +614,21 @@ export const actions: Actions = {
 				account,
 			);
 
+			if (!result.ok) {
+				logError("addInterestRate", "Failed to create interest rate", {
+					error: result.error,
+				});
+				return fail(500, { error: result.error });
+			}
+
 			devLog("addInterestRate", "Interest rate created successfully", {
 				accountSlug: params.slug,
-				rateId: result.rateId,
+				rateId: result.data,
 				rate,
 				effectiveFrom: effectiveFromStr,
 			});
 
-			return { success: true, rateId: result.rateId };
+			return { success: true, rateId: result.data };
 		} catch (err) {
 			logError("addInterestRate", "Failed to create interest rate", {
 				error: err instanceof Error ? err.message : String(err),
@@ -654,7 +661,14 @@ export const actions: Actions = {
 				return fail(404, { error: "Interest rate not found" });
 			}
 
-			await deleteInterestRate(rateId);
+			const deleteResult = await deleteInterestRate(rateId);
+
+			if (!deleteResult.ok) {
+				logError("deleteInterestRate", "Failed to delete interest rate", {
+					error: deleteResult.error,
+				});
+				return fail(500, { error: deleteResult.error });
+			}
 
 			devLog("deleteInterestRate", "Interest rate deleted successfully", {
 				accountSlug: params.slug,
@@ -691,12 +705,19 @@ export const actions: Actions = {
 				content: trimmedContent,
 			});
 
+			if (!result.ok) {
+				logError("addNote", "Failed to create note", {
+					error: result.error,
+				});
+				return fail(500, { error: result.error });
+			}
+
 			devLog("addNote", "Note created successfully", {
 				accountSlug: params.slug,
-				noteSlug: result.noteSlug,
+				noteSlug: result.data,
 			});
 
-			return { success: true, noteSlug: result.noteSlug };
+			return { success: true, noteSlug: result.data };
 		} catch (err) {
 			logError("addNote", "Failed to create note", {
 				error: err instanceof Error ? err.message : String(err),

@@ -3,6 +3,7 @@ import { db } from "$lib/db/client";
 import { type Account, interestRates } from "$lib/db/schema";
 import { formatRate } from "$lib/utils/formatting";
 import { devLog, logError } from "$lib/server/logger";
+import { type Result, type VoidResult, ok, err, okVoid } from "$lib/server/utils/result";
 
 export interface CreateInterestRateData {
 	accountId: number;
@@ -24,7 +25,7 @@ export interface InterestRateFilter {
 export async function createInterestRate(
 	data: CreateInterestRateData,
 	account: Account,
-): Promise<{ success: boolean; rateId: number }> {
+): Promise<Result<number>> {
 	const [result] = await db
 		.insert(interestRates)
 		.values({
@@ -41,7 +42,7 @@ export async function createInterestRate(
 		effectiveFrom: data.effectiveFrom,
 	});
 
-	return { success: true, rateId: result.id };
+	return ok(result.id);
 }
 
 /**
@@ -182,12 +183,12 @@ export async function updateInterestRate(
 		rate?: number;
 		effectiveFrom?: Date;
 	},
-): Promise<{ success: boolean }> {
+): Promise<VoidResult> {
 	const rate = await getInterestRateById(id);
 
 	if (!rate) {
 		logError("updateInterestRate", "Interest rate not found", { id });
-		throw new Error("Interest rate not found");
+		return err("Interest rate not found");
 	}
 
 	await db
@@ -199,7 +200,7 @@ export async function updateInterestRate(
 
 	devLog("updateInterestRate", "Interest rate updated", { id });
 
-	return { success: true };
+	return okVoid();
 }
 
 /**
@@ -207,19 +208,19 @@ export async function updateInterestRate(
  */
 export async function deleteInterestRate(
 	id: number,
-): Promise<{ success: boolean }> {
+): Promise<VoidResult> {
 	const rate = await getInterestRateById(id);
 
 	if (!rate) {
 		logError("deleteInterestRate", "Interest rate not found", { id });
-		throw new Error("Interest rate not found");
+		return err("Interest rate not found");
 	}
 
 	await db.delete(interestRates).where(eq(interestRates.id, id));
 
 	devLog("deleteInterestRate", "Interest rate deleted", { id });
 
-	return { success: true };
+	return okVoid();
 }
 
 // Re-export formatRate from shared formatting module

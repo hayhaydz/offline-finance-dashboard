@@ -19,19 +19,23 @@ import {
 import {
 	checkIsaAlerts,
 	checkPsaAlerts,
-	checkGoalAlerts,
-	checkSnapshotAlerts,
 	checkTaxYearReviewAlerts,
-	checkMonthlyReviewAlerts,
-	checkBudgetAlerts,
-	checkNetWorthAlerts,
-	checkDebtPayoffAlerts,
-	checkGoalAutoReduceAlerts,
 	checkISAPacingAlerts,
 	checkLISAAlerts,
+} from './async-isa';
+import {
+	checkGoalAlerts,
+	checkSnapshotAlerts,
+	checkMonthlyReviewAlerts,
+	checkBudgetAlerts,
+	checkGoalAutoReduceAlerts,
+} from './async-goals';
+import {
+	checkNetWorthAlerts,
+	checkDebtPayoffAlerts,
 	checkBoERateAlerts,
 	checkOrphanedTransfers,
-} from './async-checkers';
+} from './async-accounts';
 
 // ─── Public entry points ──────────────────────────────────────────────────────
 

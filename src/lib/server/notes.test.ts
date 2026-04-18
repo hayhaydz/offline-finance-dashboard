@@ -73,8 +73,10 @@ describe("Account Notes CRUD", () => {
 			accountId: testAccountId,
 			content: "Test note content",
 		});
-		expect(result.noteSlug).toBeDefined();
-		expect(result.noteSlug).toHaveLength(21);
+		expect(result.ok).toBe(true);
+		if (!result.ok) return; // type narrowing
+		expect(result.data).toBeDefined();
+		expect(result.data).toHaveLength(21);
 	});
 
 	it("should retrieve notes for account ordered by date desc", async () => {
@@ -91,8 +93,9 @@ describe("Account Notes CRUD", () => {
 			accountId: testAccountId,
 			content: "Find me by slug",
 		});
+		if (!created.ok) throw new Error("setup failed");
 
-		const found = await getNoteBySlug(created.noteSlug);
+		const found = await getNoteBySlug(created.data);
 		expect(found).toBeDefined();
 		expect(found?.content).toBe("Find me by slug");
 	});
@@ -102,28 +105,31 @@ describe("Account Notes CRUD", () => {
 			accountId: testAccountId,
 			content: "Delete me",
 		});
+		if (!created.ok) throw new Error("setup failed");
 
-		await deleteNote(created.noteSlug);
+		await deleteNote(created.data);
 
-		const found = await getNoteBySlug(created.noteSlug);
+		const found = await getNoteBySlug(created.data);
 		expect(found).toBeNull();
 	});
 
-	it("should validate content length", async () => {
-		await expect(
-			createNote({
-				accountId: testAccountId,
-				content: "x".repeat(5001), // exceeds limit
-			}),
-		).rejects.toThrow();
+	it("should return error when content exceeds max length", async () => {
+		const result = await createNote({
+			accountId: testAccountId,
+			content: "x".repeat(5001), // exceeds limit
+		});
+		expect(result.ok).toBe(false);
+		if (result.ok) return; // type narrowing
+		expect(result.error).toContain("exceeds maximum length");
 	});
 
-	it("should validate content not empty", async () => {
-		await expect(
-			createNote({
-				accountId: testAccountId,
-				content: "   ",
-			}),
-		).rejects.toThrow();
+	it("should return error when content is empty", async () => {
+		const result = await createNote({
+			accountId: testAccountId,
+			content: "   ",
+		});
+		expect(result.ok).toBe(false);
+		if (result.ok) return; // type narrowing
+		expect(result.error).toContain("cannot be empty");
 	});
 });
