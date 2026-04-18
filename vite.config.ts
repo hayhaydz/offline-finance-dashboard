@@ -7,7 +7,7 @@ export default defineConfig({
 		watch: {
 			ignored: [
 				"**/node_modules/@node-rs/**",
-				"**/VERSION_HISTORY.md",
+				"**/.docs/VERSION_HISTORY.md",
 				"**/docs/**",
 				"**/.planning/**",
 				"**/*.log",

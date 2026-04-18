@@ -1,7 +1,7 @@
 ## 🛠️ OPS & GIT
 - **GIT:** MANUAL ONLY. No `git add/commit/push`. (Enforced by settings.json).
 - **WORKTREES:** DO NOT use git worktrees by default. Only if explicitly asked. Prefer subagent-driven step-by-step implementation on main branch.
-- **SAVE POINTS:** Update `VERSION_HISTORY.md` (newest first) instead of committing.
+- **SAVE POINTS:** Update `.docs/VERSION_HISTORY.md` (newest first, 1 line per entry) instead of committing.
 - **VERIFICATION:** Grep/Read files to verify changes BEFORE claiming completion. Keep to 1 line commits messages
 - **LOCKS:** `package.json` and `kit.csp` are READ-ONLY. Approval required.
 - **FILES:** Docs -> `docs/[topic]/`. Plans/Markdown -> `./.docs/`. Superpowers plans & generated docs -> `./.docs/_refile`.
@@ -43,7 +43,7 @@
 3. NEVER describe outcomes of commands you did not personally run.
 4. When execution or validation is required, STOP and ask for instructions.
 5. NEVER run `git add`, `git commit`, or `git push` — these are manual operations.
-6. **AT SAVE POINTS, UPDATE `VERSION_HISTORY.md`** — record what was done and suggested commit message.
+6. **AT SAVE POINTS, UPDATE `.docs/VERSION_HISTORY.md`** — add 1 line: `## YYYY-MM-DD — <commit message>`.
 7. **GENERAL DOCUMENTATION goes in `docs/` folder** — organize by topic/category.
 8. **🔒 PACKAGE.JSON LOCKED** — User has manually configured dependencies. DO NOT modify `package.json` without explicit permission. Additions to other files are okay, but changing existing setup requires approval first.
 9. **ALWAYS FOLLOW TERMINAL AESTHETIC** — use existing CSS classes, maintain bordered layout, monospace font, bracket links.
