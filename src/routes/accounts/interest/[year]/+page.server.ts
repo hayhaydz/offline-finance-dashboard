@@ -1,6 +1,6 @@
-import { redirect } from "@sveltejs/kit";
 import { eq, inArray } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
+import { requireAuth } from "$lib/server/utils/auth-guard";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions, users } from "$lib/db/schema";
 import { getUkTaxYearBounds } from "$lib/utils/tax-year-utils";
@@ -9,36 +9,33 @@ import { devLog, logError } from "$lib/server/logger";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	if (!locals.user) {
-		devLog("accountsInterest", "Unauthenticated access, redirecting to login");
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	const { year } = params;
 	const taxYear = getUkTaxYearBounds(year);
 
 	devLog("accountsInterest", "Loading interest breakdown report", {
-		userId: locals.user.id,
+		userId: user.id,
 		year,
 	});
 
 	// Get user's tax band for PSA calculation
 	const userWithTaxBand = await db.query.users.findFirst({
-		where: eq(users.id, locals.user.id),
+		where: eq(users.id, user.id),
 		columns: { taxBand: true },
 	});
 
 	const taxBand = userWithTaxBand?.taxBand ?? "basic";
 
 	devLog("accountsInterest", "Retrieved user tax band", {
-		userId: locals.user.id,
+		userId: user.id,
 		taxBand,
 	});
 
 	try {
 		// Get user accounts for filtering transactions
 		const userAccounts = await db.query.accounts.findMany({
-			where: withUserFilter(locals.user.id, accounts),
+			where: withUserFilter(user.id, accounts),
 			columns: { id: true },
 		});
 
@@ -80,14 +77,14 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 		// Generate complete interest breakdown report for the requested year
 		const report = await getInterestBreakdownReport({
-			userId: locals.user.id,
+			userId: user.id,
 			taxBand,
 			taxYearStart: taxYear.start,
 			taxYearEnd: taxYear.end,
 		});
 
 		devLog("accountsInterest", "Interest breakdown report generated", {
-			userId: locals.user.id,
+			userId: user.id,
 			actualTotal: report.actual.total,
 			projectedTotal: report.projected.total,
 			forecastTotal: report.forecast.total,
@@ -99,8 +96,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 		return {
 			user: {
-				id: locals.user.id,
-				username: locals.user.username,
+				id: user.id,
+				username: user.username,
 				taxBand,
 			},
 			meta: report.meta,

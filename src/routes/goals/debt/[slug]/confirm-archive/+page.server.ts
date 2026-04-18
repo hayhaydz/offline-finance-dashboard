@@ -1,15 +1,14 @@
-import { error, redirect } from "@sveltejs/kit";
+import { error } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { goals } from "$lib/db/schema";
+import { requireAuth } from "$lib/server/utils/auth-guard";
 import { logError } from "$lib/server/logger";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-  if (!locals.user) {
-    redirect(302, "/login");
-  }
+  const user = requireAuth(locals);
 
   const goal = await db.query.goals.findFirst({
     where: eq(goals.slug, params.slug),
@@ -20,7 +19,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     error(404, "Goal not found");
   }
 
-  validateUserAccess(goal, locals.user, "Goal");
+  validateUserAccess(goal, user, "Goal");
 
   if (goal.goalType !== "debt") {
     error(404, "Not a debt goal");

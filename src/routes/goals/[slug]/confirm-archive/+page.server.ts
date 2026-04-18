@@ -3,14 +3,12 @@ import { eq } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { goalAllocations, goals } from "$lib/db/schema";
+import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import { devLog, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-	if (!locals.user) {
-		logError("goalsArchiveConfirm", "Authentication required");
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	devLog("goalsArchiveConfirm", "Loading archive confirmation page", {
 		slug: params.slug,
@@ -26,11 +24,11 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		error(404, "Goal not found");
 	}
 
-	validateUserAccess(goal, locals.user, "Goal");
+	validateUserAccess(goal, user, "Goal");
 
 	return {
 		goal,
-		user: locals.user,
+		user: user,
 		breadcrumbOverrides: [
 			{ segmentIndex: 1, label: goal.name, skipLink: false },
 			{ segmentIndex: 2, label: "Archive", skipLink: false },
@@ -40,10 +38,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 export const actions: Actions = {
 	default: async ({ request, params, locals }) => {
-		if (!locals.user) {
-			logError("goalsArchiveConfirm", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		logFormData("goalsArchiveConfirm", await request.formData());
 
@@ -57,7 +53,7 @@ export const actions: Actions = {
 			return fail(404, { error: "Goal not found" });
 		}
 
-		validateUserAccess(goal, locals.user, "Goal");
+		validateUserAccess(goal, user, "Goal");
 
 		try {
 			// Insert allocation record for the goal deletion (returns money to pool)

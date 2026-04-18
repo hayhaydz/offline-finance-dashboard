@@ -1,14 +1,13 @@
-import { error, redirect } from "@sveltejs/kit";
+import { error } from "@sveltejs/kit";
 import { desc, eq } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
+import { requireAuth } from "$lib/server/utils/auth-guard";
 import { db } from "$lib/db/client";
 import { accountNotes, accounts } from "$lib/db/schema";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	if (!locals.user) {
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	const accountSlug = params.slug;
 
@@ -21,7 +20,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		error(404, "Account not found");
 	}
 
-	validateUserAccess(account, locals.user, "Account");
+	validateUserAccess(account, user, "Account");
 
 	// Get all notes for this account
 	const notes = await db.query.accountNotes.findMany({

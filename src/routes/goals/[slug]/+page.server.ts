@@ -16,6 +16,7 @@ import {
 	getGoalAccountNetAllocations,
 } from "$lib/server/goals";
 import { parseCurrency } from "$lib/utils/currency";
+import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import { devLog, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
@@ -25,10 +26,7 @@ type AccountWithUnallocated = Account & {
 };
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
-	if (!locals.user) {
-		logError("goalsDetail", "Authentication required");
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	// Fetch goal by slug
 	const goal = await db.query.goals.findFirst({
@@ -40,7 +38,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		error(404, "Goal not found");
 	}
 
-	validateUserAccess(goal, locals.user, "Goal");
+	validateUserAccess(goal, user, "Goal");
 
 	const ALLOC_PAGE_SIZE = 20;
 	const allocPageParam = url.searchParams.get("allocPage");
@@ -122,12 +120,12 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 
 	// Fetch user's asset accounts with unallocated balances (for add money form)
 	const accountsWithUnallocated = (await calculatePerAccountUnallocated({
-		userId: locals.user.id,
+		userId: user.id,
 	})) as AccountWithUnallocated[];
 
 	// Calculate Ready to Assign
 	const { readyToAssign, totalAssets } = await calculateReadyToAssign({
-		userId: locals.user.id,
+		userId: user.id,
 	});
 
 	// Calculate contribution stats
@@ -266,10 +264,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 
 export const actions: Actions = {
 	addMoney: async ({ request, locals, params }) => {
-		if (!locals.user) {
-			logError("goalsDetailAddMoney", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		const formData = await request.formData();
 		logFormData("goalsDetailAddMoney", Object.fromEntries(formData));
@@ -305,7 +301,7 @@ export const actions: Actions = {
 			return fail(404, { error: "Goal not found" });
 		}
 
-		validateUserAccess(goal, locals.user, "Goal");
+		validateUserAccess(goal, user, "Goal");
 
 		const account = await db.query.accounts.findFirst({
 			where: eq(accounts.id, parseInt(fromAccountId, 10)),
@@ -358,10 +354,8 @@ export const actions: Actions = {
 	},
 
 	withdrawMoney: async ({ request, locals, params }) => {
-		if (!locals.user) {
-			logError("goalsDetailWithdraw", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		const formData = await request.formData();
 		logFormData("goalsDetailWithdraw", Object.fromEntries(formData));
@@ -392,7 +386,7 @@ export const actions: Actions = {
 			return fail(404, { error: "Goal not found" });
 		}
 
-		validateUserAccess(goal, locals.user, "Goal");
+		validateUserAccess(goal, user, "Goal");
 
 		if (goal.currentAllocation < amountInCents) {
 			errors.amount = `Insufficient allocation. Only £${(goal.currentAllocation / 100).toFixed(2)} available`;
@@ -447,10 +441,8 @@ export const actions: Actions = {
 	},
 
 	archiveGoal: async ({ request, locals, params }) => {
-		if (!locals.user) {
-			logError("goalsDetailArchive", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		const formData = await request.formData();
 		logFormData("goalsDetailArchive", Object.fromEntries(formData));
@@ -468,7 +460,7 @@ export const actions: Actions = {
 			return fail(404, { error: "Goal not found" });
 		}
 
-		validateUserAccess(goal, locals.user, "Goal");
+		validateUserAccess(goal, user, "Goal");
 
 		try {
 			await db.insert(goalAllocations).values({

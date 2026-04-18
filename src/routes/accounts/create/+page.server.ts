@@ -1,5 +1,6 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { nanoid } from "nanoid";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
 import {
@@ -16,15 +17,13 @@ import { devLog, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user) {
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	return {
 		user: {
-			id: locals.user.id,
-			username: locals.user.username,
-			createdAt: locals.user.createdAt,
+			id: user.id,
+			username: user.username,
+			createdAt: user.createdAt,
 		},
 	};
 };
@@ -32,8 +31,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 export const actions: Actions = {
 	default: async ({ request, locals }) => {
 		try {
-			if (!locals.user) {
-				logError("createAccount", "Authentication required");
+			const user = getAuthUser(locals);
+			if (!user) {
 				return fail(401, { error: "Authentication required" });
 			}
 
@@ -138,7 +137,7 @@ export const actions: Actions = {
 			const [newAccount] = await db
 				.insert(accounts)
 				.values({
-					userId: locals.user.id,
+					userId: user.id,
 					slug: accountSlug,
 					name: name.trim(),
 					type: type as

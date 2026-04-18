@@ -1,6 +1,6 @@
-import { redirect } from "@sveltejs/kit";
 import { eq, inArray } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
+import { requireAuth } from "$lib/server/utils/auth-guard";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
 import { getUkTaxYearBounds } from "$lib/utils/tax-year-utils";
@@ -10,23 +10,20 @@ import { devLog, logError } from "$lib/server/logger";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	if (!locals.user) {
-		devLog("accountsIsa", "Unauthenticated access, redirecting to login");
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	const { year } = params;
 	const taxYear = getUkTaxYearBounds(year);
 
 	devLog("accountsIsa", "Loading ISA breakdown report", {
-		userId: locals.user.id,
+		userId: user.id,
 		year,
 	});
 
 	try {
 		// Get user accounts for filtering transactions
 		const userAccounts = await db.query.accounts.findMany({
-			where: withUserFilter(locals.user.id, accounts),
+			where: withUserFilter(user.id, accounts),
 			columns: { id: true },
 		});
 
@@ -68,7 +65,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 		// Generate complete ISA breakdown report for the requested year
 		const report = await getISABreakdownReport({
-			userId: locals.user.id,
+			userId: user.id,
 			taxYearStart: taxYear.start,
 			taxYearEnd: taxYear.end,
 		});
@@ -78,11 +75,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		const isCurrentTaxYear =
 			taxYear.start.getTime() === currentTaxYear.start.getTime();
 		const pacing = isCurrentTaxYear
-			? await calculateISAPacing(locals.user.id)
+			? await calculateISAPacing(user.id)
 			: null;
 
 		devLog("accountsIsa", "ISA breakdown report generated", {
-			userId: locals.user.id,
+			userId: user.id,
 			allowanceUsed: report.meta.allowanceUsed,
 			utilizationPercent: report.meta.utilizationPercent,
 			taxYearStart: report.meta.taxYearStart,
@@ -93,8 +90,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 		return {
 			user: {
-				id: locals.user.id,
-				username: locals.user.username,
+				id: user.id,
+				username: user.username,
 			},
 			meta: report.meta,
 			actual: report.actual,

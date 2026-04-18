@@ -1,17 +1,14 @@
-import { redirect } from "@sveltejs/kit";
 import { and, count, isNotNull } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { goals } from "$lib/db/schema";
 import { calculateReadyToAssign } from "$lib/server/goals";
+import { requireAuth } from "$lib/server/utils/auth-guard";
 import { devLog } from "$lib/server/logger";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-	if (!locals.user) {
-		devLog("goalsArchived", "Unauthenticated user, redirecting to login");
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	// Pagination for archived goals (1-indexed URL parameters)
 	const GOALS_PER_PAGE = 20;
@@ -25,7 +22,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		.select({ total: count() })
 		.from(goals)
 		.where(
-			and(withUserFilter(locals.user.id, goals), isNotNull(goals.deletedAt)),
+			and(withUserFilter(user.id, goals), isNotNull(goals.deletedAt)),
 		);
 	const totalPages = Math.ceil(total / GOALS_PER_PAGE);
 	// Convert 1-indexed to 0-indexed and clamp to valid range
@@ -35,7 +32,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Query user's archived goals (deletedAt IS NOT NULL) with row-level security
 	const archivedGoals = await db.query.goals.findMany({
 		where: and(
-			withUserFilter(locals.user.id, goals),
+			withUserFilter(user.id, goals),
 			isNotNull(goals.deletedAt),
 		),
 		orderBy: (goals, { asc }) => asc(goals.sortOrder),
@@ -50,7 +47,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Calculate Ready to Assign (for context, though archived page is read-only)
 	const { readyToAssign, totalAssets, totalSavingsAllocated } =
 		await calculateReadyToAssign({
-			userId: locals.user.id,
+			userId: user.id,
 		});
 
 	return {
@@ -64,9 +61,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		totalAssets,
 		totalSavingsAllocated,
 		user: {
-			id: locals.user.id,
-			username: locals.user.username,
-			createdAt: locals.user.createdAt,
+			id: user.id,
+			username: user.username,
+			createdAt: user.createdAt,
 		},
 	};
 };

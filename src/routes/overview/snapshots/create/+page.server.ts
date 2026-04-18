@@ -3,6 +3,7 @@ import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { snapshots } from "$lib/db/schema";
 import { devLog, logError, logFormData } from "$lib/server/logger";
+import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import {
 	calculateSnapshotData,
 	getSnapshotByDate,
@@ -11,13 +12,10 @@ import {
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user) {
-		logError("createSnapshot", "Authentication required");
-		throw error(401, "Authentication required");
-	}
+	const user = requireAuth(locals);
 
 	// Calculate preview data for confirmation page
-	const previewData = await calculateSnapshotData(locals.user.id);
+	const previewData = await calculateSnapshotData(user.id);
 
 	// Default to today's date
 	const today = getTodayUTC();
@@ -29,7 +27,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	});
 
 	return {
-		user: locals.user,
+		user,
 		preview: previewData,
 		defaultDate: today,
 	};
@@ -37,10 +35,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 export const actions: Actions = {
 	default: async ({ request, locals }) => {
-		if (!locals.user) {
-			logError("createSnapshot", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		logFormData("createSnapshot", request);
 
@@ -60,10 +56,10 @@ export const actions: Actions = {
 			}
 
 			// Check for same-day duplicate
-		const existing = await getSnapshotByDate(locals.user.id, snapshotDate);
+		const existing = await getSnapshotByDate(user.id, snapshotDate);
 		if (existing) {
 			devLog("createSnapshot", "Duplicate snapshot date", {
-				userId: locals.user.id,
+				userId: user.id,
 				snapshotDate,
 				existingSlug: existing.slug,
 			});
@@ -85,13 +81,13 @@ export const actions: Actions = {
 				goalsBreakdown,
 				isaBreakdown,
 				interestBreakdownDetail,
-			} = await calculateSnapshotData(locals.user.id);
+			} = await calculateSnapshotData(user.id);
 
 			// Create snapshot
 			const slug = nanoid(16);
 			await db.insert(snapshots).values({
 				slug,
-				userId: locals.user.id,
+				userId: user.id,
 				snapshotDate,
 				netWorthInCents: netWorth,
 				totalAssetsInCents: totalAssets,
@@ -106,7 +102,7 @@ export const actions: Actions = {
 
 			devLog("createSnapshot", "Snapshot created successfully", {
 				slug,
-				userId: locals.user.id,
+				userId: user.id,
 				snapshotDate,
 				netWorthInCents: netWorth,
 			});

@@ -1,15 +1,14 @@
 import { error, fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import { db } from "$lib/db/client";
 import { accounts } from "$lib/db/schema";
 import { devLog, logError } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	if (!locals.user) {
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	const accountSlug = params.slug;
 	devLog("closeAccount", "Loading account for close", { accountSlug });
@@ -22,12 +21,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	if (!account) {
 		logError("closeAccount", "Account not found", {
 			accountSlug,
-			userId: locals.user.id,
+			userId: user.id,
 		});
 		error(404, "Account not found");
 	}
 
-	validateUserAccess(account, locals.user, "Account");
+	validateUserAccess(account, user, "Account");
 
 	if (account.closedAt) {
 		logError(
@@ -55,8 +54,8 @@ export const actions: Actions = {
 	 * - Account remains in database but marked as closed
 	 */
 	closeAccount: async ({ locals, params }) => {
-		if (!locals.user) {
-			logError("closeAccount", "Authentication required");
+		const user = getAuthUser(locals);
+		if (!user) {
 			return fail(401, { error: "Authentication required" });
 		}
 
@@ -72,7 +71,7 @@ export const actions: Actions = {
 			return fail(404, { error: "Account not found" });
 		}
 
-		validateUserAccess(account, locals.user, "Account");
+		validateUserAccess(account, user, "Account");
 
 		devLog("closeAccount", "Closing account", {
 			accountSlug,

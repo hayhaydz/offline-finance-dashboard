@@ -7,6 +7,7 @@ import { calculateReadyToAssign, getDebtGoalProgress } from "$lib/server/goals";
 import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
 import { updateTypeExclusions } from "$lib/server/exclusions";
 import { getNetWorthSummary } from "$lib/server/finance";
+import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import {
 	devLog,
 	isVerboseDebug,
@@ -19,10 +20,7 @@ import { getMostRecentDate, getStaleness } from "$lib/utils/staleness";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-	if (!locals.user) {
-		devLog("goals", "Unauthenticated user, redirecting to login");
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	const PAGE_SIZE = 10;
 	const pageParam = url.searchParams.get("page");
@@ -45,7 +43,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			: eq(goals.goalType, "debt");
 
 	const whereConditions = [
-		eq(goals.userId, locals.user.id),
+		eq(goals.userId, user.id),
 		isNull(goals.deletedAt),
 	];
 
@@ -127,7 +125,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		// Fetch ALL debt goals (not just current page) for strategy computation
 		const allDebtGoals = await db.query.goals.findMany({
 			where: and(
-				eq(goals.userId, locals.user.id),
+				eq(goals.userId, user.id),
 				isNull(goals.deletedAt),
 				eq(goals.goalType, "debt"),
 			),
@@ -177,7 +175,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		totalDebtUntracked,
 		totalLiabilities,
 	} = await calculateReadyToAssign({
-		userId: locals.user.id,
+		userId: user.id,
 	});
 
 	// Calculate staleness based on most recent goal creation/update
@@ -186,11 +184,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const staleness = getStaleness(mostRecentGoalDate);
 
 	// Calculate net worth summary (shared utility)
-	const netWorthSummary = await getNetWorthSummary(locals.user.id);
+	const netWorthSummary = await getNetWorthSummary(user.id);
 
 	// Fetch all open accounts for the exclusions modal
 	const allOpenAccounts = await db.query.accounts.findMany({
-		where: and(withUserFilter(locals.user.id, accounts), isNull(accounts.closedAt)),
+		where: and(withUserFilter(user.id, accounts), isNull(accounts.closedAt)),
 		columns: {
 			id: true,
 			name: true,
@@ -214,12 +212,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		totalDebtUntracked,
 		totalLiabilities,
 		user: {
-			id: locals.user.id,
-			username: locals.user.username,
-			createdAt: locals.user.createdAt,
+			id: user.id,
+			username: user.username,
+			createdAt: user.createdAt,
 		},
 		staleness,
-		alerts: await getGoalListAlerts(locals.user.id),
+		alerts: await getGoalListAlerts(user.id),
 		filterType: validType as 'all' | 'savings' | 'debt',
 		debtStrategyMetrics,
 	};
@@ -227,10 +225,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 export const actions: Actions = {
 	updateExclusions: async ({ request, locals }) => {
-		if (!locals.user) {
-			logError("updateExclusions", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		const formData = await request.formData();
 		const typeUpdates: Map<string, boolean> = new Map();
@@ -252,12 +248,12 @@ export const actions: Actions = {
 
 		try {
 			const result = await updateTypeExclusions({
-				userId: locals.user.id,
+				userId: user.id,
 				typeUpdates,
 			});
 
 			devLog("updateExclusions", "Type-based bulk update successful", {
-				userId: locals.user.id,
+				userId: user.id,
 				affectedRows: result.affectedRows,
 			});
 
@@ -270,11 +266,8 @@ export const actions: Actions = {
 
 	// Move a goal to a specific index in the sort order
 	moveTo: async ({ request, locals }) => {
-		if (!locals.user) {
-			logError("moveTo", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
-		const user = locals.user;
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		const formData = await request.formData();
 		const slug = formData.get("slug")?.toString();
@@ -339,11 +332,8 @@ export const actions: Actions = {
 			});
 		}
 
-		if (!locals.user) {
-			logError("moveUp", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
-		const user = locals.user;
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		const formData = await request.formData();
 		if (isVerboseDebug()) {
@@ -479,11 +469,8 @@ export const actions: Actions = {
 
 	// Move goal down in sort order (swap with goal below)
 	moveDown: async ({ request, locals }) => {
-		if (!locals.user) {
-			logError("moveDown", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
-		const user = locals.user;
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		const formData = await request.formData();
 		logFormData("moveDown", formData);

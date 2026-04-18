@@ -1,6 +1,7 @@
 import { error, fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import { db } from "$lib/db/client";
 import { accounts } from "$lib/db/schema";
 import { devLog, logError } from "$lib/server/logger";
@@ -12,9 +13,7 @@ import {
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	if (!locals.user) {
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	const accountSlug = params.slug;
 	devLog("editAccount", "Loading account for edit", { accountSlug });
@@ -29,7 +28,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		error(404, "Account not found");
 	}
 
-	validateUserAccess(account, locals.user, "Account");
+	validateUserAccess(account, user, "Account");
 
 	if (account.closedAt) {
 		logError("editAccount", "Attempt to visit edit page for closed account", {
@@ -55,9 +54,9 @@ export const actions: Actions = {
 	 * - Updates account with new values
 	 */
 	updateAccount: async ({ request, locals, params }) => {
-		if (!locals.user) {
-			logError("editAccount", "Authentication required");
-			return fail(401, { error: "Authentication required" });
+		const user = getAuthUser(locals);
+			if (!user) {
+				return fail(401, { error: "Authentication required" });
 		}
 
 		const accountSlug = params.slug;
@@ -72,7 +71,7 @@ export const actions: Actions = {
 			return fail(404, { error: "Account not found" });
 		}
 
-		validateUserAccess(account, locals.user, "Account");
+		validateUserAccess(account, user, "Account");
 
 		if (account.closedAt) {
 			logError("editAccount", "Attempt to edit closed account", {

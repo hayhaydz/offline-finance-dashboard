@@ -1,4 +1,4 @@
-import { redirect, fail } from "@sveltejs/kit";
+import { fail } from "@sveltejs/kit";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { accounts, spendingCategories } from "$lib/db/schema";
@@ -8,23 +8,21 @@ import {
 	batchInsertTransactions,
 	type ImportRow,
 } from "$lib/server/imports";
+import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user) {
-		logError("settings-data", "Authentication required");
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	devLog("settings-data", "Data settings loaded", {
-		username: locals.user.username,
-		userId: locals.user.id,
+		username: user.username,
+		userId: user.id,
 	});
 
 	// Get user's open accounts (for dropdown)
 	const userAccounts = await db.query.accounts.findMany({
 		where: and(
-			eq(accounts.userId, locals.user.id),
+			eq(accounts.userId, user.id),
 			isNull(accounts.closedAt),
 		),
 		orderBy: (accounts, { asc }) => [asc(accounts.name)],
@@ -33,13 +31,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 	// Get user's spending categories (for validation reference)
 	const categories = await db.query.spendingCategories.findMany({
 		where: and(
-			eq(spendingCategories.userId, locals.user.id),
+			eq(spendingCategories.userId, user.id),
 			isNull(spendingCategories.deletedAt),
 		),
 	});
 
 	return {
-		user: locals.user,
+		user,
 		accounts: userAccounts.map((a) => ({
 			id: a.id,
 			slug: a.slug,
@@ -55,7 +53,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 export const actions: Actions = {
 	"fetch-overlaps": async ({ request, locals }) => {
-		if (!locals.user) {
+		const user = getAuthUser(locals);
+		if (!user) {
 			return fail(401, { error: "Authentication required" });
 		}
 
@@ -84,7 +83,7 @@ export const actions: Actions = {
 
 		try {
 			const overlaps = await getOverlappingTransactions(
-				locals.user.id,
+				user.id,
 				accountId,
 				fromDate,
 				toDate,
@@ -110,7 +109,8 @@ export const actions: Actions = {
 	},
 
 	import: async ({ request, locals }) => {
-		if (!locals.user) {
+		const user = getAuthUser(locals);
+		if (!user) {
 			return fail(401, { error: "Authentication required" });
 		}
 
@@ -138,12 +138,12 @@ export const actions: Actions = {
 			}
 
 			devLog("settings-data:import", `Importing ${rows.length} rows`, {
-				userId: locals.user.id,
+				userId: user.id,
 				accountId,
 			});
 
 			const insertedCount = await batchInsertTransactions(
-				locals.user.id,
+				user.id,
 				accountId,
 				rows,
 			);

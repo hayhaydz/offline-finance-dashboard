@@ -1,15 +1,14 @@
-import { error, redirect } from "@sveltejs/kit";
+import { error } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
+import { requireAuth } from "$lib/server/utils/auth-guard";
 import { db } from "$lib/db/client";
 import { accountNotes, accounts } from "$lib/db/schema";
 import { devLog, logError } from "$lib/server/logger";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	if (!locals.user) {
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	const accountSlug = params.slug;
 	const noteSlug = params.noteSlug;
@@ -23,12 +22,12 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		logError("noteDetail", "Account not found", {
 			accountSlug,
 			noteSlug,
-			userId: locals.user.id,
+			userId: user.id,
 		});
 		error(404, "Account not found");
 	}
 
-	validateUserAccess(account, locals.user, "Account");
+	validateUserAccess(account, user, "Account");
 
 	// Get the note
 	const note = await db.query.accountNotes.findFirst({
@@ -39,7 +38,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		logError("noteDetail", "Note not found", {
 			accountSlug,
 			noteSlug,
-			userId: locals.user.id,
+			userId: user.id,
 		});
 		error(404, "Note not found");
 	}

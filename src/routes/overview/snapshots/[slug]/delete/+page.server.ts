@@ -4,12 +4,11 @@ import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { snapshots } from "$lib/db/schema";
 import { devLog, logError } from "$lib/server/logger";
+import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	if (!locals.user) {
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	const snapshot = await db.query.snapshots.findFirst({
 		columns: {
@@ -26,7 +25,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		error(404, "Snapshot not found");
 	}
 
-	validateUserAccess(snapshot, locals.user, "Snapshot");
+	validateUserAccess(snapshot, user, "Snapshot");
 
 	return {
 		snapshot,
@@ -39,13 +38,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 export const actions: Actions = {
 	default: async ({ locals, params, request }) => {
-		if (!locals.user) {
-			logError("deleteSnapshot", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		devLog("deleteSnapshot", "Delete action initiated", {
-			username: locals.user.username,
+			username: user.username,
 			slug: params.slug,
 		});
 
@@ -65,10 +62,10 @@ export const actions: Actions = {
 		}
 
 		try {
-			validateUserAccess(snapshot, locals.user, "Snapshot");
+			validateUserAccess(snapshot, user, "Snapshot");
 		} catch (_err) {
 			logError("deleteSnapshot", "Access denied", {
-				userId: locals.user.id,
+				userId: user.id,
 				snapshotUserId: snapshot.userId,
 			});
 			return fail(403, {
@@ -90,7 +87,7 @@ export const actions: Actions = {
 
 			devLog("deleteSnapshot", "Snapshot deleted successfully", {
 				slug: params.slug,
-				userId: locals.user.id,
+				userId: user.id,
 			});
 
 			throw redirect(302, "/snapshots");

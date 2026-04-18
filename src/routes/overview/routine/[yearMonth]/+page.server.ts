@@ -1,9 +1,10 @@
-import { error, fail, redirect } from "@sveltejs/kit";
-import { and, desc, isNull, lt } from "drizzle-orm";
+import { asc, desc, and, isNull, lt } from "drizzle-orm";
+import { error, fail } from "@sveltejs/kit";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { goals, snapshots } from "$lib/db/schema";
 import { devLog, logError } from "$lib/server/logger";
+import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import {
 	CHECKLIST_ITEMS,
 	currentYearMonth,
@@ -16,10 +17,7 @@ import {
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	if (!locals.user) {
-		devLog("review/month", "Unauthenticated, redirecting to login");
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	const { yearMonth } = params;
 
@@ -27,11 +25,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		error(404, "Invalid month format. Use YYYY-MM.");
 	}
 
-	const review = await getOrCreateReview(locals.user.id, yearMonth);
+	const review = await getOrCreateReview(user.id, yearMonth);
 
 	// Load active goals
 	const userGoals = await db.query.goals.findMany({
-		where: and(withUserFilter(locals.user.id, goals), isNull(goals.deletedAt)),
+		where: and(withUserFilter(user.id, goals), isNull(goals.deletedAt)),
 		orderBy: (goals, { asc }) => asc(goals.sortOrder),
 	});
 
@@ -44,7 +42,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 			goalsBreakdown: true,
 		},
 		where: and(
-			withUserFilter(locals.user.id, snapshots),
+			withUserFilter(user.id, snapshots),
 			lt(snapshots.snapshotDate, monthStart),
 		),
 		orderBy: [desc(snapshots.snapshotDate)],
@@ -87,7 +85,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const label = formatYearMonth(yearMonth);
 
 	devLog("review/month", "Loaded review month", {
-		userId: locals.user.id,
+		userId: user.id,
 		yearMonth,
 		completedItems: review.completedItems,
 		goalCount: userGoals.length,
@@ -107,9 +105,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 export const actions: Actions = {
 	toggle: async ({ request, locals }) => {
-		if (!locals.user) {
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		const formData = await request.formData();
 		const reviewSlug = formData.get("reviewSlug")?.toString();
@@ -122,14 +119,14 @@ export const actions: Actions = {
 		const result = await toggleChecklistItem(
 			reviewSlug,
 			itemKey,
-			locals.user.id,
+			user.id,
 		);
 
 		if (!result) {
 			logError("review/toggle", "Toggle failed", {
 				reviewSlug,
 				itemKey,
-				userId: locals.user.id,
+				userId: user.id,
 			});
 			return fail(404, { error: "Review not found" });
 		}
@@ -138,9 +135,8 @@ export const actions: Actions = {
 	},
 
 	saveNotes: async ({ request, locals }) => {
-		if (!locals.user) {
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		const formData = await request.formData();
 		const reviewSlug = formData.get("reviewSlug")?.toString();
@@ -153,7 +149,7 @@ export const actions: Actions = {
 		const result = await updateReviewNotes(
 			reviewSlug,
 			notes,
-			locals.user.id,
+			user.id,
 		);
 
 		if (!result) {

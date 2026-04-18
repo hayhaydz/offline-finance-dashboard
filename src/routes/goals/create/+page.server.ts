@@ -8,26 +8,22 @@ import {
 	requireDateISO,
 	FIELD_LIMITS,
 } from "$lib/server/validation";
+import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import { devLog, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user) {
-		logError("goals-create", "Authentication required");
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	return {
-		user: locals.user,
+		user: user,
 	};
 };
 
 export const actions: Actions = {
 	default: async ({ request, locals }) => {
-		if (!locals.user) {
-			logError("goals-create", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		const formData = await request.formData();
 		logFormData("goals-create", Object.fromEntries(formData));
@@ -97,7 +93,7 @@ export const actions: Actions = {
 		const [newGoal] = await db
 			.insert(goals)
 			.values({
-				userId: locals.user.id,
+				userId: user.id,
 				slug,
 				name: name.trim(),
 				targetAmountInCents: amountResult.ok ? amountResult.valueInCents : 0,

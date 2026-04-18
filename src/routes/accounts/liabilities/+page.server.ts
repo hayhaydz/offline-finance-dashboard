@@ -1,5 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
+import { requireAuth } from "$lib/server/utils/auth-guard";
 import { db } from "$lib/db/client";
 import { accounts } from "$lib/db/schema";
 import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
@@ -26,22 +27,12 @@ function getDebtStatusClass(ttz: {
 }
 
 export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user) {
-		return {
-			revolving: [],
-			installment: [],
-			summary: {
-				totalDebt: 0,
-				totalMonthlyInterest: 0,
-				count: 0,
-			},
-		};
-	}
+	const user = requireAuth(locals);
 
 	// Fetch all liability accounts for current user
 	const liabilities = await db.query.accounts.findMany({
 		where: and(
-			withUserFilter(locals.user.id, accounts),
+			withUserFilter(user.id, accounts),
 			eq(accounts.category, "liability"),
 		),
 	});

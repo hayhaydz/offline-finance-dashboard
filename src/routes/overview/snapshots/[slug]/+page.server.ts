@@ -4,13 +4,11 @@ import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { snapshots } from "$lib/db/schema";
 import { devLog, logError, logFormData } from "$lib/server/logger";
+import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
-	if (!locals.user) {
-		logError("editSnapshotNotes", "Authentication required");
-		throw redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	// Load full snapshot for detail page display
 	const snapshot = await db.query.snapshots.findFirst({
@@ -24,10 +22,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	// Validate user owns this snapshot
 	try {
-		validateUserAccess(snapshot, locals.user, "Snapshot");
+		validateUserAccess(snapshot, user, "Snapshot");
 	} catch (_err) {
 		logError("editSnapshotNotes", "Access denied", {
-			userId: locals.user.id,
+			userId: user.id,
 			snapshotUserId: snapshot.userId,
 		});
 		throw error(403, "You do not have permission to edit this snapshot");
@@ -35,11 +33,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	devLog("editSnapshotNotes", "Snapshot loaded for editing", {
 		slug: params.slug,
-		userId: locals.user.id,
+		userId: user.id,
 	});
 
 	return {
-		user: locals.user,
+		user,
 		snapshot,
 		breadcrumbOverrides: [
 			{ segmentIndex: 1, label: snapshot.snapshotDate, skipLink: false },
@@ -49,10 +47,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 export const actions: Actions = {
 	updateNotes: async ({ request, locals, params }) => {
-		if (!locals.user) {
-			logError("updateNotes", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		logFormData("updateNotes", request);
 
@@ -74,10 +70,10 @@ export const actions: Actions = {
 
 		// Validate user owns this snapshot
 		try {
-			validateUserAccess(snapshot, locals.user, "Snapshot");
+			validateUserAccess(snapshot, user, "Snapshot");
 		} catch (_err) {
 			logError("updateNotes", "Access denied", {
-				userId: locals.user.id,
+				userId: user.id,
 				snapshotUserId: snapshot.userId,
 			});
 			return fail(403, {
@@ -102,7 +98,7 @@ export const actions: Actions = {
 
 			devLog("updateNotes", "Snapshot notes updated successfully", {
 				slug: params.slug,
-				userId: locals.user.id,
+				userId: user.id,
 				hasNotes: !!notes,
 			});
 

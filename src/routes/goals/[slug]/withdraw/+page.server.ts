@@ -5,14 +5,12 @@ import { db } from "$lib/db/client";
 import { accounts, goalAllocations, goals } from "$lib/db/schema";
 import { getGoalAccountNetAllocations } from "$lib/server/goals";
 import { parseCurrency } from "$lib/utils/currency";
+import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import { devLog, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-	if (!locals.user) {
-		logError("goalsWithdraw", "Authentication required");
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	// Fetch goal by slug
 	const goal = await db.query.goals.findFirst({
@@ -24,7 +22,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		error(404, "Goal not found");
 	}
 
-	validateUserAccess(goal, locals.user, "Goal");
+	validateUserAccess(goal, user, "Goal");
 
 	const contributions = await getGoalAccountNetAllocations({
 		goalId: goal.id,
@@ -34,7 +32,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		accountIds.length > 0
 			? await db.query.accounts.findMany({
 					where: and(
-						withUserFilter(locals.user.id, accounts),
+						withUserFilter(user.id, accounts),
 						inArray(accounts.id, accountIds),
 					),
 				})
@@ -69,10 +67,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 export const actions: Actions = {
 	default: async ({ request, locals, params }) => {
-		if (!locals.user) {
-			logError("goalsWithdraw", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		const formData = await request.formData();
 		logFormData("goalsWithdraw", Object.fromEntries(formData));
@@ -89,7 +85,7 @@ export const actions: Actions = {
 			return fail(404, { error: "Goal not found" });
 		}
 
-		validateUserAccess(goal, locals.user, "Goal");
+		validateUserAccess(goal, user, "Goal");
 
 		// Parse batch rows payload (with legacy fallback)
 		const rowsJson = formData.get("rows_json");

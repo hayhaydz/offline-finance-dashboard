@@ -31,7 +31,7 @@ function getCurrentMonthStr(): string {
 }
 
 export const load: PageServerLoad = async ({ params, locals, url }) => {
-	if (!locals.user) redirect(302, "/login");
+	const user = requireAuth(locals);
 
 	const parsed = parseMonthSlug(params.month);
 	if (!parsed) redirect(302, "/overview/budgets");
@@ -40,21 +40,21 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	const monthStr = `${year}-${String(month).padStart(2, "0")}`;
 	const isCurrentMonth = monthStr === getCurrentMonthStr();
 
-	const status = await getBudgetStatus(locals.user.id, year, month);
+	const status = await getBudgetStatus(user.id, year, month);
 
 	const categoryBreakdown = await getCategoryBreakdown(
-		locals.user.id,
+		user.id,
 		year,
 		month,
 		status.budget,
 	);
 
 	const historyPage = Math.max(0, Number(url.searchParams.get("page") ?? "1") - 1);
-	const history = await getBudgetHistory(locals.user.id, historyPage);
+	const history = await getBudgetHistory(user.id, historyPage);
 
 	const categories = await db.query.spendingCategories.findMany({
 		where: and(
-			eq(spendingCategories.userId, locals.user.id),
+			eq(spendingCategories.userId, user.id),
 			isNull(spendingCategories.deletedAt),
 		),
 		orderBy: (cats, { asc }) => [asc(cats.name)],
@@ -62,7 +62,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 
 	const allAccounts = await db.query.accounts.findMany({
 		where: and(
-			eq(accounts.userId, locals.user.id),
+			eq(accounts.userId, user.id),
 			isNull(accounts.closedAt),
 		),
 		orderBy: (accs, { asc }) => [asc(accs.name)],
@@ -88,7 +88,8 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 
 export const actions: Actions = {
 	saveTarget: async ({ request, locals, params }) => {
-		if (!locals.user) return fail(401, { error: "Unauthorized" });
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Unauthorized" });
 
 		const parsed = parseMonthSlug(params.month);
 		if (!parsed) return fail(400, { error: "Invalid month" });
@@ -110,12 +111,12 @@ export const actions: Actions = {
 				return fail(400, { error: "Amount must be positive" });
 			}
 
-			const row = await getBudgetRow(locals.user.id, monthStr);
+			const row = await getBudgetRow(user.id, monthStr);
 			const existingTargets = row
 				? row.categoryTargets
 				: {};
 
-			await saveBudgetRow(locals.user.id, monthStr, {
+			await saveBudgetRow(user.id, monthStr, {
 				totalTargetInCents: amountInCents,
 				categoryTargets: existingTargets,
 			});
@@ -127,7 +128,8 @@ export const actions: Actions = {
 	},
 
 	saveCategoryTarget: async ({ request, locals, params }) => {
-		if (!locals.user) return fail(401, { error: "Unauthorized" });
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Unauthorized" });
 
 		const parsed = parseMonthSlug(params.month);
 		if (!parsed) return fail(400, { error: "Invalid month" });
@@ -147,7 +149,7 @@ export const actions: Actions = {
 			return fail(400, { error: "Invalid category" });
 		}
 
-		const row = await getBudgetRow(locals.user.id, monthStr);
+		const row = await getBudgetRow(user.id, monthStr);
 		if (!row) return fail(400, { error: "No budget set for this month" });
 
 		const targets = row.categoryTargets;
@@ -168,7 +170,7 @@ export const actions: Actions = {
 
 		const totalTarget = Object.values(targets).reduce((sum, v) => sum + v, 0);
 
-		await saveBudgetRow(locals.user.id, monthStr, {
+		await saveBudgetRow(user.id, monthStr, {
 			totalTargetInCents: totalTarget,
 			categoryTargets: targets,
 		});
@@ -177,7 +179,8 @@ export const actions: Actions = {
 	},
 
 	toggleCategory: async ({ request, locals, params }) => {
-		if (!locals.user) return fail(401, { error: "Unauthorized" });
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Unauthorized" });
 
 		const parsed = parseMonthSlug(params.month);
 		if (!parsed) return fail(400, { error: "Invalid month" });
@@ -199,7 +202,7 @@ export const actions: Actions = {
 			return fail(400, { error: "Cannot exclude uncategorised" });
 		}
 
-		const row = await getBudgetRow(locals.user.id, monthStr);
+		const row = await getBudgetRow(user.id, monthStr);
 		if (!row) return fail(400, { error: "No budget set" });
 
 		const excluded = row.excludedCategoryIds;
@@ -215,7 +218,7 @@ export const actions: Actions = {
 
 		const totalTarget = Object.values(targets).reduce((sum, v) => sum + v, 0);
 
-		await saveBudgetRow(locals.user.id, monthStr, {
+		await saveBudgetRow(user.id, monthStr, {
 			excludedCategoryIds: excluded,
 			categoryTargets: targets,
 			totalTargetInCents: totalTarget,
@@ -225,7 +228,8 @@ export const actions: Actions = {
 	},
 
 	toggleAccount: async ({ request, locals, params }) => {
-		if (!locals.user) return fail(401, { error: "Unauthorized" });
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Unauthorized" });
 
 		const parsed = parseMonthSlug(params.month);
 		if (!parsed) return fail(400, { error: "Invalid month" });
@@ -243,7 +247,7 @@ export const actions: Actions = {
 			return fail(400, { error: "Invalid account" });
 		}
 
-		const row = await getBudgetRow(locals.user.id, monthStr);
+		const row = await getBudgetRow(user.id, monthStr);
 		if (!row) return fail(400, { error: "No budget set" });
 
 		const excluded = row.excludedAccountIds;
@@ -255,7 +259,7 @@ export const actions: Actions = {
 			if (!excluded.includes(accountId)) excluded.push(accountId);
 		}
 
-		await saveBudgetRow(locals.user.id, monthStr, {
+		await saveBudgetRow(user.id, monthStr, {
 			excludedAccountIds: excluded,
 		});
 

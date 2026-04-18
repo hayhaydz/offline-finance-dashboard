@@ -1,21 +1,17 @@
-import { redirect } from "@sveltejs/kit";
-import { devLog, logError } from "$lib/server/logger";
+import { devLog } from "$lib/server/logger";
+import { requireAuth } from "$lib/server/utils/auth-guard";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user) {
-		logError("profile", "Authentication required");
-		devLog("profile", "Redirecting to login - not authenticated");
-		throw redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	devLog("profile", "Profile settings loaded", {
-		username: locals.user.username,
-		userId: locals.user.id,
+		username: user.username,
+		userId: user.id,
 	});
 
 	return {
-		user: locals.user,
+		user,
 		session: locals.session,
 	};
 };

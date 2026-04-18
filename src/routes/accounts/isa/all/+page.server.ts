@@ -1,6 +1,6 @@
-import { redirect } from "@sveltejs/kit";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
+import { requireAuth } from "$lib/server/utils/auth-guard";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
 import {
@@ -11,9 +11,7 @@ import { TAX_FREE_WRAPPERS } from "$lib/utils/domain-constants";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, url }) => {
-	if (!locals.user) {
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	const TAX_YEARS_PER_PAGE = 20;
 	// 1-indexed URL parameter
@@ -24,7 +22,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// 1. Get user ISA accounts
 	const isaAccounts = await db.query.accounts.findMany({
 		where: and(
-			withUserFilter(locals.user.id, accounts),
+			withUserFilter(user.id, accounts),
 			inArray(accounts.taxWrapper, TAX_FREE_WRAPPERS),
 		),
 		columns: { id: true, taxWrapper: true },

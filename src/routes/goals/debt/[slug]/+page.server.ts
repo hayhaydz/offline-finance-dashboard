@@ -5,15 +5,13 @@ import { db } from "$lib/db/client";
 import { goals, accountTransactions, goalMilestones, interestRates } from "$lib/db/schema";
 import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
 import { getDebtGoalProgress, checkMilestones } from "$lib/server/goals";
+import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import { devLog, logError } from "$lib/server/logger";
 import { MS_PER_MONTH } from "$lib/utils/time-constants";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ params, locals }) => {
-  if (!locals.user) {
-    logError("debtGoalDetail", "Authentication required");
-    redirect(302, "/login");
-  }
+  const user = requireAuth(locals);
 
   let goal = await db.query.goals.findFirst({
     where: eq(goals.slug, params.slug),
@@ -28,7 +26,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     error(404, "Debt goal not found");
   }
 
-  validateUserAccess(goal, locals.user, "Goal");
+  validateUserAccess(goal, user, "Goal");
 
   if (goal.goalType !== "debt") {
     error(404, "Not a debt goal");
@@ -190,10 +188,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 export const actions: Actions = {
   archiveGoal: async ({ request, locals, params }) => {
-    if (!locals.user) {
-      logError("debtGoalArchive", "Authentication required");
-      return fail(401, { error: "Authentication required" });
-    }
+    const user = getAuthUser(locals);
+    if (!user) return fail(401, { error: "Authentication required" });
 
     const formData = await request.formData();
     const confirmed = formData.get("confirmed") === "true";
@@ -209,7 +205,7 @@ export const actions: Actions = {
       return fail(404, { error: "Goal not found" });
     }
 
-    validateUserAccess(goal, locals.user, "Goal");
+    validateUserAccess(goal, user, "Goal");
 
     try {
       await db

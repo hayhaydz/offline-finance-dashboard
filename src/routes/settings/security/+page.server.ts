@@ -1,21 +1,19 @@
-import { fail, redirect } from "@sveltejs/kit";
+import { fail } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { generateBackupCodes } from "$lib/auth/mfa";
 import { hashPassword, verifyPassword } from "$lib/auth/password";
 import { db } from "$lib/db/client";
 import { backupCodes, sessions, users } from "$lib/db/schema";
 import { devLog, logError, logFormData } from "$lib/server/logger";
+import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user) {
-		logError("settings-security", "Authentication required");
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	devLog("settings-security", "Security settings page loaded", {
-		username: locals.user.username,
-		userId: locals.user.id,
+		username: user.username,
+		userId: user.id,
 	});
 
 	// Query user data for MFA status
@@ -27,19 +25,19 @@ export const load: PageServerLoad = async ({ locals }) => {
 			createdAt: users.createdAt,
 		})
 		.from(users)
-		.where(eq(users.id, locals.user.id))
+		.where(eq(users.id, user.id))
 		.limit(1);
 
-	const user = userData[0];
+	const dbUser = userData[0];
 
 	// MFA is enabled if mfaSetupToken is null (setup completed)
-	const mfaEnabled = user?.mfaSetupToken === null;
+	const mfaEnabled = dbUser?.mfaSetupToken === null;
 
 	// Query backup codes for the user to get counts
 	const backupCodesData = await db
 		.select({ used: backupCodes.used })
 		.from(backupCodes)
-		.where(eq(backupCodes.userId, locals.user.id));
+		.where(eq(backupCodes.userId, user.id));
 
 	// Calculate backup code counts
 	const totalCodes = 10; // Always 10 backup codes
@@ -48,12 +46,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	// MFA enabled date (when user was created, which is when MFA was set up during registration)
 	const mfaEnabledDate =
-		mfaEnabled && user?.createdAt ? new Date(user.createdAt) : null;
+		mfaEnabled && dbUser?.createdAt ? new Date(dbUser.createdAt) : null;
 
 	return {
 		user: {
-			id: locals.user.id,
-			username: locals.user.username,
+			id: user.id,
+			username: user.username,
 		},
 		mfaEnabled,
 		mfaEnabledDate,
@@ -67,11 +65,8 @@ export const actions: Actions = {
 	// Change password action
 	changePassword: async ({ request, locals }) => {
 		try {
-			if (!locals.user) {
-				logError(
-					"settings-security",
-					"Authentication required for password change",
-				);
+			const user = getAuthUser(locals);
+			if (!user) {
 				return fail(401, { error: "Authentication required" });
 			}
 
@@ -84,7 +79,7 @@ export const actions: Actions = {
 			// Basic validation
 			if (!currentPassword || !newPassword) {
 				devLog("settings-security", "Validation failed - missing fields", {
-					userId: locals.user.id,
+					userId: user.id,
 				});
 				return fail(400, { error: "All fields are required" });
 			}
@@ -92,7 +87,7 @@ export const actions: Actions = {
 			// Validate new password meets requirements (12+ chars, strong password)
 			if (newPassword.length < 12) {
 				devLog("settings-security", "Validation failed - password too short", {
-					userId: locals.user.id,
+					userId: user.id,
 				});
 				return fail(400, {
 					error:
@@ -108,7 +103,7 @@ export const actions: Actions = {
 
 			if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecial) {
 				devLog("settings-security", "Validation failed - weak password", {
-					userId: locals.user.id,
+					userId: user.id,
 				});
 				return fail(400, {
 					error:
@@ -117,21 +112,21 @@ export const actions: Actions = {
 			}
 
 			// Query user to get current password hash
-			const userData = await db
+			const passwordData = await db
 				.select({ passwordHash: users.passwordHash })
 				.from(users)
-				.where(eq(users.id, locals.user.id))
+				.where(eq(users.id, user.id))
 				.limit(1);
 
-			if (userData.length === 0) {
+			if (passwordData.length === 0) {
 				logError("settings-security", "User not found", {
-					userId: locals.user.id,
+					userId: user.id,
 				});
 				return fail(404, { error: "User not found" });
 			}
 
 			// Verify current password
-			const currentPasswordHash = userData[0].passwordHash;
+			const currentPasswordHash = passwordData[0].passwordHash;
 			const isCurrentPasswordValid = await verifyPassword(
 				currentPasswordHash,
 				currentPassword,
@@ -142,7 +137,7 @@ export const actions: Actions = {
 					"settings-security",
 					"Password change failed - incorrect current password",
 					{
-						userId: locals.user.id,
+						userId: user.id,
 					},
 				);
 				// Generic error message for security (prevents username enumeration)
@@ -153,7 +148,7 @@ export const actions: Actions = {
 				"settings-security",
 				"Password validation passed, updating password",
 				{
-					userId: locals.user.id,
+					userId: user.id,
 				},
 			);
 
@@ -164,20 +159,20 @@ export const actions: Actions = {
 			await db
 				.update(users)
 				.set({ passwordHash: newPasswordHash, updatedAt: new Date() })
-				.where(eq(users.id, locals.user.id));
+				.where(eq(users.id, user.id));
 
 			devLog("settings-security", "Password updated successfully", {
-				userId: locals.user.id,
+				userId: user.id,
 			});
 
 			// Invalidate ALL sessions for security (force re-authentication)
-			await db.delete(sessions).where(eq(sessions.userId, locals.user.id));
+			await db.delete(sessions).where(eq(sessions.userId, user.id));
 
 			devLog(
 				"settings-security",
 				"All sessions invalidated after password change",
 				{
-					userId: locals.user.id,
+					userId: user.id,
 				},
 			);
 
@@ -195,14 +190,10 @@ export const actions: Actions = {
 
 	// Regenerate backup codes action
 	regenerateBackupCodes: async ({ request, locals }) => {
-		if (!locals.user) {
-			logError(
-				"settings-security",
-				"Authentication required for backup code regeneration",
-			);
+		const user = getAuthUser(locals);
+		if (!user) {
 			return fail(401, { error: "Authentication required" });
 		}
-		const user = locals.user;
 
 		try {
 			const formData = await request.formData();

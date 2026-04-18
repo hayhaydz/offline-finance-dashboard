@@ -6,17 +6,16 @@ import { db } from "$lib/db/client";
 import { accounts, goals, goalMilestones } from "$lib/db/schema";
 import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
 import { generateDefaultMilestones } from "$lib/server/goals";
+import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import { devLog, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
-	if (!locals.user) {
-		redirect(302, "/login");
-	}
+	const user = requireAuth(locals);
 
 	const allLiabilityAccounts = await db.query.accounts.findMany({
 		where: and(
-			withUserFilter(locals.user.id, accounts),
+			withUserFilter(user.id, accounts),
 			eq(accounts.category, "liability"),
 			isNull(accounts.closedAt)
 		),
@@ -32,15 +31,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	const availableAccounts = allLiabilityAccounts.filter((acc) => !linkedAccountIds.has(acc.id));
 
-	return { user: locals.user, availableAccounts };
+	return { user, availableAccounts };
 };
 
 export const actions: Actions = {
 	default: async ({ request, locals }) => {
-		if (!locals.user) {
-			logError("debtGoalCreate", "Authentication required");
-			return fail(401, { error: "Authentication required" });
-		}
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
 
 		const formData = await request.formData();
 		logFormData("debtGoalCreate", Object.fromEntries(formData));
@@ -91,7 +88,7 @@ export const actions: Actions = {
 			where: eq(accounts.id, linkedAccountId),
 		});
 
-		if (!account || account.userId !== locals.user.id) {
+		if (!account || account.userId !== user.id) {
 			errors.linked_account_id = "Account not found";
 			return fail(400, { error: "Please fix errors", errors, data: { linkedAccountId: linkedAccountIdStr || "", name: name || "", targetDate: targetDateStr || "" } });
 		}
@@ -107,7 +104,7 @@ export const actions: Actions = {
 		});
 
 		const slug = nanoid(16);
-		const userId = locals.user.id;
+		const userId = user.id;
 
 		try {
 			const [newGoal] = await db.transaction(async (tx) => {
