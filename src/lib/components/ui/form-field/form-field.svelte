@@ -62,8 +62,9 @@
 		return true;
 	}
 
-	// Computed validation state
-	const isValid = $derived(!error);
+	// Computed validation state — untouched fields are not considered valid
+	// This prevents parent forms from enabling submit buttons before any interaction
+	const isValid = $derived(touched && !error);
 
 	// Handle blur event
 	function handleBlur() {

@@ -166,6 +166,9 @@
 	}}
 	class="p-2"
 >
+	<input type="hidden" name="type" value={type} />
+	<input type="hidden" name="taxWrapper" value={taxWrapper} />
+
 	<FormField
 		bind:this={nameField}
 		label="Account Name"

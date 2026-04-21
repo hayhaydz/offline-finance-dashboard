@@ -180,6 +180,10 @@
 	</div>
 </div>
 
+{#if sortedAccounts.length > 0}
+  <AlertsSection alerts={data.alerts} title="ACCOUNT ALERTS" viewAllHref="/alerts" />
+{/if}
+
 <!-- ACCOUNTS OVERVIEW SECTION -->
 <!-- Wrapper div for scroll-to-top reference -->
 <div bind:this={accountsSectionRef}>
@@ -233,7 +237,6 @@
 			</tbody>
 		</table>
 	{:else}
-		<AlertsSection alerts={data.alerts} title="ACCOUNT ALERTS" viewAllHref="/alerts" />
 		<div class="overflow-x-auto">
 		<table class="min-w-[900px] w-full">
 			<thead>

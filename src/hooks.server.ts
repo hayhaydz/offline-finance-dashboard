@@ -4,8 +4,16 @@ import { eq } from "drizzle-orm";
 import { HOME_ROUTE, LOGIN_ROUTE } from "$lib/constants/routes";
 import { db } from "$lib/db/client";
 import { sessions } from "$lib/db/schema";
+import { runMigrations } from "$lib/db/migrate";
 import { logError } from "$lib/server/logger";
 import { MS_PER_DAY } from "$lib/utils/time-constants";
+
+// Run migrations once per server process (replaces npm run db:migrate)
+let migrationsApplied = false;
+if (!migrationsApplied) {
+	runMigrations();
+	migrationsApplied = true;
+}
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const { pathname, hostname } = event.url;

@@ -9,6 +9,31 @@ import * as schema from "./schema";
 import "dotenv/config";
 
 /**
+ * Returns the database file path for the given environment.
+ *
+ * - development: picks `dev-encrypted.db` when ENCRYPTION_KEY is set, otherwise `dev-plain.db`
+ * - test / production: fixed paths
+ * - A `customPath` or `DATABASE_URL` env var takes precedence over defaults.
+ */
+export function getDatabasePath(env: string, customPath?: string): string {
+	if (customPath) return customPath;
+	if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+
+	switch (env) {
+		case "development":
+			return process.env.ENCRYPTION_KEY
+				? "storage/dev-encrypted.db"
+				: "storage/dev-plain.db";
+		case "test":
+			return "storage/test.db";
+		case "production":
+			return "storage/prod.db";
+		default:
+			return "storage/database.db";
+	}
+}
+
+/**
  * Creates a new database instance with proper environment-aware configuration.
  */
 export function createDb(customPath?: string) {
@@ -20,23 +45,7 @@ export function createDb(customPath?: string) {
 		);
 	}
 
-	const getDatabasePath = (env: string): string => {
-		if (customPath) return customPath;
-		if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
-
-		switch (env) {
-			case "development":
-				return "storage/dev.db";
-			case "test":
-				return "storage/test.db";
-			case "production":
-				return "storage/prod.db";
-			default:
-				return "storage/database.db";
-		}
-	};
-
-	const dbPath = getDatabasePath(appEnv);
+	const dbPath = getDatabasePath(appEnv, customPath);
 	const isTest = appEnv === "test";
 
 	// Ensure storage directory exists
