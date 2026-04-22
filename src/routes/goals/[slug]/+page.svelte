@@ -10,8 +10,12 @@
 
   let { data }: { data: PageData } = $props();
 
-  // Debt-specific interactive state
-  let monthlyPayment = $state(data.debtData?.defaultMonthlyPayment ?? 0);
+  // Debt-specific interactive state (seeded from server, then user-owned)
+  let monthlyPayment = $state(0);
+  $effect(() => {
+    const defaultPayment = data.debtData?.defaultMonthlyPayment;
+    if (defaultPayment !== undefined) monthlyPayment = defaultPayment;
+  });
 
   // Client-side payoff projection (inline formula, no server imports)
   const projection = $derived(() => {
@@ -56,7 +60,7 @@
     srcPagination.page = data.srcPage;
   });
 
-  const staleness = $derived(getStaleness(new Date(data.goal.updatedAt)));
+  const staleness = $derived(getStaleness(data.goal.updatedAt));
 
 
   // Helper to format liquidity
@@ -80,7 +84,11 @@
 <div class="border-b border-black p-2">
   <div class="flex justify-between items-center gap-2">
     <h1 class="text-lg font-bold flex items-center gap-1 min-w-0 overflow-hidden">
-      <span class="{staleness.cssClass} shrink-0">●</span>
+      {#if staleness}
+        <span class="{staleness.cssClass} shrink-0">●</span>
+      {:else}
+        <span class="text-gray-400 shrink-0">●</span>
+      {/if}
       <span class="truncate">{truncateDisplay(data.goal.name, DISPLAY_LIMITS.GOAL_NAME)}</span>
     </h1>
     <a href="/goals" class="bracket-link text-xs shrink-0">Back to Goals</a>

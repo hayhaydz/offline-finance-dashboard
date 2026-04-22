@@ -54,9 +54,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		});
 	}
 
-	const snapshotDates = snapshotsList.map((s) => new Date(s.snapshotDate));
-	const mostRecentSnapshotDate = getMostRecentDate(snapshotDates);
-	const staleness = getStaleness(mostRecentSnapshotDate);
+	const staleness = getStaleness(
+		getMostRecentDate(snapshotsList.map((s) => s.snapshotDate)),
+	);
 
 	return {
 		user,

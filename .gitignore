@@ -40,3 +40,5 @@ build/
 .worktrees/
 
 logs/
+
+*.DS_STORE

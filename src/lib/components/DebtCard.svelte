@@ -15,7 +15,7 @@
 	let { name, slug, paidInCents, remainingInCents, percent, projectedPayoffDate, updatedAt }: Props =
 		$props();
 
-	const staleness = $derived(getStaleness(new Date(updatedAt)));
+	const staleness = $derived(getStaleness(updatedAt));
 
 	const progressColor = $derived(
 		percent >= 70
@@ -30,7 +30,11 @@
 	<!-- Name -->
 	<div class="flex justify-between items-center mb-1">
 		<div class="flex items-center gap-1 min-w-0 overflow-hidden">
-			<span class="shrink-0 {staleness.cssClass}">●</span>
+			{#if staleness}
+					<span class="shrink-0 {staleness.cssClass}">●</span>
+				{:else}
+					<span class="shrink-0 text-gray-400">●</span>
+				{/if}
 			<span class="font-bold text-sm min-w-0 overflow-hidden">
 				<a href="/goals/debt/{slug}" class="bracket-link block truncate">{name}</a>
 			</span>

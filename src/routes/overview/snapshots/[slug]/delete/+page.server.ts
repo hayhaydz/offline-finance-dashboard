@@ -90,7 +90,7 @@ export const actions: Actions = {
 				userId: user.id,
 			});
 
-			throw redirect(302, "/snapshots");
+			throw redirect(302, "/overview/snapshots");
 		} catch (err) {
 			if (
 				err &&

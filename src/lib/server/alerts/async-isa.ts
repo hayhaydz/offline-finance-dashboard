@@ -108,7 +108,8 @@ export async function checkPsaAlerts(
 	return alerts;
 }
 
-export async function checkTaxYearReviewAlerts(now: Date): Promise<Alert[]> {
+export async function checkTaxYearReviewAlerts(now: Date, hasAccounts: boolean = true): Promise<Alert[]> {
+	if (!hasAccounts) return [];
 	if (isVerboseDebug()) devLog("checkTaxYearReviewAlerts", "Checking tax year review alerts");
 	const taxYear = getUkTaxYearBounds(now);
 	const daysSinceNewTaxYear = daysSince(taxYear.start, now);

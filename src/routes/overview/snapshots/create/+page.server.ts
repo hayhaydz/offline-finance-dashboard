@@ -111,7 +111,7 @@ export const actions: Actions = {
 				});
 			}
 
-			throw redirect(302, "/snapshots");
+			throw redirect(302, "/overview/snapshots");
 		} catch (err) {
 			// Re-throw redirect (success case)
 			if (

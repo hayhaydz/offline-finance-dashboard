@@ -37,7 +37,13 @@
 
 <!-- SNAPSHOTS LIST SECTION -->
 <div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-	<span class="text-xs text-gray-500"><span class={data.staleness.cssClass}>●</span> {data.staleness.label}</span>
+	<span class="text-xs text-gray-500">
+			{#if data.staleness}
+				<span class={data.staleness.cssClass}>●</span> {data.staleness.label}
+			{:else}
+				No snapshots yet
+			{/if}
+		</span>
 	<a href="/overview/snapshots/create" class="bracket-link text-xs">+ Create Snapshot</a>
 </div>
 

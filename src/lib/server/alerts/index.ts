@@ -59,6 +59,7 @@ async function safeCheck(name: string, fn: () => Promise<Alert[]>): Promise<Aler
 export async function getAlerts(userId: number): Promise<Alert[]> {
 	const { allAccounts, openAccounts, rateHistories, txSummaries, balances, latestTxDates, taxYear, now, taxBand, hasSavingsAccounts } =
 		await fetchBulkData(userId);
+	const hasAccounts = allAccounts.length > 0;
 
 	// Account-level (sync)
 	const accountAlerts = [
@@ -83,9 +84,9 @@ export async function getAlerts(userId: number): Promise<Alert[]> {
 		safeCheck('checkIsaAlerts',          () => checkIsaAlerts(userId, taxYear)),
 		safeCheck('checkPsaAlerts',           () => checkPsaAlerts(userId, taxYear, taxBand, hasSavingsAccounts)),
 		safeCheck('checkGoalAlerts',          () => checkGoalAlerts(userId)),
-		safeCheck('checkSnapshotAlerts',      () => checkSnapshotAlerts(userId)),
-		safeCheck('checkMonthlyReviewAlerts', () => checkMonthlyReviewAlerts(userId)),
-		safeCheck('checkTaxYearReviewAlerts', () => checkTaxYearReviewAlerts(now)),
+		safeCheck('checkSnapshotAlerts',      () => checkSnapshotAlerts(userId, hasAccounts)),
+		safeCheck('checkMonthlyReviewAlerts', () => checkMonthlyReviewAlerts(userId, hasAccounts)),
+		safeCheck('checkTaxYearReviewAlerts', () => checkTaxYearReviewAlerts(now, hasAccounts)),
 		safeCheck('checkBudgetAlerts',        () => checkBudgetAlerts(userId)),
 		safeCheck('checkNetWorthAlerts',      () => checkNetWorthAlerts(userId)),
 		safeCheck('checkDebtPayoffAlerts',    () => checkDebtPayoffAlerts(userId)),

@@ -22,9 +22,16 @@
 
 	let { data, form }: { data: PageData; form?: ActionData } = $props();
 
-	let linkedAccountId = $state(form?.data?.linkedAccountId ?? "");
-	let name = $state(form?.data?.name ?? "");
-	let targetDate = $state(form?.data?.targetDate ?? "");
+	let linkedAccountId = $state("");
+	let name = $state("");
+	let targetDate = $state("");
+	$effect(() => {
+		if (form?.data) {
+			linkedAccountId = form.data.linkedAccountId ?? "";
+			name = form.data.name ?? "";
+			targetDate = form.data.targetDate ?? "";
+		}
+	});
 </script>
 
 <div class="p-4 max-w-2xl">

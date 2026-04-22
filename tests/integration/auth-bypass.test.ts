@@ -24,6 +24,11 @@ vi.mock("$lib/db/client", () => {
 	return { db: mockDb };
 });
 
+// Mock migrations — hooks.server.ts calls runMigrations() at module-level
+vi.mock("$lib/db/migrate", () => ({
+	runMigrations: vi.fn().mockResolvedValue(undefined),
+}));
+
 // Mock MFA utilities
 vi.mock("$lib/auth/mfa", () => ({
 	decryptTOTPSecret: vi.fn(() => "plaintext-secret"),

@@ -5,7 +5,7 @@ import { spendingCategories } from "$lib/db/schema";
 import { withUserFilter } from "$lib/auth/row-security";
 import { devLog, logError, logInfo } from "$lib/server/logger";
 import { type Result, type VoidResult, ok, err, okVoid } from "$lib/server/utils/result";
-import { isValidHexColour } from "$lib/utils/category-colours";
+import { isValidHexColour, DEFAULT_CATEGORIES } from "$lib/utils/category-colours";
 
 export interface CreateCategoryData {
 	userId: number;
@@ -171,5 +171,51 @@ export async function deleteCategory(
 	} catch (error) {
 		logError("categories:delete", "Failed to delete category", error);
 		return err("Failed to delete category");
+	}
+}
+
+/**
+ * Seed default categories for a new user. Idempotent — if the user already
+ * has any active categories, this is a no-op.
+ */
+export async function ensureDefaultCategories(
+	userId: number,
+): Promise<VoidResult> {
+	try {
+		const existing = await db.query.spendingCategories.findMany({
+			where: and(
+				withUserFilter(userId, spendingCategories),
+				isNull(spendingCategories.deletedAt),
+			),
+			columns: { id: true },
+		});
+
+		if (existing.length > 0) {
+			return okVoid();
+		}
+
+		for (const cat of DEFAULT_CATEGORIES) {
+			const slug = nanoid(16);
+			db.insert(spendingCategories)
+				.values({
+					slug,
+					userId,
+					name: cat.name,
+					key: cat.key,
+					colour: cat.colour,
+					isDefault: true,
+				})
+				.run();
+		}
+
+		logInfo("ensureDefaultCategories", "Default categories seeded", {
+			userId,
+			count: DEFAULT_CATEGORIES.length,
+		});
+
+		return okVoid();
+	} catch (error) {
+		logError("ensureDefaultCategories", "Failed to seed default categories", error);
+		return err("Failed to seed default categories");
 	}
 }

@@ -62,14 +62,18 @@
 		progressColor() === 'green' ? 'bg-green-700' : progressColor() === 'amber' ? 'bg-amber-600' : 'bg-red-600'
 	);
 
-	const staleness = $derived(getStaleness(new Date(goal.updatedAt)));
+	const staleness = $derived(getStaleness(goal.updatedAt));
 </script>
 
 <div class="goal-card-content">
 	<!-- Goal Name with Emergency Fund Badge -->
 	<div class="flex justify-between items-center mb-1">
 		<div class="flex items-start gap-1 min-w-0 overflow-hidden">
-			<span class="shrink-0 {staleness.cssClass}">●</span>
+			{#if staleness}
+					<span class="shrink-0 {staleness.cssClass}">●</span>
+				{:else}
+					<span class="shrink-0 text-gray-400">●</span>
+				{/if}
 			<span class="font-bold text-sm min-w-0 overflow-hidden">
 				<a href="/goals/{goal.slug}" class="bracket-link block truncate">{goal.name}</a>
 				{#if emergencyFundMilestones()}

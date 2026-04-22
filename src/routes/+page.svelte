@@ -217,7 +217,9 @@
 	<div class="font-bold flex justify-between bg-gray-100 border-y border-black p-2">
 		<div class="flex items-center gap-2">
 			<span>ACCOUNTS ({activeAccountCount})</span>
-			<span class="text-xs font-bold text-gray-500">{data.staleness.label}</span>
+			{#if data.staleness}
+				<span class="text-xs font-bold text-gray-500">{data.staleness.label}</span>
+			{/if}
 		</div>
 		<a href="/accounts" class="bracket-link text-xs">View All</a>
 	</div>
@@ -293,7 +295,7 @@
 		<div class="font-bold flex justify-between bg-gray-100 border-y border-black p-2">
 			<div class="flex items-center gap-2">
 				<span>GOALS ({goalsFilter === 'all' ? goals.length : filteredGoals().length})</span>
-				<span class="text-xs font-bold text-gray-500">{data.staleness.label}</span>
+				<span class="text-xs font-bold text-gray-500">{data.staleness?.label ?? ''}</span>
 				<div class="flex gap-1">
 					<button
 						type="button"

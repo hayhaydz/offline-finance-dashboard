@@ -8,7 +8,10 @@
 	let { data }: { data: PageData; form: ActionData } = $props();
 
 	// Accordion state
-	let targetOpen = $state(!data.budget); // Auto-open if no budget
+	let targetOpen = $state(true); // Auto-open if no budget
+	$effect(() => {
+		targetOpen = !data.budget;
+	});
 	let filtersOpen = $state(false);
 
 	// Editing state for category targets

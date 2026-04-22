@@ -95,7 +95,8 @@ export async function checkGoalAlerts(userId: number): Promise<Alert[]> {
 	return alerts;
 }
 
-export async function checkSnapshotAlerts(userId: number): Promise<Alert[]> {
+export async function checkSnapshotAlerts(userId: number, hasAccounts: boolean = true): Promise<Alert[]> {
+	if (!hasAccounts) return [];
 	if (isVerboseDebug()) devLog("checkSnapshotAlerts", "Checking snapshot alerts", { userId });
 	const [row] = await db
 		.select({ maxDate: sql<string | null>`max(${snapshots.snapshotDate})` })
@@ -104,7 +105,7 @@ export async function checkSnapshotAlerts(userId: number): Promise<Alert[]> {
 
 	const maxDate = row?.maxDate;
 	if (!maxDate) {
-		return [makeGlobalAlert('NO_SNAPSHOT_RECENTLY', 'info', 'No net worth snapshot', 'No snapshot has been taken yet', '/snapshots')];
+		return [makeGlobalAlert('NO_SNAPSHOT_RECENTLY', 'info', 'No net worth snapshot', 'No snapshot has been taken yet', '/overview/snapshots')];
 	}
 
 	const daysSinceSnapshot = daysSince(new Date(maxDate), new Date());
@@ -115,7 +116,7 @@ export async function checkSnapshotAlerts(userId: number): Promise<Alert[]> {
 				'info',
 				'No recent snapshot',
 				`Last snapshot was ${daysSinceSnapshot} days ago`,
-				'/snapshots',
+				'/overview/snapshots',
 			),
 		];
 	}
@@ -123,7 +124,8 @@ export async function checkSnapshotAlerts(userId: number): Promise<Alert[]> {
 	return [];
 }
 
-export async function checkMonthlyReviewAlerts(userId: number): Promise<Alert[]> {
+export async function checkMonthlyReviewAlerts(userId: number, hasAccounts: boolean = true): Promise<Alert[]> {
+	if (!hasAccounts) return [];
 	if (isVerboseDebug()) devLog("checkMonthlyReviewAlerts", "Checking monthly review alerts", { userId });
 	const now = new Date();
 	const yearMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;

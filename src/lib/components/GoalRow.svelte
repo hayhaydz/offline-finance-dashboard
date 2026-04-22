@@ -49,7 +49,11 @@
 			{#if reorderMode}
 				<span class="text-gray-400 select-none mr-1">⋮⋮</span>
 			{/if}
-			<span class={staleness.cssClass}>●</span>
+			{#if staleness}
+					<span class={staleness.cssClass}>●</span>
+				{:else}
+					<span class="text-gray-400">●</span>
+				{/if}
 			{#if isArchived}
 				<span>{truncateDisplay(goal.name, DISPLAY_LIMITS.GOAL_NAME)}</span>
 				<span class="text-xs text-red-700 ml-1">[ARCHIVED]</span>

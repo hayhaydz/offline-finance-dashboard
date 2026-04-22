@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import * as schema from "../../../src/lib/db/schema/index";
 import type { DB } from "../lib/db.js";
 import { daysAgo, formatGBP, loadFixture, slug } from "../lib/helpers.js";
@@ -55,12 +55,6 @@ interface SnapshotFixture {
 	};
 }
 
-interface CategoryFixture {
-	name: string;
-	key: string;
-	colour: string;
-}
-
 interface TransactionFixture {
 	accountName: string;
 	transactions: Array<{
@@ -88,7 +82,6 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 	const accounts = loadFixture<AccountFixture[]>("standard/accounts.json");
 	const goals = loadFixture<GoalFixture[]>("standard/goals.json");
 	const snapshots = loadFixture<SnapshotFixture[]>("standard/snapshots.json");
-	const categories = loadFixture<CategoryFixture[]>("standard/categories.json");
 	const transactions = loadFixture<TransactionFixture[]>(
 		"standard/transactions.json",
 	);
@@ -129,32 +122,6 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 		console.log(`  ✓ ${a.name} (${a.institution ?? "-"})`);
 	}
 
-	// --- Spending Categories ---
-	console.log("\n🏷️  Creating spending categories...");
-	const categoryMap = new Map<string, { id: number; slug: string }>();
-
-	for (const cat of categories) {
-		const categorySlug = slug();
-		await db.insert(schema.spendingCategories).values({
-			slug: categorySlug,
-			userId,
-			name: cat.name,
-			key: cat.key,
-			colour: cat.colour,
-			isDefault: true,
-			createdAt: new Date(),
-		});
-		// Get the ID of the inserted category
-		const inserted = await db.query.spendingCategories.findFirst({
-			where: eq(schema.spendingCategories.slug, categorySlug),
-			columns: { id: true, slug: true },
-		});
-		if (inserted) {
-			categoryMap.set(cat.key, { id: inserted.id, slug: inserted.slug });
-		}
-		console.log(`  ✓ ${cat.name} (${cat.key})`);
-	}
-
 	// --- Budget ---
 	console.log("\n💷 Creating budget for current month...");
 	const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
@@ -168,32 +135,6 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 		categoryTargets: JSON.stringify({}),
 	});
 
-	// Update budget with category targets (after categories are seeded)
-	const seededCategories = await db.query.spendingCategories.findMany({
-		where: eq(schema.spendingCategories.userId, userId),
-	});
-
-	const categoryTargets: Record<string, number> = {};
-	const targetMap: Record<string, number> = {
-		groceries: 30000,      // £300
-		eating_out: 20000,     // £200
-		transport: 15000,      // £150
-		bills: 12000,          // £120
-		shopping: 7500,        // £75
-	};
-
-	for (const cat of seededCategories) {
-		if (targetMap[cat.key]) {
-			categoryTargets[String(cat.id)] = targetMap[cat.key];
-		}
-	}
-
-	await db.update(schema.budgetMonths)
-		.set({ categoryTargets: JSON.stringify(categoryTargets) })
-		.where(and(
-			eq(schema.budgetMonths.userId, userId),
-			eq(schema.budgetMonths.month, currentMonth),
-		));
 	console.log(`  ✓ Budget set for ${currentMonth} (£1,500 target)`);
 
 	// --- Goals ---
@@ -258,9 +199,7 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 		}
 
 		for (const tx of t.transactions) {
-			const categoryId = tx.categoryKey
-				? categoryMap.get(tx.categoryKey)?.id ?? null
-				: null;
+			const categoryId = null;
 			await db.insert(schema.accountTransactions).values({
 				slug: slug(),
 				accountId: account.id,

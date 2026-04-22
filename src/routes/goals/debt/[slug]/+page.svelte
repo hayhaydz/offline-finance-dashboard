@@ -10,7 +10,7 @@
     return { text: 'text-red-600', bg: 'bg-red-600' };
   };
 
-  const colors = progressColor(data.color);
+  const colors = $derived(progressColor(data.color));
 
   let showAllPayments = $state(false);
 

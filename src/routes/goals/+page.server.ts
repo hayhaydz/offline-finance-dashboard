@@ -181,9 +181,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	});
 
 	// Calculate staleness based on most recent goal creation/update
-	const goalDates = userGoals.map((g) => new Date(g.createdAt));
-	const mostRecentGoalDate = getMostRecentDate(goalDates);
-	const staleness = getStaleness(mostRecentGoalDate);
+	const staleness = getStaleness(getMostRecentDate(userGoals.map((g) => g.createdAt)));
 
 	// Calculate net worth summary (shared utility)
 	const netWorthSummary = await getNetWorthSummary(user.id);

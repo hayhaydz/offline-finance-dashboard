@@ -53,7 +53,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const isProtectedRoute =
 		pathname.startsWith("/accounts") ||
 		pathname.startsWith("/settings") ||
-		pathname.startsWith("/snapshots") ||
+		pathname.startsWith("/overview/snapshots") ||
 		pathname.startsWith("/app");
 
 	// Get session token from HTTP-only cookie

@@ -12,6 +12,7 @@ import { hashPassword } from "$lib/auth/password";
 import { HOME_ROUTE, LOGIN_ROUTE, REGISTER_ROUTE } from "$lib/constants/routes";
 import { db } from "$lib/db/client";
 import { backupCodes, sessions, users } from "$lib/db/schema";
+import { ensureDefaultCategories } from "$lib/server/categories";
 import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 
 export async function load({ cookies, locals }) {
@@ -194,6 +195,9 @@ export const actions = {
 			username: user.username,
 			codeCount: newBackupCodes.length,
 		});
+
+		// Seed default spending categories for new user (idempotent — no-op if user already has categories)
+		await ensureDefaultCategories(user.id);
 
 		// Mark the setup token as used in database
 		await db
