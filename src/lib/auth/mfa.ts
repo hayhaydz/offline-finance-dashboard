@@ -12,7 +12,7 @@ export function generateTOTPSecret(): string {
 export function generateOTPAuthURL(
 	secret: string,
 	username: string,
-	appName: string = "Offline Finance Dashboard",
+	appName: string = "OFD",
 ): string {
 	return generateURI({
 		secret,

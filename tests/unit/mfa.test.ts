@@ -27,7 +27,7 @@ describe("MFA utility", () => {
 		expect(url).toContain("otpauth://totp/");
 		expect(url).toContain("testuser");
 		expect(url).toContain("secret=JBSWY3DPEHPK3PXP");
-		expect(url).toContain("issuer=Offline%20Finance%20Dashboard");
+		expect(url).toContain("issuer=OFD");
 	});
 
 	it("should generate valid backup codes", () => {

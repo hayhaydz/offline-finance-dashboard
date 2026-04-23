@@ -1,6 +1,11 @@
 import { fail } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
-import { generateBackupCodes } from "$lib/auth/mfa";
+import {
+	decryptTOTPSecret,
+	generateBackupCodes,
+	verifyBackupCode,
+	verifyTOTP,
+} from "$lib/auth/mfa";
 import { hashPassword, verifyPassword } from "$lib/auth/password";
 import { db } from "$lib/db/client";
 import { backupCodes, sessions, users } from "$lib/db/schema";
@@ -77,9 +82,10 @@ export const actions: Actions = {
 
 			const currentPassword = formData.get("currentPassword") as string;
 			const newPassword = formData.get("newPassword") as string;
+			const totpCode = formData.get("totpCode") as string;
 
 			// Basic validation
-			if (!currentPassword || !newPassword) {
+			if (!currentPassword || !newPassword || !totpCode) {
 				devLog("settings-security", "Validation failed - missing fields", {
 					userId: user.id,
 				});
@@ -146,11 +152,101 @@ export const actions: Actions = {
 				return fail(400, { error: "Current password is incorrect" });
 			}
 
+			// --- TOTP verification (required before password change) ---
+
+			// Decrypt TOTP secret before verifying TOTP code
+			const systemKey = process.env.ENCRYPTION_KEY;
+			if (!systemKey) {
+				logError(
+					"settings-security",
+					"Server configuration error - missing ENCRYPTION_KEY",
+				);
+				return fail(500, { error: "Server configuration error" });
+			}
+
+			// Query TOTP secret fields (not included in earlier password hash query)
+			const mfaData = await db
+				.select({
+					totpSecret: users.totpSecret,
+					totpSecretIV: users.totpSecretIV,
+				})
+				.from(users)
+				.where(eq(users.id, user.id))
+				.limit(1);
+
+			if (mfaData.length === 0) {
+				logError("settings-security", "User not found for MFA verification", {
+					userId: user.id,
+				});
+				return fail(404, { error: "User not found" });
+			}
+
+			const totpSecretPlaintext = decryptTOTPSecret(
+				mfaData[0].totpSecret,
+				mfaData[0].totpSecretIV,
+				systemKey,
+			);
+
+			// Verify TOTP code using decrypted secret
+			let totpValid = await verifyTOTP(totpCode, totpSecretPlaintext);
+
+			// If TOTP fails, try backup code verification
+			let usedBackupCodeId: number | null = null;
+			if (!totpValid) {
+				// Query user's UNUSED backup codes
+				const userBackupCodes = await db.query.backupCodes.findMany({
+					where: eq(backupCodes.userId, user.id),
+				});
+
+				// Filter to only unused codes and extract hashes
+				const unusedHashedCodes = userBackupCodes
+					.filter((code) => !code.used)
+					.map((code) => code.code);
+
+				// Try to verify against backup codes
+				if (unusedHashedCodes.length > 0) {
+					const matchedHash = await verifyBackupCode(
+						totpCode,
+						unusedHashedCodes,
+					);
+					if (matchedHash) {
+						const usedCode = userBackupCodes.find(
+							(code) => code.code === matchedHash,
+						);
+						if (usedCode) {
+							await db
+								.update(backupCodes)
+								.set({ used: true })
+								.where(eq(backupCodes.id, usedCode.id));
+							usedBackupCodeId = usedCode.id;
+							devLog(
+								"settings-security",
+								"Backup code used for password change",
+								{
+									userId: user.id,
+									backupCodeId: usedCode.id,
+								},
+							);
+						}
+						totpValid = true;
+					}
+				}
+			}
+
+			// If both TOTP and backup code verification failed
+			if (!totpValid) {
+				logError("settings-security", "Invalid TOTP code for password change", {
+					userId: user.id,
+				});
+				return fail(400, { error: "Invalid authentication code" });
+			}
+
 			devLog(
 				"settings-security",
 				"Password validation passed, updating password",
 				{
 					userId: user.id,
+					usedBackupCode: !!usedBackupCodeId,
 				},
 			);
 

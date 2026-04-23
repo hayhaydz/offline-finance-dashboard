@@ -106,18 +106,21 @@
 
 	// Password change form field values
 	let currentPassword = $state('');
+	let totpCode = $state('');
 	let newPassword = $state('');
 	let confirmPassword = $state('');
 
 	// Form data for cross-field validation
 	const passwordFormData = $derived.by(() => ({
 		currentPassword,
+		totpCode,
 		newPassword,
 		confirmPassword
 	}));
 
 	// Validation rules for each field
 	const currentPasswordRules = [required('Current password is required')];
+	const totpCodeRules = [required('Authentication code is required')];
 	const newPasswordRules = [
 		required('New password is required'),
 		minLength(12, 'Password must be at least 12 characters'),
@@ -133,22 +136,25 @@
 
 	// Form validation state
 	let currentPasswordValid = $state(false);
+	let totpCodeValid = $state(false);
 	let newPasswordValid = $state(false);
 	let confirmPasswordValid = $state(false);
 
 	// Form is valid when all fields are valid
 	const isPasswordFormValid = $derived(
-		currentPasswordValid && newPasswordValid && confirmPasswordValid
+		currentPasswordValid && totpCodeValid && newPasswordValid && confirmPasswordValid
 	);
 
 	// Component refs for validation access
 	let currentPasswordField = $state<{ isValid: boolean; validate: () => boolean } | undefined>();
+	let totpCodeField = $state<{ isValid: boolean; validate: () => boolean } | undefined>();
 	let newPasswordField = $state<{ isValid: boolean; validate: () => boolean } | undefined>();
 	let confirmPasswordField = $state<{ isValid: boolean; validate: () => boolean } | undefined>();
 
 	// Update validation state when fields change
 	$effect(() => {
 		currentPasswordValid = currentPasswordField?.isValid ?? false;
+		totpCodeValid = totpCodeField?.isValid ?? false;
 		newPasswordValid = newPasswordField?.isValid ?? false;
 		confirmPasswordValid = confirmPasswordField?.isValid ?? false;
 	});
@@ -201,6 +207,18 @@
 						rules={currentPasswordRules}
 						placeholder="Enter current password"
 						autocomplete="current-password"
+						formData={passwordFormData}
+					/>
+
+					<FormField
+						bind:this={totpCodeField}
+						label="Authentication code"
+						name="totpCode"
+						type="text"
+						bind:value={totpCode}
+						rules={totpCodeRules}
+						placeholder="Enter 6-digit code (or backup code)"
+						autocomplete="one-time-code"
 						formData={passwordFormData}
 					/>
 
