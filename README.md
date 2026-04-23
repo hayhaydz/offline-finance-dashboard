@@ -6,8 +6,7 @@ A privacy-first, local-only financial dashboard for tracking net worth and accou
 
 ```bash
 npm install
-npm run db:push
-npm run seed:standard
+npm run db:reset -- --mode=standard
 npm run dev
 ```
 
@@ -58,14 +57,13 @@ Controlled by `APP_ENV`:
 
 | Mode | Database | Security | Encryption |
 |------|----------|----------|------------|
-| `development` | `storage/dev.db` | Loose (plain text OK) | Optional |
+| `development` | `storage/dev-plain.db` or `storage/dev-encrypted.db` | Loose (plain text OK) | Optional |
 | `production` | `storage/prod.db` | Strict (fails if unencrypted) | Required |
 
 ### Dev Mode
 
 ```bash
-npm run db:push        # Push schema directly (no migration files)
-npm run seed:standard  # Creates admin/password user
+npm run db:reset -- --mode=standard
 npm run dev            # Starts on localhost:5173
 ```
 
@@ -77,9 +75,8 @@ Security is loose — you can use SQLite viewers directly on the dev database.
 export APP_ENV=production
 export ENCRYPTION_KEY=$(openssl rand -hex 32)  # Save this somewhere safe!
 
-npm run db:migrate     # Official migrations
 npm run build
-npm run preview
+npm run start          # Startup auto-applies pending migrations
 ```
 
 The app will refuse to start if encryption is missing or if it finds unencrypted user data. Lose the key, lose the data.
@@ -126,10 +123,11 @@ Set `VERBOSE_DEBUG_LOGS=true` in development for extra detail.
 
 ```bash
 # Reset dev database
-npm run db:reset && npm run seed:standard
+npm run db:reset -- --mode=standard
 
 # Generate migration after schema change
-npm run db:generate && npm run db:migrate
+npm run db:generate
+npm run db:reset -- --mode=standard
 
 # Seed different test data sets
 npm run seed:edge   # Edge cases

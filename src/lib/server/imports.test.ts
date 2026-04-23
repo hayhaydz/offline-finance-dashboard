@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "$lib/db/client";
-import { accounts, accountTransactions } from "$lib/db/schema";
+import { accounts, accountTransactions, users } from "$lib/db/schema";
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import {
@@ -9,17 +9,29 @@ import {
 	type ImportRow,
 } from "./imports";
 
-const TEST_USER_ID = 1;
+let testUserId: number;
 let testAccountId: number;
 let cleanupAccountIds: number[] = [];
 
 // Setup: create a temporary test account
 beforeAll(async () => {
+	const [user] = await db
+		.insert(users)
+		.values({
+			username: `imports-user-${Date.now()}-${nanoid(6)}`,
+			passwordHash: "hash",
+			totpSecret: "secret",
+			totpSecretIV: "iv",
+			passwordSalt: "salt",
+		})
+		.returning({ id: users.id });
+	testUserId = user.id;
+
 	const [account] = await db
 		.insert(accounts)
 		.values({
 			slug: nanoid(16),
-			userId: TEST_USER_ID,
+			userId: testUserId,
 			name: "CSV Import Test Account",
 			type: "current",
 			taxWrapper: "none",
@@ -39,12 +51,13 @@ afterAll(async () => {
 		await db.delete(accountTransactions).where(eq(accountTransactions.accountId, id));
 		await db.delete(accounts).where(eq(accounts.id, id));
 	}
+	await db.delete(users).where(eq(users.id, testUserId));
 });
 
 describe("getOverlappingTransactions", () => {
 	it("should return empty array when no transactions exist", async () => {
 		const result = await getOverlappingTransactions(
-			TEST_USER_ID,
+			testUserId,
 			testAccountId,
 			"2026-01-01",
 			"2026-01-31",
@@ -77,7 +90,7 @@ describe("getOverlappingTransactions", () => {
 		]);
 
 		const result = await getOverlappingTransactions(
-			TEST_USER_ID,
+			testUserId,
 			testAccountId,
 			"2026-01-01",
 			"2026-01-31",
@@ -108,7 +121,7 @@ describe("batchInsertTransactions", () => {
 		];
 
 		const count = await batchInsertTransactions(
-			TEST_USER_ID,
+			testUserId,
 			testAccountId,
 			rows,
 		);

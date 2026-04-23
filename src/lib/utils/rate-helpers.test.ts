@@ -2,13 +2,26 @@ import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { db } from "$lib/db/client";
-import { accounts, interestRates } from "$lib/db/schema";
+import { accounts, interestRates, users } from "$lib/db/schema";
 import { getCurrentRate } from "$lib/server/rate-helpers";
 
 describe("getCurrentRate", () => {
 	let testAccountId: number;
+	let testUserId: number;
 
 	beforeEach(async () => {
+		const [user] = await db
+			.insert(users)
+			.values({
+				username: `rate-helper-user-${Date.now()}-${nanoid(6)}`,
+				passwordHash: "hash",
+				totpSecret: "secret",
+				totpSecretIV: "iv",
+				passwordSalt: "salt",
+			})
+			.returning({ id: users.id });
+		testUserId = user.id;
+
 		const [account] = await db
 			.insert(accounts)
 			.values({
@@ -16,7 +29,7 @@ describe("getCurrentRate", () => {
 				name: "Test Account",
 				type: "credit-card",
 				category: "liability",
-				userId: 1,
+				userId: testUserId,
 				createdAt: new Date(),
 				updatedAt: new Date(),
 			})
@@ -29,6 +42,7 @@ describe("getCurrentRate", () => {
 			.delete(interestRates)
 			.where(eq(interestRates.accountId, testAccountId));
 		await db.delete(accounts).where(eq(accounts.id, testAccountId));
+		await db.delete(users).where(eq(users.id, testUserId));
 	});
 
 	it("should return the most recent rate as of today", async () => {

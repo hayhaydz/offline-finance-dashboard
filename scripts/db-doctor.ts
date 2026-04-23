@@ -13,12 +13,16 @@ export interface DoctorReport {
 	};
 }
 
-function getDatabasePath(): string {
+export function getDatabasePath(
+	appEnv = process.env.APP_ENV ?? "development",
+): string {
 	if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
 
-	switch (process.env.APP_ENV) {
+	switch (appEnv) {
 		case "development":
-			return "storage/dev.db";
+			return process.env.ENCRYPTION_KEY
+				? "storage/dev-encrypted.db"
+				: "storage/dev-plain.db";
 		case "test":
 			return "storage/test.db";
 		case "production":

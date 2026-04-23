@@ -8,14 +8,12 @@ import { runMigrations } from "$lib/db/migrate";
 import { logError } from "$lib/server/logger";
 import { MS_PER_DAY } from "$lib/utils/time-constants";
 
-// Run migrations once per server process (replaces npm run db:migrate)
-let migrationsApplied = false;
-if (!migrationsApplied) {
-	runMigrations();
-	migrationsApplied = true;
-}
+// Run migrations once per server process and block requests until complete.
+const startupMigrations = runMigrations();
 
 export const handle: Handle = async ({ event, resolve }) => {
+	await startupMigrations;
+
 	const { pathname, hostname } = event.url;
 
 	// SECURITY: Host Header Validation

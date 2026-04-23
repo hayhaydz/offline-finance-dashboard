@@ -104,6 +104,22 @@ describe("Database Integration & Migrations", () => {
 		}
 	});
 
+	it("should record one migration row per journal entry", async () => {
+		const { testDb } = await setupTestDb();
+		const journalPath = path.resolve("src/lib/db/migrations/meta/_journal.json");
+		const journal = JSON.parse(fs.readFileSync(journalPath, "utf8")) as {
+			entries: Array<{ tag: string }>;
+		};
+
+		const migrationRowResult = await testDb.values(
+			sql`SELECT COUNT(*) as count FROM __drizzle_migrations`,
+		);
+		const migrationRows = Number(migrationRowResult[0]?.[0] ?? 0);
+
+		expect(migrationRows).toBe(journal.entries.length);
+		expect(migrationRows).toBeGreaterThan(0);
+	});
+
 	it("should support basic CRUD operations using ORM", async () => {
 		const { testDb } = await setupTestDb();
 

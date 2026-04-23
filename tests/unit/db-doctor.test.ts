@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import Database from "better-sqlite3";
 import { afterEach, describe, expect, it } from "vitest";
-import { doctorDatabase } from "../../scripts/db-doctor";
+import { doctorDatabase, getDatabasePath } from "../../scripts/db-doctor";
 
 const created: string[] = [];
 
@@ -13,6 +13,19 @@ afterEach(() => {
 });
 
 describe("db-doctor", () => {
+	it("matches runtime development path logic for encrypted and plain DBs", () => {
+		const originalKey = process.env.ENCRYPTION_KEY;
+		try {
+			process.env.ENCRYPTION_KEY = "";
+			expect(getDatabasePath("development")).toBe("storage/dev-plain.db");
+
+			process.env.ENCRYPTION_KEY = "dev-key";
+			expect(getDatabasePath("development")).toBe("storage/dev-encrypted.db");
+		} finally {
+			process.env.ENCRYPTION_KEY = originalKey;
+		}
+	});
+
 	it("reports ok for healthy migration metadata", () => {
 		const dbFile = path.resolve(`storage/doctor-ok-${Date.now()}.db`);
 		created.push(dbFile);

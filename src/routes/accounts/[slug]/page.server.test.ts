@@ -1,16 +1,30 @@
 import { nanoid } from "nanoid";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import type { User } from "$lib/db/schema";
-import { accounts, accountTransactions, interestRates } from "$lib/db/schema";
+import { accounts, accountTransactions, interestRates, users } from "$lib/db/schema";
 import { load } from "./+page.server";
 
 describe("Account page load - liability projections", () => {
 	let testAccountId: number;
 	let testSlug: string;
+	let testUserId: number;
 	type LoadInput = Parameters<typeof load>[0];
 
 	beforeEach(async () => {
+		const [user] = await db
+			.insert(users)
+			.values({
+				username: `account-page-user-${Date.now()}-${nanoid(6)}`,
+				passwordHash: "hash",
+				totpSecret: "secret",
+				totpSecretIV: "iv",
+				passwordSalt: "salt",
+			})
+			.returning({ id: users.id });
+		testUserId = user.id;
+
 		const [account] = await db
 			.insert(accounts)
 			.values({
@@ -22,7 +36,7 @@ describe("Account page load - liability projections", () => {
 				minimumPaymentType: "flat_or_percentage",
 				minimumPaymentFlat: 2500, // £25
 				minimumPaymentPercentage: 250, // 2.5%
-				userId: 1, // Test user ID
+				userId: testUserId,
 			})
 			.returning({ id: accounts.id, slug: accounts.slug });
 
@@ -45,8 +59,17 @@ describe("Account page load - liability projections", () => {
 		});
 	});
 
+	afterEach(async () => {
+		await db
+			.delete(accountTransactions)
+			.where(eq(accountTransactions.accountId, testAccountId));
+		await db.delete(interestRates).where(eq(interestRates.accountId, testAccountId));
+		await db.delete(accounts).where(eq(accounts.id, testAccountId));
+		await db.delete(users).where(eq(users.id, testUserId));
+	});
+
 	it("should calculate TTZ for liability accounts", async () => {
-		const locals: LoadInput["locals"] = { user: { id: 1 } as User };
+		const locals: LoadInput["locals"] = { user: { id: testUserId } as User };
 		const input = {
 			locals,
 			params: { slug: testSlug },
@@ -61,7 +84,7 @@ describe("Account page load - liability projections", () => {
 	});
 
 	it("should calculate utilization for revolving debt", async () => {
-		const locals: LoadInput["locals"] = { user: { id: 1 } as User };
+		const locals: LoadInput["locals"] = { user: { id: testUserId } as User };
 		const input = {
 			locals,
 			params: { slug: testSlug },

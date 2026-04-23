@@ -1582,6 +1582,14 @@
           "autoincrement": false,
           "default": "'basic'"
         },
+        "inactivity_timeout": {
+          "name": "inactivity_timeout",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false,
+          "default": 5
+        },
         "created_at": {
           "name": "created_at",
           "type": "integer",

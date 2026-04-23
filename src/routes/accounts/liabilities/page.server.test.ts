@@ -1,16 +1,47 @@
 import { nanoid } from "nanoid";
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import type { User } from "$lib/db/schema";
-import { accounts, accountTransactions, interestRates } from "$lib/db/schema";
+import {
+	accounts,
+	accountTransactions,
+	interestRates,
+	users,
+} from "$lib/db/schema";
 import { load } from "./+page.server";
 
 describe("Liabilities dashboard load", () => {
 	let userId: number;
+	let createdAccountIds: number[] = [];
 	type LoadInput = Parameters<typeof load>[0];
 
 	beforeEach(async () => {
-		userId = 1;
+		const [user] = await db
+			.insert(users)
+			.values({
+				username: `liabilities-user-${Date.now()}-${nanoid(6)}`,
+				passwordHash: "hash",
+				totpSecret: "secret",
+				totpSecretIV: "iv",
+				passwordSalt: "salt",
+			})
+			.returning({ id: users.id });
+		userId = user.id;
+	});
+
+	afterEach(async () => {
+		if (createdAccountIds.length > 0) {
+			await db
+				.delete(accountTransactions)
+				.where(inArray(accountTransactions.accountId, createdAccountIds));
+			await db
+				.delete(interestRates)
+				.where(inArray(interestRates.accountId, createdAccountIds));
+			await db.delete(accounts).where(inArray(accounts.id, createdAccountIds));
+		}
+		await db.delete(users).where(eq(users.id, userId));
+		createdAccountIds = [];
 	});
 
 	it("should group debts into revolving and installment sections", async () => {
@@ -28,6 +59,7 @@ describe("Liabilities dashboard load", () => {
 				userId,
 			})
 			.returning({ id: accounts.id });
+		createdAccountIds.push(card.id);
 
 		// Add transaction to establish balance
 		await db.insert(accountTransactions).values({
@@ -52,6 +84,7 @@ describe("Liabilities dashboard load", () => {
 				userId,
 			})
 			.returning({ id: accounts.id });
+		createdAccountIds.push(loan.id);
 
 		// Add transaction to establish balance
 		await db.insert(accountTransactions).values({
@@ -106,6 +139,7 @@ describe("Liabilities dashboard load", () => {
 				userId,
 			})
 			.returning({ id: accounts.id });
+		createdAccountIds.push(account.id);
 
 		// Add transaction to establish balance
 		await db.insert(accountTransactions).values({
