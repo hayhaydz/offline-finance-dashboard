@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { browser } from '$app/environment';
 	import { enhance } from '$app/forms';
 	import { FormField } from '$lib/components/ui/index';
 	import { required, exactLength } from '$lib/validation/rules';
@@ -7,6 +8,7 @@
 
 	// QR code data URL from load function (reactive)
 	const qrCodeUrl = $derived(data?.qrCodeUrl);
+	const manualKey = $derived(data?.manualKey);
 	const username = $derived(data?.username);
 	
 	// Backup codes are returned from the action after success
@@ -29,6 +31,20 @@
 
 	// Form validation state
 	let totpCodeValid = $state(false);
+
+	// Manual key copy state
+	let copiedKey = $state(false);
+
+	async function copyManualKey() {
+		if (!browser || !manualKey) return;
+		try {
+			await navigator.clipboard.writeText(manualKey);
+			copiedKey = true;
+			setTimeout(() => { copiedKey = false; }, 2000);
+		} catch {
+			// Clipboard API not available
+		}
+	}
 
 	// Form is valid when code is valid
 	const isFormValid = $derived(totpCodeValid);
@@ -86,9 +102,27 @@
 	</form>
 
 	<div class="border-b border-black p-2">
+		<div class="font-bold mb-1">MANUAL ENTRY KEY</div>
 		<p class="text-gray-600 text-xs my-1">
-			Can't scan the QR code? Your manual entry key is shown in the authenticator app setup.
+			Can't scan the QR code? Enter this key manually in your authenticator app.
 		</p>
+		{#if manualKey}
+			<div class="flex items-center gap-2 my-2">
+				<code class="font-mono text-sm bg-white border border-black px-2 py-1 flex-1 select-all break-all">{manualKey}</code>
+				<button
+					type="button"
+					onclick={copyManualKey}
+					class="bracket-link text-xs whitespace-nowrap"
+				>
+					{copiedKey ? 'Copied!' : 'Copy'}
+				</button>
+			</div>
+			<div class="text-xs text-gray-600 my-1">
+				<span class="font-bold">Account:</span> {username}
+				<span class="mx-1">|</span>
+				<span class="font-bold">Issuer:</span> OFD
+			</div>
+		{/if}
 	</div>
 {:else}
 	<div class="border-b border-black p-2 bg-green-50">

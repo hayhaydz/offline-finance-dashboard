@@ -40,7 +40,13 @@ export async function checkRateLimit(
 		};
 	}
 
-	// Clear lockout/attempts if expired (last attempt > 24h ago)
+	// Lockout has expired — give user a fresh start
+	if (attempt.lockedUntil && attempt.lockedUntil <= new Date()) {
+		await db.delete(loginAttempts).where(eq(loginAttempts.username, username));
+		return { allowed: true, attemptsRemaining: MAX_ATTEMPTS };
+	}
+
+	// Clear attempts if last attempt > 24h ago
 	const twentyFourHoursAgo = new Date(Date.now() - MS_PER_DAY);
 	if (attempt.lastAttempt < twentyFourHoursAgo) {
 		await db.delete(loginAttempts).where(eq(loginAttempts.username, username));

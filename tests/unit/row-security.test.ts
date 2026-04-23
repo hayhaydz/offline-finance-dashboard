@@ -17,6 +17,7 @@ const mockUser1: User = {
 	passwordSalt: "salt",
 	mfaSetupToken: null,
 	taxBand: "basic",
+	inactivityTimeout: 5,
 	createdAt: new Date(),
 	updatedAt: new Date(),
 };

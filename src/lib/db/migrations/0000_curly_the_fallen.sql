@@ -225,6 +225,7 @@ CREATE TABLE `users` (
 	`password_salt` text NOT NULL,
 	`mfa_setup_token` text,
 	`tax_band` text DEFAULT 'basic' NOT NULL,
+	`inactivity_timeout` integer DEFAULT 5,
 	`created_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	`updated_at` integer DEFAULT CURRENT_TIMESTAMP NOT NULL
 );

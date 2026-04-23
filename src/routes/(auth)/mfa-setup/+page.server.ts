@@ -101,6 +101,7 @@ export async function load({ cookies, locals }) {
 
 	return {
 		qrCodeUrl,
+		manualKey: totpSecretPlaintext,
 		username: user.username,
 	};
 }

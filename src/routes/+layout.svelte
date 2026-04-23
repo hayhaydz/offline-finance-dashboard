@@ -1,5 +1,7 @@
 <script lang="ts">
 	import Navigation from '$lib/components/Navigation.svelte';
+	import SessionBanner from '$lib/components/SessionBanner.svelte';
+	import { sessionTimer } from '$lib/utils/session-timer.svelte';
 	import { page } from '$app/state';
 	import { afterNavigate } from '$app/navigation';
 	import type { Snippet } from 'svelte';
@@ -21,6 +23,19 @@
 
 	let scrollContainer = $state<HTMLElement | null>(null);
 
+	// Start/stop the session inactivity timer based on auth state
+	$effect(() => {
+		if (user && typeof user.inactivityTimeout === 'number') {
+			sessionTimer.start(user.inactivityTimeout);
+		} else {
+			sessionTimer.destroy();
+		}
+
+		return () => {
+			sessionTimer.destroy();
+		};
+	});
+
 	afterNavigate(() => {
 		scrollContainer?.scrollTo({ top: 0 });
 	});
@@ -36,6 +51,8 @@
 				<span class="text-amber-400">[!] DEV DATA [!]</span>
 			{/if}
 		</div>
+
+		<SessionBanner />
 	{/if}
 
 	<Navigation {user} {environment} breadcrumbOverrides={breadcrumbOverrides} />

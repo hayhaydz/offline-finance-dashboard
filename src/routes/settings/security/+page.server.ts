@@ -1,4 +1,4 @@
-import { fail } from "@sveltejs/kit";
+import { fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import {
 	decryptTOTPSecret,
@@ -10,6 +10,8 @@ import { hashPassword, verifyPassword } from "$lib/auth/password";
 import { db } from "$lib/db/client";
 import { backupCodes, sessions, users } from "$lib/db/schema";
 import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
+import { setFlash } from "$lib/server/utils/flash";
+import { LOGIN_ROUTE } from "$lib/constants/routes";
 import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
@@ -30,6 +32,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			username: users.username,
 			mfaSetupToken: users.mfaSetupToken,
 			createdAt: users.createdAt,
+			inactivityTimeout: users.inactivityTimeout,
 		})
 		.from(users)
 		.where(eq(users.id, user.id))
@@ -65,12 +68,13 @@ export const load: PageServerLoad = async ({ locals }) => {
 		totalCodes,
 		usedCodes,
 		remainingCodes,
+		inactivityTimeout: dbUser?.inactivityTimeout ?? 5,
 	};
 };
 
 export const actions: Actions = {
 	// Change password action
-	changePassword: async ({ request, locals }) => {
+	changePassword: async ({ request, locals, cookies }) => {
 		try {
 			const user = getAuthUser(locals);
 			if (!user) {
@@ -274,8 +278,13 @@ export const actions: Actions = {
 				},
 			);
 
-			// Return success - client will redirect to login
-			return { success: true };
+			// Set flash message and redirect to login (server-side)
+			setFlash(
+				cookies,
+				"Password changed successfully. Please log in with your new password.",
+				"success",
+			);
+			throw redirect(302, LOGIN_ROUTE);
 		} catch (error) {
 			logError(
 				"settings-security",
@@ -338,6 +347,45 @@ export const actions: Actions = {
 		} catch (error) {
 			logError("settings-security", "Failed to regenerate backup codes", error);
 			return fail(500, { error: "Failed to regenerate backup codes" });
+		}
+	},
+
+	// Save inactivity timeout action
+	saveInactivityTimeout: async ({ request, locals }) => {
+		const user = getAuthUser(locals);
+		if (!user) {
+			return fail(401, { error: "Authentication required" });
+		}
+
+		try {
+			const formData = await request.formData();
+			logFormData("settings-security", Object.fromEntries(formData));
+
+			const timeout = parseInt(formData.get("inactivityTimeout") as string, 10);
+
+			// Validate: must be 1, 5, or 10
+			if (![1, 5, 10].includes(timeout)) {
+				devLog("settings-security", "Invalid timeout value", {
+					userId: user.id,
+					timeout,
+				});
+				return fail(400, { error: "Invalid timeout value" });
+			}
+
+			await db
+				.update(users)
+				.set({ inactivityTimeout: timeout, updatedAt: new Date() })
+				.where(eq(users.id, user.id));
+
+			devLog("settings-security", "Inactivity timeout updated", {
+				userId: user.id,
+				timeout,
+			});
+
+			return { success: true, inactivityTimeout: timeout };
+		} catch (error) {
+			logError("settings-security", "Failed to save inactivity timeout", error);
+			return fail(500, { error: "Failed to save inactivity timeout" });
 		}
 	},
 };

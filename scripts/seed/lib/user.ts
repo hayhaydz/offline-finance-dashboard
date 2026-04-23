@@ -44,6 +44,7 @@ export async function ensureAdminUser(db: DB): Promise<number> {
 			totpSecretIV: ivToStore,
 			passwordSalt,
 			taxBand: "basic",
+			inactivityTimeout: 5,
 			createdAt: new Date(),
 			updatedAt: new Date(),
 		})

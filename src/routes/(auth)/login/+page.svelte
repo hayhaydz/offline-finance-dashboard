@@ -13,17 +13,19 @@
 
 	let showDelayMessage = $state(false);
 	let delayCountdown = $state(0);
+	let delayActive = $state(false);
 
 	$effect(() => {
-		// Handle rate limit delay countdown
 		if (form?.delay) {
 			showDelayMessage = true;
+			delayActive = true;
 			delayCountdown = Math.ceil(form.delay / 1000);
 			const interval = setInterval(() => {
 				delayCountdown--;
 				if (delayCountdown <= 0) {
 					clearInterval(interval);
 					showDelayMessage = false;
+					delayActive = false;
 				}
 			}, 1000);
 			return () => clearInterval(interval);
@@ -76,6 +78,12 @@
 		<span class="text-amber-700 font-bold">Development Auto-Login Enabled - Redirecting...</span>
 	</div>
 {/if}
+
+	{#if data?.flashMessage}
+		<div class="border border-green-700 border-l-4 p-2 mb-4 bg-green-50">
+			<span class="text-green-700 font-bold">{data.flashMessage.message}</span>
+		</div>
+	{/if}
 
 	{#if form?.locked}
 		<div class="bg-red-50 border border-red-600 p-4 mb-4">
@@ -130,7 +138,7 @@
 				</div>
 			{/if}
 
-			{#if form?.error}
+			{#if form?.error && !delayActive}
 				<p class="text-red-700 font-bold my-2">{form.error}</p>
 			{/if}
 

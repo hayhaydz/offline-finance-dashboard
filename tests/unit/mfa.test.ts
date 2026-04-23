@@ -30,6 +30,16 @@ describe("MFA utility", () => {
 		expect(url).toContain("issuer=OFD");
 	});
 
+	it("should produce otpauth URL with extractable secret for manual entry", () => {
+		const secret = "JBSWY3DPEHPK3PXP";
+		const username = "testuser";
+		const url = generateOTPAuthURL(secret, username);
+
+		// Secret should be in the URL query string for manual entry
+		const urlObj = new URL(url);
+		expect(urlObj.searchParams.get("secret")).toBe(secret);
+	});
+
 	it("should generate valid backup codes", () => {
 		const codes = generateBackupCodes();
 		expect(codes).toHaveLength(10);

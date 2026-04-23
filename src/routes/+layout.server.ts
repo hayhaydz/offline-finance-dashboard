@@ -10,6 +10,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 					id: locals.user.id,
 					username: locals.user.username,
 					createdAt: locals.user.createdAt,
+					inactivityTimeout: locals.user.inactivityTimeout,
 				}
 			: null,
 		session: locals.session ?? null,

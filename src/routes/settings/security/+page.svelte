@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { browser } from '$app/environment';
+	import { invalidateAll } from '$app/navigation';
 	import { FormField, SettingsSectionNav } from '$lib/components/ui/index';
 	import { required, minLength, hasUppercase, hasLowercase, hasNumber, hasSpecial, matches } from '$lib/validation/rules';
 	import type { ActionData } from './$types';
@@ -58,13 +59,15 @@
 	}
 
 	// Handle form success
-	function handleFormSuccess({ result }: { result: any }) {
+	async function handleFormSuccess({ result }: { result: any }) {
 		if (result.type === 'success' && result.data?.success) {
 			// Show codes modal with plaintext codes
 			newBackupCodes = result.data.codes;
 			showCodesModal = true;
 			showConfirmModal = false;
 			isRegenerating = false;
+			// Refresh page data to update backup code counts
+			await invalidateAll();
 		} else if (result.type === 'failure') {
 			regenerationError = result.data?.error || 'Failed to regenerate backup codes';
 			isRegenerating = false;
@@ -94,13 +97,17 @@
 		copiedCodeIndex = null;
 	}
 
-	// Handle password change form success
-	function handlePasswordChange({ result }: { result: any }) {
+	// Inactivity timeout success message
+	let inactivitySuccessMessage = $state<string | null>(null);
+
+	// Handle inactivity timeout form
+	function handleInactivityTimeout({ result }: { result: any }) {
 		if (result.type === 'success' && result.data?.success) {
-			// Redirect to login with success message
-			if (browser) {
-				window.location.href = '/login?success=' + encodeURIComponent('Password changed successfully. Please log in with your new password.');
-			}
+			inactivitySuccessMessage = 'Inactivity timeout updated to ' + result.data.inactivityTimeout + ' minute(s).';
+			// Clear message after 3 seconds
+			setTimeout(() => {
+				inactivitySuccessMessage = null;
+			}, 3000);
 		}
 	}
 
@@ -169,7 +176,8 @@
 	const sections = [
 		{ id: 'section-password', label: 'Password' },
 		{ id: 'section-2fa', label: '2FA' },
-		{ id: 'section-backup-codes', label: 'Backup Codes' }
+		{ id: 'section-backup-codes', label: 'Backup Codes' },
+		{ id: 'section-inactivity', label: 'Inactivity' }
 	];
 </script>
 
@@ -192,9 +200,8 @@
 					method="POST"
 					action="?/changePassword"
 					use:enhance={() => {
-						return async ({ result, update }) => {
+						return async ({ update }) => {
 							await update();
-							handlePasswordChange({ result });
 						};
 					}}
 				>
@@ -254,7 +261,7 @@
 						<button
 							type="submit"
 							disabled={!isPasswordFormValid}
-							class="bracket-link disabled:text-gray-500 disabled:cursor-not-allowed"
+							class="bracket-link disabled:opacity-50 disabled:cursor-not-allowed"
 						>
 							Change Password
 						</button>
@@ -336,7 +343,7 @@
 						type="button"
 						onclick={startRegeneration}
 						disabled={isRegenerating}
-						class="bracket-link text-sm disabled:text-gray-500 disabled:cursor-not-allowed"
+						class="bracket-link text-sm disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						{isRegenerating ? 'Regenerating...' : 'Regenerate Backup Codes'}
 					</button>
@@ -345,6 +352,43 @@
 				{#if regenerationError}
 					<p class="mt-2 text-xs text-red-700">Error: {regenerationError}</p>
 				{/if}
+			</div>
+		</section>
+
+		<section id="section-inactivity" style="scroll-margin-top: 2.5rem;">
+			<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
+				<span>INACTIVITY TIMEOUT</span>
+			</div>
+			<div class="bg-gray-50 p-4 border-b border-black">
+				<h2 class="mt-0 mb-2">Auto-Logout Timer</h2>
+				<p class="mb-4 text-xs">
+					Automatically log out after a period of inactivity. Takes effect immediately.
+				</p>
+				<form
+					method="POST"
+					action="?/saveInactivityTimeout"
+					use:enhance={() => {
+						return async ({ result, update }) => {
+							await update();
+							handleInactivityTimeout({ result });
+						};
+					}}
+				>
+					<div class="flex justify-between items-center my-1">
+						<label for="inactivityTimeout" class="text-sm"><strong>Inactivity timeout:</strong></label>
+						<select name="inactivityTimeout" id="inactivityTimeout" class="border border-black px-2 py-1 text-sm font-mono">
+							<option value="1" selected={data.inactivityTimeout === 1}>1 minute</option>
+							<option value="5" selected={data.inactivityTimeout === 5}>5 minutes (default)</option>
+							<option value="10" selected={data.inactivityTimeout === 10}>10 minutes</option>
+						</select>
+					</div>
+					<div class="mb-2 mt-3">
+						<button type="submit" class="bracket-link">Save</button>
+					</div>
+					{#if inactivitySuccessMessage}
+						<p class="text-xs text-green-700 mt-1">{inactivitySuccessMessage}</p>
+					{/if}
+				</form>
 			</div>
 		</section>
 </main>

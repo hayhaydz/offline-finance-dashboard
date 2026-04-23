@@ -20,6 +20,7 @@ export const users = sqliteTable("users", {
 	taxBand: text("tax_band", { enum: ["basic", "higher", "additional"] })
 		.notNull()
 		.default("basic"), // UK Personal Savings Allowance tier
+	inactivityTimeout: integer("inactivity_timeout").default(5), // Minutes of inactivity before session expiry
 	createdAt: integer("created_at", { mode: "timestamp" })
 		.notNull()
 		.default(sql`CURRENT_TIMESTAMP`),

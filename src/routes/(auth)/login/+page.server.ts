@@ -12,8 +12,10 @@ import {
 	recordSuccessfulAttempt,
 } from "$lib/security/rate-limiter";
 import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
+import { getFlash } from "$lib/server/utils/flash";
 
 export async function load({ cookies }) {
+	const flashMessage = getFlash(cookies);
 	const appEnv = process.env.APP_ENV || "unknown";
 	const devAutoLogin = process.env.DEV_AUTO_LOGIN === "true";
 
@@ -70,6 +72,7 @@ export async function load({ cookies }) {
 	// Return auto-login status for UI indicator
 	return {
 		autoLoginEnabled: appEnv === "development" && devAutoLogin,
+		flashMessage,
 	};
 }
 
