@@ -57,19 +57,52 @@ describe("rate limiter", () => {
 			expect(result.locked).toBe(true);
 		});
 
-		it("should apply exponential backoff delay", async () => {
-			(db.query.loginAttempts.findFirst as any).mockResolvedValue({
-				username: "testuser",
-				count: 2, // 2^2 = 4 seconds delay
-				lastAttempt: new Date(),
-			});
-
-			const result = await checkRateLimit("testuser");
-
-			expect(result.allowed).toBe(true);
-			expect(result.delay).toBe(4000);
-			expect(result.attemptsRemaining).toBe(3);
+	it("should apply exponential backoff delay when retrying within cooldown", async () => {
+		(db.query.loginAttempts.findFirst as any).mockResolvedValue({
+			username: "testuser",
+			count: 2, // 2^2 = 4 seconds required delay
+			lastAttempt: new Date(), // retrying immediately
 		});
+
+		const result = await checkRateLimit("testuser");
+
+		expect(result.allowed).toBe(true);
+		// delay = requiredDelay(4000) - elapsed(~0); allow tiny clock slack
+		expect(result.delay).toBeGreaterThanOrEqual(3990);
+		expect(result.delay).toBeLessThanOrEqual(4000);
+		expect(result.attemptsRemaining).toBe(3);
+	});
+
+	it("should return the REMAINING delay when retrying mid-cooldown", async () => {
+		(db.query.loginAttempts.findFirst as any).mockResolvedValue({
+			username: "testuser",
+			count: 2, // requiredDelay = 4000ms
+			lastAttempt: new Date(Date.now() - 1000), // 1s already elapsed
+		});
+
+		const result = await checkRateLimit("testuser");
+
+		expect(result.allowed).toBe(true);
+		// remaining = 4000 - 1000 = ~3000
+		expect(result.delay).toBeGreaterThanOrEqual(2990);
+		expect(result.delay).toBeLessThanOrEqual(3000);
+	});
+
+	it("should NOT delay once the cooldown window has elapsed (deadlock regression)", async () => {
+		// Regression: previously the delay was a pure function of `count` with no
+		// elapsed-time check, so a single failure (count>0) blocked login forever.
+		(db.query.loginAttempts.findFirst as any).mockResolvedValue({
+			username: "testuser",
+			count: 1, // requiredDelay = 2000ms
+			lastAttempt: new Date(Date.now() - 3000), // waited past the window
+		});
+
+		const result = await checkRateLimit("testuser");
+
+		expect(result.allowed).toBe(true);
+		expect(result.delay).toBeUndefined();
+		expect(result.attemptsRemaining).toBe(4);
+	});
 
 		it("should expire old attempt records", async () => {
 			const longAgo = new Date(Date.now() - 25 * 60 * 60 * 1000); // 25 hours ago

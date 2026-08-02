@@ -1,7 +1,9 @@
 const DEFAULT_SENSITIVE_FIELDS = [
 	"password",
 	"totpSecret",
+	"totpCode",
 	"backupCodes",
+	"backupCode",
 	"token",
 	"secret",
 	"apiKey",

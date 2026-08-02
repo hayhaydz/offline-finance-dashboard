@@ -53,11 +53,18 @@ export async function checkRateLimit(
 		return { allowed: true, attemptsRemaining: MAX_ATTEMPTS };
 	}
 
-	// Calculate delay: 2^count seconds (1s, 2s, 4s, 8s, 16s)
-	const delay =
+	// Exponential backoff that DECAYS as time passes since the last attempt.
+	// The delay only applies while the user is retrying within the cooldown
+	// window; once it elapses, the request proceeds to credential verification.
+	// Without the elapsed-time check, a single failure froze count>0 and the
+	// delay was returned forever, blocking login (deadlock).
+	const elapsed = Date.now() - attempt.lastAttempt.getTime();
+	const requiredDelay =
 		attempt.count > 0
 			? Math.min(2 ** attempt.count * 1000, MAX_DELAY)
-			: undefined;
+			: 0;
+	const delay =
+		elapsed < requiredDelay ? requiredDelay - elapsed : undefined;
 	const attemptsRemaining = Math.max(0, MAX_ATTEMPTS - attempt.count);
 
 	return {

@@ -11,7 +11,13 @@ import {
 	recordFailedAttempt,
 	recordSuccessfulAttempt,
 } from "$lib/security/rate-limiter";
-import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
+import {
+	devLog,
+	isVerboseDebug,
+	logError,
+	logFormData,
+	logInfo,
+} from "$lib/server/logger";
 import { getFlash } from "$lib/server/utils/flash";
 
 export async function load({ cookies }) {
@@ -59,8 +65,6 @@ export async function load({ cookies }) {
 
 		if (isVerboseDebug()) {
 			devLog("login", "Development auto-login successful", {
-				username: adminUser.username,
-				userId: adminUser.id,
 				sessionMaxAge: "30 days",
 			});
 		}
@@ -88,7 +92,7 @@ export const actions = {
 		// Basic validation
 		if (!username || !password || !totpCode) {
 			// Generic error message (prevents username enumeration)
-			logError("login", "Missing required fields", { username });
+			logError("login", "Missing required fields");
 			await recordFailedAttempt(username);
 			return fail(400, { error: "Invalid credentials" });
 		}
@@ -97,7 +101,7 @@ export const actions = {
 		const rateLimitResult = await checkRateLimit(username);
 
 		if (rateLimitResult.locked) {
-			logError("login", "Account locked due to rate limit", { username });
+			logError("login", "Account locked due to rate limit");
 			return fail(429, {
 				locked: true,
 				error: "Account locked due to too many failed attempts",
@@ -105,9 +109,11 @@ export const actions = {
 		}
 
 		if (rateLimitResult.delay) {
-			devLog("login", "Rate limit delay applied", {
-				username,
-				delaySeconds: rateLimitResult.delay,
+			// Prod-visible: previously devLog (silent in production), which hid
+			// the deadlock. No personal data — only operational rate-limit state.
+			logInfo("login", "Login blocked: rate-limit delay", {
+				delayMs: rateLimitResult.delay,
+				attemptsRemaining: rateLimitResult.attemptsRemaining,
 			});
 			// Return delay to client for countdown
 			return fail(429, {
@@ -123,7 +129,7 @@ export const actions = {
 
 		// Generic error whether user exists or not (prevents username enumeration)
 		if (!user) {
-			logError("login", "User not found", { username });
+			logError("login", "User not found");
 			await recordFailedAttempt(username);
 			return fail(401, { error: "Invalid credentials" });
 		}
@@ -131,7 +137,7 @@ export const actions = {
 		// Verify password
 		const passwordValid = await verifyPassword(user.passwordHash, password);
 		if (!passwordValid) {
-			logError("login", "Invalid password", { username, userId: user.id });
+			logError("login", "Invalid password");
 			await recordFailedAttempt(username);
 			return fail(401, { error: "Invalid credentials" });
 		}
@@ -142,18 +148,16 @@ export const actions = {
 		// at the verification boundary, not just at the request start.
 		const mfaRateLimit = await checkRateLimit(username);
 		if (mfaRateLimit.locked) {
-			logError("login", "Account locked before MFA verification", {
-				username,
-			});
+			logError("login", "Account locked before MFA verification");
 			return fail(429, {
 				locked: true,
 				error: "Account locked due to too many failed attempts",
 			});
 		}
 		if (mfaRateLimit.delay) {
-			devLog("login", "MFA rate limit delay applied", {
-				username,
-				delaySeconds: mfaRateLimit.delay,
+			logInfo("login", "Login blocked: rate-limit delay (pre-MFA)", {
+				delayMs: mfaRateLimit.delay,
+				attemptsRemaining: mfaRateLimit.attemptsRemaining,
 			});
 			return fail(429, {
 				delay: mfaRateLimit.delay,
@@ -207,7 +211,6 @@ export const actions = {
 							.where(eq(backupCodes.id, usedCode.id));
 						usedBackupCodeId = usedCode.id;
 						devLog("login", "Backup code used", {
-							username,
 							backupCodeId: usedCode.id,
 						});
 					}
@@ -218,7 +221,7 @@ export const actions = {
 
 		// If both TOTP and backup code verification failed
 		if (!totpValid) {
-			logError("login", "Invalid TOTP code", { username, userId: user.id });
+			logError("login", "Invalid TOTP code");
 			await recordFailedAttempt(username);
 			return fail(401, { error: "Invalid credentials" });
 		}
@@ -250,8 +253,6 @@ export const actions = {
 		});
 
 		devLog("login", "Login successful", {
-			username,
-			userId: user.id,
 			usedBackupCode: !!usedBackupCodeId,
 		});
 
