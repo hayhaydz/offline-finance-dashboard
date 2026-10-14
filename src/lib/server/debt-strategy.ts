@@ -1,19 +1,19 @@
 import { calculatePayoffProjection } from "$lib/server/debtMetrics";
 import { devLog, isVerboseDebug } from "$lib/server/logger";
-import { MS_PER_MONTH } from "$lib/utils/time-constants";
 import type {
 	DebtGoalInput,
-	PayoffProjection,
 	DebtGoalWithProjection,
 	DebtStrategyMetrics,
 } from "$lib/types/debt";
+import { MS_PER_MONTH } from "$lib/utils/time-constants";
+
+export { calculatePayoffProjection } from "$lib/server/debtMetrics";
 export type {
 	DebtGoalInput,
-	PayoffProjection,
 	DebtGoalWithProjection,
 	DebtStrategyMetrics,
+	PayoffProjection,
 } from "$lib/types/debt";
-export { calculatePayoffProjection } from "$lib/server/debtMetrics";
 
 const HYBRID_THRESHOLD_CENTS = 100000; // £1,000
 
@@ -69,7 +69,10 @@ export function calculateDebtStrategyMetrics(
 		};
 	}
 
-	const totalDebtInCents = debts.reduce((sum, d) => sum + d.remainingInCents, 0);
+	const totalDebtInCents = debts.reduce(
+		(sum, d) => sum + d.remainingInCents,
+		0,
+	);
 	const totalMonthlyMinimumInCents = debts.reduce(
 		(sum, d) => sum + d.minimumMonthlyInCents,
 		0,
@@ -135,7 +138,9 @@ export function calculateDebtStrategyMetrics(
 		avalancheOrder,
 		hybridOrder,
 		interestSavedByAvalancheInCents:
-			interestSavedByAvalancheInCents > 0 ? interestSavedByAvalancheInCents : null,
+			interestSavedByAvalancheInCents > 0
+				? interestSavedByAvalancheInCents
+				: null,
 		monthsSavedByAvalanche:
 			monthsSavedByAvalanche > 0 ? monthsSavedByAvalanche : null,
 	};

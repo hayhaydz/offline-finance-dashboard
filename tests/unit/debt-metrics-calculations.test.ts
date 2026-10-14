@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
 	calculatePayoffProjection,
-	getDefaultMonthlyPayment,
 	calculateRecentAveragePayment,
 	getCurrentApr,
+	getDefaultMonthlyPayment,
 } from "$lib/server/debtMetrics";
 
 describe("Debt metrics calculations", () => {

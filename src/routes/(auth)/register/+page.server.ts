@@ -5,7 +5,12 @@ import { encryptTOTPSecret, generateTOTPSecret } from "$lib/auth/mfa";
 import { hashPassword } from "$lib/auth/password";
 import { db } from "$lib/db/client";
 import { users } from "$lib/db/schema";
-import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
+import {
+	devLog,
+	isVerboseDebug,
+	logError,
+	logFormData,
+} from "$lib/server/logger";
 
 export const actions = {
 	default: async ({ request, cookies }) => {
@@ -67,7 +72,8 @@ export const actions = {
 				return fail(400, { error: "Username already taken" });
 			}
 
-			if (isVerboseDebug()) devLog("register", "Validation passed", { username });
+			if (isVerboseDebug())
+				devLog("register", "Validation passed", { username });
 
 			// Generate TOTP secret
 			const totpSecret = generateTOTPSecret();
@@ -114,7 +120,8 @@ export const actions = {
 				maxAge: 60 * 15, // 15 minutes to complete MFA setup
 			});
 
-			if (isVerboseDebug()) devLog("register", "MFA setup initiated", { username });
+			if (isVerboseDebug())
+				devLog("register", "MFA setup initiated", { username });
 		} catch (error) {
 			// SvelteKit's redirect() throws an error with status code - let it through
 			if (

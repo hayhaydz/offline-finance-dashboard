@@ -2,10 +2,10 @@ import { desc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { accountNotes } from "$lib/db/schema";
+import { logInfo } from "$lib/server/logger";
+import { err, ok, type Result } from "$lib/server/utils/result";
 import { FIELD_LIMITS } from "$lib/utils/fieldLimits";
 import { sanitizeNoteContent } from "$lib/utils/sanitize";
-import { devLog, logInfo } from "$lib/server/logger";
-import { type Result, ok, err } from "$lib/server/utils/result";
 
 export interface CreateNoteData {
 	accountId: number;

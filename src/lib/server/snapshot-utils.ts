@@ -1,14 +1,14 @@
 import { and, eq, isNull } from "drizzle-orm";
+import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, goals, snapshots } from "$lib/db/schema";
-import { withUserFilter } from "$lib/auth/row-security";
 import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
 import { calculateAssetsAndLiabilities } from "$lib/server/finance";
+import { devLog } from "$lib/server/logger";
 import {
 	calculateInterestBreakdown,
 	calculateISAAllowanceBreakdown,
 } from "$lib/server/snapshotBreakdowns";
-import { devLog } from "$lib/server/logger";
 import type { SnapshotPreviewData } from "$lib/types/snapshots";
 
 // Re-export type for consumers that import from this module
@@ -149,4 +149,3 @@ export function getTodayUTC(): string {
 	today.setUTCHours(0, 0, 0, 0);
 	return today.toISOString().split("T")[0];
 }
-

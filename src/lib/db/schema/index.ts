@@ -1,59 +1,62 @@
 // Auth domain
-export {
-	users,
-	sessions,
-	backupCodes,
-	loginAttempts,
-	usersRelations,
-	sessionsRelations,
-	backupCodesRelations,
-} from "./auth";
+
+export type {
+	Account,
+	AccountNote,
+	AccountTransaction,
+	InterestRate,
+} from "./accounts";
 
 // Account domain
 export {
-	accounts,
-	accountTransactions,
-	interestRates,
 	accountNotes,
-	accountsRelations,
-	accountTransactionsRelations,
-	interestRatesRelations,
 	accountNotesRelations,
+	accounts,
+	accountsRelations,
+	accountTransactions,
+	accountTransactionsRelations,
+	interestRates,
+	interestRatesRelations,
 } from "./accounts";
-
-// Goal domain
-export {
-	goals,
-	goalAllocations,
-	goalMilestones,
-	goalsRelations,
-	goalAllocationsRelations,
-	goalMilestonesRelations,
-} from "./goals";
-
-// System domain
-export {
-	monthlyReviews,
-	systemMetadata,
-	spendingCategories,
-	settings,
-	snapshots,
-	budgetMonths,
-	snapshotsRelations,
-	monthlyReviewsRelations,
-	spendingCategoriesRelations,
-	budgetMonthsRelations,
-} from "./system";
-
 // Inferred types
 export type { User } from "./auth";
-export type { Account, AccountTransaction, InterestRate, AccountNote } from "./accounts";
+export {
+	backupCodes,
+	backupCodesRelations,
+	loginAttempts,
+	sessions,
+	sessionsRelations,
+	users,
+	usersRelations,
+} from "./auth";
 export type { Goal, GoalAllocation, GoalMilestone } from "./goals";
+// Goal domain
+export {
+	goalAllocations,
+	goalAllocationsRelations,
+	goalMilestones,
+	goalMilestonesRelations,
+	goals,
+	goalsRelations,
+} from "./goals";
 export type {
-	Snapshot,
-	SystemMetadata,
-	Settings,
-	MonthlyReview,
-	SpendingCategory,
 	BudgetMonth,
+	MonthlyReview,
+	Settings,
+	Snapshot,
+	SpendingCategory,
+	SystemMetadata,
+} from "./system";
+// System domain
+export {
+	budgetMonths,
+	budgetMonthsRelations,
+	monthlyReviews,
+	monthlyReviewsRelations,
+	settings,
+	snapshots,
+	snapshotsRelations,
+	spendingCategories,
+	spendingCategoriesRelations,
+	systemMetadata,
 } from "./system";

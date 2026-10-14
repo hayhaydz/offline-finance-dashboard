@@ -4,9 +4,14 @@ import { validateUserAccess, withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, goalAllocations, goals } from "$lib/db/schema";
 import { getGoalAccountNetAllocations } from "$lib/server/goals";
+import {
+	devLog,
+	isVerboseDebug,
+	logError,
+	logFormData,
+} from "$lib/server/logger";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import { parseCurrency } from "$lib/utils/currency";
-import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
-import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -50,10 +55,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	if (isVerboseDebug()) {
 		devLog("goalsWithdraw", "Loaded withdraw page", {
-		goalId: goal.id,
-		goalSlug: goal.slug,
-		currentAllocation: goal.currentAllocation,
-		accountCount: withdrawalAccounts.length,
+			goalId: goal.id,
+			goalSlug: goal.slug,
+			currentAllocation: goal.currentAllocation,
+			accountCount: withdrawalAccounts.length,
 		});
 	}
 
@@ -217,10 +222,10 @@ export const actions: Actions = {
 
 		if (isVerboseDebug()) {
 			devLog("goalsWithdraw", "Withdrawal processed", {
-			goalId: goal.id,
-			amount: amountInCents,
-			newAllocation,
-			distributionCount: distribution.length,
+				goalId: goal.id,
+				amount: amountInCents,
+				newAllocation,
+				distributionCount: distribution.length,
 			});
 		}
 

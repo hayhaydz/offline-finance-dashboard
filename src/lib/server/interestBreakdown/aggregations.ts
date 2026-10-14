@@ -8,33 +8,23 @@
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts } from "$lib/db/schema";
-import { getActualInterestEarned } from "$lib/server/tax-year-queries";
-import {
-	calculateProjectedInterestInCents,
-	getUkTaxYearBounds,
-} from "$lib/utils/tax-year-utils";
-import {
-	getCurrentBalanceForAccount,
-	getCurrentBalancesForAccounts,
-} from "$lib/server/derivedBalances";
-import {
-	getCurrentRate,
-	getCurrentRatesForAccounts,
-} from "$lib/server/interestRates";
-import { getMonthName } from "$lib/utils/formatting";
-import { isTaxFreeWrapper } from "$lib/utils/tax-classification";
+import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
+import { getCurrentRatesForAccounts } from "$lib/server/interestRates";
 import { devLog, isVerboseDebug } from "$lib/server/logger";
-import { MS_PER_DAY } from "$lib/utils/time-constants";
-
+import { getActualInterestEarned } from "$lib/server/tax-year-queries";
 import type {
 	AccountBreakdown,
-	MonthBreakdown,
-	InstitutionBreakdown,
-	TaxWrapperBreakdown,
 	ActualInterestBreakdown,
+	InstitutionBreakdown,
+	MonthBreakdown,
 	ProjectedAccountBreakdown,
 	ProjectedInterestBreakdown,
+	TaxWrapperBreakdown,
 } from "$lib/types/breakdown";
+import { getMonthName } from "$lib/utils/formatting";
+import { isTaxFreeWrapper } from "$lib/utils/tax-classification";
+import { calculateProjectedInterestInCents } from "$lib/utils/tax-year-utils";
+import { MS_PER_DAY } from "$lib/utils/time-constants";
 
 import { getInterestTransactions } from "./queries";
 
@@ -267,8 +257,6 @@ export async function getActualInterestBreakdown(
 		(a, b) => b.total - a.total,
 	);
 
-
-
 	return {
 		total,
 		taxableTotal,
@@ -309,9 +297,10 @@ export async function getProjectedInterestBreakdown(
 
 	// Calculate days remaining in tax year
 	const msPerDay = MS_PER_DAY;
+	// Floor so "days remaining" matches the TaxYearProgress convention (see isaBreakdown).
 	const daysRemainingInTaxYear = Math.max(
 		0,
-		Math.ceil((taxYearEnd.getTime() - now.getTime()) / msPerDay),
+		Math.floor((taxYearEnd.getTime() - now.getTime()) / msPerDay),
 	);
 
 	if (daysRemainingInTaxYear === 0) {
@@ -406,8 +395,6 @@ export async function getProjectedInterestBreakdown(
 
 	// Sort by projected amount descending
 	byAccount.sort((a, b) => b.projectedInterest - a.projectedInterest);
-
-
 
 	return {
 		total,

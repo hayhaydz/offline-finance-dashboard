@@ -7,9 +7,9 @@
  * Handles quoted fields containing commas.
  */
 
+import type { TransactionType } from "$lib/utils/domain-constants";
 // All 13 transaction types from the accountTransactions DB table
 import { TRANSACTION_TYPES } from "$lib/utils/domain-constants";
-import type { TransactionType } from "$lib/utils/domain-constants";
 
 const VALID_TRANSACTION_TYPES = TRANSACTION_TYPES;
 
@@ -103,7 +103,7 @@ function parseRow(
 	// Validate amount
 	const rawAmount = fields[2];
 	const amount = parseFloat(rawAmount);
-	if (isNaN(amount)) {
+	if (Number.isNaN(amount)) {
 		return {
 			parsed: null,
 			error: {
@@ -129,7 +129,8 @@ function parseRow(
 
 	// Optional category
 	const rawCategory = hasCategory ? fields[4] : undefined;
-	const category = rawCategory && rawCategory.length > 0 ? rawCategory : undefined;
+	const category =
+		rawCategory && rawCategory.length > 0 ? rawCategory : undefined;
 
 	return {
 		parsed: {
@@ -187,9 +188,7 @@ function parseCSV(csv: string): CsvParseResult {
 	if (bodyLines.length === 0) {
 		return {
 			valid: [],
-			errors: [
-				{ row: 0, column: "data", message: "No data rows found" },
-			],
+			errors: [{ row: 0, column: "data", message: "No data rows found" }],
 			totalRows: 0,
 		};
 	}

@@ -1,12 +1,12 @@
 import { eq, inArray } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
-import { requireAuth } from "$lib/server/utils/auth-guard";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
-import { getUkTaxYearBounds } from "$lib/utils/tax-year-utils";
 import { getISABreakdownReport } from "$lib/server/isaBreakdown";
 import { calculateISAPacing } from "$lib/server/isaPacing";
 import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
+import { requireAuth } from "$lib/server/utils/auth-guard";
+import { getUkTaxYearBounds } from "$lib/utils/tax-year-utils";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -17,8 +17,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	if (isVerboseDebug()) {
 		devLog("accountsIsa", "Loading ISA breakdown report", {
-		userId: user.id,
-		year,
+			userId: user.id,
+			year,
 		});
 	}
 
@@ -76,19 +76,17 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		const currentTaxYear = getUkTaxYearBounds(new Date());
 		const isCurrentTaxYear =
 			taxYear.start.getTime() === currentTaxYear.start.getTime();
-		const pacing = isCurrentTaxYear
-			? await calculateISAPacing(user.id)
-			: null;
+		const pacing = isCurrentTaxYear ? await calculateISAPacing(user.id) : null;
 
 		if (isVerboseDebug()) {
 			devLog("accountsIsa", "ISA breakdown report generated", {
-			userId: user.id,
-			allowanceUsed: report.meta.allowanceUsed,
-			utilizationPercent: report.meta.utilizationPercent,
-			taxYearStart: report.meta.taxYearStart,
-			taxYearEnd: report.meta.taxYearEnd,
-			daysRemaining: report.meta.daysRemainingInTaxYear,
-			reconciliationFlags: report.reconciliation.flags.length,
+				userId: user.id,
+				allowanceUsed: report.meta.allowanceUsed,
+				utilizationPercent: report.meta.utilizationPercent,
+				taxYearStart: report.meta.taxYearStart,
+				taxYearEnd: report.meta.taxYearEnd,
+				daysRemaining: report.meta.daysRemainingInTaxYear,
+				reconciliationFlags: report.reconciliation.flags.length,
 			});
 		}
 

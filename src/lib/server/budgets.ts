@@ -1,4 +1,16 @@
-import { and, count, desc, eq, gte, lte, notInArray, or, isNull, sql } from "drizzle-orm";
+import {
+	and,
+	count,
+	desc,
+	eq,
+	gte,
+	isNull,
+	lte,
+	notInArray,
+	or,
+	sql,
+} from "drizzle-orm";
+import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import {
 	accounts,
@@ -6,9 +18,12 @@ import {
 	budgetMonths,
 	spendingCategories,
 } from "$lib/db/schema";
-import { withUserFilter } from "$lib/auth/row-security";
-import { devLog, isVerboseDebug } from "$lib/server/logger";
-import type { BudgetConfig, CategoryBreakdown, BudgetStatus } from "$lib/types/budget";
+import { devLog } from "$lib/server/logger";
+import type {
+	BudgetConfig,
+	BudgetStatus,
+	CategoryBreakdown,
+} from "$lib/types/budget";
 
 export type { BudgetConfig, CategoryBreakdown, BudgetStatus };
 
@@ -21,7 +36,9 @@ function parseJsonCol<T>(value: T | string): T {
 	return typeof value === "string" ? (JSON.parse(value) as T) : value;
 }
 
-function parseBudgetConfig(row: typeof budgetMonths.$inferSelect): BudgetConfig {
+function parseBudgetConfig(
+	row: typeof budgetMonths.$inferSelect,
+): BudgetConfig {
 	return {
 		totalTargetInCents: row.totalTargetInCents,
 		excludedCategoryIds: parseJsonCol<number[]>(row.excludedCategoryIds),
@@ -42,7 +59,8 @@ function getDaysInMonth(year: number, month: number): number {
 
 function getDaysElapsed(year: number, month: number): number {
 	const now = new Date();
-	const isCurrentMonth = now.getFullYear() === year && now.getMonth() + 1 === month;
+	const isCurrentMonth =
+		now.getFullYear() === year && now.getMonth() + 1 === month;
 	if (!isCurrentMonth) {
 		return getDaysInMonth(year, month);
 	}
@@ -77,17 +95,18 @@ export async function getBudgetStatus(
 			);
 		}
 		if (budget.excludedCategoryIds.length > 0) {
-			conditions.push(
-				or(
-					isNull(accountTransactions.categoryId),
-					notInArray(accountTransactions.categoryId, budget.excludedCategoryIds),
-				)!,
+			const excludedCondition = or(
+				isNull(accountTransactions.categoryId),
+				notInArray(accountTransactions.categoryId, budget.excludedCategoryIds),
 			);
+			if (excludedCondition) conditions.push(excludedCondition);
 		}
 	}
 
 	const result = await db
-		.select({ total: sql<number>`COALESCE(SUM(${accountTransactions.amount}), 0)` })
+		.select({
+			total: sql<number>`COALESCE(SUM(${accountTransactions.amount}), 0)`,
+		})
 		.from(accountTransactions)
 		.innerJoin(accounts, eq(accountTransactions.accountId, accounts.id))
 		.where(and(...conditions));
@@ -95,8 +114,6 @@ export async function getBudgetStatus(
 	const totalSpent = Math.abs(Number(result[0]?.total ?? 0));
 	const avgPerDay = totalSpent / Math.max(daysElapsed, 1);
 	const projectedTotal = avgPerDay * totalDays;
-
-
 
 	return {
 		budget,
@@ -250,16 +267,20 @@ export async function getBudgetHistory(
 				);
 			}
 			if (config.excludedCategoryIds.length > 0) {
-				conditions.push(
-					or(
-						isNull(accountTransactions.categoryId),
-						notInArray(accountTransactions.categoryId, config.excludedCategoryIds),
-					)!,
+				const excludedCondition = or(
+					isNull(accountTransactions.categoryId),
+					notInArray(
+						accountTransactions.categoryId,
+						config.excludedCategoryIds,
+					),
 				);
+				if (excludedCondition) conditions.push(excludedCondition);
 			}
 
 			const result = await db
-				.select({ total: sql<number>`COALESCE(SUM(ABS(${accountTransactions.amount})), 0)` })
+				.select({
+					total: sql<number>`COALESCE(SUM(ABS(${accountTransactions.amount})), 0)`,
+				})
 				.from(accountTransactions)
 				.innerJoin(accounts, eq(accountTransactions.accountId, accounts.id))
 				.where(and(...conditions));
@@ -306,7 +327,9 @@ async function ensureCurrentMonth(
 			totalTargetInCents: previous.totalTargetInCents,
 			excludedCategoryIds: parseJsonCol<number[]>(previous.excludedCategoryIds),
 			excludedAccountIds: parseJsonCol<number[]>(previous.excludedAccountIds),
-			categoryTargets: parseJsonCol<Record<string, number>>(previous.categoryTargets),
+			categoryTargets: parseJsonCol<Record<string, number>>(
+				previous.categoryTargets,
+			),
 		})
 		.returning();
 
@@ -321,7 +344,15 @@ async function ensureCurrentMonth(
 export async function saveBudgetRow(
 	userId: number,
 	monthStr: string,
-	updates: Partial<Pick<typeof budgetMonths.$inferInsert, "totalTargetInCents" | "excludedCategoryIds" | "excludedAccountIds" | "categoryTargets">>,
+	updates: Partial<
+		Pick<
+			typeof budgetMonths.$inferInsert,
+			| "totalTargetInCents"
+			| "excludedCategoryIds"
+			| "excludedAccountIds"
+			| "categoryTargets"
+		>
+	>,
 ): Promise<void> {
 	const existing = await db.query.budgetMonths.findFirst({
 		where: and(

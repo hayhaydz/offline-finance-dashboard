@@ -1,6 +1,9 @@
-import { getUkTaxYearBounds, ISA_ALLOWANCE_IN_CENTS } from "$lib/utils/tax-year-utils";
 import { getISABreakdownReport } from "$lib/server/isaBreakdown";
-import { devLog, isVerboseDebug } from "$lib/server/logger";
+import { devLog } from "$lib/server/logger";
+import {
+	getUkTaxYearBounds,
+	ISA_ALLOWANCE_IN_CENTS,
+} from "$lib/utils/tax-year-utils";
 import { MS_PER_MONTH } from "$lib/utils/time-constants";
 
 export type ISAPacingStatus = "full" | "on-track" | "behind" | "no-data";
@@ -46,8 +49,12 @@ export async function calculateISAPacing(
 		taxYearEnd,
 	});
 
-	const { allowanceUsed, allowanceRemaining, daysRemainingInTaxYear, taxYearLabel } =
-		report.meta;
+	const {
+		allowanceUsed,
+		allowanceRemaining,
+		daysRemainingInTaxYear,
+		taxYearLabel,
+	} = report.meta;
 
 	// If allowance fully used, status is "full"
 	if (allowanceUsed >= ISA_ALLOWANCE_IN_CENTS) {

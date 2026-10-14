@@ -5,18 +5,6 @@ import { accounts, goalAllocations, goals } from "$lib/db/schema";
 import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
 import { devLog, isVerboseDebug } from "$lib/server/logger";
 
-// Re-export all pure calculations + types for backward compatibility
-export {
-	calculateLiquidityBreakdown,
-	calculateContributionStats,
-	calculatePaceMetrics,
-	getDebtGoalProgress,
-	projectPayoffDate,
-	generateDefaultMilestones,
-	checkMilestones,
-	distributeWithdrawalAcrossAccounts,
-} from "./goal-calculations";
-
 export type {
 	AccountAllocationWithLiquidity,
 	AllocationHistoryEntry,
@@ -26,6 +14,17 @@ export type {
 	MilestoneTemplate,
 	MilestoneWithReached,
 	PaceMetrics,
+} from "./goal-calculations";
+// Re-export all pure calculations + types for backward compatibility
+export {
+	calculateContributionStats,
+	calculateLiquidityBreakdown,
+	calculatePaceMetrics,
+	checkMilestones,
+	distributeWithdrawalAcrossAccounts,
+	generateDefaultMilestones,
+	getDebtGoalProgress,
+	projectPayoffDate,
 } from "./goal-calculations";
 
 async function getOpenAssetAccountsWithLatestBalances(userId: number) {

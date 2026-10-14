@@ -7,9 +7,7 @@ import {
 	interestRates,
 	users,
 } from "$lib/db/schema";
-import {
-	getActualInterestEarned,
-} from "$lib/server/tax-year-queries";
+import { getActualInterestEarned } from "$lib/server/tax-year-queries";
 import { getTaxFreeStatus } from "$lib/utils/tax-year-utils";
 
 describe("Interest Summaries", () => {

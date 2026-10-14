@@ -1,33 +1,33 @@
 import { fail } from "@sveltejs/kit";
 import { count, eq } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
-import { getAccountListAlerts } from "$lib/server/alerts";
 import { db } from "$lib/db/client";
 import { accounts, users } from "$lib/db/schema";
-import {
-	getAccountInterestEarned,
-	getISAAllowanceUsed,
-} from "$lib/server/tax-year-queries";
-import {
-	getTaxFreeStatus,
-	getUkTaxYearBounds,
-	ISA_ALLOWANCE_IN_CENTS,
-} from "$lib/utils/tax-year-utils";
+import { getAccountListAlerts } from "$lib/server/alerts";
 import {
 	getCurrentBalancesForAccounts,
 	getLatestTransactionDateForAccounts,
 } from "$lib/server/derivedBalances";
-import { getCurrentRate } from "$lib/server/interestRates";
 import { updateTypeExclusions } from "$lib/server/exclusions";
 import { getNetWorthSummary } from "$lib/server/finance";
+import { getCurrentRate } from "$lib/server/interestRates";
+import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
+import {
+	getAccountInterestEarned,
+	getISAAllowanceUsed,
+} from "$lib/server/tax-year-queries";
 import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import {
 	calculatePagination,
 	parsePagination,
 } from "$lib/server/utils/pagination";
-import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
-import { MS_PER_DAY } from "$lib/utils/time-constants";
 import { isTaxFreeWrapper } from "$lib/utils/tax-classification";
+import {
+	getTaxFreeStatus,
+	getUkTaxYearBounds,
+	ISA_ALLOWANCE_IN_CENTS,
+} from "$lib/utils/tax-year-utils";
+import { MS_PER_DAY } from "$lib/utils/time-constants";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -42,11 +42,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		.select({ total: count() })
 		.from(accounts)
 		.where(withUserFilter(user.id, accounts));
-	const { page: safePage, totalPages, offset } = calculatePagination(
-		total,
-		requestedPage,
-		PAGE_SIZE,
-	);
+	const {
+		page: safePage,
+		totalPages,
+		offset,
+	} = calculatePagination(total, requestedPage, PAGE_SIZE);
 
 	// Query accounts with user filter and pagination
 	const userAccounts = await db.query.accounts.findMany({
@@ -299,7 +299,14 @@ export const actions: Actions = {
 
 		const formData = await request.formData();
 		const typeUpdates: Map<string, boolean> = new Map();
-		const validTypes = new Set(["current", "savings", "investment", "credit-card", "loan", "mortgage"]);
+		const validTypes = new Set([
+			"current",
+			"savings",
+			"investment",
+			"credit-card",
+			"loan",
+			"mortgage",
+		]);
 
 		for (const [key, value] of formData.entries()) {
 			if (key.startsWith("type_")) {
@@ -325,8 +332,8 @@ export const actions: Actions = {
 
 			if (isVerboseDebug()) {
 				devLog("updateExclusions", "Type-based bulk update successful", {
-				userId: user.id,
-				affectedRows: result.affectedRows,
+					userId: user.id,
+					affectedRows: result.affectedRows,
 				});
 			}
 

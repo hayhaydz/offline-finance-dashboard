@@ -33,8 +33,16 @@ vi.mock("$lib/db/migrate", () => ({
 vi.mock("$lib/auth/mfa", () => ({
 	decryptTOTPSecret: vi.fn(() => "plaintext-secret"),
 	generateBackupCodes: vi.fn(() => [
-		"A1B2C3D4", "E5F6G7H8", "I9J0K1L2", "M3N4O5P6", "Q7R8S9T0",
-		"U1V2W3X4", "Y5Z6A7B8", "C9D0E1F2", "G3H4I5J6", "K7L8M9N0",
+		"A1B2C3D4",
+		"E5F6G7H8",
+		"I9J0K1L2",
+		"M3N4O5P6",
+		"Q7R8S9T0",
+		"U1V2W3X4",
+		"Y5Z6A7B8",
+		"C9D0E1F2",
+		"G3H4I5J6",
+		"K7L8M9N0",
 	]),
 	generateOTPAuthURL: vi.fn(() => "otpauth://totp/Test"),
 	generateQRCode: vi.fn(() => Promise.resolve("data:image/png;base64,test")),
@@ -62,14 +70,13 @@ vi.mock("$lib/utils/logger", () => ({
 	logFormData: vi.fn(),
 }));
 
+import { verifyPassword } from "$lib/auth/password";
 // Import after mocks
 import { db } from "$lib/db/client";
-import { actions as mfaSetupActions } from "../../src/routes/(auth)/mfa-setup/+page.server";
-import { actions as loginActions } from "../../src/routes/(auth)/login/+page.server";
-import { handle } from "../../src/hooks.server";
 import { checkRateLimit } from "$lib/security/rate-limiter";
-import { verifyTOTP } from "$lib/auth/mfa";
-import { verifyPassword } from "$lib/auth/password";
+import { handle } from "../../src/hooks.server";
+import { actions as loginActions } from "../../src/routes/(auth)/login/+page.server";
+import { actions as mfaSetupActions } from "../../src/routes/(auth)/mfa-setup/+page.server";
 
 describe("Authentication Bypass Prevention", () => {
 	beforeEach(() => {
@@ -293,10 +300,7 @@ describe("Authentication Bypass Prevention", () => {
 	// ─── Scenario 4: Unauthenticated access to protected routes ───
 
 	describe("Protected Route Access Control", () => {
-		const createMockEvent = (
-			pathname: string,
-			sessionCookie?: string,
-		) => ({
+		const createMockEvent = (pathname: string, sessionCookie?: string) => ({
 			url: new URL(`http://localhost${pathname}`),
 			cookies: {
 				get: vi.fn((name: string) =>
@@ -361,7 +365,10 @@ describe("Authentication Bypass Prevention", () => {
 			expect(loginEvent.resolve).toHaveBeenCalled();
 
 			const registerEvent = createMockEvent("/register");
-			await handle({ event: registerEvent, resolve: registerEvent.resolve } as any);
+			await handle({
+				event: registerEvent,
+				resolve: registerEvent.resolve,
+			} as any);
 			expect(registerEvent.resolve).toHaveBeenCalled();
 		});
 	});

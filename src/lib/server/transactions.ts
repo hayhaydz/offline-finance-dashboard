@@ -1,11 +1,17 @@
 import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { type Account, accounts, accountTransactions } from "$lib/db/schema";
+import { logError, logInfo } from "$lib/server/logger";
+import {
+	err,
+	ok,
+	okVoid,
+	type Result,
+	type VoidResult,
+} from "$lib/server/utils/result";
 import type { TransactionType } from "$lib/utils/domain-constants";
-import { devLog, logError, logInfo } from "$lib/server/logger";
-import { withUserFilter } from "$lib/auth/row-security";
-import { type Result, type VoidResult, ok, err, okVoid } from "$lib/server/utils/result";
 
 export type { TransactionType };
 
@@ -163,9 +169,7 @@ export async function updateTransaction(
 /**
  * Delete a transaction by slug.
  */
-export async function deleteTransaction(
-	slug: string,
-): Promise<VoidResult> {
+export async function deleteTransaction(slug: string): Promise<VoidResult> {
 	const result = await db
 		.delete(accountTransactions)
 		.where(eq(accountTransactions.slug, slug))

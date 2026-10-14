@@ -3,8 +3,8 @@ import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { goals } from "$lib/db/schema";
 import { calculateReadyToAssign } from "$lib/server/goals";
-import { requireAuth } from "$lib/server/utils/auth-guard";
 import { devLog, isVerboseDebug } from "$lib/server/logger";
+import { requireAuth } from "$lib/server/utils/auth-guard";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -21,9 +21,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const [{ total }] = await db
 		.select({ total: count() })
 		.from(goals)
-		.where(
-			and(withUserFilter(user.id, goals), isNotNull(goals.deletedAt)),
-		);
+		.where(and(withUserFilter(user.id, goals), isNotNull(goals.deletedAt)));
 	const totalPages = Math.ceil(total / GOALS_PER_PAGE);
 	// Convert 1-indexed to 0-indexed and clamp to valid range
 	const safePage = Math.min(validPage - 1, Math.max(0, totalPages - 1));
@@ -31,10 +29,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	// Query user's archived goals (deletedAt IS NOT NULL) with row-level security
 	const archivedGoals = await db.query.goals.findMany({
-		where: and(
-			withUserFilter(user.id, goals),
-			isNotNull(goals.deletedAt),
-		),
+		where: and(withUserFilter(user.id, goals), isNotNull(goals.deletedAt)),
 		orderBy: (goals, { asc }) => asc(goals.sortOrder),
 		limit: GOALS_PER_PAGE,
 		offset,
@@ -42,7 +37,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	if (isVerboseDebug()) {
 		devLog("goalsArchived", "Loaded archived goals", {
-		count: archivedGoals.length,
+			count: archivedGoals.length,
 		});
 	}
 

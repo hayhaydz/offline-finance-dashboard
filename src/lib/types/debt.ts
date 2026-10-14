@@ -1,7 +1,7 @@
 /** Payment rule for debt accounts */
 export interface PaymentRule {
 	type: "flat" | "percentage" | "flat_or_percentage";
-	flat?: number;       // pence
+	flat?: number; // pence
 	percentage?: number; // basis points
 }
 

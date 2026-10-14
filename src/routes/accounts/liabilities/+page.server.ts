@@ -1,11 +1,11 @@
 import { and, eq } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
-import { requireAuth } from "$lib/server/utils/auth-guard";
 import { db } from "$lib/db/client";
 import { accounts } from "$lib/db/schema";
 import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
-import { calculateTTZ } from "$lib/utils/debt-calculator";
 import { getCurrentRate } from "$lib/server/rate-helpers";
+import { requireAuth } from "$lib/server/utils/auth-guard";
+import { calculateTTZ } from "$lib/utils/debt-calculator";
 import type { PageServerLoad } from "./$types";
 
 function getDebtStatusLabel(ttz: {

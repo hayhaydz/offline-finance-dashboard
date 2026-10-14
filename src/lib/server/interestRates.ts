@@ -1,9 +1,15 @@
 import { and, asc, desc, eq, inArray, lte } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { type Account, interestRates } from "$lib/db/schema";
+import { logError, logInfo } from "$lib/server/logger";
+import {
+	err,
+	ok,
+	okVoid,
+	type Result,
+	type VoidResult,
+} from "$lib/server/utils/result";
 import { formatRate } from "$lib/utils/formatting";
-import { devLog, logError, logInfo } from "$lib/server/logger";
-import { type Result, type VoidResult, ok, err, okVoid } from "$lib/server/utils/result";
 
 export interface CreateInterestRateData {
 	accountId: number;
@@ -206,9 +212,7 @@ export async function updateInterestRate(
 /**
  * Delete an interest rate entry.
  */
-export async function deleteInterestRate(
-	id: number,
-): Promise<VoidResult> {
+export async function deleteInterestRate(id: number): Promise<VoidResult> {
 	const rate = await getInterestRateById(id);
 
 	if (!rate) {

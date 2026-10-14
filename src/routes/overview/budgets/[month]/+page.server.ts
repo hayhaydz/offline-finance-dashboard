@@ -1,19 +1,18 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { and, eq, isNull } from "drizzle-orm";
-import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, spendingCategories } from "$lib/db/schema";
-import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
-import { parseCurrency } from "$lib/utils/currency";
-import { logFormData } from "$lib/server/logger";
 import {
-	getBudgetStatus,
-	getCategoryBreakdown,
 	getBudgetHistory,
 	getBudgetRow,
+	getBudgetStatus,
+	getCategoryBreakdown,
 	saveBudgetRow,
 	UNCATEGORISED_ID,
 } from "$lib/server/budgets";
+import { logFormData } from "$lib/server/logger";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
+import { parseCurrency } from "$lib/utils/currency";
 import type { Actions, PageServerLoad } from "./$types";
 
 function parseMonthSlug(slug: string): { year: number; month: number } | null {
@@ -49,7 +48,10 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		status.budget,
 	);
 
-	const historyPage = Math.max(0, Number(url.searchParams.get("page") ?? "1") - 1);
+	const historyPage = Math.max(
+		0,
+		Number(url.searchParams.get("page") ?? "1") - 1,
+	);
 	const history = await getBudgetHistory(user.id, historyPage);
 
 	const categories = await db.query.spendingCategories.findMany({
@@ -61,10 +63,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	});
 
 	const allAccounts = await db.query.accounts.findMany({
-		where: and(
-			eq(accounts.userId, user.id),
-			isNull(accounts.closedAt),
-		),
+		where: and(eq(accounts.userId, user.id), isNull(accounts.closedAt)),
 		orderBy: (accs, { asc }) => [asc(accs.name)],
 	});
 
@@ -112,9 +111,7 @@ export const actions: Actions = {
 			}
 
 			const row = await getBudgetRow(user.id, monthStr);
-			const existingTargets = row
-				? row.categoryTargets
-				: {};
+			const existingTargets = row ? row.categoryTargets : {};
 
 			await saveBudgetRow(user.id, monthStr, {
 				totalTargetInCents: amountInCents,

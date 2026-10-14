@@ -8,8 +8,8 @@
  */
 
 import type {
-	ReconciliationFlag,
 	ReconciliationCategory,
+	ReconciliationFlag,
 } from "$lib/types/breakdown";
 
 export type { ReconciliationFlag };

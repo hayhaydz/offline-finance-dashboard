@@ -11,6 +11,11 @@
 
 import type { Account } from "$lib/db/schema";
 import {
+	getActualInterestBreakdown,
+	getProjectedInterestBreakdown,
+} from "$lib/server/interestBreakdown";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
+import {
 	getCumulativeISADeposits,
 	getISAAllowanceUsed,
 } from "$lib/server/tax-year-queries";
@@ -20,11 +25,6 @@ import {
 	ISA_ALLOWANCE_IN_CENTS,
 	type TaxBand,
 } from "$lib/utils/tax-year-utils";
-import {
-	getActualInterestBreakdown,
-	getProjectedInterestBreakdown,
-} from "$lib/server/interestBreakdown";
-import { devLog, isVerboseDebug } from "$lib/server/logger";
 
 /**
  * ISA allowance breakdown for snapshot storage (standalone with metadata)
@@ -160,8 +160,6 @@ export async function calculateISAAllowanceBreakdown(
 	// Generate tax year label
 	const label = `${taxYearStart.getUTCFullYear()}-${String(taxYearEnd.getUTCFullYear()).slice(-2)}`;
 
-
-
 	return {
 		snapshotTakenAt: new Date().toISOString(),
 		snapshotDate: snapshotDate.toISOString().split("T")[0],
@@ -226,11 +224,9 @@ export async function calculateInterestBreakdown(
 	// Calculate totals
 	const actualTaxFree = actual.taxFreeTotal;
 	const actualTaxable = actual.taxableTotal;
-	const actualTotal = actual.total;
 
 	const projectedTaxFree = projected.taxFreeTotal;
 	const projectedTaxable = projected.taxableTotal;
-	const projectedTotal = projected.total;
 
 	// Calculate Personal Savings Allowance status
 	const psaStatus = getTaxFreeStatus(actualTaxable + projectedTaxable, taxBand);
@@ -277,8 +273,6 @@ export async function calculateInterestBreakdown(
 
 	// Generate tax year label
 	const label = `${taxYearStart.getUTCFullYear()}-${String(taxYearEnd.getUTCFullYear()).slice(-2)}`;
-
-
 
 	return {
 		snapshotTakenAt: new Date().toISOString(),

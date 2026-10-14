@@ -1,14 +1,14 @@
 import { error, fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
-import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import { db } from "$lib/db/client";
 import { accounts } from "$lib/db/schema";
 import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import {
 	ACCOUNT_TYPES,
-	TAX_WRAPPERS,
 	LIQUIDITY_OPTIONS,
+	TAX_WRAPPERS,
 } from "$lib/utils/domain-constants";
 import type { Actions, PageServerLoad } from "./$types";
 
@@ -16,7 +16,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	const user = requireAuth(locals);
 
 	const accountSlug = params.slug;
-	if (isVerboseDebug()) devLog("editAccount", "Loading account for edit", { accountSlug });
+	if (isVerboseDebug())
+		devLog("editAccount", "Loading account for edit", { accountSlug });
 
 	// Get account and validate ownership using slug
 	const account = await db.query.accounts.findFirst({
@@ -55,8 +56,8 @@ export const actions: Actions = {
 	 */
 	updateAccount: async ({ request, locals, params }) => {
 		const user = getAuthUser(locals);
-			if (!user) {
-				return fail(401, { error: "Authentication required" });
+		if (!user) {
+			return fail(401, { error: "Authentication required" });
 		}
 
 		const accountSlug = params.slug;
@@ -134,7 +135,7 @@ export const actions: Actions = {
 
 		// Parse openedAt — empty string means null (field not set)
 		let openedAt: Date | null = null;
-		if (openedAtStr && openedAtStr.trim()) {
+		if (openedAtStr?.trim()) {
 			const parsed = new Date(`${openedAtStr.trim()}T00:00:00.000Z`);
 			if (!Number.isNaN(parsed.getTime())) {
 				openedAt = parsed;
@@ -145,15 +146,16 @@ export const actions: Actions = {
 		const assetTypes = new Set(["current", "savings", "investment"]);
 		const category = assetTypes.has(type) ? "asset" : "liability";
 
-		if (isVerboseDebug()) devLog("editAccount", "Form validation passed", {
-			accountSlug,
-			name: name.trim(),
-			type,
-			taxWrapper,
-			category,
-			institution: institution?.trim() || null,
-			liquidity,
-		});
+		if (isVerboseDebug())
+			devLog("editAccount", "Form validation passed", {
+				accountSlug,
+				name: name.trim(),
+				type,
+				taxWrapper,
+				category,
+				institution: institution?.trim() || null,
+				liquidity,
+			});
 
 		// Update account
 		await db
@@ -183,7 +185,8 @@ export const actions: Actions = {
 			});
 		}
 
-		if (isVerboseDebug()) devLog("editAccount", "Redirecting to account detail", { accountSlug });
+		if (isVerboseDebug())
+			devLog("editAccount", "Redirecting to account detail", { accountSlug });
 		redirect(303, `/accounts/${account.slug}`);
 	},
 };

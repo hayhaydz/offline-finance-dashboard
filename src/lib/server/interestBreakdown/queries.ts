@@ -5,7 +5,7 @@
  * Separated from aggregation/reconciliation for testability.
  */
 
-import { and, asc, eq, inArray, lte, gte } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, lte } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";

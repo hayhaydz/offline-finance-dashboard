@@ -21,7 +21,8 @@ export const actions = {
 			if (sessionToken) {
 				// Delete session from database
 				await db.delete(sessions).where(eq(sessions.token, sessionToken));
-				if (isVerboseDebug()) devLog("logout", "Session deleted from database", { username });
+				if (isVerboseDebug())
+					devLog("logout", "Session deleted from database", { username });
 			}
 
 			// Clear session cookie

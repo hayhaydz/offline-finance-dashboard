@@ -6,21 +6,17 @@
  */
 
 import { and, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
-import { withUserFilter } from "$lib/auth/row-security";
 import {
 	getCurrentBalanceForAccount,
 	getCurrentBalancesForAccounts,
 } from "$lib/server/derivedBalances";
 import { getCurrentRate } from "$lib/server/interestRates";
 import { isTaxFreeWrapper } from "$lib/utils/tax-classification";
+import { calculateProjectedInterestInCents } from "$lib/utils/tax-year-utils";
 import { MS_PER_DAY } from "$lib/utils/time-constants";
-import {
-	calculateProjectedInterestInCents,
-	type TaxBand,
-	type TaxYearBounds,
-} from "$lib/utils/tax-year-utils";
 
 /**
  * Sum of deposit transactions on ISA/LISA accounts in a tax year.
@@ -135,9 +131,7 @@ export async function getProjectedInterestByTaxWrapper(
 	const millisecondsPerDay = MS_PER_DAY;
 	const daysRemaining = Math.max(
 		0,
-		Math.ceil(
-			(taxYearEnd.getTime() - today.getTime()) / millisecondsPerDay,
-		),
+		Math.ceil((taxYearEnd.getTime() - today.getTime()) / millisecondsPerDay),
 	);
 
 	if (daysRemaining === 0) {
@@ -173,17 +167,12 @@ export async function getProjectedInterestByTaxWrapper(
 		let projected = 0;
 
 		if (account.maturityDate) {
-			if (
-				account.maturityDate <= taxYearEnd &&
-				account.maturityDate > today
-			) {
+			if (account.maturityDate <= taxYearEnd && account.maturityDate > today) {
 				const daysToMaturity = Math.ceil(
 					(account.maturityDate.getTime() - today.getTime()) /
 						millisecondsPerDay,
 				);
-				projected = Math.round(
-					(yearlyInterest / 365) * daysToMaturity,
-				);
+				projected = Math.round((yearlyInterest / 365) * daysToMaturity);
 			}
 		} else {
 			projected = Math.round((yearlyInterest / 365) * daysRemaining);

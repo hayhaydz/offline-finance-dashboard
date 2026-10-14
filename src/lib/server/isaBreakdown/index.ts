@@ -12,30 +12,31 @@
  * even if withdrawn. Transfers between ISAs should not double-count.
  */
 
-import { ISA_ALLOWANCE_IN_CENTS } from "$lib/utils/tax-year-utils";
-import { reconcileBreakdowns, addWarningFlag } from "$lib/server/utils/reconciliation";
 import { devLog, isVerboseDebug } from "$lib/server/logger";
+import {
+	addWarningFlag,
+	reconcileBreakdowns,
+} from "$lib/server/utils/reconciliation";
+import type {
+	ISAAccountBreakdown,
+	ISAActualBreakdown,
+	ISABreakdownReport,
+	ISAInstitutionBreakdown,
+	ISAMeta,
+	ISAMonthBreakdown,
+	ISAReconciliation,
+	ISATaxWrapperBreakdown,
+	ISATransaction,
+} from "$lib/types/breakdown";
+import { ISA_ALLOWANCE_IN_CENTS } from "$lib/utils/tax-year-utils";
 import { MS_PER_DAY } from "$lib/utils/time-constants";
-
-import { getISATransactions, getISAAvailableTaxYears } from "./queries";
 import {
 	getISABreakdownByAccount,
-	getISABreakdownByMonth,
 	getISABreakdownByInstitution,
+	getISABreakdownByMonth,
 	getISABreakdownByTaxWrapper,
 } from "./aggregations";
-
-import type {
-	ISAMeta,
-	ISAActualBreakdown,
-	ISAReconciliation,
-	ISABreakdownReport,
-	ISATransaction,
-	ISAAccountBreakdown,
-	ISAMonthBreakdown,
-	ISAInstitutionBreakdown,
-	ISATaxWrapperBreakdown,
-} from "$lib/types/breakdown";
+import { getISAAvailableTaxYears, getISATransactions } from "./queries";
 
 // Re-export types for backward compatibility
 export type {
@@ -72,9 +73,12 @@ export async function getISABreakdownReport(params: {
 	}
 
 	const asOfDate = new Date();
+	// Floor so "days remaining" matches the TaxYearProgress convention
+	// (today is counted as elapsed, not remaining). Ceil here produced an
+	// off-by-one vs the tax year widget on the same page.
 	const daysRemainingInTaxYear = Math.max(
 		0,
-		Math.ceil((taxYearEnd.getTime() - asOfDate.getTime()) / MS_PER_DAY),
+		Math.floor((taxYearEnd.getTime() - asOfDate.getTime()) / MS_PER_DAY),
 	);
 
 	const transactions = await getISATransactions({

@@ -1,6 +1,7 @@
 import { eq, inArray } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { db } from "$lib/db/client";
+import type { Account } from "$lib/db/schema";
 import { accounts, interestRates, users } from "$lib/db/schema";
 import {
 	createInterestRate,
@@ -70,7 +71,7 @@ describe("Interest Rates CRUD", () => {
 	});
 
 	it("should create an interest rate and return rateId", async () => {
-		const account = { id: testAccountId } as any;
+		const account = { id: testAccountId } as unknown as Account;
 		const result = await createInterestRate(
 			{
 				accountId: testAccountId,
@@ -88,7 +89,7 @@ describe("Interest Rates CRUD", () => {
 	});
 
 	it("should delete an existing interest rate", async () => {
-		const account = { id: testAccountId } as any;
+		const account = { id: testAccountId } as unknown as Account;
 		const created = await createInterestRate(
 			{
 				accountId: testAccountId,
@@ -112,7 +113,7 @@ describe("Interest Rates CRUD", () => {
 	});
 
 	it("should update an existing interest rate", async () => {
-		const account = { id: testAccountId } as any;
+		const account = { id: testAccountId } as unknown as Account;
 		const created = await createInterestRate(
 			{
 				accountId: testAccountId,

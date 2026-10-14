@@ -1,5 +1,5 @@
-import { getUkTaxYearBounds } from "$lib/utils/tax-year-utils";
 import { devLog, isVerboseDebug } from "$lib/server/logger";
+import { getUkTaxYearBounds } from "$lib/utils/tax-year-utils";
 
 interface TaxYearInfo {
 	slug: string;
@@ -15,7 +15,10 @@ interface TaxYearInfo {
 export function buildAvailableTaxYears(
 	transactions: Array<{ transactionDate: Date }>,
 ): Map<string, TaxYearInfo> {
-	if (isVerboseDebug()) devLog("buildAvailableTaxYears", "Building available tax years", { txCount: transactions.length });
+	if (isVerboseDebug())
+		devLog("buildAvailableTaxYears", "Building available tax years", {
+			txCount: transactions.length,
+		});
 	const years = new Map<string, TaxYearInfo>();
 
 	for (const tx of transactions) {
@@ -40,7 +43,10 @@ export function deriveSelectedTaxYear(
 	taxYearStartParam: string | undefined,
 	availableYears: Map<string, TaxYearInfo>,
 ): TaxYearInfo | undefined {
-	if (isVerboseDebug()) devLog("deriveSelectedTaxYear", "Deriving selected tax year", { param: taxYearStartParam });
+	if (isVerboseDebug())
+		devLog("deriveSelectedTaxYear", "Deriving selected tax year", {
+			param: taxYearStartParam,
+		});
 	if (taxYearStartParam) {
 		return availableYears.get(taxYearStartParam);
 	}

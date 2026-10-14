@@ -1,13 +1,6 @@
 import { fail } from "@sveltejs/kit";
 import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
-import { getAlertsForAccount } from "$lib/server/alerts";
-import {
-	requireString,
-	requireDateISO,
-	requireEnum,
-	FIELD_LIMITS,
-} from "$lib/server/validation";
 import { db } from "$lib/db/client";
 import {
 	accountNotes,
@@ -16,10 +9,18 @@ import {
 	interestRates,
 	settings,
 } from "$lib/db/schema";
+import { requireAccountOwnership } from "$lib/server/account-ownership";
+import { buildAvailableTaxYears } from "$lib/server/account-tax-year";
+import { getAlertsForAccount } from "$lib/server/alerts";
+import { getCategories } from "$lib/server/categories";
 import {
-	getUkTaxYearBounds,
-	ISA_ALLOWANCE_IN_CENTS,
-} from "$lib/utils/tax-year-utils";
+	calculateMinimumPayment,
+	calculatePaymentSuggestion,
+	formatTaxYearStartParam,
+	getDebtHealthStatus,
+	getTaxYearEndFromStart,
+	parseTaxYearStart,
+} from "$lib/server/debt-projections";
 import {
 	getCurrentBalanceForAccount,
 	getMonthlyBalanceHistory,
@@ -33,43 +34,38 @@ import {
 	parseRateToBasisPoints,
 } from "$lib/server/interestRates";
 import { getISABreakdownReport } from "$lib/server/isaBreakdown";
-import { getCategories } from "$lib/server/categories";
-import { createNote, deleteNote, getNoteBySlug } from "$lib/server/notes";
-import {
-	createTransaction,
-	deleteTransaction,
-	getTransactionBySlug,
-} from "$lib/server/transactions";
-import type { TransactionType } from "$lib/utils/domain-constants";
-import { calculateTTZ } from "$lib/utils/debt-calculator";
 import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
-import {
-	formatTaxYearStartParam,
-	getTaxYearEndFromStart,
-	parseTaxYearStart,
-	getDebtHealthStatus,
-	calculateMinimumPayment,
-	calculatePaymentSuggestion,
-} from "$lib/server/debt-projections";
-import { detectRecurringPatterns } from "$lib/server/recurring-patterns";
-import { requireAccountOwnership } from "$lib/server/account-ownership";
+import { createNote, deleteNote, getNoteBySlug } from "$lib/server/notes";
 import {
 	buildOverpaymentScenarios,
 	buildRateStressScenarios,
 	calculateBreakEvenMonth,
 } from "$lib/server/rate-scenarios";
-import { buildAvailableTaxYears } from "$lib/server/account-tax-year";
+import { detectRecurringPatterns } from "$lib/server/recurring-patterns";
+import {
+	createTransaction,
+	deleteTransaction,
+	getTransactionBySlug,
+} from "$lib/server/transactions";
+import { requireAuth } from "$lib/server/utils/auth-guard";
+import {
+	FIELD_LIMITS,
+	requireDateISO,
+	requireEnum,
+	requireString,
+} from "$lib/server/validation";
+import { calculateTTZ } from "$lib/utils/debt-calculator";
+import type { TransactionType } from "$lib/utils/domain-constants";
+import {
+	getUkTaxYearBounds,
+	ISA_ALLOWANCE_IN_CENTS,
+} from "$lib/utils/tax-year-utils";
 import type { Actions, PageServerLoad } from "./$types";
-
-
-
-
-
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const account = await requireAccountOwnership(locals, params.slug);
-	// requireAccountOwnership redirects if no user — safe to assert
-	const user = locals.user!;
+	// requireAuth returns non-null (redirects when unauthenticated)
+	const user = requireAuth(locals);
 
 	// Derive balances from transactions (source of truth).
 	const [currentBalance, monthlyBalances] = await Promise.all([
@@ -131,7 +127,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 				: eq(accountTransactions.id, 0),
 		columns: { transactionDate: true },
 	});
-	const availableTaxYears = buildAvailableTaxYears(interestTransactions)
+	const availableTaxYears = buildAvailableTaxYears(interestTransactions);
 	const sortedTaxYears = Array.from(availableTaxYears.values()).sort(
 		(a, b) => b.start.getTime() - a.start.getTime(),
 	);
@@ -320,7 +316,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 							ttzResult: calculateTTZ(balanceForTTZ, scenarioRate, rule),
 						};
 					}),
-					ttz!.months!,
+					ttzResult.months,
 					now,
 				);
 			}
@@ -358,10 +354,13 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 				}),
 			);
 
-			const ratedAccounts = accountData.filter((a) => a.rate !== null);
+			const ratedAccounts = accountData.filter(
+				(a): a is { id: number; balance: number; rate: number } =>
+					a.rate !== null,
+			);
 			const maxRate =
 				ratedAccounts.length > 0
-					? Math.max(...ratedAccounts.map((a) => a.rate!))
+					? Math.max(...ratedAccounts.map((a) => a.rate))
 					: null;
 			const minBalance = Math.min(...accountData.map((a) => a.balance));
 
@@ -381,12 +380,11 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	}
 
 	// Recurring transaction pattern detection (all account types, full history)
-	const allTransactionsForPatterns = await db.query.accountTransactions.findMany(
-		{
+	const allTransactionsForPatterns =
+		await db.query.accountTransactions.findMany({
 			where: eq(accountTransactions.accountId, account.id),
 			columns: { description: true, amount: true, transactionDate: true },
-		},
-	);
+		});
 	const recurringPatterns = detectRecurringPatterns(allTransactionsForPatterns);
 
 	// Get notes for this account
@@ -494,7 +492,11 @@ export const actions: Actions = {
 		const transactionDate = dateResult.date;
 
 		if (description) {
-			const descResult = requireString(description, "Description", FIELD_LIMITS.BALANCE_NOTES);
+			const descResult = requireString(
+				description,
+				"Description",
+				FIELD_LIMITS.BALANCE_NOTES,
+			);
 			if (!descResult.ok) {
 				return fail(400, { error: descResult.error });
 			}
@@ -522,10 +524,10 @@ export const actions: Actions = {
 
 			if (isVerboseDebug()) {
 				devLog("addTransaction", "Transaction created successfully", {
-				accountSlug: params.slug,
-				transactionSlug: result.data,
-				type,
-				amount,
+					accountSlug: params.slug,
+					transactionSlug: result.data,
+					type,
+					amount,
 				});
 			}
 
@@ -543,6 +545,7 @@ export const actions: Actions = {
 	 */
 	deleteTransaction: async ({ request, locals, params }) => {
 		const account = await requireAccountOwnership(locals, params.slug);
+		const user = requireAuth(locals);
 
 		const formData = await request.formData();
 		const transactionSlug = formData.get("transactionSlug") as string;
@@ -556,25 +559,25 @@ export const actions: Actions = {
 			if (
 				!transaction ||
 				transaction.accountId !== account.id ||
-				transaction.account.userId !== locals.user!.id
+				transaction.account.userId !== user.id
 			) {
 				return fail(404, { error: "Transaction not found" });
 			}
 
 			const result = await deleteTransaction(transactionSlug);
-				if (!result.ok) {
-					logError("deleteTransaction", "Failed to delete transaction", {
-						error: result.error,
-					});
-					return fail(500, { error: result.error });
-				}
+			if (!result.ok) {
+				logError("deleteTransaction", "Failed to delete transaction", {
+					error: result.error,
+				});
+				return fail(500, { error: result.error });
+			}
 
-				if (isVerboseDebug()) {
-					devLog("deleteTransaction", "Transaction deleted successfully", {
+			if (isVerboseDebug()) {
+				devLog("deleteTransaction", "Transaction deleted successfully", {
 					accountSlug: params.slug,
 					transactionSlug,
-					});
-				}
+				});
+			}
 
 			return { success: true };
 		} catch (err) {
@@ -627,10 +630,10 @@ export const actions: Actions = {
 
 			if (isVerboseDebug()) {
 				devLog("addInterestRate", "Interest rate created successfully", {
-				accountSlug: params.slug,
-				rateId: result.data,
-				rate,
-				effectiveFrom: effectiveFromStr,
+					accountSlug: params.slug,
+					rateId: result.data,
+					rate,
+					effectiveFrom: effectiveFromStr,
 				});
 			}
 
@@ -648,6 +651,7 @@ export const actions: Actions = {
 	 */
 	deleteInterestRate: async ({ request, locals, params }) => {
 		const account = await requireAccountOwnership(locals, params.slug);
+		const user = requireAuth(locals);
 
 		const formData = await request.formData();
 		const rateIdStr = formData.get("rateId") as string;
@@ -662,7 +666,7 @@ export const actions: Actions = {
 			if (
 				!rate ||
 				rate.accountId !== account.id ||
-				rate.account.userId !== locals.user!.id
+				rate.account.userId !== user.id
 			) {
 				return fail(404, { error: "Interest rate not found" });
 			}
@@ -678,8 +682,8 @@ export const actions: Actions = {
 
 			if (isVerboseDebug()) {
 				devLog("deleteInterestRate", "Interest rate deleted successfully", {
-				accountSlug: params.slug,
-				rateId,
+					accountSlug: params.slug,
+					rateId,
 				});
 			}
 
@@ -701,7 +705,11 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const content = formData.get("content") as string;
 
-		const noteResult = requireString(content, "Note content", FIELD_LIMITS.NOTE_CONTENT);
+		const noteResult = requireString(
+			content,
+			"Note content",
+			FIELD_LIMITS.NOTE_CONTENT,
+		);
 		if (!noteResult.ok) {
 			return fail(400, { error: noteResult.error });
 		}
@@ -722,8 +730,8 @@ export const actions: Actions = {
 
 			if (isVerboseDebug()) {
 				devLog("addNote", "Note created successfully", {
-				accountSlug: params.slug,
-				noteSlug: result.data,
+					accountSlug: params.slug,
+					noteSlug: result.data,
 				});
 			}
 
@@ -760,8 +768,8 @@ export const actions: Actions = {
 
 			if (isVerboseDebug()) {
 				devLog("deleteNote", "Note deleted successfully", {
-				accountSlug: params.slug,
-				noteSlug,
+					accountSlug: params.slug,
+					noteSlug,
 				});
 			}
 

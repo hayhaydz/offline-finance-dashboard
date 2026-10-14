@@ -4,7 +4,7 @@ import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { snapshots } from "$lib/db/schema";
 import { devLog, logError } from "$lib/server/logger";
-import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {

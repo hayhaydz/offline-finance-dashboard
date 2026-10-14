@@ -10,14 +10,34 @@
 
 /** Full month names (1-indexed: MONTH_NAMES[0] = "January") */
 export const MONTH_NAMES = [
-	"January", "February", "March", "April", "May", "June",
-	"July", "August", "September", "October", "November", "December",
+	"January",
+	"February",
+	"March",
+	"April",
+	"May",
+	"June",
+	"July",
+	"August",
+	"September",
+	"October",
+	"November",
+	"December",
 ] as const;
 
 /** Abbreviated month names (0-indexed: MONTH_NAMES_SHORT[0] = "Jan") */
 export const MONTH_NAMES_SHORT = [
-	"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-	"Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+	"Jan",
+	"Feb",
+	"Mar",
+	"Apr",
+	"May",
+	"Jun",
+	"Jul",
+	"Aug",
+	"Sep",
+	"Oct",
+	"Nov",
+	"Dec",
 ] as const;
 
 // ── Account Enums ──────────────────────────────────────────────
@@ -34,20 +54,11 @@ export const ACCOUNT_TYPES = [
 export type AccountType = (typeof ACCOUNT_TYPES)[number];
 
 /** Valid tax wrapper values — sourced from accounts.taxWrapper enum in db/schema.ts */
-export const TAX_WRAPPERS = [
-	"none",
-	"isa",
-	"lisa",
-	"premium-bonds",
-] as const;
+export const TAX_WRAPPERS = ["none", "isa", "lisa", "premium-bonds"] as const;
 export type TaxWrapper = (typeof TAX_WRAPPERS)[number];
 
 /** Valid liquidity values — sourced from accounts.liquidity enum in db/schema.ts */
-export const LIQUIDITY_OPTIONS = [
-	"instant",
-	"delayed",
-	"locked",
-] as const;
+export const LIQUIDITY_OPTIONS = ["instant", "delayed", "locked"] as const;
 export type LiquidityOption = (typeof LIQUIDITY_OPTIONS)[number];
 
 /** Tax-free wrappers — subset of TAX_WRAPPERS that receive tax-free treatment */

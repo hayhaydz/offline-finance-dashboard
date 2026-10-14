@@ -1,10 +1,10 @@
 import { error } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
-import { requireAuth } from "$lib/server/utils/auth-guard";
 import { db } from "$lib/db/client";
 import { accountNotes, accounts } from "$lib/db/schema";
 import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
+import { requireAuth } from "$lib/server/utils/auth-guard";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {

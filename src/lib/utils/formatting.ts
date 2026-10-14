@@ -19,7 +19,7 @@
  * @returns Formatted string like "£123.45" or "£1,000"
  */
 export function formatCents(cents: number): string {
-	return `£${(cents / 100).toLocaleString('en-GB')}`;
+	return `£${(cents / 100).toLocaleString("en-GB")}`;
 }
 
 // ── Tax Wrapper Formatting ─────────────────────────────────────
@@ -97,7 +97,10 @@ export function getExclusionReason(reason: string | null): string {
 /**
  * Get progress color classes based on percentage threshold.
  */
-export function getProgressColor(progress: number): { text: string; bg: string } {
+export function getProgressColor(progress: number): {
+	text: string;
+	bg: string;
+} {
 	if (progress >= 70) return { text: "text-green-700", bg: "bg-green-700" };
 	if (progress >= 30) return { text: "text-amber-600", bg: "bg-amber-600" };
 	return { text: "text-red-600", bg: "bg-red-600" };
@@ -121,7 +124,11 @@ export function getOnTrackClass(onTrack: boolean | null): string {
  * @param width - Character width of the bar (default: 10)
  * @returns String like "[###.......] 30%"
  */
-export function renderProgressBar(used: number, limit: number, width = 10): string {
+export function renderProgressBar(
+	used: number,
+	limit: number,
+	width = 10,
+): string {
 	const ratio = Math.min(1, used / limit);
 	const filled = Math.round(ratio * width);
 	const empty = width - filled;

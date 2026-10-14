@@ -1,9 +1,9 @@
-import { eq } from "drizzle-orm";
 import { json } from "@sveltejs/kit";
-import type { RequestHandler } from "./$types";
+import { eq } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { sessions } from "$lib/db/schema";
 import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
+import type { RequestHandler } from "./$types";
 
 /**
  * POST /api/logout

@@ -1,18 +1,25 @@
 // ─── Account & net-worth async alert checkers ─────────────────────────
 
-import { and, desc, eq, gte, inArray, isNull } from 'drizzle-orm';
-import { withUserFilter } from '$lib/auth/row-security';
-import { db } from '$lib/db/client';
-import { accountTransactions, accounts, interestRates, settings, snapshots } from '$lib/db/schema';
-import { getCurrentBalancesForAccounts } from '$lib/server/derivedBalances';
-import type { Alert } from '$lib/types/alerts';
-import { MS_PER_DAY } from '$lib/utils/time-constants';
-import { makeAccountAlert, makeGlobalAlert } from './constants';
-import { devLog, isVerboseDebug } from '$lib/server/logger';
-import { formatCents } from '$lib/utils/formatting';
+import { and, desc, eq, gte, inArray, isNull } from "drizzle-orm";
+import { withUserFilter } from "$lib/auth/row-security";
+import { db } from "$lib/db/client";
+import {
+	accounts,
+	accountTransactions,
+	interestRates,
+	settings,
+	snapshots,
+} from "$lib/db/schema";
+import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
+import type { Alert } from "$lib/types/alerts";
+import { formatCents } from "$lib/utils/formatting";
+import { MS_PER_DAY } from "$lib/utils/time-constants";
+import { makeAccountAlert, makeGlobalAlert } from "./constants";
 
 export async function checkNetWorthAlerts(userId: number): Promise<Alert[]> {
-	if (isVerboseDebug()) devLog("checkNetWorthAlerts", "Checking net worth alerts", { userId });
+	if (isVerboseDebug())
+		devLog("checkNetWorthAlerts", "Checking net worth alerts", { userId });
 	const alerts: Alert[] = [];
 
 	const rows = await db
@@ -34,11 +41,11 @@ export async function checkNetWorthAlerts(userId: number): Promise<Alert[]> {
 		const diff = prev.netWorthInCents - last.netWorthInCents;
 		alerts.push(
 			makeGlobalAlert(
-				'NET_WORTH_DECLINING',
-				'amber',
-				'Net worth declining',
+				"NET_WORTH_DECLINING",
+				"amber",
+				"Net worth declining",
 				`Decreased by ${formatCents(diff)} since last snapshot (${prev.snapshotDate})`,
-				'/overview/snapshots',
+				"/overview/snapshots",
 			),
 		);
 	}
@@ -56,11 +63,11 @@ export async function checkNetWorthAlerts(userId: number): Promise<Alert[]> {
 		if (decliningMonths >= 3) {
 			alerts.push(
 				makeGlobalAlert(
-					'NET_WORTH_SUSTAINED_DECLINE',
-					'red',
-					'Net worth sustained decline',
+					"NET_WORTH_SUSTAINED_DECLINE",
+					"red",
+					"Net worth sustained decline",
 					`Net worth has decreased for ${decliningMonths} consecutive months`,
-					'/overview/snapshots',
+					"/overview/snapshots",
 				),
 			);
 		}
@@ -70,7 +77,8 @@ export async function checkNetWorthAlerts(userId: number): Promise<Alert[]> {
 }
 
 export async function checkDebtPayoffAlerts(userId: number): Promise<Alert[]> {
-	if (isVerboseDebug()) devLog("checkDebtPayoffAlerts", "Checking debt payoff alerts", { userId });
+	if (isVerboseDebug())
+		devLog("checkDebtPayoffAlerts", "Checking debt payoff alerts", { userId });
 	const alerts: Alert[] = [];
 
 	const openLiabilities = await db
@@ -79,14 +87,14 @@ export async function checkDebtPayoffAlerts(userId: number): Promise<Alert[]> {
 		.where(
 			and(
 				withUserFilter(userId, accounts),
-				eq(accounts.category, 'liability'),
+				eq(accounts.category, "liability"),
 				isNull(accounts.closedAt),
 			),
 		);
 
 	if (openLiabilities.length === 0) return alerts;
 
-	const accountIds = openLiabilities.map(a => a.id);
+	const accountIds = openLiabilities.map((a) => a.id);
 	const balances = await getCurrentBalancesForAccounts(accountIds);
 
 	// Fetch latest interest rate for each liability account
@@ -95,7 +103,7 @@ export async function checkDebtPayoffAlerts(userId: number): Promise<Alert[]> {
 		.from(interestRates)
 		.where(inArray(interestRates.accountId, accountIds));
 
-	const latestRates = new Map<number, typeof rateRows[number]>();
+	const latestRates = new Map<number, (typeof rateRows)[number]>();
 	for (const row of rateRows) {
 		const existing = latestRates.get(row.accountId);
 		if (!existing || row.effectiveFrom > existing.effectiveFrom) {
@@ -142,15 +150,16 @@ export async function checkDebtPayoffAlerts(userId: number): Promise<Alert[]> {
 
 		// Estimate average monthly payment from recent history
 		const payments = accountPayments.get(account.id) ?? [];
-		const avgMonthlyPayment = payments.length > 0
-			? payments.reduce((sum, p) => sum + p, 0) / payments.length
-			: 0;
+		const avgMonthlyPayment =
+			payments.length > 0
+				? payments.reduce((sum, p) => sum + p, 0) / payments.length
+				: 0;
 
 		if (avgMonthlyPayment <= monthlyInterest && avgMonthlyPayment > 0) {
 			alerts.push(
 				makeAccountAlert(
-					'DEBT_NEVER_PAYS_OFF',
-					'red',
+					"DEBT_NEVER_PAYS_OFF",
+					"red",
 					`${account.name} — debt growing`,
 					`Monthly payment (${formatCents(Math.round(avgMonthlyPayment))}) doesn't cover interest (${formatCents(Math.round(monthlyInterest))})`,
 					account,
@@ -163,29 +172,30 @@ export async function checkDebtPayoffAlerts(userId: number): Promise<Alert[]> {
 }
 
 export async function checkBoERateAlerts(userId: number): Promise<Alert[]> {
-	if (isVerboseDebug()) devLog("checkBoERateAlerts", "Checking BoE rate alerts", { userId });
+	if (isVerboseDebug())
+		devLog("checkBoERateAlerts", "Checking BoE rate alerts", { userId });
 	const alerts: Alert[] = [];
 
 	const boeSetting = await db.query.settings.findFirst({
-		where: eq(settings.key, 'boeBaseRate'),
+		where: eq(settings.key, "boeBaseRate"),
 	});
 
 	if (!boeSetting) return alerts;
 
 	const boeBaseRateInBps = parseInt(boeSetting.value, 10);
-	if (isNaN(boeBaseRateInBps)) return alerts;
+	if (Number.isNaN(boeBaseRateInBps)) return alerts;
 
 	// Query open asset savings accounts (not current accounts)
 	const savingsAccounts = await db.query.accounts.findMany({
 		where: and(
 			withUserFilter(userId, accounts),
-			eq(accounts.category, 'asset'),
+			eq(accounts.category, "asset"),
 			isNull(accounts.closedAt),
 		),
 	});
 
 	const savingsIds = savingsAccounts
-		.filter((a) => a.type !== 'current')
+		.filter((a) => a.type !== "current")
 		.map((a) => a.id);
 
 	if (savingsIds.length === 0) return alerts;
@@ -196,7 +206,7 @@ export async function checkBoERateAlerts(userId: number): Promise<Alert[]> {
 		.from(interestRates)
 		.where(inArray(interestRates.accountId, savingsIds));
 
-	const latestRates = new Map<number, typeof rateRows[number]>();
+	const latestRates = new Map<number, (typeof rateRows)[number]>();
 	for (const row of rateRows) {
 		const existing = latestRates.get(row.accountId);
 		if (!existing || row.effectiveFrom > existing.effectiveFrom) {
@@ -205,7 +215,7 @@ export async function checkBoERateAlerts(userId: number): Promise<Alert[]> {
 	}
 
 	for (const account of savingsAccounts) {
-		if (account.type === 'current') continue;
+		if (account.type === "current") continue;
 
 		const rate = latestRates.get(account.id);
 		if (!rate) continue;
@@ -221,8 +231,8 @@ export async function checkBoERateAlerts(userId: number): Promise<Alert[]> {
 			const spreadPct = (Math.abs(spread) / 100).toFixed(2);
 			alerts.push(
 				makeAccountAlert(
-					'SAVINGS_RATE_BELOW_BOE',
-					'amber',
+					"SAVINGS_RATE_BELOW_BOE",
+					"amber",
 					`${account.name} — rate below base`,
 					`Rate of ${accountRatePct}% is ${spreadPct}% below BoE base (${baseRatePct}%)`,
 					account,
@@ -235,8 +245,8 @@ export async function checkBoERateAlerts(userId: number): Promise<Alert[]> {
 			const spreadPct = (Math.abs(spread) / 100).toFixed(2);
 			alerts.push(
 				makeAccountAlert(
-					'SAVINGS_RATE_BELOW_BOE',
-					'info',
+					"SAVINGS_RATE_BELOW_BOE",
+					"info",
 					`${account.name} — rate below base`,
 					`Rate of ${accountRatePct}% is ${spreadPct}% below BoE base (${baseRatePct}%)`,
 					account,
@@ -249,7 +259,8 @@ export async function checkBoERateAlerts(userId: number): Promise<Alert[]> {
 }
 
 export async function checkOrphanedTransfers(userId: number): Promise<Alert[]> {
-	if (isVerboseDebug()) devLog("checkOrphanedTransfers", "Checking orphaned transfers", { userId });
+	if (isVerboseDebug())
+		devLog("checkOrphanedTransfers", "Checking orphaned transfers", { userId });
 	const alerts: Alert[] = [];
 
 	const thirtyDaysAgo = new Date();
@@ -275,7 +286,7 @@ export async function checkOrphanedTransfers(userId: number): Promise<Alert[]> {
 		.where(
 			and(
 				inArray(accountTransactions.accountId, userAccountIds),
-				inArray(accountTransactions.type, ['transfer_in', 'transfer_out']),
+				inArray(accountTransactions.type, ["transfer_in", "transfer_out"]),
 				gte(accountTransactions.transactionDate, thirtyDaysAgo),
 			),
 		);
@@ -283,7 +294,7 @@ export async function checkOrphanedTransfers(userId: number): Promise<Alert[]> {
 	if (transferRows.length === 0) return alerts;
 
 	// Build account lookup
-	const accountMap = new Map<number, typeof userAccounts[number]>();
+	const accountMap = new Map<number, (typeof userAccounts)[number]>();
 	for (const account of userAccounts) {
 		accountMap.set(account.id, account);
 	}
@@ -293,16 +304,17 @@ export async function checkOrphanedTransfers(userId: number): Promise<Alert[]> {
 
 	for (const tx of transferRows) {
 		// We only alert on transfer_in to avoid double-counting
-		if (tx.type !== 'transfer_in') continue;
+		if (tx.type !== "transfer_in") continue;
 
 		const txDateMs = Number(tx.transactionDate) * 1000;
 
 		// Look for a matching transfer_out in another account
-		const hasMatch = transferRows.some((other) =>
-			other.type === 'transfer_out' &&
-			other.accountId !== tx.accountId &&
-			Math.abs(other.amount) === Math.abs(tx.amount) &&
-			Math.abs(Number(other.transactionDate) * 1000 - txDateMs) <= oneDayMs,
+		const hasMatch = transferRows.some(
+			(other) =>
+				other.type === "transfer_out" &&
+				other.accountId !== tx.accountId &&
+				Math.abs(other.amount) === Math.abs(tx.amount) &&
+				Math.abs(Number(other.transactionDate) * 1000 - txDateMs) <= oneDayMs,
 		);
 
 		if (!hasMatch) {
@@ -311,13 +323,13 @@ export async function checkOrphanedTransfers(userId: number): Promise<Alert[]> {
 
 			const txDate = new Date(txDateMs);
 			const formattedAmount = formatCents(Math.abs(tx.amount));
-			const formattedDate = txDate.toLocaleDateString('en-GB');
+			const formattedDate = txDate.toLocaleDateString("en-GB");
 
 			alerts.push(
 				makeAccountAlert(
-					'ORPHANED_TRANSFER',
-					'info',
-					'Unmatched transfer',
+					"ORPHANED_TRANSFER",
+					"info",
+					"Unmatched transfer",
 					`${formattedAmount} transfer_in on ${formattedDate} has no matching counterpart`,
 					account,
 				),

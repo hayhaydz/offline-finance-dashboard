@@ -1,14 +1,19 @@
-import { error, fail, redirect } from "@sveltejs/kit";
+import { fail, redirect } from "@sveltejs/kit";
 import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { snapshots } from "$lib/db/schema";
-import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
-import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
+import {
+	devLog,
+	isVerboseDebug,
+	logError,
+	logFormData,
+} from "$lib/server/logger";
 import {
 	calculateSnapshotData,
 	getSnapshotByDate,
 	getTodayUTC,
 } from "$lib/server/snapshot-utils";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -53,11 +58,11 @@ export const actions: Actions = {
 		}
 
 		// Validate notes length
-			if (notes && notes.length > 10000) {
-				return fail(400, { error: "Notes must be 10,000 characters or less" });
-			}
+		if (notes && notes.length > 10000) {
+			return fail(400, { error: "Notes must be 10,000 characters or less" });
+		}
 
-			// Check for same-day duplicate
+		// Check for same-day duplicate
 		const existing = await getSnapshotByDate(user.id, snapshotDate);
 		if (existing) {
 			devLog("createSnapshot", "Duplicate snapshot date", {

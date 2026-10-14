@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { sanitizeNoteContent } from "./sanitize";
 
 describe("sanitizeNoteContent", () => {
@@ -7,7 +7,7 @@ describe("sanitizeNoteContent", () => {
 	});
 
 	it("strips img onerror payloads", () => {
-		expect(sanitizeNoteContent('<img src=x onerror=alert(1)>')).toBe("");
+		expect(sanitizeNoteContent("<img src=x onerror=alert(1)>")).toBe("");
 	});
 
 	it("strips javascript: protocol links but keeps text", () => {
@@ -25,9 +25,9 @@ describe("sanitizeNoteContent", () => {
 	});
 
 	it("strips script tags while preserving surrounding text", () => {
-		expect(
-			sanitizeNoteContent('<script>steal()</script>safe text'),
-		).toBe("safe text");
+		expect(sanitizeNoteContent("<script>steal()</script>safe text")).toBe(
+			"safe text",
+		);
 	});
 
 	it("handles event handler attributes", () => {

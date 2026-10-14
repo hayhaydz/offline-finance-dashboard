@@ -1,6 +1,6 @@
+import { eq, inArray } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { eq, inArray } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import type { User } from "$lib/db/schema";
 import {

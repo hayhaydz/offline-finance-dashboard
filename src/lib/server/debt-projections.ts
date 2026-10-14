@@ -1,5 +1,5 @@
-import { calculateTTZ } from "$lib/utils/debt-calculator";
 import { devLog, isVerboseDebug } from "$lib/server/logger";
+import { calculateTTZ } from "$lib/utils/debt-calculator";
 
 // ── Tax year date helpers ──────────────────────────────────────
 
@@ -69,7 +69,9 @@ export function calculateMinimumPayment(
 	rule: { type: string; flat: number | null; percentage: number | null },
 ): number {
 	if (isVerboseDebug()) {
-		devLog("calculateMinimumPayment", "Calculating minimum payment", { ruleType: rule.type });
+		devLog("calculateMinimumPayment", "Calculating minimum payment", {
+			ruleType: rule.type,
+		});
 	}
 	if (rule.type === "flat" && rule.flat !== null) {
 		return rule.flat;
@@ -99,7 +101,10 @@ export function calculatePaymentSuggestion(
 	interestSaved: number;
 } | null {
 	if (isVerboseDebug()) {
-		devLog("calculatePaymentSuggestion", "Calculating payment suggestion", { balance, currentPayment });
+		devLog("calculatePaymentSuggestion", "Calculating payment suggestion", {
+			balance,
+			currentPayment,
+		});
 	}
 	// No suggestion if never pays off or already fast (< 6 months)
 	if (ttz.months === null || ttz.months < 6) {

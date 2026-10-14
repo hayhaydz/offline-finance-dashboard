@@ -130,13 +130,13 @@ export function runMigrationPreflight(
 	for (const entry of journal.entries) {
 		const expectedFile = `${entry.tag}.sql`;
 		if (!sqlFileSet.has(expectedFile)) {
-			issues.push(
-				`Journal entry references missing SQL file: ${expectedFile}`,
-			);
+			issues.push(`Journal entry references missing SQL file: ${expectedFile}`);
 		}
 	}
 
-	const journalTags = new Set(journal.entries.map((entry) => `${entry.tag}.sql`));
+	const journalTags = new Set(
+		journal.entries.map((entry) => `${entry.tag}.sql`),
+	);
 	for (const fileName of sqlFiles) {
 		if (!journalTags.has(fileName)) {
 			issues.push(`SQL file is not referenced by journal: ${fileName}`);

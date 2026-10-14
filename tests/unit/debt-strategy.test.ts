@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+	calculateDebtStrategyMetrics,
 	calculatePayoffProjection,
 	calculateStrategyOrder,
-	calculateDebtStrategyMetrics,
 } from "$lib/server/debt-strategy";
 
 describe("calculatePayoffProjection", () => {
@@ -78,12 +78,20 @@ describe("calculateStrategyOrder", () => {
 
 	it("snowball sorts by remaining ascending (smallest first)", () => {
 		const result = calculateStrategyOrder(debts, "snowball");
-		expect(result.map((d) => d.slug)).toEqual(["card-a", "overdraft", "loan-b"]);
+		expect(result.map((d) => d.slug)).toEqual([
+			"card-a",
+			"overdraft",
+			"loan-b",
+		]);
 	});
 
 	it("avalanche sorts by APR descending (highest first)", () => {
 		const result = calculateStrategyOrder(debts, "avalanche");
-		expect(result.map((d) => d.slug)).toEqual(["overdraft", "card-a", "loan-b"]);
+		expect(result.map((d) => d.slug)).toEqual([
+			"overdraft",
+			"card-a",
+			"loan-b",
+		]);
 	});
 
 	it("hybrid: snowball for debts under £1,000 then avalanche", () => {

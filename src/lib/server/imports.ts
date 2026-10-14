@@ -1,9 +1,13 @@
 import { and, eq, gte, lte } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
-import { accountTransactions, accounts } from "$lib/db/schema";
-import { type TransactionType } from "$lib/utils/csv-parser";
+import { accounts, accountTransactions } from "$lib/db/schema";
 import { devLog, logError, logInfo } from "$lib/server/logger";
+import {
+	TRANSACTION_TYPES,
+	type TransactionType,
+} from "$lib/utils/domain-constants";
+import { FIELD_LIMITS } from "$lib/utils/fieldLimits";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -32,6 +36,68 @@ export interface ExistingTransaction {
 
 function poundsToCents(pounds: number): number {
 	return Math.round(pounds * 100);
+}
+
+// ---------------------------------------------------------------------------
+// Server-side row validation
+// ---------------------------------------------------------------------------
+
+const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+/** £10m per-transaction sanity ceiling (in pounds) */
+const MAX_ROW_AMOUNT_POUNDS = 10_000_000;
+
+/**
+ * Validate untrusted ImportRow payloads before they reach the database.
+ * The import wizard parses client-side, but the action receives raw JSON —
+ * so `type`, `amount`, `date`, and `description` must be re-checked here.
+ * Returns an error string for the first invalid row, or null when valid.
+ */
+export function validateImportRows(rows: unknown[]): string | null {
+	for (let i = 0; i < rows.length; i++) {
+		const row = rows[i] as Record<string, unknown> | null;
+		if (row === null || typeof row !== "object") {
+			return `Row ${i + 1}: not a valid object`;
+		}
+
+		if (
+			typeof row.type !== "string" ||
+			!TRANSACTION_TYPES.includes(row.type as TransactionType)
+		) {
+			return `Row ${i + 1}: unknown transaction type`;
+		}
+
+		const amount = row.amount;
+		if (typeof amount !== "number" || !Number.isFinite(amount)) {
+			return `Row ${i + 1}: amount must be a finite number`;
+		}
+		if (Math.abs(amount) > MAX_ROW_AMOUNT_POUNDS) {
+			return `Row ${i + 1}: amount exceeds the maximum allowed`;
+		}
+
+		if (
+			typeof row.date !== "string" ||
+			!DATE_ONLY_REGEX.test(row.date) ||
+			Number.isNaN(new Date(`${row.date}T00:00:00.000Z`).getTime())
+		) {
+			return `Row ${i + 1}: invalid date (use YYYY-MM-DD)`;
+		}
+
+		if (row.description !== undefined && row.description !== null) {
+			if (typeof row.description !== "string") {
+				return `Row ${i + 1}: description must be a string`;
+			}
+			if (row.description.length > FIELD_LIMITS.NOTE_CONTENT) {
+				return `Row ${i + 1}: description too long`;
+			}
+		}
+
+		if (row.category !== undefined && row.category !== null) {
+			if (typeof row.category !== "string" || row.category.length > 100) {
+				return `Row ${i + 1}: invalid category`;
+			}
+		}
+	}
+	return null;
 }
 
 // ---------------------------------------------------------------------------
@@ -81,11 +147,15 @@ export async function getOverlappingTransactions(
 				),
 			);
 
-		devLog("getOverlappingTransactions", `Found ${rows.length} existing transactions`, {
-			accountId,
-			from: fromDate,
-			to: toDate,
-		});
+		devLog(
+			"getOverlappingTransactions",
+			`Found ${rows.length} existing transactions`,
+			{
+				accountId,
+				from: fromDate,
+				to: toDate,
+			},
+		);
 
 		return rows.map((row) => ({
 			id: row.id,
@@ -96,7 +166,11 @@ export async function getOverlappingTransactions(
 			transactionDate: row.transactionDate.toISOString().split("T")[0],
 		}));
 	} catch (error) {
-		logError("getOverlappingTransactions", "Failed to fetch overlapping transactions", error);
+		logError(
+			"getOverlappingTransactions",
+			"Failed to fetch overlapping transactions",
+			error,
+		);
 		throw error;
 	}
 }
@@ -130,19 +204,27 @@ export async function batchInsertTransactions(
 			throw new Error("Cannot import transactions into a closed account");
 		}
 
+		// Re-validate untrusted rows (type enum, finite amounts, dates, lengths)
+		const validationError = validateImportRows(rows);
+		if (validationError) {
+			throw new Error(validationError);
+		}
+
 		let inserted = 0;
 
 		db.transaction((tx) => {
 			for (const row of rows) {
-				tx.insert(accountTransactions).values({
-					slug: nanoid(21),
-					accountId,
-					type: row.type,
-					amount: poundsToCents(row.amount),
-					description: row.description || null,
-					categoryId: null,
-					transactionDate: new Date(`${row.date}T00:00:00.000Z`),
-				}).run();
+				tx.insert(accountTransactions)
+					.values({
+						slug: nanoid(21),
+						accountId,
+						type: row.type,
+						amount: poundsToCents(row.amount),
+						description: row.description || null,
+						categoryId: null,
+						transactionDate: new Date(`${row.date}T00:00:00.000Z`),
+					})
+					.run();
 				inserted++;
 			}
 		});
@@ -154,7 +236,11 @@ export async function batchInsertTransactions(
 
 		return inserted;
 	} catch (error) {
-		logError("batchInsertTransactions", "Failed to batch insert transactions", error);
+		logError(
+			"batchInsertTransactions",
+			"Failed to batch insert transactions",
+			error,
+		);
 		throw error;
 	}
 }

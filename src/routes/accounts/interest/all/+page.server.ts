@@ -1,10 +1,13 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
-import { requireAuth } from "$lib/server/utils/auth-guard";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions, users } from "$lib/db/schema";
-import { getTaxFreeStatus, getUkTaxYearBounds } from "$lib/utils/tax-year-utils";
+import { requireAuth } from "$lib/server/utils/auth-guard";
 import { isTaxFreeWrapper } from "$lib/utils/tax-classification";
+import {
+	getTaxFreeStatus,
+	getUkTaxYearBounds,
+} from "$lib/utils/tax-year-utils";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, url }) => {

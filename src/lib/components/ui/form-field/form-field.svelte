@@ -106,6 +106,7 @@
 	<input
 		{type}
 		{name}
+		id={name}
 		{placeholder}
 		autocomplete={autocomplete}
 		{inputmode}

@@ -14,12 +14,12 @@ vi.mock("$lib/auth/row-security", () => ({
 	validateUserAccess: vi.fn(),
 }));
 
-import { requireAccountOwnership } from "$lib/server/account-ownership";
-import { db } from "$lib/db/client";
 import { validateUserAccess } from "$lib/auth/row-security";
+import { db } from "$lib/db/client";
+import { requireAccountOwnership } from "$lib/server/account-ownership";
 
 function mockLocals(userId?: number): App.Locals {
-	return { user: userId ? { id: userId } as any : undefined };
+	return { user: userId ? ({ id: userId } as any) : undefined };
 }
 
 describe("requireAccountOwnership", () => {
@@ -30,9 +30,9 @@ describe("requireAccountOwnership", () => {
 	});
 
 	it("throws 404 when account not found", async () => {
-		(
-			db.query.accounts.findFirst as ReturnType<typeof vi.fn>
-		).mockResolvedValue(null);
+		(db.query.accounts.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+			null,
+		);
 
 		await expect(
 			requireAccountOwnership(mockLocals(1), "nonexistent"),
@@ -40,16 +40,14 @@ describe("requireAccountOwnership", () => {
 	});
 
 	it("throws when validateUserAccess fails", async () => {
-		(
-			db.query.accounts.findFirst as ReturnType<typeof vi.fn>
-		).mockResolvedValue({
-			id: 10,
-			slug: "my-account",
-			userId: 999,
-		});
-		(
-			validateUserAccess as ReturnType<typeof vi.fn>
-		).mockImplementation(() => {
+		(db.query.accounts.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+			{
+				id: 10,
+				slug: "my-account",
+				userId: 999,
+			},
+		);
+		(validateUserAccess as ReturnType<typeof vi.fn>).mockImplementation(() => {
 			throw new Error("Forbidden");
 		});
 
@@ -60,17 +58,12 @@ describe("requireAccountOwnership", () => {
 
 	it("returns account when ownership is valid", async () => {
 		const account = { id: 10, slug: "my-account", userId: 1 };
-		(
-			db.query.accounts.findFirst as ReturnType<typeof vi.fn>
-		).mockResolvedValue(account);
-		(
-			validateUserAccess as ReturnType<typeof vi.fn>
-		).mockReturnValue(undefined);
-
-		const result = await requireAccountOwnership(
-			mockLocals(1),
-			"my-account",
+		(db.query.accounts.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+			account,
 		);
+		(validateUserAccess as ReturnType<typeof vi.fn>).mockReturnValue(undefined);
+
+		const result = await requireAccountOwnership(mockLocals(1), "my-account");
 
 		expect(result).toEqual(account);
 		expect(db.query.accounts.findFirst).toHaveBeenCalledWith({

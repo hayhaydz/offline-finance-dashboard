@@ -1,5 +1,5 @@
-import { goto } from '$app/navigation';
-import { page as pageState } from '$app/state';
+import { goto } from "$app/navigation";
+import { page as pageState } from "$app/state";
 
 /**
  * Svelte 5 composable for URL-synced pagination.
@@ -11,7 +11,7 @@ import { page as pageState } from '$app/state';
  *   const { page, updatePage } = useUrlPagination('page');
  *   // For server-data sync, add a separate $effect that sets page directly.
  */
-export function useUrlPagination(paramName: string = 'page') {
+export function useUrlPagination(paramName: string = "page") {
 	let currentPage = $state(0);
 	let isUpdating = $state(false);
 
@@ -33,13 +33,21 @@ export function useUrlPagination(paramName: string = 'page') {
 		} else {
 			url.searchParams.delete(paramName);
 		}
-		await goto(url.pathname + url.search, { replaceState: true, noScroll: true, keepFocus: true });
+		await goto(url.pathname + url.search, {
+			replaceState: true,
+			noScroll: true,
+			keepFocus: true,
+		});
 		isUpdating = false;
 	}
 
 	return {
-		get page() { return currentPage; },
-		set page(v: number) { currentPage = v; },
+		get page() {
+			return currentPage;
+		},
+		set page(v: number) {
+			currentPage = v;
+		},
 		updatePage,
 	};
 }

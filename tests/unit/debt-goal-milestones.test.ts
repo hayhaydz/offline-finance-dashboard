@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateDefaultMilestones, checkMilestones } from "$lib/server/goals";
+import { checkMilestones, generateDefaultMilestones } from "$lib/server/goals";
 
 describe("generateDefaultMilestones", () => {
 	it("generates 4 default milestones from starting balance", () => {

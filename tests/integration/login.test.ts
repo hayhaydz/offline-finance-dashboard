@@ -42,6 +42,7 @@ vi.mock("$lib/auth/mfa", async () => {
 });
 
 vi.mock("$lib/auth/password", () => ({
+	hashPassword: vi.fn(() => Promise.resolve("dummy-hash-for-timing")),
 	verifyPassword: vi.fn(),
 }));
 

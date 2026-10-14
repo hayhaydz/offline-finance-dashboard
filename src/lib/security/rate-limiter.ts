@@ -60,11 +60,8 @@ export async function checkRateLimit(
 	// delay was returned forever, blocking login (deadlock).
 	const elapsed = Date.now() - attempt.lastAttempt.getTime();
 	const requiredDelay =
-		attempt.count > 0
-			? Math.min(2 ** attempt.count * 1000, MAX_DELAY)
-			: 0;
-	const delay =
-		elapsed < requiredDelay ? requiredDelay - elapsed : undefined;
+		attempt.count > 0 ? Math.min(2 ** attempt.count * 1000, MAX_DELAY) : 0;
+	const delay = elapsed < requiredDelay ? requiredDelay - elapsed : undefined;
 	const attemptsRemaining = Math.max(0, MAX_ATTEMPTS - attempt.count);
 
 	return {

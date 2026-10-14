@@ -1,10 +1,9 @@
-import { asc, desc, and, isNull, lt } from "drizzle-orm";
 import { error, fail } from "@sveltejs/kit";
+import { and, desc, isNull, lt } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { goals, snapshots } from "$lib/db/schema";
 import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
-import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import {
 	CHECKLIST_ITEMS,
 	currentYearMonth,
@@ -14,6 +13,7 @@ import {
 	toggleChecklistItem,
 	updateReviewNotes,
 } from "$lib/server/reviews";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -59,8 +59,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	// Build goal progress rows
 	const goalProgress = userGoals.map((g) => {
 		const prior = priorGoalAllocation.get(g.id) ?? null;
-		const momDelta =
-			prior !== null ? g.currentAllocation - prior : null;
+		const momDelta = prior !== null ? g.currentAllocation - prior : null;
 		const percent =
 			g.targetAmountInCents > 0
 				? Math.min(
@@ -118,11 +117,7 @@ export const actions: Actions = {
 			return fail(400, { error: "Missing parameters" });
 		}
 
-		const result = await toggleChecklistItem(
-			reviewSlug,
-			itemKey,
-			user.id,
-		);
+		const result = await toggleChecklistItem(reviewSlug, itemKey, user.id);
 
 		if (!result) {
 			logError("review/toggle", "Toggle failed", {
@@ -148,11 +143,7 @@ export const actions: Actions = {
 			return fail(400, { error: "Missing review slug" });
 		}
 
-		const result = await updateReviewNotes(
-			reviewSlug,
-			notes,
-			user.id,
-		);
+		const result = await updateReviewNotes(reviewSlug, notes, user.id);
 
 		if (!result) {
 			return fail(404, { error: "Review not found" });

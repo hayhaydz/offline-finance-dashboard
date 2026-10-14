@@ -2,14 +2,14 @@ import { fail, redirect } from "@sveltejs/kit";
 import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { goals } from "$lib/db/schema";
+import { devLog, isVerboseDebug, logFormData } from "$lib/server/logger";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import {
-	requireString,
-	requirePositiveCurrency,
-	requireDateISO,
 	FIELD_LIMITS,
+	requireDateISO,
+	requirePositiveCurrency,
+	requireString,
 } from "$lib/server/validation";
-import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
-import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {

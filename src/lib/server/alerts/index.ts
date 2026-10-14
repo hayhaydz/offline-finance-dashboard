@@ -1,51 +1,55 @@
-import type { Alert } from '$lib/types/alerts';
-import { devLog, logError, logInfo } from '$lib/server/logger';
-import { fetchBulkData } from './bulk-data';
+import { devLog, logError, logInfo } from "$lib/server/logger";
+import type { Alert } from "$lib/types/alerts";
 import {
-	checkMaturityAlerts,
-	checkMaturityPassedAlerts,
-	checkRateChangeAlerts,
-	checkNoRateAlerts,
-	checkStaleBalanceAlerts,
-	checkCreditAlerts,
-	checkLiabilityPaymentAlerts,
-	checkInterestAccruedAlerts,
-	checkZeroBalanceAlerts,
-	checkPremiumBondsAlerts,
-	checkNoDisbursementAlerts,
-	checkUnusedIsaAlerts,
-	checkClosedWithBalanceAlerts,
-} from './sync-checkers';
+	checkBoERateAlerts,
+	checkDebtPayoffAlerts,
+	checkNetWorthAlerts,
+	checkOrphanedTransfers,
+} from "./async-accounts";
 import {
+	checkBudgetAlerts,
+	checkGoalAlerts,
+	checkGoalAutoReduceAlerts,
+	checkMonthlyReviewAlerts,
+	checkSnapshotAlerts,
+} from "./async-goals";
+import {
+	checkISAPacingAlerts,
 	checkIsaAlerts,
+	checkLISAAlerts,
 	checkPsaAlerts,
 	checkTaxYearReviewAlerts,
-	checkISAPacingAlerts,
-	checkLISAAlerts,
-} from './async-isa';
+} from "./async-isa";
+import { fetchBulkData } from "./bulk-data";
 import {
-	checkGoalAlerts,
-	checkSnapshotAlerts,
-	checkMonthlyReviewAlerts,
-	checkBudgetAlerts,
-	checkGoalAutoReduceAlerts,
-} from './async-goals';
-import {
-	checkNetWorthAlerts,
-	checkDebtPayoffAlerts,
-	checkBoERateAlerts,
-	checkOrphanedTransfers,
-} from './async-accounts';
+	checkClosedWithBalanceAlerts,
+	checkCreditAlerts,
+	checkInterestAccruedAlerts,
+	checkLiabilityPaymentAlerts,
+	checkMaturityAlerts,
+	checkMaturityPassedAlerts,
+	checkNoDisbursementAlerts,
+	checkNoRateAlerts,
+	checkPremiumBondsAlerts,
+	checkRateChangeAlerts,
+	checkStaleBalanceAlerts,
+	checkUnusedIsaAlerts,
+	checkZeroBalanceAlerts,
+} from "./sync-checkers";
 
 /** Diagnostic wrapper — logs checker name + result count, surfaces full error */
-async function safeCheck(name: string, fn: () => Promise<Alert[]>): Promise<Alert[]> {
+async function safeCheck(
+	name: string,
+	fn: () => Promise<Alert[]>,
+): Promise<Alert[]> {
 	try {
 		const result = await fn();
-		devLog('getAlerts', `checker "${name}" → ${result.length} alert(s)`);
+		devLog("getAlerts", `checker "${name}" → ${result.length} alert(s)`);
 		return result;
 	} catch (err) {
-		const msg = err instanceof Error ? `${err.message}\n${err.stack}` : String(err);
-		logInfo('getAlerts', `checker "${name}" FAILED: ${msg}`);
+		const msg =
+			err instanceof Error ? `${err.message}\n${err.stack}` : String(err);
+		logInfo("getAlerts", `checker "${name}" FAILED: ${msg}`);
 		return [];
 	}
 }
@@ -57,8 +61,18 @@ async function safeCheck(name: string, fn: () => Promise<Alert[]>): Promise<Aler
  * Includes user-level alerts (ISA, PSA, goals, snapshots) + all account-level.
  */
 export async function getAlerts(userId: number): Promise<Alert[]> {
-	const { allAccounts, openAccounts, rateHistories, txSummaries, balances, latestTxDates, taxYear, now, taxBand, hasSavingsAccounts } =
-		await fetchBulkData(userId);
+	const {
+		allAccounts,
+		openAccounts,
+		rateHistories,
+		txSummaries,
+		balances,
+		latestTxDates,
+		taxYear,
+		now,
+		taxBand,
+		hasSavingsAccounts,
+	} = await fetchBulkData(userId);
 	const hasAccounts = allAccounts.length > 0;
 
 	// Account-level (sync)
@@ -79,28 +93,67 @@ export async function getAlerts(userId: number): Promise<Alert[]> {
 	];
 
 	// User-level + account-level (async, parallel — each checker isolated)
-	const [isaAlerts, psaAlerts, goalAlerts, snapshotAlerts, reviewAlerts, taxYearReviewAlerts,
-		budgetAlerts, netWorthAlerts, debtPayoffAlerts, goalAutoReduceAlerts, isaPacingAlerts, lisaAlerts, boeRateAlerts, orphanedTransferAlerts] = await Promise.all([
-		safeCheck('checkIsaAlerts',          () => checkIsaAlerts(userId, taxYear)),
-		safeCheck('checkPsaAlerts',           () => checkPsaAlerts(userId, taxYear, taxBand, hasSavingsAccounts)),
-		safeCheck('checkGoalAlerts',          () => checkGoalAlerts(userId)),
-		safeCheck('checkSnapshotAlerts',      () => checkSnapshotAlerts(userId, hasAccounts)),
-		safeCheck('checkMonthlyReviewAlerts', () => checkMonthlyReviewAlerts(userId, hasAccounts)),
-		safeCheck('checkTaxYearReviewAlerts', () => checkTaxYearReviewAlerts(now, hasAccounts)),
-		safeCheck('checkBudgetAlerts',        () => checkBudgetAlerts(userId)),
-		safeCheck('checkNetWorthAlerts',      () => checkNetWorthAlerts(userId)),
-		safeCheck('checkDebtPayoffAlerts',    () => checkDebtPayoffAlerts(userId)),
-		safeCheck('checkGoalAutoReduceAlerts',() => checkGoalAutoReduceAlerts(userId)),
-		safeCheck('checkISAPacingAlerts',     () => checkISAPacingAlerts(userId)),
-		safeCheck('checkLISAAlerts',          () => checkLISAAlerts(userId)),
-		safeCheck('checkBoERateAlerts',       () => checkBoERateAlerts(userId)),
-		safeCheck('checkOrphanedTransfers',   () => checkOrphanedTransfers(userId)),
+	const [
+		isaAlerts,
+		psaAlerts,
+		goalAlerts,
+		snapshotAlerts,
+		reviewAlerts,
+		taxYearReviewAlerts,
+		budgetAlerts,
+		netWorthAlerts,
+		debtPayoffAlerts,
+		goalAutoReduceAlerts,
+		isaPacingAlerts,
+		lisaAlerts,
+		boeRateAlerts,
+		orphanedTransferAlerts,
+	] = await Promise.all([
+		safeCheck("checkIsaAlerts", () => checkIsaAlerts(userId, taxYear)),
+		safeCheck("checkPsaAlerts", () =>
+			checkPsaAlerts(userId, taxYear, taxBand, hasSavingsAccounts),
+		),
+		safeCheck("checkGoalAlerts", () => checkGoalAlerts(userId)),
+		safeCheck("checkSnapshotAlerts", () =>
+			checkSnapshotAlerts(userId, hasAccounts),
+		),
+		safeCheck("checkMonthlyReviewAlerts", () =>
+			checkMonthlyReviewAlerts(userId, hasAccounts),
+		),
+		safeCheck("checkTaxYearReviewAlerts", () =>
+			checkTaxYearReviewAlerts(now, hasAccounts),
+		),
+		safeCheck("checkBudgetAlerts", () => checkBudgetAlerts(userId)),
+		safeCheck("checkNetWorthAlerts", () => checkNetWorthAlerts(userId)),
+		safeCheck("checkDebtPayoffAlerts", () => checkDebtPayoffAlerts(userId)),
+		safeCheck("checkGoalAutoReduceAlerts", () =>
+			checkGoalAutoReduceAlerts(userId),
+		),
+		safeCheck("checkISAPacingAlerts", () => checkISAPacingAlerts(userId)),
+		safeCheck("checkLISAAlerts", () => checkLISAAlerts(userId)),
+		safeCheck("checkBoERateAlerts", () => checkBoERateAlerts(userId)),
+		safeCheck("checkOrphanedTransfers", () => checkOrphanedTransfers(userId)),
 	]);
 
-	const all = [...accountAlerts, ...isaAlerts, ...psaAlerts, ...goalAlerts, ...snapshotAlerts, ...reviewAlerts, ...taxYearReviewAlerts,
-		...budgetAlerts, ...netWorthAlerts, ...debtPayoffAlerts, ...goalAutoReduceAlerts, ...isaPacingAlerts, ...lisaAlerts, ...boeRateAlerts, ...orphanedTransferAlerts];
+	const all = [
+		...accountAlerts,
+		...isaAlerts,
+		...psaAlerts,
+		...goalAlerts,
+		...snapshotAlerts,
+		...reviewAlerts,
+		...taxYearReviewAlerts,
+		...budgetAlerts,
+		...netWorthAlerts,
+		...debtPayoffAlerts,
+		...goalAutoReduceAlerts,
+		...isaPacingAlerts,
+		...lisaAlerts,
+		...boeRateAlerts,
+		...orphanedTransferAlerts,
+	];
 
-	logInfo('getAlerts', `Computed ${all.length} alert(s) for user ${userId}`);
+	logInfo("getAlerts", `Computed ${all.length} alert(s) for user ${userId}`);
 	return all;
 }
 
@@ -110,10 +163,22 @@ export async function getAlerts(userId: number): Promise<Alert[]> {
  */
 export async function getAccountListAlerts(userId: number): Promise<Alert[]> {
 	try {
-		const { allAccounts, openAccounts, rateHistories, txSummaries, balances, latestTxDates, now } =
-			await fetchBulkData(userId);
+		const {
+			allAccounts,
+			openAccounts,
+			rateHistories,
+			txSummaries,
+			balances,
+			latestTxDates,
+			now,
+		} = await fetchBulkData(userId);
 
-		const [debtPayoffAlerts, boeRateAlerts, orphanedTransferAlerts, lisaAlerts] = await Promise.all([
+		const [
+			debtPayoffAlerts,
+			boeRateAlerts,
+			orphanedTransferAlerts,
+			lisaAlerts,
+		] = await Promise.all([
 			checkDebtPayoffAlerts(userId),
 			checkBoERateAlerts(userId),
 			checkOrphanedTransfers(userId),
@@ -138,7 +203,11 @@ export async function getAccountListAlerts(userId: number): Promise<Alert[]> {
 			...lisaAlerts,
 		];
 	} catch (err) {
-		logError('getAccountListAlerts', 'Failed to compute account list alerts', { userId, err });
+		logError(
+			"getAccountListAlerts",
+			`Failed to compute account list alerts (userId=${userId})`,
+			err,
+		);
 		return [];
 	}
 }
@@ -147,10 +216,20 @@ export async function getAccountListAlerts(userId: number): Promise<Alert[]> {
  * Alerts scoped to a single account — for the account detail page.
  * Excludes user-level alerts (ISA, PSA, goals, snapshots).
  */
-export async function getAlertsForAccount(accountId: number, userId: number): Promise<Alert[]> {
+export async function getAlertsForAccount(
+	accountId: number,
+	userId: number,
+): Promise<Alert[]> {
 	try {
-		const { allAccounts, openAccounts, rateHistories, txSummaries, balances, latestTxDates, now } =
-			await fetchBulkData(userId);
+		const {
+			allAccounts,
+			openAccounts,
+			rateHistories,
+			txSummaries,
+			balances,
+			latestTxDates,
+			now,
+		} = await fetchBulkData(userId);
 
 		const allAccountAlerts = [
 			...checkMaturityAlerts(openAccounts, now),
@@ -174,7 +253,12 @@ export async function getAlertsForAccount(accountId: number, userId: number): Pr
 			checkLISAAlerts(userId),
 		]);
 
-		const allAlerts = [...allAccountAlerts, ...debtPayoffAlerts, ...boeRateAlerts, ...lisaAlerts];
+		const allAlerts = [
+			...allAccountAlerts,
+			...debtPayoffAlerts,
+			...boeRateAlerts,
+			...lisaAlerts,
+		];
 
 		// Find the target account to get its slug for filtering
 		const targetAccount = allAccounts.find((a) => a.id === accountId);
@@ -182,7 +266,11 @@ export async function getAlertsForAccount(accountId: number, userId: number): Pr
 
 		return allAlerts.filter((a) => a.accountSlug === targetAccount.slug);
 	} catch (err) {
-		logError('getAlertsForAccount', 'Failed to compute account alerts', { accountId, userId, err });
+		logError(
+			"getAlertsForAccount",
+			`Failed to compute account alerts (accountId=${accountId}, userId=${userId})`,
+			err,
+		);
 		return [];
 	}
 }
@@ -199,7 +287,11 @@ export async function getGoalListAlerts(userId: number): Promise<Alert[]> {
 		]);
 		return [...goalAlerts, ...autoReduceAlerts];
 	} catch (err) {
-		logError('getGoalListAlerts', 'Failed to compute goal alerts', { userId, err });
+		logError(
+			"getGoalListAlerts",
+			`Failed to compute goal alerts (userId=${userId})`,
+			err,
+		);
 		return [];
 	}
 }

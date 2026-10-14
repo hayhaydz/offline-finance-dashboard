@@ -1,13 +1,18 @@
 import { fail, redirect } from "@sveltejs/kit";
+import { and, eq, isNull } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { eq, and, isNull } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
-import { accounts, goals, goalMilestones } from "$lib/db/schema";
+import { accounts, goalMilestones, goals } from "$lib/db/schema";
 import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
 import { generateDefaultMilestones } from "$lib/server/goals";
-import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
-import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
+import {
+	devLog,
+	isVerboseDebug,
+	logError,
+	logFormData,
+} from "$lib/server/logger";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -17,7 +22,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		where: and(
 			withUserFilter(user.id, accounts),
 			eq(accounts.category, "liability"),
-			isNull(accounts.closedAt)
+			isNull(accounts.closedAt),
 		),
 	});
 
@@ -26,10 +31,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 		columns: { linkedAccountId: true },
 	});
 	const linkedAccountIds = new Set(
-		existingDebtGoals.map((g) => g.linkedAccountId).filter((id): id is number => id !== null)
+		existingDebtGoals
+			.map((g) => g.linkedAccountId)
+			.filter((id): id is number => id !== null),
 	);
 
-	const availableAccounts = allLiabilityAccounts.filter((acc) => !linkedAccountIds.has(acc.id));
+	const availableAccounts = allLiabilityAccounts.filter(
+		(acc) => !linkedAccountIds.has(acc.id),
+	);
 
 	return { user, availableAccounts };
 };
@@ -90,7 +99,15 @@ export const actions: Actions = {
 
 		if (!account || account.userId !== user.id) {
 			errors.linked_account_id = "Account not found";
-			return fail(400, { error: "Please fix errors", errors, data: { linkedAccountId: linkedAccountIdStr || "", name: name || "", targetDate: targetDateStr || "" } });
+			return fail(400, {
+				error: "Please fix errors",
+				errors,
+				data: {
+					linkedAccountId: linkedAccountIdStr || "",
+					name: name || "",
+					targetDate: targetDateStr || "",
+				},
+			});
 		}
 
 		const currentBalance = await getCurrentBalanceForAccount(linkedAccountId);

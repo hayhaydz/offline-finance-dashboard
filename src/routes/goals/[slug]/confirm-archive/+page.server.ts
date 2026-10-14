@@ -3,8 +3,13 @@ import { eq } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { goalAllocations, goals } from "$lib/db/schema";
-import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
-import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
+import {
+	devLog,
+	isVerboseDebug,
+	logError,
+	logFormData,
+} from "$lib/server/logger";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -12,7 +17,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 	if (isVerboseDebug()) {
 		devLog("goalsArchiveConfirm", "Loading archive confirmation page", {
-		slug: params.slug,
+			slug: params.slug,
 		});
 	}
 

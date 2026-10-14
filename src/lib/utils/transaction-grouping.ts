@@ -49,7 +49,8 @@ export function groupTransactionsByMonth<T>(
 				net: 0,
 			});
 		}
-		const g = groups.get(key)!;
+		const g = groups.get(key);
+		if (!g) continue;
 		g.transactions.push(tx);
 		const amount = getAmount(tx);
 		if (amount > 0) g.inflow += amount;

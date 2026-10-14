@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { db } from "$lib/db/client";
-import { goals, goalMilestones } from "$lib/db/schema";
+import { goalMilestones, goals } from "$lib/db/schema";
 
 describe("debt goals schema", () => {
 	it("stores goalType discriminator on goals table", async () => {

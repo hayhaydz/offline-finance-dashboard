@@ -3,8 +3,8 @@ import { redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { HOME_ROUTE, LOGIN_ROUTE } from "$lib/constants/routes";
 import { db } from "$lib/db/client";
-import { sessions } from "$lib/db/schema";
 import { runMigrations } from "$lib/db/migrate";
+import { sessions } from "$lib/db/schema";
 import { logError } from "$lib/server/logger";
 import { MS_PER_DAY } from "$lib/utils/time-constants";
 

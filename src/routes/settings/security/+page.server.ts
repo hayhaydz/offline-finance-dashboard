@@ -7,12 +7,17 @@ import {
 	verifyTOTP,
 } from "$lib/auth/mfa";
 import { hashPassword, verifyPassword } from "$lib/auth/password";
+import { LOGIN_ROUTE } from "$lib/constants/routes";
 import { db } from "$lib/db/client";
 import { backupCodes, sessions, users } from "$lib/db/schema";
-import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
+import {
+	devLog,
+	isVerboseDebug,
+	logError,
+	logFormData,
+} from "$lib/server/logger";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import { setFlash } from "$lib/server/utils/flash";
-import { LOGIN_ROUTE } from "$lib/constants/routes";
-import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {

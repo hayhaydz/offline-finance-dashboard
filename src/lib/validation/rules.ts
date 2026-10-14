@@ -5,12 +5,12 @@
  * Each function returns a ValidationRule that can be used with FormField components.
  */
 
-import type { ValidationRule } from "./types";
 import {
 	ACCOUNT_TYPES,
-	TAX_WRAPPERS,
 	LIQUIDITY_OPTIONS,
+	TAX_WRAPPERS,
 } from "$lib/utils/domain-constants";
+import type { ValidationRule } from "./types";
 
 /**
  * Creates a rule that requires a non-empty value

@@ -115,14 +115,13 @@ export function logError(
 		logger.error(prefix, {
 			timestamp,
 			category,
-			message,
+			detail: message,
 			error: error instanceof Error ? error.stack : error,
 		});
 	} else {
 		logger.error(prefix, {
 			timestamp,
 			category,
-			message,
 		});
 	}
 }

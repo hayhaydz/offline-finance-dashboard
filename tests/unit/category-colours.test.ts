@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-	DEFAULT_CATEGORY_PALETTE,
 	DEFAULT_CATEGORIES,
+	DEFAULT_CATEGORY_PALETTE,
 	isValidHexColour,
 } from "$lib/utils/category-colours";
 

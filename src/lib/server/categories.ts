@@ -1,11 +1,20 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { spendingCategories } from "$lib/db/schema";
-import { withUserFilter } from "$lib/auth/row-security";
-import { devLog, logError, logInfo } from "$lib/server/logger";
-import { type Result, type VoidResult, ok, err, okVoid } from "$lib/server/utils/result";
-import { isValidHexColour, DEFAULT_CATEGORIES } from "$lib/utils/category-colours";
+import { logError, logInfo } from "$lib/server/logger";
+import {
+	err,
+	ok,
+	okVoid,
+	type Result,
+	type VoidResult,
+} from "$lib/server/utils/result";
+import {
+	DEFAULT_CATEGORIES,
+	isValidHexColour,
+} from "$lib/utils/category-colours";
 
 export interface CreateCategoryData {
 	userId: number;
@@ -47,7 +56,9 @@ export async function getCategoryBySlug(slug: string, userId: number) {
  * Validates name/key non-empty, colour valid hex, checks for duplicate key
  * among active categories, generates a nanoid(16) slug, and normalizes the key.
  */
-export async function createCategory(data: CreateCategoryData): Promise<Result<string>> {
+export async function createCategory(
+	data: CreateCategoryData,
+): Promise<Result<string>> {
 	const { userId, name, key, colour } = data;
 
 	if (!name.trim()) {
@@ -62,7 +73,10 @@ export async function createCategory(data: CreateCategoryData): Promise<Result<s
 		return err("Colour must be a valid hex colour (#RRGGBB)");
 	}
 
-	const normalizedKey = key.trim().toLowerCase().replace(/[^a-z0-9_]/g, "_");
+	const normalizedKey = key
+		.trim()
+		.toLowerCase()
+		.replace(/[^a-z0-9_]/g, "_");
 
 	if (!normalizedKey) {
 		return err("Key must contain at least one alphanumeric character");
@@ -215,7 +229,11 @@ export async function ensureDefaultCategories(
 
 		return okVoid();
 	} catch (error) {
-		logError("ensureDefaultCategories", "Failed to seed default categories", error);
+		logError(
+			"ensureDefaultCategories",
+			"Failed to seed default categories",
+			error,
+		);
 		return err("Failed to seed default categories");
 	}
 }

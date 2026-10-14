@@ -1,11 +1,14 @@
-import type { Alert, AlertSeverity } from '$lib/types/alerts';
-import { MS_PER_DAY } from '$lib/utils/time-constants';
-import type { AccountRow, RateRow, TxSummary } from './constants';
-import { daysUntil, daysSince, makeAccountAlert } from './constants';
+import type { Alert, AlertSeverity } from "$lib/types/alerts";
+import { MS_PER_DAY } from "$lib/utils/time-constants";
+import type { AccountRow, RateRow, TxSummary } from "./constants";
+import { daysSince, daysUntil, makeAccountAlert } from "./constants";
 
 // ─── Sync alert checkers ──────────────────────────────────────────────────────
 
-export function checkMaturityAlerts(openAccounts: AccountRow[], now: Date): Alert[] {
+export function checkMaturityAlerts(
+	openAccounts: AccountRow[],
+	now: Date,
+): Alert[] {
 	const alerts: Alert[] = [];
 
 	for (const account of openAccounts) {
@@ -13,27 +16,35 @@ export function checkMaturityAlerts(openAccounts: AccountRow[], now: Date): Aler
 		const days = daysUntil(account.maturityDate, now);
 		if (days <= 0) continue; // handled by checkMaturityPassedAlerts
 
-		let type: Alert['type'];
+		let type: Alert["type"];
 		let severity: AlertSeverity;
 		let message: string;
 
 		if (days <= 1) {
-			type = 'MATURITY_SOON_1';
-			severity = 'red';
-			message = `Matures ${days === 0 ? 'today' : 'tomorrow'} — ${account.maturityDate.toLocaleDateString('en-GB')}`;
+			type = "MATURITY_SOON_1";
+			severity = "red";
+			message = `Matures ${days === 0 ? "today" : "tomorrow"} — ${account.maturityDate.toLocaleDateString("en-GB")}`;
 		} else if (days <= 7) {
-			type = 'MATURITY_SOON_7';
-			severity = 'amber';
-			message = `Matures in ${days} days — ${account.maturityDate.toLocaleDateString('en-GB')}`;
+			type = "MATURITY_SOON_7";
+			severity = "amber";
+			message = `Matures in ${days} days — ${account.maturityDate.toLocaleDateString("en-GB")}`;
 		} else if (days <= 30) {
-			type = 'MATURITY_SOON_30';
-			severity = 'amber';
-			message = `Matures in ${days} days — ${account.maturityDate.toLocaleDateString('en-GB')}`;
+			type = "MATURITY_SOON_30";
+			severity = "amber";
+			message = `Matures in ${days} days — ${account.maturityDate.toLocaleDateString("en-GB")}`;
 		} else {
 			continue;
 		}
 
-		alerts.push(makeAccountAlert(type, severity, 'Maturity approaching', message, account));
+		alerts.push(
+			makeAccountAlert(
+				type,
+				severity,
+				"Maturity approaching",
+				message,
+				account,
+			),
+		);
 	}
 
 	return alerts;
@@ -57,10 +68,10 @@ export function checkMaturityPassedAlerts(
 		if (!latestRate || latestRate.effectiveFrom < account.maturityDate) {
 			alerts.push(
 				makeAccountAlert(
-					'MATURITY_PASSED_NO_RATE',
-					'amber',
-					'Matured — no new rate',
-					`Matured on ${account.maturityDate.toLocaleDateString('en-GB')} but no updated rate recorded`,
+					"MATURITY_PASSED_NO_RATE",
+					"amber",
+					"Matured — no new rate",
+					`Matured on ${account.maturityDate.toLocaleDateString("en-GB")} but no updated rate recorded`,
 					account,
 				),
 			);
@@ -74,7 +85,7 @@ function rateChangeLabel(effectiveFrom: Date, now: Date): string {
 	const isUpcoming = effectiveFrom > now;
 	if (isUpcoming) {
 		const days = daysUntil(effectiveFrom, now);
-		return `in ${days}d — effective ${effectiveFrom.toLocaleDateString('en-GB')}`;
+		return `in ${days}d — effective ${effectiveFrom.toLocaleDateString("en-GB")}`;
 	}
 	return `${daysSince(effectiveFrom, now)}d ago`;
 }
@@ -98,29 +109,29 @@ export function checkRateChangeAlerts(
 		const isUpcoming = latest.effectiveFrom > now;
 		const label = rateChangeLabel(latest.effectiveFrom, now);
 
-		if (account.category === 'asset' && account.type !== 'current') {
+		if (account.category === "asset" && account.type !== "current") {
 			if (latest.rate < previous.rate) {
 				const from = (previous.rate / 100).toFixed(2);
 				const to = (latest.rate / 100).toFixed(2);
 				alerts.push(
 					makeAccountAlert(
-						'RATE_DECREASED_SAVINGS',
-						'amber',
-						isUpcoming ? 'Savings rate cut incoming' : 'Savings rate cut',
+						"RATE_DECREASED_SAVINGS",
+						"amber",
+						isUpcoming ? "Savings rate cut incoming" : "Savings rate cut",
 						`${from}% → ${to}% (${label}) — you will earn less interest`,
 						account,
 					),
 				);
 			}
-		} else if (account.category === 'liability') {
+		} else if (account.category === "liability") {
 			if (latest.rate > previous.rate) {
 				const from = (previous.rate / 100).toFixed(2);
 				const to = (latest.rate / 100).toFixed(2);
 				alerts.push(
 					makeAccountAlert(
-						'RATE_INCREASED_LIABILITY',
-						'red',
-						isUpcoming ? 'Liability rate rise incoming' : 'Liability rate rise',
+						"RATE_INCREASED_LIABILITY",
+						"red",
+						isUpcoming ? "Liability rate rise incoming" : "Liability rate rise",
 						`${from}% → ${to}% (${label}) — your repayments will increase`,
 						account,
 					),
@@ -139,11 +150,17 @@ export function checkNoRateAlerts(
 	const alerts: Alert[] = [];
 
 	for (const account of openAccounts) {
-		if (account.category !== 'asset' || account.type === 'current') continue;
+		if (account.category !== "asset" || account.type === "current") continue;
 		const rates = rateHistories.get(account.id) ?? [];
 		if (rates.length === 0) {
 			alerts.push(
-				makeAccountAlert('NO_RATE_SET', 'info', 'No interest rate', 'No rate has been set for this account', account),
+				makeAccountAlert(
+					"NO_RATE_SET",
+					"info",
+					"No interest rate",
+					"No rate has been set for this account",
+					account,
+				),
 			);
 		}
 	}
@@ -159,18 +176,27 @@ export function checkStaleBalanceAlerts(
 	const alerts: Alert[] = [];
 
 	for (const account of openAccounts) {
-		if (account.liquidity === 'locked') continue;
+		if (account.liquidity === "locked") continue;
 		if (account.maturityDate && account.maturityDate > now) continue;
 
-		const threshold = account.type === 'current' ? 14 : 60;
+		const threshold = account.type === "current" ? 14 : 60;
 		const latest = latestTxDates.get(account.id) ?? null;
 
 		if (!latest || daysSince(latest, now) >= threshold) {
 			const days = latest ? daysSince(latest, now) : null;
-			const message = days !== null
-				? `No transactions in ${days} days`
-				: 'No transactions recorded';
-			alerts.push(makeAccountAlert('STALE_BALANCE', 'info', 'Balance stale', message, account));
+			const message =
+				days !== null
+					? `No transactions in ${days} days`
+					: "No transactions recorded";
+			alerts.push(
+				makeAccountAlert(
+					"STALE_BALANCE",
+					"info",
+					"Balance stale",
+					message,
+					account,
+				),
+			);
 		}
 	}
 
@@ -191,12 +217,24 @@ export function checkCreditAlerts(
 		if (utilisation > 0.95) {
 			const pct = Math.round(utilisation * 100);
 			alerts.push(
-				makeAccountAlert('CREDIT_LIMIT_NEAR_MAX', 'red', 'Credit near max', `${pct}% utilised`, account),
+				makeAccountAlert(
+					"CREDIT_LIMIT_NEAR_MAX",
+					"red",
+					"Credit near max",
+					`${pct}% utilised`,
+					account,
+				),
 			);
-		} else if (utilisation > 0.80) {
+		} else if (utilisation > 0.8) {
 			const pct = Math.round(utilisation * 100);
 			alerts.push(
-				makeAccountAlert('CREDIT_LIMIT_APPROACHING', 'amber', 'Credit limit approaching', `${pct}% utilised`, account),
+				makeAccountAlert(
+					"CREDIT_LIMIT_APPROACHING",
+					"amber",
+					"Credit limit approaching",
+					`${pct}% utilised`,
+					account,
+				),
 			);
 		}
 	}
@@ -215,11 +253,17 @@ export function checkLiabilityPaymentAlerts(
 	const alerts: Alert[] = [];
 
 	for (const account of openAccounts) {
-		if (account.category !== 'liability') continue;
+		if (account.category !== "liability") continue;
 		const summary = txSummaries.get(account.id);
 		if (!summary?.hasPaymentThisMonth) {
 			alerts.push(
-				makeAccountAlert('NO_LIABILITY_PAYMENT', 'amber', 'No payment this month', 'No payment or deposit recorded this calendar month', account),
+				makeAccountAlert(
+					"NO_LIABILITY_PAYMENT",
+					"amber",
+					"No payment this month",
+					"No payment or deposit recorded this calendar month",
+					account,
+				),
 			);
 		}
 	}
@@ -243,12 +287,19 @@ export function checkInterestAccruedAlerts(
 
 		// Alert if: accrual is older than 90 days AND no interest posted after that accrual
 		const accruedIsOld = lastAccruedDate < ninetyDaysAgo;
-		const noInterestAfterAccrual = !lastInterestDate || lastAccruedDate > lastInterestDate;
+		const noInterestAfterAccrual =
+			!lastInterestDate || lastAccruedDate > lastInterestDate;
 
 		if (accruedIsOld && noInterestAfterAccrual) {
 			const days = daysSince(lastAccruedDate, now);
 			alerts.push(
-				makeAccountAlert('INTEREST_ACCRUED_UNPOSTED', 'info', 'Accrued interest unposted', `Interest accrued ${days} days ago with no posted interest since`, account),
+				makeAccountAlert(
+					"INTEREST_ACCRUED_UNPOSTED",
+					"info",
+					"Accrued interest unposted",
+					`Interest accrued ${days} days ago with no posted interest since`,
+					account,
+				),
 			);
 		}
 	}
@@ -265,8 +316,8 @@ export function checkZeroBalanceAlerts(
 	const alerts: Alert[] = [];
 
 	for (const account of openAccounts) {
-		if (account.category !== 'asset') continue;
-		if (account.type !== 'current' && account.type !== 'savings') continue;
+		if (account.category !== "asset") continue;
+		if (account.type !== "current" && account.type !== "savings") continue;
 
 		const balance = balances.get(account.id) ?? 0;
 		if (balance !== 0) continue;
@@ -274,8 +325,19 @@ export function checkZeroBalanceAlerts(
 		const latest = latestTxDates.get(account.id) ?? null;
 		if (!latest || daysSince(latest, now) >= 30) {
 			const days = latest ? daysSince(latest, now) : null;
-			const message = days !== null ? `Balance at £0 for ${days}+ days` : 'Balance at £0 — no transactions recorded';
-			alerts.push(makeAccountAlert('ZERO_BALANCE_ACTIVE', 'info', 'Zero balance', message, account));
+			const message =
+				days !== null
+					? `Balance at £0 for ${days}+ days`
+					: "Balance at £0 — no transactions recorded";
+			alerts.push(
+				makeAccountAlert(
+					"ZERO_BALANCE_ACTIVE",
+					"info",
+					"Zero balance",
+					message,
+					account,
+				),
+			);
 		}
 	}
 
@@ -289,11 +351,18 @@ export function checkPremiumBondsAlerts(
 	const alerts: Alert[] = [];
 
 	for (const account of openAccounts) {
-		if (account.taxWrapper !== 'premium-bonds') continue;
+		if (account.taxWrapper !== "premium-bonds") continue;
 		const balance = balances.get(account.id) ?? 0;
-		if (balance > 5_000_000) { // £50,000 in pence
+		if (balance > 5_000_000) {
+			// £50,000 in pence
 			alerts.push(
-				makeAccountAlert('PREMIUM_BONDS_OVER_LIMIT', 'red', 'Over Premium Bonds limit', `Balance of £${(balance / 100).toLocaleString('en-GB')} exceeds £50,000 NS&I maximum`, account),
+				makeAccountAlert(
+					"PREMIUM_BONDS_OVER_LIMIT",
+					"red",
+					"Over Premium Bonds limit",
+					`Balance of £${(balance / 100).toLocaleString("en-GB")} exceeds £50,000 NS&I maximum`,
+					account,
+				),
 			);
 		}
 	}
@@ -308,11 +377,17 @@ export function checkNoDisbursementAlerts(
 	const alerts: Alert[] = [];
 
 	for (const account of openAccounts) {
-		if (account.type !== 'loan' && account.type !== 'mortgage') continue;
+		if (account.type !== "loan" && account.type !== "mortgage") continue;
 		const summary = txSummaries.get(account.id);
 		if (!summary?.hasDisbursement) {
 			alerts.push(
-				makeAccountAlert('NO_DISBURSEMENT', 'amber', 'No disbursement recorded', 'No loan or mortgage disbursement transaction found', account),
+				makeAccountAlert(
+					"NO_DISBURSEMENT",
+					"amber",
+					"No disbursement recorded",
+					"No loan or mortgage disbursement transaction found",
+					account,
+				),
 			);
 		}
 	}
@@ -327,11 +402,17 @@ export function checkUnusedIsaAlerts(
 	const alerts: Alert[] = [];
 
 	for (const account of openAccounts) {
-		if (account.taxWrapper !== 'isa' && account.taxWrapper !== 'lisa') continue;
+		if (account.taxWrapper !== "isa" && account.taxWrapper !== "lisa") continue;
 		const summary = txSummaries.get(account.id);
 		if (!summary?.hasIsaDepositThisTaxYear) {
 			alerts.push(
-				makeAccountAlert('UNUSED_ISA_ACCOUNT', 'info', 'ISA unused this tax year', 'No deposits or transfers in during the current tax year', account),
+				makeAccountAlert(
+					"UNUSED_ISA_ACCOUNT",
+					"info",
+					"ISA unused this tax year",
+					"No deposits or transfers in during the current tax year",
+					account,
+				),
 			);
 		}
 	}
@@ -349,9 +430,15 @@ export function checkClosedWithBalanceAlerts(
 		if (!account.closedAt) continue;
 		const balance = balances.get(account.id) ?? 0;
 		if (balance !== 0) {
-			const formatted = `£${Math.abs(balance / 100).toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
+			const formatted = `£${Math.abs(balance / 100).toLocaleString("en-GB", { minimumFractionDigits: 2 })}`;
 			alerts.push(
-				makeAccountAlert('CLOSED_WITH_BALANCE', 'amber', 'Closed with non-zero balance', `Balance of ${formatted} on closed account — possible data entry error`, account),
+				makeAccountAlert(
+					"CLOSED_WITH_BALANCE",
+					"amber",
+					"Closed with non-zero balance",
+					`Balance of ${formatted} on closed account — possible data entry error`,
+					account,
+				),
 			);
 		}
 	}

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CATEGORIES } from "$lib/utils/category-colours";
 
 // Mock the db module
@@ -17,8 +17,8 @@ vi.mock("$lib/db/client", () => ({
 	},
 }));
 
-import { ensureDefaultCategories } from "$lib/server/categories";
 import { db } from "$lib/db/client";
+import { ensureDefaultCategories } from "$lib/server/categories";
 
 describe("ensureDefaultCategories", () => {
 	beforeEach(() => {
@@ -27,7 +27,9 @@ describe("ensureDefaultCategories", () => {
 
 	it("seeds all 10 default categories when user has zero categories", async () => {
 		// User has no categories yet — should seed all defaults
-		(db.query.spendingCategories.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+		(
+			db.query.spendingCategories.findMany as ReturnType<typeof vi.fn>
+		).mockResolvedValue([]);
 
 		const result = await ensureDefaultCategories(1);
 
@@ -37,9 +39,9 @@ describe("ensureDefaultCategories", () => {
 
 	it("does nothing when user already has categories", async () => {
 		// User already has categories — skip seeding entirely
-		(db.query.spendingCategories.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([
-			{ id: 1, name: "Existing", key: "existing" },
-		]);
+		(
+			db.query.spendingCategories.findMany as ReturnType<typeof vi.fn>
+		).mockResolvedValue([{ id: 1, name: "Existing", key: "existing" }]);
 
 		const result = await ensureDefaultCategories(1);
 
@@ -48,7 +50,9 @@ describe("ensureDefaultCategories", () => {
 	});
 
 	it("sets isDefault=true on all seeded categories", async () => {
-		(db.query.spendingCategories.findMany as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+		(
+			db.query.spendingCategories.findMany as ReturnType<typeof vi.fn>
+		).mockResolvedValue([]);
 
 		await ensureDefaultCategories(1);
 
@@ -58,8 +62,10 @@ describe("ensureDefaultCategories", () => {
 		// The first argument to db.insert is the table, so we check the .values() calls
 		// by inspecting the mock chain
 		for (let i = 0; i < DEFAULT_CATEGORIES.length; i++) {
-			const valuesCall = (db.insert as ReturnType<typeof vi.fn>).mock.results[i].value.values;
-			const valuesArg = (valuesCall as ReturnType<typeof vi.fn>).mock.calls[0][0];
+			const valuesCall = (db.insert as ReturnType<typeof vi.fn>).mock.results[i]
+				.value.values;
+			const valuesArg = (valuesCall as ReturnType<typeof vi.fn>).mock
+				.calls[0][0];
 			expect(valuesArg.isDefault).toBe(true);
 			expect(valuesArg.name).toBe(DEFAULT_CATEGORIES[i].name);
 			expect(valuesArg.key).toBe(DEFAULT_CATEGORIES[i].key);
@@ -69,9 +75,9 @@ describe("ensureDefaultCategories", () => {
 	});
 
 	it("returns error if db query fails", async () => {
-		(db.query.spendingCategories.findMany as ReturnType<typeof vi.fn>).mockRejectedValue(
-			new Error("DB connection lost"),
-		);
+		(
+			db.query.spendingCategories.findMany as ReturnType<typeof vi.fn>
+		).mockRejectedValue(new Error("DB connection lost"));
 
 		const result = await ensureDefaultCategories(1);
 

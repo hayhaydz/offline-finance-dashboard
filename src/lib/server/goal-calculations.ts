@@ -1,4 +1,3 @@
-import { MS_PER_DAY, MS_PER_MONTH } from "$lib/utils/time-constants";
 import { devLog, isVerboseDebug } from "$lib/server/logger";
 import type {
 	AccountAllocationWithLiquidity,
@@ -10,6 +9,7 @@ import type {
 	MilestoneWithReached,
 	PaceMetrics,
 } from "$lib/types/goals";
+import { MS_PER_DAY, MS_PER_MONTH } from "$lib/utils/time-constants";
 
 // Re-export types for backward compatibility
 export type {
@@ -21,7 +21,7 @@ export type {
 	MilestoneTemplate,
 	MilestoneWithReached,
 	PaceMetrics,
-}
+};
 
 // Days threshold for "urgent" goal (locked funds warning)
 const URGENT_DAYS_THRESHOLD = 30;
@@ -35,7 +35,9 @@ export function calculateLiquidityBreakdown(
 	targetDate: Date | null = null,
 ): LiquidityBreakdown {
 	if (isVerboseDebug()) {
-		devLog("calculateLiquidityBreakdown", "Calculating liquidity breakdown", { allocationCount: accountAllocations.length });
+		devLog("calculateLiquidityBreakdown", "Calculating liquidity breakdown", {
+			allocationCount: accountAllocations.length,
+		});
 	}
 	const totalAllocatedInCents = accountAllocations.reduce(
 		(sum, a) => sum + a.netAllocated,
@@ -108,7 +110,6 @@ export function calculateLiquidityBreakdown(
 	};
 }
 
-
 /**
  * Calculate contribution statistics from allocation history.
  */
@@ -116,7 +117,9 @@ export function calculateContributionStats(
 	allocationHistory: AllocationHistoryEntry[],
 ): ContributionStats {
 	if (isVerboseDebug()) {
-		devLog("calculateContributionStats", "Calculating contribution stats", { entryCount: allocationHistory.length });
+		devLog("calculateContributionStats", "Calculating contribution stats", {
+			entryCount: allocationHistory.length,
+		});
 	}
 	if (allocationHistory.length === 0) {
 		return {
@@ -287,10 +290,17 @@ export function getDebtGoalProgress(params: {
 	const rawPaidInCents = totalInCents - remainingInCents;
 	const paidInCents = Math.max(0, rawPaidInCents);
 	const debtGrewBeyondStarting = remainingInCents > totalInCents;
-	const rawPercent = totalInCents > 0 ? (paidInCents / totalInCents) * 100 : 100;
+	const rawPercent =
+		totalInCents > 0 ? (paidInCents / totalInCents) * 100 : 100;
 	const percent = Math.max(0, Math.min(100, rawPercent));
 
-	return { paidInCents, totalInCents, percent, remainingInCents, debtGrewBeyondStarting };
+	return {
+		paidInCents,
+		totalInCents,
+		percent,
+		remainingInCents,
+		debtGrewBeyondStarting,
+	};
 }
 
 /**

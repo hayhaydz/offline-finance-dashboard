@@ -1,8 +1,8 @@
 import { error, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
+import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts } from "$lib/db/schema";
-import { validateUserAccess } from "$lib/auth/row-security";
 import { logError } from "$lib/server/logger";
 
 export async function requireAccountOwnership(

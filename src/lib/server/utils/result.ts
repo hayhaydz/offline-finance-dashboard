@@ -9,9 +9,7 @@
 
 // ── Core types ────────────────────────────────────────────────
 
-export type Result<T> =
-	| { ok: true; data: T }
-	| { ok: false; error: string };
+export type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
 /** Convenience alias for operations that return nothing on success. */
 export type VoidResult = Result<void>;
@@ -38,7 +36,9 @@ export function isOk<T>(result: Result<T>): result is { ok: true; data: T } {
 }
 
 /** Type guard: narrows to the failure branch. */
-export function isErr<T>(result: Result<T>): result is { ok: false; error: string } {
+export function isErr<T>(
+	result: Result<T>,
+): result is { ok: false; error: string } {
 	return !result.ok;
 }
 

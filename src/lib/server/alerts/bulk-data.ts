@@ -1,14 +1,19 @@
-import { desc, eq, inArray, sql } from 'drizzle-orm';
-import { withUserFilter } from '$lib/auth/row-security';
-import { db } from '$lib/db/client';
-import { accountTransactions, accounts, interestRates, users } from '$lib/db/schema';
-import { getUkTaxYearBounds } from '$lib/utils/tax-year-utils';
+import { desc, eq, inArray, sql } from "drizzle-orm";
+import { withUserFilter } from "$lib/auth/row-security";
+import { db } from "$lib/db/client";
+import {
+	accounts,
+	accountTransactions,
+	interestRates,
+	users,
+} from "$lib/db/schema";
 import {
 	getCurrentBalancesForAccounts,
 	getLatestTransactionDateForAccounts,
-} from '$lib/server/derivedBalances';
-import type { AccountRow, RateRow, TxSummary } from './constants';
+} from "$lib/server/derivedBalances";
 import { devLog, isVerboseDebug } from "$lib/server/logger";
+import { getUkTaxYearBounds } from "$lib/utils/tax-year-utils";
+import type { AccountRow, RateRow, TxSummary } from "./constants";
 
 export interface BulkData {
 	allAccounts: AccountRow[];
@@ -24,12 +29,15 @@ export interface BulkData {
 }
 
 export async function fetchBulkData(userId: number): Promise<BulkData> {
-	if (isVerboseDebug()) devLog("fetchBulkData", "Fetching bulk data", { userId });
+	if (isVerboseDebug())
+		devLog("fetchBulkData", "Fetching bulk data", { userId });
 	const now = new Date();
 	now.setUTCHours(0, 0, 0, 0);
 
 	const taxYear = getUkTaxYearBounds(now);
-	const startOfMonth = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+	const startOfMonth = new Date(
+		Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
+	);
 	const startOfMonthUnixSeconds = Math.floor(startOfMonth.getTime() / 1000);
 	const taxYearStartUnixSeconds = Math.floor(taxYear.start.getTime() / 1000);
 
@@ -43,17 +51,29 @@ export async function fetchBulkData(userId: number): Promise<BulkData> {
 	const openAccountIds = openAccounts.map((a) => a.id);
 
 	if (allAccountIds.length === 0) {
-		return { allAccounts: [], openAccounts: [], rateHistories: new Map(), txSummaries: new Map(), balances: new Map(), latestTxDates: new Map(), taxYear, now, taxBand: 'basic', hasSavingsAccounts: false };
+		return {
+			allAccounts: [],
+			openAccounts: [],
+			rateHistories: new Map(),
+			txSummaries: new Map(),
+			balances: new Map(),
+			latestTxDates: new Map(),
+			taxYear,
+			now,
+			taxBand: "basic",
+			hasSavingsAccounts: false,
+		};
 	}
 
 	// Round trip 2: latest interest rates per account (fetch all, group in-memory)
-	const allRates = openAccountIds.length > 0
-		? await db
-			.select()
-			.from(interestRates)
-			.where(inArray(interestRates.accountId, openAccountIds))
-			.orderBy(desc(interestRates.effectiveFrom))
-		: [];
+	const allRates =
+		openAccountIds.length > 0
+			? await db
+					.select()
+					.from(interestRates)
+					.where(inArray(interestRates.accountId, openAccountIds))
+					.orderBy(desc(interestRates.effectiveFrom))
+			: [];
 
 	const rateHistories = new Map<number, RateRow[]>();
 	for (const rate of allRates) {
@@ -63,20 +83,25 @@ export async function fetchBulkData(userId: number): Promise<BulkData> {
 	}
 
 	// Round trip 3: transaction summaries (combined aggregation)
-	const txRows = allAccountIds.length > 0
-		? await db
-			.select({
-				accountId: accountTransactions.accountId,
-				hasPaymentThisMonth: sql<number>`max(case when ${accountTransactions.type} in ('payment', 'deposit') and ${accountTransactions.transactionDate} >= ${startOfMonthUnixSeconds} then 1 else 0 end)`,
-				hasDisbursement: sql<number>`max(case when ${accountTransactions.type} in ('loan_disbursement', 'mortgage_disbursement') then 1 else 0 end)`,
-				lastAccruedTs: sql<number | null>`max(case when ${accountTransactions.type} = 'interest_accrued' then ${accountTransactions.transactionDate} else null end)`,
-				lastInterestTs: sql<number | null>`max(case when ${accountTransactions.type} = 'interest' then ${accountTransactions.transactionDate} else null end)`,
-				hasIsaDepositThisTaxYear: sql<number>`max(case when ${accountTransactions.type} in ('deposit', 'transfer_in') and ${accountTransactions.transactionDate} >= ${taxYearStartUnixSeconds} then 1 else 0 end)`,
-			})
-			.from(accountTransactions)
-			.where(inArray(accountTransactions.accountId, allAccountIds))
-			.groupBy(accountTransactions.accountId)
-		: [];
+	const txRows =
+		allAccountIds.length > 0
+			? await db
+					.select({
+						accountId: accountTransactions.accountId,
+						hasPaymentThisMonth: sql<number>`max(case when ${accountTransactions.type} in ('payment', 'deposit') and ${accountTransactions.transactionDate} >= ${startOfMonthUnixSeconds} then 1 else 0 end)`,
+						hasDisbursement: sql<number>`max(case when ${accountTransactions.type} in ('loan_disbursement', 'mortgage_disbursement') then 1 else 0 end)`,
+						lastAccruedTs: sql<
+							number | null
+						>`max(case when ${accountTransactions.type} = 'interest_accrued' then ${accountTransactions.transactionDate} else null end)`,
+						lastInterestTs: sql<
+							number | null
+						>`max(case when ${accountTransactions.type} = 'interest' then ${accountTransactions.transactionDate} else null end)`,
+						hasIsaDepositThisTaxYear: sql<number>`max(case when ${accountTransactions.type} in ('deposit', 'transfer_in') and ${accountTransactions.transactionDate} >= ${taxYearStartUnixSeconds} then 1 else 0 end)`,
+					})
+					.from(accountTransactions)
+					.where(inArray(accountTransactions.accountId, allAccountIds))
+					.groupBy(accountTransactions.accountId)
+			: [];
 
 	const txSummaries = new Map<number, TxSummary>();
 	for (const row of txRows) {
@@ -110,11 +135,22 @@ export async function fetchBulkData(userId: number): Promise<BulkData> {
 		where: eq(users.id, userId),
 		columns: { taxBand: true },
 	});
-	const taxBand = userRow?.taxBand ?? 'basic';
+	const taxBand = userRow?.taxBand ?? "basic";
 
 	const hasSavingsAccounts = openAccounts.some(
-		(a) => a.category === 'asset' && a.type !== 'current',
+		(a) => a.category === "asset" && a.type !== "current",
 	);
 
-	return { allAccounts, openAccounts, rateHistories, txSummaries, balances, latestTxDates, taxYear, now, taxBand, hasSavingsAccounts };
+	return {
+		allAccounts,
+		openAccounts,
+		rateHistories,
+		txSummaries,
+		balances,
+		latestTxDates,
+		taxYear,
+		now,
+		taxBand,
+		hasSavingsAccounts,
+	};
 }

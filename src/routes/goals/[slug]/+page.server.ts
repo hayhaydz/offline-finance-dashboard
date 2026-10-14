@@ -3,9 +3,17 @@ import { count, desc, eq, sql } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import type { Account } from "$lib/db/schema";
-import { accounts, accountTransactions, goalAllocations, goals } from "$lib/db/schema";
+import {
+	accounts,
+	accountTransactions,
+	goalAllocations,
+	goals,
+} from "$lib/db/schema";
+import {
+	calculateRecentAveragePayment,
+	getCurrentApr,
+} from "$lib/server/debtMetrics";
 import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
-import { calculateRecentAveragePayment, getCurrentApr } from "$lib/server/debtMetrics";
 import {
 	calculateContributionStats,
 	calculateLiquidityBreakdown,
@@ -15,9 +23,14 @@ import {
 	distributeWithdrawalAcrossAccounts,
 	getGoalAccountNetAllocations,
 } from "$lib/server/goals";
+import {
+	devLog,
+	isVerboseDebug,
+	logError,
+	logFormData,
+} from "$lib/server/logger";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import { parseCurrency } from "$lib/utils/currency";
-import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
-import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 type AccountWithUnallocated = Account & {
@@ -157,12 +170,14 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 	// Load debt-specific data if this is a debt goal
 	let debtData = null;
 
-	if (goal.goalType === 'debt' && goal.linkedAccountId) {
+	if (goal.goalType === "debt" && goal.linkedAccountId) {
 		const linkedAccount = await db.query.accounts.findFirst({
 			where: eq(accounts.id, goal.linkedAccountId),
 			with: {
 				interestRates: {
-					orderBy: (interestRates, { desc }) => [desc(interestRates.effectiveFrom)],
+					orderBy: (interestRates, { desc }) => [
+						desc(interestRates.effectiveFrom),
+					],
 					limit: 5,
 				},
 			},
@@ -175,32 +190,42 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 				limit: 100,
 			});
 
-			const apr = getCurrentApr(linkedAccount.interestRates.map(r => ({
-				rate: r.rate,
-				effectiveFrom: r.effectiveFrom,
-			})));
-
-			const recentAverage = calculateRecentAveragePayment(
-				transactions.map(t => ({
-					amount: t.amount,
-					createdAt: t.createdAt,
-				}))
+			const apr = getCurrentApr(
+				linkedAccount.interestRates.map((r) => ({
+					rate: r.rate,
+					effectiveFrom: r.effectiveFrom,
+				})),
 			);
 
-			const minimumPayment = linkedAccount.minimumPaymentFlat
-				?? (linkedAccount.minimumPaymentPercentage && goal.startingBalanceInCents
-					? Math.round(Math.abs(goal.startingBalanceInCents) * (linkedAccount.minimumPaymentPercentage / 100))
+			const recentAverage = calculateRecentAveragePayment(
+				transactions.map((t) => ({
+					amount: t.amount,
+					createdAt: t.createdAt,
+				})),
+			);
+
+			const minimumPayment =
+				linkedAccount.minimumPaymentFlat ??
+				(linkedAccount.minimumPaymentPercentage && goal.startingBalanceInCents
+					? Math.round(
+							Math.abs(goal.startingBalanceInCents) *
+								(linkedAccount.minimumPaymentPercentage / 100),
+						)
 					: null);
 
-			const defaultPayment = minimumPayment ? minimumPayment * 2 : recentAverage ?? 10000;
+			const defaultPayment = minimumPayment
+				? minimumPayment * 2
+				: (recentAverage ?? 10000);
 
-			const currentBalance = await getCurrentBalanceForAccount(goal.linkedAccountId);
+			const currentBalance = await getCurrentBalanceForAccount(
+				goal.linkedAccountId,
+			);
 
 			// Filter to balance-reducing transactions (negative amounts = payments)
 			const payoffHistory = transactions
-				.filter(t => t.amount < 0)
+				.filter((t) => t.amount < 0)
 				.slice(0, 20)
-				.map(t => ({
+				.map((t) => ({
 					id: t.id,
 					amount: t.amount,
 					type: t.type,

@@ -8,13 +8,13 @@
  * Phases: active -> warning -> urgent -> expired
  */
 
-import { goto } from '$app/navigation';
+import { goto } from "$app/navigation";
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-export type Phase = 'active' | 'warning' | 'urgent' | 'expired';
+export type Phase = "active" | "warning" | "urgent" | "expired";
 
 export interface SessionTimerState {
 	phase: Phase;
@@ -25,7 +25,7 @@ export interface SessionTimerState {
 // Internal state (module-scoped — effectively singleton)
 // ---------------------------------------------------------------------------
 
-let phase: Phase = $state('active');
+let phase: Phase = $state("active");
 let secondsRemaining: number = $state(0);
 let timeoutSeconds: number = 0;
 let lastActivityTime: number = 0;
@@ -42,9 +42,11 @@ const ACTIVITY_DEBOUNCE_MS = 5000;
 // Bound handler references (needed for proper removal)
 const activityHandler = () => debouncedReset();
 const visibilityHandler = () => handleVisibilityChange();
-const beforeUnloadHandler = () => {
-	navigator.sendBeacon('/api/logout');
-};
+
+// NOTE: No logout beacon on beforeunload/pagehide.
+// beforeunload also fires on ordinary page refreshes, so a beacon races the
+// reload and non-deterministically logs the user out. Session invalidation is
+// owned by the server (24h inactivity expiry) plus this client timer.
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -57,29 +59,29 @@ function computeThresholds(secs: number) {
 
 function updatePhase() {
 	if (secondsRemaining <= 0) {
-		phase = 'expired';
+		phase = "expired";
 	} else if (secondsRemaining <= urgentThreshold) {
-		phase = 'urgent';
+		phase = "urgent";
 	} else if (secondsRemaining <= warningThreshold) {
-		phase = 'warning';
+		phase = "warning";
 	} else {
-		phase = 'active';
+		phase = "active";
 	}
 }
 
 function handleExpired() {
 	stop();
 
-	phase = 'expired';
+	phase = "expired";
 	secondsRemaining = 0;
 
-	fetch('/api/logout', { method: 'POST' }).finally(() => {
-		goto('/login?reason=expired');
+	fetch("/api/logout", { method: "POST" }).finally(() => {
+		goto("/login?reason=expired");
 	});
 }
 
 function handleVisibilityChange() {
-	if (document.visibilityState !== 'visible' || !isRunning) return;
+	if (document.visibilityState !== "visible" || !isRunning) return;
 
 	const elapsedMs = Date.now() - lastActivityTime;
 	const elapsedSecs = elapsedMs / 1000;
@@ -105,21 +107,19 @@ function debouncedReset() {
 // ---------------------------------------------------------------------------
 
 function addListeners() {
-	const events = ['mousemove', 'keydown', 'click', 'scroll'] as const;
+	const events = ["mousemove", "keydown", "click", "scroll"] as const;
 	for (const event of events) {
 		document.addEventListener(event, activityHandler, { passive: true });
 	}
-	document.addEventListener('visibilitychange', visibilityHandler);
-	addEventListener('beforeunload', beforeUnloadHandler);
+	document.addEventListener("visibilitychange", visibilityHandler);
 }
 
 function removeListeners() {
-	const events = ['mousemove', 'keydown', 'click', 'scroll'] as const;
+	const events = ["mousemove", "keydown", "click", "scroll"] as const;
 	for (const event of events) {
 		document.removeEventListener(event, activityHandler);
 	}
-	document.removeEventListener('visibilitychange', visibilityHandler);
-	removeEventListener('beforeunload', beforeUnloadHandler);
+	document.removeEventListener("visibilitychange", visibilityHandler);
 }
 
 // ---------------------------------------------------------------------------
@@ -132,7 +132,7 @@ function tick() {
 	secondsRemaining = Math.max(0, secondsRemaining - 1);
 	updatePhase();
 
-	if (phase === 'expired') {
+	if (phase === "expired") {
 		handleExpired();
 	}
 }
@@ -150,7 +150,7 @@ function start(timeoutMinutes: number) {
 
 	timeoutSeconds = minutes * 60;
 	secondsRemaining = timeoutSeconds;
-	phase = 'active';
+	phase = "active";
 	lastActivityTime = Date.now();
 	lastResetTime = 0;
 
@@ -165,7 +165,7 @@ function reset() {
 	if (!isRunning || timeoutSeconds === 0) return;
 
 	secondsRemaining = timeoutSeconds;
-	phase = 'active';
+	phase = "active";
 	lastActivityTime = Date.now();
 	lastResetTime = 0;
 }
@@ -183,7 +183,7 @@ function destroy() {
 	removeListeners();
 
 	secondsRemaining = 0;
-	phase = 'active';
+	phase = "active";
 	timeoutSeconds = 0;
 	lastActivityTime = 0;
 	lastResetTime = 0;
@@ -205,5 +205,5 @@ export const sessionTimer = {
 	start,
 	reset,
 	stop,
-	destroy
+	destroy,
 } as const;

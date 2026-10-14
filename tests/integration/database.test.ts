@@ -106,7 +106,9 @@ describe("Database Integration & Migrations", () => {
 
 	it("should record one migration row per journal entry", async () => {
 		const { testDb } = await setupTestDb();
-		const journalPath = path.resolve("src/lib/db/migrations/meta/_journal.json");
+		const journalPath = path.resolve(
+			"src/lib/db/migrations/meta/_journal.json",
+		);
 		const journal = JSON.parse(fs.readFileSync(journalPath, "utf8")) as {
 			entries: Array<{ tag: string }>;
 		};

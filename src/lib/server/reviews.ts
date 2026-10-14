@@ -187,9 +187,7 @@ export interface StreakResult {
  * Streak is consecutive calendar months backwards from the most recent
  * active month (does not require the current month to be started).
  */
-export function calculateStreak(
-	history: ReviewHistoryEntry[],
-): StreakResult {
+export function calculateStreak(history: ReviewHistoryEntry[]): StreakResult {
 	if (history.length === 0) {
 		return { currentStreak: 0, longestStreak: 0, lastActiveMonth: null };
 	}

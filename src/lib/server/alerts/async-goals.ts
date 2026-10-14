@@ -1,20 +1,29 @@
 // ─── Goal & budget async alert checkers ─────────────────────────
 
-import { and, eq, gte, isNull, sql } from 'drizzle-orm';
-import { withUserFilter } from '$lib/auth/row-security';
-import { db } from '$lib/db/client';
-import { goalAllocations, goals, monthlyReviews, snapshots } from '$lib/db/schema';
-import { getBudgetStatus, getCategoryBreakdown, UNCATEGORISED_ID } from '../budgets';
-import { getCurrentBalancesForAccounts } from '$lib/server/derivedBalances';
-import { getDebtGoalProgress } from '../goals';
-import type { Alert, AlertSeverity } from '$lib/types/alerts';
-import { daysUntil, daysSince, makeGlobalAlert } from './constants';
-import type { AccountRow } from './constants';
+import { and, eq, gte, isNull, sql } from "drizzle-orm";
+import { withUserFilter } from "$lib/auth/row-security";
+import { db } from "$lib/db/client";
+import {
+	goalAllocations,
+	goals,
+	monthlyReviews,
+	snapshots,
+} from "$lib/db/schema";
+import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
 import { devLog, isVerboseDebug } from "$lib/server/logger";
+import type { Alert, AlertSeverity } from "$lib/types/alerts";
 import { formatCents } from "$lib/utils/formatting";
+import {
+	getBudgetStatus,
+	getCategoryBreakdown,
+	UNCATEGORISED_ID,
+} from "../budgets";
+import { getDebtGoalProgress } from "../goals";
+import { daysSince, daysUntil, makeGlobalAlert } from "./constants";
 
 export async function checkGoalAlerts(userId: number): Promise<Alert[]> {
-	if (isVerboseDebug()) devLog("checkGoalAlerts", "Checking goal alerts", { userId });
+	if (isVerboseDebug())
+		devLog("checkGoalAlerts", "Checking goal alerts", { userId });
 	const alerts: Alert[] = [];
 	const now = new Date();
 
@@ -23,23 +32,26 @@ export async function checkGoalAlerts(userId: number): Promise<Alert[]> {
 	});
 
 	// Batch-fetch current balances for debt goals
-	const debtGoalAccountIds = userGoals
-		.filter(g => g.goalType === 'debt' && g.linkedAccountId !== null)
-		.map(g => g.linkedAccountId!);
+	const debtGoalAccountIds = userGoals.flatMap((g) =>
+		g.goalType === "debt" && g.linkedAccountId !== null
+			? [g.linkedAccountId]
+			: [],
+	);
 
-	const debtBalances = debtGoalAccountIds.length > 0
-		? await getCurrentBalancesForAccounts(debtGoalAccountIds)
-		: new Map<number, number>();
+	const debtBalances =
+		debtGoalAccountIds.length > 0
+			? await getCurrentBalancesForAccounts(debtGoalAccountIds)
+			: new Map<number, number>();
 
 	for (const goal of userGoals) {
-		if (goal.currentAllocation < 0 && goal.goalType !== 'debt') {
+		if (goal.currentAllocation < 0 && goal.goalType !== "debt") {
 			alerts.push({
 				id: `GOAL_NEGATIVE_BALANCE:goal:${goal.slug}`,
-				type: 'GOAL_NEGATIVE_BALANCE',
-				severity: 'red',
-				title: 'Goal has negative balance',
+				type: "GOAL_NEGATIVE_BALANCE",
+				severity: "red",
+				title: "Goal has negative balance",
 				message: `"${goal.name}" allocation has gone negative`,
-				href: '/goals',
+				href: "/goals",
 				triggeredAt: Date.now(),
 			});
 		}
@@ -48,7 +60,7 @@ export async function checkGoalAlerts(userId: number): Promise<Alert[]> {
 			const days = daysUntil(goal.targetDate, now);
 			if (days <= 30 && days > 0) {
 				let progress: number;
-				if (goal.goalType === 'debt' && goal.linkedAccountId !== null) {
+				if (goal.goalType === "debt" && goal.linkedAccountId !== null) {
 					const currentBalance = debtBalances.get(goal.linkedAccountId) ?? 0;
 					const debtProgress = getDebtGoalProgress({
 						startingBalanceInCents: goal.startingBalanceInCents ?? 0,
@@ -56,19 +68,20 @@ export async function checkGoalAlerts(userId: number): Promise<Alert[]> {
 					});
 					progress = debtProgress.percent / 100;
 				} else {
-					progress = goal.targetAmountInCents > 0
-						? goal.currentAllocation / goal.targetAmountInCents
-						: 1;
+					progress =
+						goal.targetAmountInCents > 0
+							? goal.currentAllocation / goal.targetAmountInCents
+							: 1;
 				}
 				if (progress < 0.9) {
 					const pct = Math.round(progress * 100);
 					alerts.push({
 						id: `GOAL_DEADLINE_APPROACHING:goal:${goal.slug}`,
-						type: 'GOAL_DEADLINE_APPROACHING',
-						severity: 'amber',
-						title: 'Goal deadline approaching',
-						message: `"${goal.name}" — ${pct}% funded, deadline in ${days} day${days === 1 ? '' : 's'}`,
-						href: '/goals',
+						type: "GOAL_DEADLINE_APPROACHING",
+						severity: "amber",
+						title: "Goal deadline approaching",
+						message: `"${goal.name}" — ${pct}% funded, deadline in ${days} day${days === 1 ? "" : "s"}`,
+						href: "/goals",
 						triggeredAt: Date.now(),
 					});
 				}
@@ -76,16 +89,23 @@ export async function checkGoalAlerts(userId: number): Promise<Alert[]> {
 		}
 
 		// Check for debt that grew beyond starting balance
-		if (goal.goalType === 'debt' && goal.startingBalanceInCents !== null && goal.linkedAccountId !== null) {
+		if (
+			goal.goalType === "debt" &&
+			goal.startingBalanceInCents !== null &&
+			goal.linkedAccountId !== null
+		) {
 			const currentBalance = debtBalances.get(goal.linkedAccountId);
-			if (currentBalance !== undefined && Math.abs(currentBalance) > Math.abs(goal.startingBalanceInCents)) {
+			if (
+				currentBalance !== undefined &&
+				Math.abs(currentBalance) > Math.abs(goal.startingBalanceInCents)
+			) {
 				alerts.push({
 					id: `DEBT_GREW_BEYOND_STARTING:goal:${goal.slug}`,
-					type: 'DEBT_GREW_BEYOND_STARTING',
-					severity: 'red',
-					title: 'Debt increased',
+					type: "DEBT_GREW_BEYOND_STARTING",
+					severity: "red",
+					title: "Debt increased",
 					message: `"${goal.name}" balance has exceeded the starting balance`,
-					href: '/goals',
+					href: "/goals",
 					triggeredAt: Date.now(),
 				});
 			}
@@ -95,9 +115,13 @@ export async function checkGoalAlerts(userId: number): Promise<Alert[]> {
 	return alerts;
 }
 
-export async function checkSnapshotAlerts(userId: number, hasAccounts: boolean = true): Promise<Alert[]> {
+export async function checkSnapshotAlerts(
+	userId: number,
+	hasAccounts: boolean = true,
+): Promise<Alert[]> {
 	if (!hasAccounts) return [];
-	if (isVerboseDebug()) devLog("checkSnapshotAlerts", "Checking snapshot alerts", { userId });
+	if (isVerboseDebug())
+		devLog("checkSnapshotAlerts", "Checking snapshot alerts", { userId });
 	const [row] = await db
 		.select({ maxDate: sql<string | null>`max(${snapshots.snapshotDate})` })
 		.from(snapshots)
@@ -105,18 +129,26 @@ export async function checkSnapshotAlerts(userId: number, hasAccounts: boolean =
 
 	const maxDate = row?.maxDate;
 	if (!maxDate) {
-		return [makeGlobalAlert('NO_SNAPSHOT_RECENTLY', 'info', 'No net worth snapshot', 'No snapshot has been taken yet', '/overview/snapshots')];
+		return [
+			makeGlobalAlert(
+				"NO_SNAPSHOT_RECENTLY",
+				"info",
+				"No net worth snapshot",
+				"No snapshot has been taken yet",
+				"/overview/snapshots",
+			),
+		];
 	}
 
 	const daysSinceSnapshot = daysSince(new Date(maxDate), new Date());
 	if (daysSinceSnapshot > 30) {
 		return [
 			makeGlobalAlert(
-				'NO_SNAPSHOT_RECENTLY',
-				'info',
-				'No recent snapshot',
+				"NO_SNAPSHOT_RECENTLY",
+				"info",
+				"No recent snapshot",
 				`Last snapshot was ${daysSinceSnapshot} days ago`,
-				'/overview/snapshots',
+				"/overview/snapshots",
 			),
 		];
 	}
@@ -124,11 +156,17 @@ export async function checkSnapshotAlerts(userId: number, hasAccounts: boolean =
 	return [];
 }
 
-export async function checkMonthlyReviewAlerts(userId: number, hasAccounts: boolean = true): Promise<Alert[]> {
+export async function checkMonthlyReviewAlerts(
+	userId: number,
+	hasAccounts: boolean = true,
+): Promise<Alert[]> {
 	if (!hasAccounts) return [];
-	if (isVerboseDebug()) devLog("checkMonthlyReviewAlerts", "Checking monthly review alerts", { userId });
+	if (isVerboseDebug())
+		devLog("checkMonthlyReviewAlerts", "Checking monthly review alerts", {
+			userId,
+		});
 	const now = new Date();
-	const yearMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+	const yearMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 
 	const existing = await db.query.monthlyReviews.findFirst({
 		where: and(
@@ -140,32 +178,44 @@ export async function checkMonthlyReviewAlerts(userId: number, hasAccounts: bool
 	if (existing) return [];
 
 	const dayOfMonth = now.getUTCDate();
-	const monthLabel = now.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+	const monthLabel = now.toLocaleDateString("en-GB", {
+		month: "long",
+		year: "numeric",
+	});
 
 	let severity: AlertSeverity;
 	let message: string;
 
 	if (dayOfMonth <= 7) {
-		severity = 'info';
+		severity = "info";
 		message = `No review yet for ${monthLabel}`;
 	} else if (dayOfMonth <= 14) {
-		severity = 'amber';
+		severity = "amber";
 		message = `Review overdue for ${monthLabel}`;
 	} else {
-		severity = 'red';
+		severity = "red";
 		message = `Review urgently needed for ${monthLabel}`;
 	}
 
-	return [makeGlobalAlert('NO_MONTHLY_REVIEW', severity, 'Monthly review', message, '/reviews')];
+	return [
+		makeGlobalAlert(
+			"NO_MONTHLY_REVIEW",
+			severity,
+			"Monthly review",
+			message,
+			"/reviews",
+		),
+	];
 }
 
 export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
-	if (isVerboseDebug()) devLog("checkBudgetAlerts", "Checking budget alerts", { userId });
+	if (isVerboseDebug())
+		devLog("checkBudgetAlerts", "Checking budget alerts", { userId });
 	const alerts: Alert[] = [];
 	const now = new Date();
 	const year = now.getUTCFullYear();
 	const month = now.getUTCMonth() + 1;
-	const monthSlug = `${year}-${String(month).padStart(2, '0')}`;
+	const monthSlug = `${year}-${String(month).padStart(2, "0")}`;
 	const href = `/overview/budgets/${monthSlug}`;
 
 	const status = await getBudgetStatus(userId, year, month);
@@ -182,9 +232,9 @@ export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
 		const percentOver = Math.round(((totalSpent - target) / target) * 100);
 		alerts.push(
 			makeGlobalAlert(
-				'BUDGET_OVERSPEND',
-				'red',
-				'Monthly budget exceeded',
+				"BUDGET_OVERSPEND",
+				"red",
+				"Monthly budget exceeded",
 				`Spent ${formatCents(totalSpent)} of ${formatCents(target)} budget (${percentOver}% over)`,
 				href,
 			),
@@ -195,9 +245,9 @@ export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
 	if (projectedTotal > target && daysElapsed >= 7) {
 		alerts.push(
 			makeGlobalAlert(
-				'BUDGET_PROJECTED_OVERSPEND',
-				'amber',
-				'Budget overspend projected',
+				"BUDGET_PROJECTED_OVERSPEND",
+				"amber",
+				"Budget overspend projected",
 				`Projected to spend ${formatCents(projectedTotal)} against a ${formatCents(target)} target (${daysRemaining} days remaining)`,
 				href,
 			),
@@ -205,7 +255,12 @@ export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
 	}
 
 	// 3 & 4. Category-level alerts
-	const categories = await getCategoryBreakdown(userId, year, month, status.budget);
+	const categories = await getCategoryBreakdown(
+		userId,
+		year,
+		month,
+		status.budget,
+	);
 
 	for (const cat of categories) {
 		if (cat.id === UNCATEGORISED_ID) continue; // handled separately below
@@ -218,8 +273,8 @@ export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
 			const over = cat.spent - cat.target;
 			alerts.push({
 				id: `CATEGORY_BUDGET_EXCEEDED:${cat.id}`,
-				type: 'CATEGORY_BUDGET_EXCEEDED',
-				severity: 'amber',
+				type: "CATEGORY_BUDGET_EXCEEDED",
+				severity: "amber",
 				title: `${cat.name} over budget`,
 				message: `Spent ${formatCents(cat.spent)}, exceeding the ${formatCents(cat.target)} target by ${formatCents(over)}`,
 				href,
@@ -230,8 +285,8 @@ export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
 		else if (pct > 80) {
 			alerts.push({
 				id: `CATEGORY_BUDGET_APPROACHING:${cat.id}`,
-				type: 'CATEGORY_BUDGET_APPROACHING',
-				severity: 'info',
+				type: "CATEGORY_BUDGET_APPROACHING",
+				severity: "info",
 				title: `${cat.name} approaching budget`,
 				message: `Spent ${formatCents(cat.spent)} of ${formatCents(cat.target)} (${Math.round(pct)}%)`,
 				href,
@@ -241,15 +296,15 @@ export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
 	}
 
 	// 5. HIGH_UNCATEGORISED_SPEND (info -> amber)
-	const uncategorisedEntry = categories.find(c => c.id === UNCATEGORISED_ID);
+	const uncategorisedEntry = categories.find((c) => c.id === UNCATEGORISED_ID);
 	if (uncategorisedEntry && totalSpent > 0) {
 		const uncategorisedPct = (uncategorisedEntry.spent / totalSpent) * 100;
 		if (uncategorisedPct > 40) {
 			alerts.push(
 				makeGlobalAlert(
-					'HIGH_UNCATEGORISED_SPEND',
-					'amber',
-					'High uncategorised spending',
+					"HIGH_UNCATEGORISED_SPEND",
+					"amber",
+					"High uncategorised spending",
 					`${Math.round(uncategorisedPct)}% of spending (${formatCents(uncategorisedEntry.spent)}) is uncategorised this month`,
 					href,
 				),
@@ -257,9 +312,9 @@ export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
 		} else if (uncategorisedPct > 20) {
 			alerts.push(
 				makeGlobalAlert(
-					'HIGH_UNCATEGORISED_SPEND',
-					'info',
-					'High uncategorised spending',
+					"HIGH_UNCATEGORISED_SPEND",
+					"info",
+					"High uncategorised spending",
 					`${Math.round(uncategorisedPct)}% of spending (${formatCents(uncategorisedEntry.spent)}) is uncategorised this month`,
 					href,
 				),
@@ -270,8 +325,13 @@ export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
 	return alerts;
 }
 
-export async function checkGoalAutoReduceAlerts(userId: number): Promise<Alert[]> {
-	if (isVerboseDebug()) devLog("checkGoalAutoReduceAlerts", "Checking goal auto-reduce alerts", { userId });
+export async function checkGoalAutoReduceAlerts(
+	userId: number,
+): Promise<Alert[]> {
+	if (isVerboseDebug())
+		devLog("checkGoalAutoReduceAlerts", "Checking goal auto-reduce alerts", {
+			userId,
+		});
 	const alerts: Alert[] = [];
 
 	const sevenDaysAgo = new Date();
@@ -289,7 +349,7 @@ export async function checkGoalAutoReduceAlerts(userId: number): Promise<Alert[]
 		.where(
 			and(
 				withUserFilter(userId, goals),
-				eq(goalAllocations.type, 'AUTO_REDUCE_NEGATIVE_BALANCE'),
+				eq(goalAllocations.type, "AUTO_REDUCE_NEGATIVE_BALANCE"),
 				gte(goalAllocations.createdAt, sevenDaysAgo),
 			),
 		);
@@ -297,11 +357,11 @@ export async function checkGoalAutoReduceAlerts(userId: number): Promise<Alert[]
 	for (const r of reductions) {
 		alerts.push({
 			id: `GOAL_AUTO_REDUCE_TRIGGERED:${r.goalSlug}:${r.allocationId}`,
-			type: 'GOAL_AUTO_REDUCE_TRIGGERED',
-			severity: 'red',
+			type: "GOAL_AUTO_REDUCE_TRIGGERED",
+			severity: "red",
 			title: `${r.goalName} allocation reduced`,
 			message: `${formatCents(Math.abs(r.amount))} automatically unallocated due to negative account balance`,
-			href: '/goals',
+			href: "/goals",
 			triggeredAt: Date.now(),
 		});
 	}

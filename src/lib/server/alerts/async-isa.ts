@@ -1,47 +1,58 @@
 // ─── ISA-related async alert checkers ─────────────────────────
 
-import { and, eq, gte, inArray, isNull, sql } from 'drizzle-orm';
-import { withUserFilter } from '$lib/auth/row-security';
-import { db } from '$lib/db/client';
-import { accountTransactions, accounts } from '$lib/db/schema';
+import { and, eq, gte, inArray, isNull, sql } from "drizzle-orm";
+import { withUserFilter } from "$lib/auth/row-security";
+import { db } from "$lib/db/client";
+import { accounts, accountTransactions } from "$lib/db/schema";
+import { calculateISAPacing } from "$lib/server/isaPacing";
+import { devLog, isVerboseDebug } from "$lib/server/logger";
 import {
 	getActualInterestEarned,
 	getISAAllowanceUsed,
-} from '$lib/server/tax-year-queries';
+} from "$lib/server/tax-year-queries";
+import type { Alert, AlertSeverity } from "$lib/types/alerts";
+import { formatCents } from "$lib/utils/formatting";
 import {
 	getTaxFreeStatus,
 	getUkTaxYearBounds,
 	ISA_ALLOWANCE_IN_CENTS,
-} from '$lib/utils/tax-year-utils';
-import { calculateISAPacing } from '$lib/server/isaPacing';
-import type { Alert, AlertSeverity } from '$lib/types/alerts';
-import { PSA_BY_BAND, daysSince, makeAccountAlert, makeGlobalAlert } from './constants';
-import type { AccountRow } from './constants';
-import { devLog, isVerboseDebug } from "$lib/server/logger";
-import { formatCents } from "$lib/utils/formatting";
+} from "$lib/utils/tax-year-utils";
+import {
+	daysSince,
+	makeAccountAlert,
+	makeGlobalAlert,
+	PSA_BY_BAND,
+} from "./constants";
 
 export async function checkIsaAlerts(
 	userId: number,
 	taxYear: { start: Date; end: Date },
 ): Promise<Alert[]> {
-	if (isVerboseDebug()) devLog("checkIsaAlerts", "Checking ISA alerts", { userId });
+	if (isVerboseDebug())
+		devLog("checkIsaAlerts", "Checking ISA alerts", { userId });
 	const alerts: Alert[] = [];
 	const used = await getISAAllowanceUsed(userId, taxYear.start, taxYear.end);
 	const pct = used / ISA_ALLOWANCE_IN_CENTS;
 
 	if (pct >= 1.0) {
 		alerts.push(
-			makeGlobalAlert('ISA_FULL', 'info', 'ISA allowance full', `£${(used / 100).toLocaleString('en-GB')} of £20,000 used this tax year`, '/accounts'),
+			makeGlobalAlert(
+				"ISA_FULL",
+				"info",
+				"ISA allowance full",
+				`£${(used / 100).toLocaleString("en-GB")} of £20,000 used this tax year`,
+				"/accounts",
+			),
 		);
 	} else if (pct >= 0.8) {
 		const remaining = ISA_ALLOWANCE_IN_CENTS - used;
 		alerts.push(
 			makeGlobalAlert(
-				'ISA_NEARLY_FULL',
-				'amber',
-				'ISA nearly full',
-				`£${(used / 100).toLocaleString('en-GB')} of £20,000 used (${Math.round(pct * 100)}%) — £${(remaining / 100).toLocaleString('en-GB')} remaining`,
-				'/accounts',
+				"ISA_NEARLY_FULL",
+				"amber",
+				"ISA nearly full",
+				`£${(used / 100).toLocaleString("en-GB")} of £20,000 used (${Math.round(pct * 100)}%) — £${(remaining / 100).toLocaleString("en-GB")} remaining`,
+				"/accounts",
 			),
 		);
 	}
@@ -55,18 +66,19 @@ export async function checkPsaAlerts(
 	taxBand: string,
 	hasSavingsAccounts: boolean,
 ): Promise<Alert[]> {
-	if (isVerboseDebug()) devLog("checkPsaAlerts", "Checking PSA alerts", { userId, taxBand });
+	if (isVerboseDebug())
+		devLog("checkPsaAlerts", "Checking PSA alerts", { userId, taxBand });
 	const alerts: Alert[] = [];
 
-	if (taxBand === 'additional') {
+	if (taxBand === "additional") {
 		if (hasSavingsAccounts) {
 			alerts.push(
 				makeGlobalAlert(
-					'ADDITIONAL_RATE_PSA_ZERO',
-					'amber',
-					'No Personal Savings Allowance',
-					'Additional rate taxpayers have £0 PSA — all savings interest is taxable',
-					'/accounts',
+					"ADDITIONAL_RATE_PSA_ZERO",
+					"amber",
+					"No Personal Savings Allowance",
+					"Additional rate taxpayers have £0 PSA — all savings interest is taxable",
+					"/accounts",
 				),
 			);
 		}
@@ -74,18 +86,25 @@ export async function checkPsaAlerts(
 	}
 
 	const threshold = PSA_BY_BAND[taxBand] ?? PSA_BY_BAND.basic;
-	const earned = await getActualInterestEarned(userId, taxYear.start, taxYear.end);
-	const status = getTaxFreeStatus(earned, taxBand as 'basic' | 'higher' | 'additional');
+	const earned = await getActualInterestEarned(
+		userId,
+		taxYear.start,
+		taxYear.end,
+	);
+	const status = getTaxFreeStatus(
+		earned,
+		taxBand as "basic" | "higher" | "additional",
+	);
 
 	if (earned > threshold) {
 		const over = earned - threshold;
 		alerts.push(
 			makeGlobalAlert(
-				'PSA_EXCEEDED',
-				'red',
-				'Personal Savings Allowance exceeded',
-				`£${(earned / 100).toLocaleString('en-GB')} earned — £${(over / 100).toLocaleString('en-GB')} taxable`,
-				'/accounts',
+				"PSA_EXCEEDED",
+				"red",
+				"Personal Savings Allowance exceeded",
+				`£${(earned / 100).toLocaleString("en-GB")} earned — £${(over / 100).toLocaleString("en-GB")} taxable`,
+				"/accounts",
 			),
 		);
 	} else if (earned > threshold * 0.8) {
@@ -93,11 +112,11 @@ export async function checkPsaAlerts(
 		const pct = Math.round((earned / threshold) * 100);
 		alerts.push(
 			makeGlobalAlert(
-				'PSA_NEARLY_EXCEEDED',
-				'amber',
-				'Approaching Personal Savings Allowance',
-				`£${(earned / 100).toLocaleString('en-GB')} of £${(threshold / 100).toLocaleString('en-GB')} used (${pct}%) — £${(remaining / 100).toLocaleString('en-GB')} remaining`,
-				'/accounts',
+				"PSA_NEARLY_EXCEEDED",
+				"amber",
+				"Approaching Personal Savings Allowance",
+				`£${(earned / 100).toLocaleString("en-GB")} of £${(threshold / 100).toLocaleString("en-GB")} used (${pct}%) — £${(remaining / 100).toLocaleString("en-GB")} remaining`,
+				"/accounts",
 			),
 		);
 	}
@@ -108,9 +127,13 @@ export async function checkPsaAlerts(
 	return alerts;
 }
 
-export async function checkTaxYearReviewAlerts(now: Date, hasAccounts: boolean = true): Promise<Alert[]> {
+export async function checkTaxYearReviewAlerts(
+	now: Date,
+	hasAccounts: boolean = true,
+): Promise<Alert[]> {
 	if (!hasAccounts) return [];
-	if (isVerboseDebug()) devLog("checkTaxYearReviewAlerts", "Checking tax year review alerts");
+	if (isVerboseDebug())
+		devLog("checkTaxYearReviewAlerts", "Checking tax year review alerts");
 	const taxYear = getUkTaxYearBounds(now);
 	const daysSinceNewTaxYear = daysSince(taxYear.start, now);
 
@@ -124,38 +147,39 @@ export async function checkTaxYearReviewAlerts(now: Date, hasAccounts: boolean =
 
 	let severity: AlertSeverity;
 	if (daysSinceNewTaxYear <= 7) {
-		severity = 'info';
+		severity = "info";
 	} else if (daysSinceNewTaxYear <= 14) {
-		severity = 'amber';
+		severity = "amber";
 	} else {
-		severity = 'red';
+		severity = "red";
 	}
 
 	return [
 		makeGlobalAlert(
-			'TAX_YEAR_INTEREST_REVIEW',
+			"TAX_YEAR_INTEREST_REVIEW",
 			severity,
-			'Tax year interest summary',
-			`Review your ${prevLabel} interest — ${daysSinceNewTaxYear === 0 ? 'new tax year started today' : `${daysSinceNewTaxYear}d into new tax year`}`,
+			"Tax year interest summary",
+			`Review your ${prevLabel} interest — ${daysSinceNewTaxYear === 0 ? "new tax year started today" : `${daysSinceNewTaxYear}d into new tax year`}`,
 			`/accounts/interest/${prevSlug}`,
 		),
 		makeGlobalAlert(
-			'TAX_YEAR_ISA_REVIEW',
+			"TAX_YEAR_ISA_REVIEW",
 			severity,
-			'Tax year ISA summary',
-			`Review your ${prevLabel} ISA usage — ${daysSinceNewTaxYear === 0 ? 'new tax year started today' : `${daysSinceNewTaxYear}d into new tax year`}`,
+			"Tax year ISA summary",
+			`Review your ${prevLabel} ISA usage — ${daysSinceNewTaxYear === 0 ? "new tax year started today" : `${daysSinceNewTaxYear}d into new tax year`}`,
 			`/accounts/isa/${prevSlug}`,
 		),
 	];
 }
 
 export async function checkISAPacingAlerts(userId: number): Promise<Alert[]> {
-	if (isVerboseDebug()) devLog("checkISAPacingAlerts", "Checking ISA pacing alerts", { userId });
+	if (isVerboseDebug())
+		devLog("checkISAPacingAlerts", "Checking ISA pacing alerts", { userId });
 	const alerts: Alert[] = [];
 
 	const pacing = await calculateISAPacing(userId);
 
-	if (pacing.status !== 'behind') return alerts;
+	if (pacing.status !== "behind") return alerts;
 
 	const deposited = pacing.allowanceUsedInCents;
 	const target = ISA_ALLOWANCE_IN_CENTS;
@@ -163,11 +187,11 @@ export async function checkISAPacingAlerts(userId: number): Promise<Alert[]> {
 
 	alerts.push(
 		makeGlobalAlert(
-			'ISA_PACING_BEHIND',
-			'info',
-			'ISA contributions behind pace',
+			"ISA_PACING_BEHIND",
+			"info",
+			"ISA contributions behind pace",
 			`Deposited ${formatCents(deposited)} of ${formatCents(target)} — ${formatCents(monthlyNeeded)}/month needed to reach limit`,
-			'/accounts',
+			"/accounts",
 		),
 	);
 
@@ -175,7 +199,8 @@ export async function checkISAPacingAlerts(userId: number): Promise<Alert[]> {
 }
 
 export async function checkLISAAlerts(userId: number): Promise<Alert[]> {
-	if (isVerboseDebug()) devLog("checkLISAAlerts", "Checking LISA alerts", { userId });
+	if (isVerboseDebug())
+		devLog("checkLISAAlerts", "Checking LISA alerts", { userId });
 	const alerts: Alert[] = [];
 	const now = new Date();
 	const { start: taxYearStart } = getUkTaxYearBounds(now);
@@ -183,7 +208,7 @@ export async function checkLISAAlerts(userId: number): Promise<Alert[]> {
 	const lisaAccounts = await db.query.accounts.findMany({
 		where: and(
 			withUserFilter(userId, accounts),
-			eq(accounts.taxWrapper, 'lisa'),
+			eq(accounts.taxWrapper, "lisa"),
 			isNull(accounts.closedAt),
 		),
 	});
@@ -201,7 +226,7 @@ export async function checkLISAAlerts(userId: number): Promise<Alert[]> {
 		.where(
 			and(
 				inArray(accountTransactions.accountId, lisaAccountIds),
-				inArray(accountTransactions.type, ['deposit', 'transfer_in']),
+				inArray(accountTransactions.type, ["deposit", "transfer_in"]),
 				gte(accountTransactions.transactionDate, taxYearStart),
 				// transactionDate < taxYearEnd handled implicitly by summing only positive deposits
 			),
@@ -221,8 +246,8 @@ export async function checkLISAAlerts(userId: number): Promise<Alert[]> {
 		if (deposited > LISA_LIMIT_IN_CENTS) {
 			alerts.push(
 				makeAccountAlert(
-					'LISA_CONTRIBUTION_LIMIT',
-					'amber',
+					"LISA_CONTRIBUTION_LIMIT",
+					"amber",
 					`${account.name} — LISA limit exceeded`,
 					`Deposited ${formatCents(deposited)} of £4,000 limit this tax year`,
 					account,

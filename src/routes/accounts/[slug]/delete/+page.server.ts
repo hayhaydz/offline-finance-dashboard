@@ -1,17 +1,18 @@
 import { error, fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
-import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import { db } from "$lib/db/client";
 import { accounts } from "$lib/db/schema";
 import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const user = requireAuth(locals);
 
 	const accountSlug = params.slug;
-	if (isVerboseDebug()) devLog("closeAccount", "Loading account for close", { accountSlug });
+	if (isVerboseDebug())
+		devLog("closeAccount", "Loading account for close", { accountSlug });
 
 	// Get account and validate ownership using slug
 	const account = await db.query.accounts.findFirst({
@@ -99,7 +100,8 @@ export const actions: Actions = {
 		}
 
 		// Redirect to accounts list
-		if (isVerboseDebug()) devLog("closeAccount", "Redirecting to accounts list", { accountSlug });
+		if (isVerboseDebug())
+			devLog("closeAccount", "Redirecting to accounts list", { accountSlug });
 		redirect(303, "/accounts");
 	},
 };

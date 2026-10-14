@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { calculateAssetsAndLiabilities } from "$lib/server/finance";
+import { describe, expect, it } from "vitest";
 import type { AccountWithLatestBalance } from "$lib/server/finance";
+import { calculateAssetsAndLiabilities } from "$lib/server/finance";
 
 describe("calculateAssetsAndLiabilities", () => {
 	it("calculates assets and liabilities from positive asset balances", () => {

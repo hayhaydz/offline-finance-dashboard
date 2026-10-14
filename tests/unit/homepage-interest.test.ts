@@ -8,7 +8,7 @@
  * 4. Handles mixed wrappers with multiple rows
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 // Mock the DB module before importing the function under test
 vi.mock("$lib/db/client", () => ({
@@ -59,11 +59,11 @@ vi.mock("$lib/server/interestRates", () => ({
 	getCurrentRate: vi.fn(),
 }));
 
+import { db } from "$lib/db/client";
 import {
 	getActualInterestByTaxWrapper,
 	getProjectedInterestByTaxWrapper,
 } from "$lib/server/tax-year-queries";
-import { db } from "$lib/db/client";
 
 describe("getActualInterestByTaxWrapper", () => {
 	const taxYearStart = new Date(Date.UTC(2025, 3, 6, 0, 0, 0, 0));
@@ -206,7 +206,9 @@ describe("Homepage interest pagination regression", () => {
 		// The bug: homepage used paginated accounts (limit 10) for interest.
 		// If savings were on page 2, interest was £0.
 		// This test verifies the new function queries ALL accounts via SQL.
-		function mockDbSelect(results: Array<{ taxWrapper: string; total: number }>) {
+		function mockDbSelect(
+			results: Array<{ taxWrapper: string; total: number }>,
+		) {
 			const groupByMock = vi.fn().mockResolvedValue(results);
 			const whereMock = vi.fn().mockReturnValue({ groupBy: groupByMock });
 			const innerJoinMock = vi.fn().mockReturnValue({ where: whereMock });

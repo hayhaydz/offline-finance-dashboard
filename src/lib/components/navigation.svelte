@@ -61,6 +61,7 @@
     },
     { href: '/goals', label: 'Goals', authRequired: true, children: [
       { href: '/goals', label: 'All Goals', includeChildRoutes: true },
+      { href: '/goals?type=debt', label: 'Debt Payoff' },
       { href: '/goals/create', label: 'Create Goal' },
       { href: '/goals/archived', label: 'Archived Goals' }
     ] },
@@ -86,15 +87,37 @@
   ];
 
   const currentPath = $derived(page.url.pathname);
+  const currentSearch = $derived(page.url.search);
+
+  // Matches a child nav href (which may carry a query string like /goals?type=debt)
+  // against the current route. Query-qualified hrefs must match the query too,
+  // so /goals?type=debt only highlights when that filter is active.
+  function isChildRouteActive(child: NavItem): boolean {
+    const hrefUrl = new URL(child.href, 'http://nav.local');
+    const path = hrefUrl.pathname;
+    const query = hrefUrl.searchParams;
+
+    if (path === '/') return currentPath === '/';
+
+    const pathMatches =
+      currentPath === path || currentPath.startsWith(path + '/');
+    if (!pathMatches) return false;
+
+    if (query.size > 0) {
+      for (const [key, value] of query) {
+        if (currentSearchParams.get(key) !== value) return false;
+      }
+    }
+    return true;
+  }
+
+  const currentSearchParams = $derived.by(() => new URLSearchParams(currentSearch));
 
   // Auto-open subnav matching the current route
   $effect(() => {
     const path = currentPath; // depend on route changes
     const matchingParent = navItems.find(
-      (item) => item.children && item.children.some((child) => {
-        if (child.href === '/') return path === '/';
-        return path === child.href || path.startsWith(child.href + '/');
-      })
+      (item) => item.children && item.children.some((child) => isChildRouteActive(child))
     );
     activeSubNav = matchingParent?.href ?? null;
   });
@@ -189,26 +212,14 @@
     {#each navItems as item}
       {#if !item.authRequired || user}
         {@const isActive = item.href === '/' ? currentPath === item.href : currentPath.startsWith(item.href)}
-        {@const hasChildren = item.children && item.children.length > 0}
-        {#if hasChildren}
-          <a
-            href={item.href}
-            class="bracket-link text-xs"
-            class:bg-gray-100={isActive}
-            class:font-bold={isActive}
-          >
-            {item.label}
-          </a>
-        {:else}
-          <a
-            href={item.href}
-            class="bracket-link text-xs"
-            class:bg-gray-100={isActive}
-            class:font-bold={isActive}
-          >
-            {item.label}
-          </a>
-        {/if}
+        <a
+          href={item.href}
+          class="bracket-link text-xs"
+          class:bg-gray-100={isActive}
+          class:font-bold={isActive}
+        >
+          {item.label}
+        </a>
       {/if}
     {/each}
 
@@ -229,12 +240,14 @@
       <div class="bg-gray-50 border-t">
         <div class="flex gap-4 p-2 min-h-8 items-center">
           {#each activeItem.children as child}
-            {@const otherSiblingHrefs = activeItem.children?.filter(c => c.href !== child.href).map(c => c.href) ?? []}
-            {@const isChildActive = child.href === '/'
-              ? currentPath === child.href
-              : child.includeChildRoutes
-                ? currentPath === child.href || (currentPath.startsWith(child.href + '/') && !otherSiblingHrefs.some(h => currentPath === h || currentPath.startsWith(h + '/')))
-                : currentPath === child.href}
+            {@const isChildActive = (() => {
+              if (!isChildRouteActive(child)) return false;
+              if (!child.includeChildRoutes) return true;
+              // Broad "include child routes" entries (e.g. All Goals) defer to
+              // any more specific sibling that also matches (e.g. Debt Payoff).
+              const otherSiblings = activeItem.children?.filter((c) => c !== child) ?? [];
+              return !otherSiblings.some((sib) => isChildRouteActive(sib));
+            })()}
             <a
               href={child.href}
               class="bracket-link text-xs"

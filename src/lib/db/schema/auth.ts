@@ -5,8 +5,8 @@ import { goals } from "./goals";
 import {
 	budgetMonths,
 	monthlyReviews,
-	spendingCategories,
 	snapshots,
+	spendingCategories,
 } from "./system";
 
 export const users = sqliteTable("users", {
@@ -84,8 +84,12 @@ export const loginAttempts = sqliteTable(
 		lockedUntil: integer("locked_until", { mode: "timestamp" }),
 	},
 	(table) => ({
-		lastAttemptIdx: index("idx_login_attempts_last_attempt").on(table.lastAttempt),
-		lockedUntilIdx: index("idx_login_attempts_locked_until").on(table.lockedUntil),
+		lastAttemptIdx: index("idx_login_attempts_last_attempt").on(
+			table.lastAttempt,
+		),
+		lockedUntilIdx: index("idx_login_attempts_locked_until").on(
+			table.lockedUntil,
+		),
 	}),
 );
 

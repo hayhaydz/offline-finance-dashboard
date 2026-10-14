@@ -1,19 +1,24 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { nanoid } from "nanoid";
-import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
 import {
-	requireString,
-	optionalString,
-	requireEnum,
-	requireCurrency,
-	VALID_ACCOUNT_TYPES,
-	VALID_TAX_WRAPPERS,
-	VALID_LIQUIDITY,
+	devLog,
+	isVerboseDebug,
+	logError,
+	logFormData,
+} from "$lib/server/logger";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
+import {
 	FIELD_LIMITS,
+	optionalString,
+	requireCurrency,
+	requireEnum,
+	requireString,
+	VALID_ACCOUNT_TYPES,
+	VALID_LIQUIDITY,
+	VALID_TAX_WRAPPERS,
 } from "$lib/server/validation";
-import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -37,7 +42,8 @@ export const actions: Actions = {
 			}
 
 			const formData = await request.formData();
-			if (isVerboseDebug()) devLog("createAccount", "Form received", Object.fromEntries(formData));
+			if (isVerboseDebug())
+				devLog("createAccount", "Form received", Object.fromEntries(formData));
 
 			const name = formData.get("name") as string;
 			const type = formData.get("type") as string;
@@ -191,7 +197,10 @@ export const actions: Actions = {
 			}
 
 			// Redirect to accounts list on success
-			if (isVerboseDebug()) devLog("createAccount", "Redirecting to accounts list", { accountSlug });
+			if (isVerboseDebug())
+				devLog("createAccount", "Redirecting to accounts list", {
+					accountSlug,
+				});
 			redirect(303, "/accounts");
 		} catch (error) {
 			// SvelteKit's redirect() throws an error with status code - let it through

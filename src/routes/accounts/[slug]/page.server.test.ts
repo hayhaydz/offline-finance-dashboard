@@ -1,9 +1,14 @@
+import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { eq } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import type { User } from "$lib/db/schema";
-import { accounts, accountTransactions, interestRates, users } from "$lib/db/schema";
+import {
+	accounts,
+	accountTransactions,
+	interestRates,
+	users,
+} from "$lib/db/schema";
 import { load } from "./+page.server";
 
 describe("Account page load - liability projections", () => {
@@ -63,7 +68,9 @@ describe("Account page load - liability projections", () => {
 		await db
 			.delete(accountTransactions)
 			.where(eq(accountTransactions.accountId, testAccountId));
-		await db.delete(interestRates).where(eq(interestRates.accountId, testAccountId));
+		await db
+			.delete(interestRates)
+			.where(eq(interestRates.accountId, testAccountId));
 		await db.delete(accounts).where(eq(accounts.id, testAccountId));
 		await db.delete(users).where(eq(users.id, testUserId));
 	});

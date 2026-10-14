@@ -1,4 +1,4 @@
-import type { PaymentRule, TTZResult, MonthProjection } from "$lib/types/debt";
+import type { MonthProjection, PaymentRule, TTZResult } from "$lib/types/debt";
 
 export function calculateTTZ(
 	balance: number,
@@ -49,4 +49,4 @@ function calculateMinimumPayment(balance: number, rule: PaymentRule): number {
 	return Math.round((balance * 250) / 10000); // Default 2.5%
 }
 
-export type { PaymentRule, TTZResult, MonthProjection } from "$lib/types/debt";
+export type { MonthProjection, PaymentRule, TTZResult } from "$lib/types/debt";

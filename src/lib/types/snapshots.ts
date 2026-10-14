@@ -6,8 +6,8 @@
  */
 
 import type {
-	ISAAllowanceBreakdown,
 	InterestBreakdownDetail,
+	ISAAllowanceBreakdown,
 } from "$lib/server/snapshotBreakdowns";
 
 /**

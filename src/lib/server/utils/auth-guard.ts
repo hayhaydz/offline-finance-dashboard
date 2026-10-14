@@ -23,7 +23,9 @@ import { redirect } from "@sveltejs/kit";
  * @returns The authenticated user
  * @throws Redirects to /login if not authenticated
  */
-export function requireAuth(locals: App.Locals): NonNullable<App.Locals["user"]> {
+export function requireAuth(
+	locals: App.Locals,
+): NonNullable<App.Locals["user"]> {
 	if (!locals.user) {
 		redirect(302, "/login");
 	}
@@ -39,6 +41,8 @@ export function requireAuth(locals: App.Locals): NonNullable<App.Locals["user"]>
  * @param locals - SvelteKit locals from action function
  * @returns The authenticated user, or null if not authenticated
  */
-export function getAuthUser(locals: App.Locals): NonNullable<App.Locals["user"]> | null {
+export function getAuthUser(
+	locals: App.Locals,
+): NonNullable<App.Locals["user"]> | null {
 	return locals.user ?? null;
 }

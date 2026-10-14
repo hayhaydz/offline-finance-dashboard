@@ -2,13 +2,18 @@ import { fail } from "@sveltejs/kit";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { accounts, spendingCategories } from "$lib/db/schema";
-import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 import {
-	getOverlappingTransactions,
 	batchInsertTransactions,
+	getOverlappingTransactions,
 	type ImportRow,
 } from "$lib/server/imports";
-import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
+import {
+	devLog,
+	isVerboseDebug,
+	logError,
+	logFormData,
+} from "$lib/server/logger";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -23,10 +28,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 	// Get user's open accounts (for dropdown)
 	const userAccounts = await db.query.accounts.findMany({
-		where: and(
-			eq(accounts.userId, user.id),
-			isNull(accounts.closedAt),
-		),
+		where: and(eq(accounts.userId, user.id), isNull(accounts.closedAt)),
 		orderBy: (accounts, { asc }) => [asc(accounts.name)],
 	});
 
@@ -63,7 +65,7 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		logFormData("settings-data:fetch-overlaps", formData);
 
-		const accountId = parseInt(formData.get("accountId") as string);
+		const accountId = parseInt(formData.get("accountId") as string, 10);
 		const fromDate = formData.get("fromDate") as string;
 		const toDate = formData.get("toDate") as string;
 
@@ -102,10 +104,15 @@ export const actions: Actions = {
 				overlaps,
 			};
 		} catch (error) {
-			logError("settings-data:fetch-overlaps", "Failed to fetch overlaps", error);
+			logError(
+				"settings-data:fetch-overlaps",
+				"Failed to fetch overlaps",
+				error,
+			);
 			return fail(500, {
 				action: "fetch-overlaps",
-				error: error instanceof Error ? error.message : "Failed to fetch overlaps",
+				error:
+					error instanceof Error ? error.message : "Failed to fetch overlaps",
 			});
 		}
 	},
@@ -119,7 +126,7 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		logFormData("settings-data:import", formData);
 
-		const accountId = parseInt(formData.get("accountId") as string);
+		const accountId = parseInt(formData.get("accountId") as string, 10);
 		const rowsJson = formData.get("rows") as string;
 
 		if (!accountId || !rowsJson) {

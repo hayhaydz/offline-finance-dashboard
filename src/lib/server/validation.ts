@@ -1,5 +1,5 @@
-import { FIELD_LIMITS } from "$lib/utils/fieldLimits";
 import { parseCurrency } from "$lib/utils/currency";
+import { FIELD_LIMITS } from "$lib/utils/fieldLimits";
 
 // ── Result types ──────────────────────────────────────────────
 
@@ -28,7 +28,10 @@ export function requireString(
 	}
 	const trimmed = value.trim();
 	if (maxLen !== undefined && trimmed.length > maxLen) {
-		return { ok: false, error: `${field} must be ${maxLen} characters or less` };
+		return {
+			ok: false,
+			error: `${field} must be ${maxLen} characters or less`,
+		};
 	}
 	return { ok: true, value: trimmed };
 }
@@ -44,7 +47,10 @@ export function optionalString(
 	}
 	const trimmed = value.trim();
 	if (trimmed.length > maxLen) {
-		return { ok: false, error: `${field} must be ${maxLen} characters or less` };
+		return {
+			ok: false,
+			error: `${field} must be ${maxLen} characters or less`,
+		};
 	}
 	return { ok: true, value: trimmed };
 }
@@ -133,8 +139,8 @@ export function requireEnum<T extends string>(
 
 export {
 	ACCOUNT_TYPES as VALID_ACCOUNT_TYPES,
-	TAX_WRAPPERS as VALID_TAX_WRAPPERS,
 	LIQUIDITY_OPTIONS as VALID_LIQUIDITY,
+	TAX_WRAPPERS as VALID_TAX_WRAPPERS,
 } from "$lib/utils/domain-constants";
 
 /** Field limit constants (re-export from fieldLimits for convenience) */

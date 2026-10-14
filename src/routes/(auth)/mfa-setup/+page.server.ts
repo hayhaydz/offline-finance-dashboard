@@ -13,7 +13,12 @@ import { HOME_ROUTE, LOGIN_ROUTE, REGISTER_ROUTE } from "$lib/constants/routes";
 import { db } from "$lib/db/client";
 import { backupCodes, sessions, users } from "$lib/db/schema";
 import { ensureDefaultCategories } from "$lib/server/categories";
-import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
+import {
+	devLog,
+	isVerboseDebug,
+	logError,
+	logFormData,
+} from "$lib/server/logger";
 
 export async function load({ cookies, locals }) {
 	if (isVerboseDebug()) devLog("mfaSetup", "Loading MFA setup page");
@@ -125,7 +130,8 @@ export const actions = {
 		if (!setupInitiated) {
 			logError("mfaSetup", "Finalize attempted without setup initiation");
 			return fail(403, {
-				error: "MFA setup not initiated. Please start from the registration page.",
+				error:
+					"MFA setup not initiated. Please start from the registration page.",
 			});
 		}
 

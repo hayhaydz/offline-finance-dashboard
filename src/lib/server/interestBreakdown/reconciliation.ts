@@ -5,13 +5,12 @@
  * Checks that breakdowns sum to headline totals and flags any discrepancies.
  */
 
-import { formatCurrency } from "$lib/utils/currency";
 import { devLog, isVerboseDebug } from "$lib/server/logger";
-
 import type {
-	ReconciliationFlag,
 	InterestReconciliationReport,
+	ReconciliationFlag,
 } from "$lib/types/breakdown";
+import { formatCurrency } from "$lib/utils/currency";
 
 import { getActualInterestBreakdown } from "./aggregations";
 
@@ -96,8 +95,6 @@ export async function getInterestReconciliationReport(
 			delta: actualVsByMonthDelta,
 		});
 	}
-
-
 
 	return {
 		actualVsTransactionsDelta,

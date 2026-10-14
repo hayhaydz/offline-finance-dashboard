@@ -1,17 +1,18 @@
+import { eq } from "drizzle-orm";
+import { nanoid } from "nanoid";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions, users } from "$lib/db/schema";
-import { eq } from "drizzle-orm";
-import { nanoid } from "nanoid";
 import {
-	getOverlappingTransactions,
 	batchInsertTransactions,
+	getOverlappingTransactions,
 	type ImportRow,
+	validateImportRows,
 } from "./imports";
 
 let testUserId: number;
 let testAccountId: number;
-let cleanupAccountIds: number[] = [];
+const cleanupAccountIds: number[] = [];
 
 // Setup: create a temporary test account
 beforeAll(async () => {
@@ -48,7 +49,9 @@ beforeAll(async () => {
 afterAll(async () => {
 	// Delete transactions first (FK constraint)
 	for (const id of cleanupAccountIds) {
-		await db.delete(accountTransactions).where(eq(accountTransactions.accountId, id));
+		await db
+			.delete(accountTransactions)
+			.where(eq(accountTransactions.accountId, id));
 		await db.delete(accounts).where(eq(accounts.id, id));
 	}
 	await db.delete(users).where(eq(users.id, testUserId));
@@ -134,13 +137,104 @@ describe("batchInsertTransactions", () => {
 			.from(accountTransactions)
 			.where(eq(accountTransactions.accountId, testAccountId));
 
-		const imported = inserted.filter(
-			(tx) => tx.description?.startsWith("Batch import test"),
+		const imported = inserted.filter((tx) =>
+			tx.description?.startsWith("Batch import test"),
 		);
 
 		expect(imported).toHaveLength(2);
 		// Amount should be converted to cents
 		expect(imported[0].amount).toBe(100000); // £1000.00 -> 100000 cents
 		expect(imported[1].amount).toBe(-5000); // -£50.00 -> -5000 cents
+	});
+
+	it("should reject rows with an unknown transaction type", async () => {
+		const rows = [
+			{
+				date: "2026-02-03",
+				type: "malicious-type",
+				amount: 100,
+				description: "bad type",
+			},
+		];
+
+		await expect(
+			batchInsertTransactions(
+				testUserId,
+				testAccountId,
+				rows as unknown as ImportRow[],
+			),
+		).rejects.toThrow("unknown transaction type");
+	});
+
+	it("should reject rows with non-finite amounts", async () => {
+		const rows = [
+			{
+				date: "2026-02-03",
+				type: "deposit",
+				amount: Number.NaN,
+				description: "nan amount",
+			},
+		];
+
+		await expect(
+			batchInsertTransactions(
+				testUserId,
+				testAccountId,
+				rows as unknown as ImportRow[],
+			),
+		).rejects.toThrow("finite number");
+	});
+
+	it("should reject rows with invalid dates", async () => {
+		const rows = [
+			{
+				date: "not-a-date",
+				type: "deposit",
+				amount: 100,
+				description: "bad date",
+			},
+		];
+
+		await expect(
+			batchInsertTransactions(
+				testUserId,
+				testAccountId,
+				rows as unknown as ImportRow[],
+			),
+		).rejects.toThrow("invalid date");
+	});
+});
+
+describe("validateImportRows", () => {
+	it("accepts well-formed rows", () => {
+		const rows: unknown[] = [
+			{ date: "2026-01-01", type: "deposit", amount: 100, description: "ok" },
+			{ date: "2026-01-02", type: "interest", amount: 0.5 },
+		];
+		expect(validateImportRows(rows)).toBeNull();
+	});
+
+	it("rejects oversized descriptions", () => {
+		const rows: unknown[] = [
+			{
+				date: "2026-01-01",
+				type: "deposit",
+				amount: 1,
+				description: "x".repeat(5001),
+			},
+		];
+		expect(validateImportRows(rows)).toContain("description too long");
+	});
+
+	it("rejects amounts beyond the ceiling", () => {
+		const rows: unknown[] = [
+			{ date: "2026-01-01", type: "deposit", amount: 20_000_000 },
+		];
+		expect(validateImportRows(rows)).toContain("maximum allowed");
+	});
+
+	it("rejects non-object rows", () => {
+		expect(validateImportRows([null])).toContain("not a valid object");
+		expect(validateImportRows(["nope"])).toContain("not a valid object");
 	});
 });

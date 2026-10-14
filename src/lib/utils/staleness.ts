@@ -31,12 +31,12 @@ function toDate(value: Date | number | string): Date | null {
 		// Heuristic: values < 10^12 are in seconds (before ~2001 in ms).
 		const ms = value < 1e12 ? value * 1000 : value;
 		const d = new Date(ms);
-		return isNaN(d.getTime()) ? null : d;
+		return Number.isNaN(d.getTime()) ? null : d;
 	}
 
 	if (typeof value === "string") {
 		const d = new Date(value);
-		return isNaN(d.getTime()) ? null : d;
+		return Number.isNaN(d.getTime()) ? null : d;
 	}
 
 	return null;

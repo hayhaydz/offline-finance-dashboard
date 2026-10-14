@@ -1,34 +1,34 @@
-import { fail, redirect } from "@sveltejs/kit";
+import { fail } from "@sveltejs/kit";
 import { and, asc, count, eq, isNull, min, sum } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
-import { getAlerts } from "$lib/server/alerts";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions, goals, users } from "$lib/db/schema";
-import {
-	getActualInterestByTaxWrapper,
-	getISAAllowanceUsed,
-	getProjectedInterestByTaxWrapper,
-} from "$lib/server/tax-year-queries";
-import {
-	getTaxFreeStatus,
-	getUkTaxYearBounds,
-	ISA_ALLOWANCE_IN_CENTS,
-} from "$lib/utils/tax-year-utils";
+import { getAlerts } from "$lib/server/alerts";
 import {
 	getCurrentBalancesForAccounts,
 	getLatestTransactionDateForAccounts,
 } from "$lib/server/derivedBalances";
 import { updateTypeExclusions } from "$lib/server/exclusions";
 import { getNetWorthSummary } from "$lib/server/finance";
-import { calculateISAPacing } from "$lib/server/isaPacing";
 import { getDebtGoalProgress, projectPayoffDate } from "$lib/server/goals";
+import { calculateISAPacing } from "$lib/server/isaPacing";
+import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
+import {
+	getActualInterestByTaxWrapper,
+	getISAAllowanceUsed,
+	getProjectedInterestByTaxWrapper,
+} from "$lib/server/tax-year-queries";
 import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import {
 	calculatePagination,
 	parsePagination,
 } from "$lib/server/utils/pagination";
-import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 import { getStaleness } from "$lib/utils/staleness";
+import {
+	getTaxFreeStatus,
+	getUkTaxYearBounds,
+	ISA_ALLOWANCE_IN_CENTS,
+} from "$lib/utils/tax-year-utils";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -36,7 +36,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	if (isVerboseDebug()) {
 		devLog("homePage", "Loading net worth data for user", {
-		userId: user.id,
+			userId: user.id,
 		});
 	}
 
@@ -78,7 +78,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	if (isVerboseDebug()) {
 		devLog("homePage", "Fetched user accounts", {
-		accountCount: userAccounts.length,
+			accountCount: userAccounts.length,
 		});
 	}
 
@@ -121,8 +121,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	// Enrich debt goals with progress data
 	const debtGoalAccountIds = activeGoals
-		.filter((g) => g.goalType === "debt" && g.linkedAccountId !== null)
-		.map((g) => g.linkedAccountId!)
+		.flatMap((g) =>
+			g.goalType === "debt" && g.linkedAccountId !== null
+				? [g.linkedAccountId]
+				: [],
+		)
 		.filter((id, i, arr) => arr.indexOf(id) === i);
 	const debtBalances =
 		debtGoalAccountIds.length > 0
@@ -300,7 +303,14 @@ export const actions: Actions = {
 
 		// Extract type-level updates (e.g., "type_savings=0", "type_current=1")
 		const typeUpdates: Map<string, boolean> = new Map();
-		const validTypes = new Set(["current", "savings", "investment", "credit-card", "loan", "mortgage"]);
+		const validTypes = new Set([
+			"current",
+			"savings",
+			"investment",
+			"credit-card",
+			"loan",
+			"mortgage",
+		]);
 
 		for (const [key, value] of formData.entries()) {
 			if (key.startsWith("type_")) {
@@ -320,11 +330,11 @@ export const actions: Actions = {
 
 		if (isVerboseDebug()) {
 			devLog("updateExclusions", "Processing type-level exclusion updates", {
-			userId: user.id,
-			typeCount: typeUpdates.size,
-			typeUpdates: Array.from(typeUpdates.entries()).map(
-			([type, excluded]) => ({ type, excluded }),
-			),
+				userId: user.id,
+				typeCount: typeUpdates.size,
+				typeUpdates: Array.from(typeUpdates.entries()).map(
+					([type, excluded]) => ({ type, excluded }),
+				),
 			});
 		}
 
@@ -335,18 +345,20 @@ export const actions: Actions = {
 			});
 			if (isVerboseDebug()) {
 				devLog("updateExclusions", "Database state BEFORE update", {
-				accountsExcludedByType: beforeUpdate.reduce(
-				(acc, a) => {
-				if (a.excludedFromNetWorth) {
-				acc[a.type] = (acc[a.type] || 0) + 1;
-				}
-				return acc;
-				},
-				{} as Record<string, number>,
-				),
-				totalExcludedTypes: new Set(
-				beforeUpdate.filter((a) => a.excludedFromNetWorth).map((a) => a.type),
-				).size,
+					accountsExcludedByType: beforeUpdate.reduce(
+						(acc, a) => {
+							if (a.excludedFromNetWorth) {
+								acc[a.type] = (acc[a.type] || 0) + 1;
+							}
+							return acc;
+						},
+						{} as Record<string, number>,
+					),
+					totalExcludedTypes: new Set(
+						beforeUpdate
+							.filter((a) => a.excludedFromNetWorth)
+							.map((a) => a.type),
+					).size,
 				});
 			}
 		}
@@ -371,9 +383,9 @@ export const actions: Actions = {
 
 			if (isVerboseDebug()) {
 				devLog("updateExclusions", "Type-based bulk update successful", {
-				userId: user.id,
-				affectedRows: result.affectedRows,
-				typesUpdated: Array.from(typeUpdates.keys()),
+					userId: user.id,
+					affectedRows: result.affectedRows,
+					typesUpdated: Array.from(typeUpdates.keys()),
 				});
 			}
 
@@ -384,20 +396,20 @@ export const actions: Actions = {
 				});
 				if (isVerboseDebug()) {
 					devLog("updateExclusions", "Database state AFTER update", {
-					accountsExcludedByType: afterUpdate.reduce(
-					(acc, a) => {
-					if (a.excludedFromNetWorth) {
-					acc[a.type] = (acc[a.type] || 0) + 1;
-					}
-					return acc;
-					},
-					{} as Record<string, number>,
-					),
-					totalExcludedTypes: new Set(
-					afterUpdate
-					.filter((a) => a.excludedFromNetWorth)
-					.map((a) => a.type),
-					).size,
+						accountsExcludedByType: afterUpdate.reduce(
+							(acc, a) => {
+								if (a.excludedFromNetWorth) {
+									acc[a.type] = (acc[a.type] || 0) + 1;
+								}
+								return acc;
+							},
+							{} as Record<string, number>,
+						),
+						totalExcludedTypes: new Set(
+							afterUpdate
+								.filter((a) => a.excludedFromNetWorth)
+								.map((a) => a.type),
+						).size,
 					});
 				}
 			}

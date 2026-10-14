@@ -12,6 +12,6 @@
 		"moduleResolution": "bundler",
 		"module": "esnext",
 		"noEmit": true,
-    "types": ["node"]
+		"types": ["node"]
 	}
 }

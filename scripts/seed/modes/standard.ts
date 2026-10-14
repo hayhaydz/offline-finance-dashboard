@@ -350,7 +350,8 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 		{
 			yearMonth: "2026-01",
 			completedItems: CHECKLIST_ALL,
-			notes: "Happy new year reset — cleared all alerts and topped up emergency fund.",
+			notes:
+				"Happy new year reset — cleared all alerts and topped up emergency fund.",
 		},
 		{
 			yearMonth: "2025-12",
@@ -401,7 +402,7 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 	console.log(`   Net worth (latest balances): ${netWorth}`);
 }
 
-async function seedDebtGoals(db: DB, userId: number): Promise<void> {
+async function seedDebtGoals(db: DB, _userId: number): Promise<void> {
 	console.log("Seeding debt goals...");
 
 	const liabilityAccounts = await db.query.accounts.findMany({

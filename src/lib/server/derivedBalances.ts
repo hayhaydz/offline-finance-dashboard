@@ -20,7 +20,10 @@ export async function getCurrentBalanceForAccount(
 export async function getCurrentBalancesForAccounts(
 	accountIds: number[],
 ): Promise<Map<number, number>> {
-	if (isVerboseDebug()) devLog("getCurrentBalancesForAccounts", "Fetching balances", { count: accountIds.length });
+	if (isVerboseDebug())
+		devLog("getCurrentBalancesForAccounts", "Fetching balances", {
+			count: accountIds.length,
+		});
 	if (accountIds.length === 0) return new Map();
 
 	const rows = await db
@@ -43,7 +46,10 @@ export async function getCurrentBalancesForAccounts(
 export async function getLatestTransactionDateForAccounts(
 	accountIds: number[],
 ): Promise<Map<number, Date | null>> {
-	if (isVerboseDebug()) devLog("getLatestTransactionDateForAccounts", "Fetching latest tx dates", { count: accountIds.length });
+	if (isVerboseDebug())
+		devLog("getLatestTransactionDateForAccounts", "Fetching latest tx dates", {
+			count: accountIds.length,
+		});
 	if (accountIds.length === 0) return new Map();
 
 	const rows = await db
@@ -84,15 +90,18 @@ export async function getMonthlyBalanceHistory(
 	accountId: number,
 	limitMonths = 24,
 ): Promise<MonthlyBalancePoint[]> {
-	if (isVerboseDebug()) devLog("getMonthlyBalanceHistory", "Fetching monthly history", { accountId, limitMonths });
+	if (isVerboseDebug())
+		devLog("getMonthlyBalanceHistory", "Fetching monthly history", {
+			accountId,
+			limitMonths,
+		});
 	const monthExpr = sql<string>`strftime('%Y-%m', ${accountTransactions.transactionDate}, 'unixepoch')`;
 
 	const rows = await db
 		.select({
 			monthKey: monthExpr,
 			monthlyNetChange: sql<number>`sum(${accountTransactions.amount})`,
-			closingBalance:
-				sql<number>`sum(sum(${accountTransactions.amount})) over (order by ${monthExpr})`,
+			closingBalance: sql<number>`sum(sum(${accountTransactions.amount})) over (order by ${monthExpr})`,
 		})
 		.from(accountTransactions)
 		.where(eq(accountTransactions.accountId, accountId))

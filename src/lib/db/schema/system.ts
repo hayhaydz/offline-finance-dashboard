@@ -269,9 +269,18 @@ export const budgetMonths = sqliteTable(
 			.references(() => users.id),
 		month: text("month").notNull(), // "2026-04" (YYYY-MM)
 		totalTargetInCents: integer("total_target_in_cents").notNull().default(0),
-		excludedCategoryIds: text("excluded_category_ids", { mode: "json" }).$type<number[]>().notNull().default([]),
-		excludedAccountIds: text("excluded_account_ids", { mode: "json" }).$type<number[]>().notNull().default([]),
-		categoryTargets: text("category_targets", { mode: "json" }).$type<Record<string, number>>().notNull().default({}),
+		excludedCategoryIds: text("excluded_category_ids", { mode: "json" })
+			.$type<number[]>()
+			.notNull()
+			.default([]),
+		excludedAccountIds: text("excluded_account_ids", { mode: "json" })
+			.$type<number[]>()
+			.notNull()
+			.default([]),
+		categoryTargets: text("category_targets", { mode: "json" })
+			.$type<Record<string, number>>()
+			.notNull()
+			.default({}),
 		createdAt: integer("created_at", { mode: "timestamp" })
 			.notNull()
 			.default(sql`CURRENT_TIMESTAMP`),
@@ -299,12 +308,15 @@ export const monthlyReviewsRelations = relations(monthlyReviews, ({ one }) => ({
 	}),
 }));
 
-export const spendingCategoriesRelations = relations(spendingCategories, ({ one }) => ({
-	user: one(users, {
-		fields: [spendingCategories.userId],
-		references: [users.id],
+export const spendingCategoriesRelations = relations(
+	spendingCategories,
+	({ one }) => ({
+		user: one(users, {
+			fields: [spendingCategories.userId],
+			references: [users.id],
+		}),
 	}),
-}));
+);
 
 export const budgetMonthsRelations = relations(budgetMonths, ({ one }) => ({
 	user: one(users, {

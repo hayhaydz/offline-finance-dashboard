@@ -1,12 +1,22 @@
-import { fail, redirect } from "@sveltejs/kit";
+import { fail } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { systemMetadata, users } from "$lib/db/schema";
-import { parseCurrency } from "$lib/utils/currency";
-import { isValidHexColour } from "$lib/utils/category-colours";
-import { getCategories, createCategory, updateCategory, deleteCategory } from "$lib/server/categories";
+import {
+	createCategory,
+	deleteCategory,
+	getCategories,
+	updateCategory,
+} from "$lib/server/categories";
+import {
+	devLog,
+	isVerboseDebug,
+	logError,
+	logFormData,
+} from "$lib/server/logger";
 import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
-import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
+import { isValidHexColour } from "$lib/utils/category-colours";
+import { parseCurrency } from "$lib/utils/currency";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -127,7 +137,11 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (error) {
-			logError("settings-general", "Database error saving monthly expenses", error);
+			logError(
+				"settings-general",
+				"Database error saving monthly expenses",
+				error,
+			);
 			return fail(500, {
 				error: "Failed to save monthly expenses. Please try again.",
 			});
@@ -148,7 +162,9 @@ export const actions: Actions = {
 
 		const validBands = ["basic", "higher", "additional"];
 		if (!validBands.includes(taxBand)) {
-			devLog("settings-general", "Validation failed: invalid tax band", { taxBand });
+			devLog("settings-general", "Validation failed: invalid tax band", {
+				taxBand,
+			});
 			return fail(400, { error: "Invalid tax band" });
 		}
 
@@ -184,10 +200,17 @@ export const actions: Actions = {
 		const key = formData.get("key") as string;
 		const colour = formData.get("colour") as string;
 
-		devLog("settings-general:createCategory", "Form data received", { name, key, colour });
+		devLog("settings-general:createCategory", "Form data received", {
+			name,
+			key,
+			colour,
+		});
 
 		if (!name?.trim()) {
-			devLog("settings-general:createCategory", "Validation failed: empty name");
+			devLog(
+				"settings-general:createCategory",
+				"Validation failed: empty name",
+			);
 			return fail(400, { error: "Name is required" });
 		}
 		if (!key?.trim()) {
@@ -195,8 +218,14 @@ export const actions: Actions = {
 			return fail(400, { error: "Key is required" });
 		}
 		if (!colour || !isValidHexColour(colour)) {
-			devLog("settings-general:createCategory", "Validation failed: invalid colour", { colour });
-			return fail(400, { error: "Valid hex colour is required (e.g. #3B82F6)" });
+			devLog(
+				"settings-general:createCategory",
+				"Validation failed: invalid colour",
+				{ colour },
+			);
+			return fail(400, {
+				error: "Valid hex colour is required (e.g. #3B82F6)",
+			});
 		}
 
 		try {
@@ -215,7 +244,8 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (err) {
-			const message = err instanceof Error ? err.message : "Failed to create category";
+			const message =
+				err instanceof Error ? err.message : "Failed to create category";
 			logError("settings-general:createCategory", message);
 			return fail(400, { error: message });
 		}
@@ -249,7 +279,8 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (err) {
-			const message = err instanceof Error ? err.message : "Failed to update category";
+			const message =
+				err instanceof Error ? err.message : "Failed to update category";
 			logError("settings-general:updateCategory", message);
 			return fail(400, { error: message });
 		}
@@ -278,7 +309,8 @@ export const actions: Actions = {
 
 			return { success: true };
 		} catch (err) {
-			const message = err instanceof Error ? err.message : "Failed to delete category";
+			const message =
+				err instanceof Error ? err.message : "Failed to delete category";
 			logError("settings-general:deleteCategory", message);
 			return fail(400, { error: message });
 		}

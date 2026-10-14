@@ -1,6 +1,7 @@
 import { devLog } from "$lib/server/logger";
-import { MS_PER_MONTH } from "$lib/utils/time-constants";
 import type { PayoffProjection } from "$lib/types/debt";
+import { MS_PER_MONTH } from "$lib/utils/time-constants";
+
 export type { PayoffProjection } from "$lib/types/debt";
 
 /**
@@ -23,11 +24,19 @@ export function calculatePayoffProjection(params: {
 	const absBalance = Math.abs(balanceInCents);
 
 	if (absBalance <= 0) {
-		return { months: 0, totalInterestInCents: 0, projectedPayoffDate: new Date() };
+		return {
+			months: 0,
+			totalInterestInCents: 0,
+			projectedPayoffDate: new Date(),
+		};
 	}
 
 	if (monthlyPaymentInCents <= 0) {
-		return { months: null, totalInterestInCents: null, projectedPayoffDate: null };
+		return {
+			months: null,
+			totalInterestInCents: null,
+			projectedPayoffDate: null,
+		};
 	}
 
 	// Treat null APR as 0% interest
@@ -49,11 +58,17 @@ export function calculatePayoffProjection(params: {
 			monthlyPaymentInCents,
 			monthlyInterest: Math.round(monthlyInterest),
 		});
-		return { months: null, totalInterestInCents: null, projectedPayoffDate: null };
+		return {
+			months: null,
+			totalInterestInCents: null,
+			projectedPayoffDate: null,
+		};
 	}
 
 	// Amortization formula: N = -ln(1 - (r * P) / A) / ln(1 + r)
-	const numerator = -Math.log(1 - (monthlyRate * absBalance) / monthlyPaymentInCents);
+	const numerator = -Math.log(
+		1 - (monthlyRate * absBalance) / monthlyPaymentInCents,
+	);
 	const denominator = Math.log(1 + monthlyRate);
 	const months = Math.ceil(numerator / denominator);
 

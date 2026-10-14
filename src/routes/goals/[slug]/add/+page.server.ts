@@ -8,9 +8,14 @@ import {
 	calculatePerAccountUnallocated,
 	calculateReadyToAssign,
 } from "$lib/server/goals";
+import {
+	devLog,
+	isVerboseDebug,
+	logError,
+	logFormData,
+} from "$lib/server/logger";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import { parseCurrency } from "$lib/utils/currency";
-import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
-import { devLog, isVerboseDebug, logError, logFormData } from "$lib/server/logger";
 import type { Actions, PageServerLoad } from "./$types";
 
 // Extended type for accounts with unallocated and balances
@@ -221,10 +226,10 @@ export const actions: Actions = {
 
 		if (isVerboseDebug()) {
 			devLog("goalsAdd", "Allocation batch added", {
-			goalId: goal.id,
-			rows: mergedRows.length,
-			totalAdding,
-			newAllocation,
+				goalId: goal.id,
+				rows: mergedRows.length,
+				totalAdding,
+				newAllocation,
 			});
 		}
 

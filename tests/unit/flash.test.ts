@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { setFlash, getFlash } from "$lib/server/utils/flash";
+import { getFlash, setFlash } from "$lib/server/utils/flash";
 
 function createMockCookies() {
 	const store = new Map<string, string>();

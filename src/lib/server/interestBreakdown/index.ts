@@ -11,55 +11,56 @@
 import { eq } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { accounts } from "$lib/db/schema";
+import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
+import { getCurrentRate } from "$lib/server/interestRates";
+import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 import { getAccountInterestEarned } from "$lib/server/tax-year-queries";
+import type {
+	AccountInterestSummary,
+	InterestBreakdownMeta,
+	InterestBreakdownReport,
+	InterestForecast,
+} from "$lib/types/breakdown";
 import {
 	calculateProjectedInterestInCents,
 	getTaxFreeStatus,
 	getUkTaxYearBounds,
 	type TaxBand,
 } from "$lib/utils/tax-year-utils";
-import {
-	getCurrentBalanceForAccount,
-} from "$lib/server/derivedBalances";
-import { getCurrentRate } from "$lib/server/interestRates";
-import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 import { MS_PER_DAY } from "$lib/utils/time-constants";
-
-import type {
-	InterestBreakdownMeta,
-	InterestBreakdownReport,
-	InterestForecast,
-	AccountInterestSummary,
-	ProjectedAccountBreakdown,
-} from "$lib/types/breakdown";
 
 // Re-export types for backward compatibility
 export type {
-	InterestTransaction,
 	AccountBreakdown,
-	MonthBreakdown,
-	InstitutionBreakdown,
-	TaxWrapperBreakdown,
+	AccountInterestSummary,
 	ActualInterestBreakdown,
-	ProjectedAccountBreakdown,
-	ProjectedInterestBreakdown,
-	InterestForecast,
-	ReconciliationFlag,
-	InterestReconciliationReport,
+	InstitutionBreakdown,
 	InterestBreakdownMeta,
 	InterestBreakdownReport,
-	AccountInterestSummary,
+	InterestForecast,
+	InterestReconciliationReport,
+	InterestTransaction,
+	MonthBreakdown,
+	ProjectedAccountBreakdown,
+	ProjectedInterestBreakdown,
+	ReconciliationFlag,
+	TaxWrapperBreakdown,
 } from "$lib/types/breakdown";
-
+export {
+	getActualInterestBreakdown,
+	getProjectedInterestBreakdown,
+} from "./aggregations";
 // Re-export public functions from sub-modules
 export { getInterestTransactions } from "./queries";
-export { getActualInterestBreakdown, getProjectedInterestBreakdown } from "./aggregations";
 export { getInterestReconciliationReport } from "./reconciliation";
 
 // Internal: import for orchestration (not re-exported)
-import { getActualInterestBreakdown, getProjectedInterestBreakdown } from "./aggregations";
+import {
+	checkProjectionEligibility,
+	getActualInterestBreakdown,
+	getProjectedInterestBreakdown,
+} from "./aggregations";
 import { getInterestReconciliationReport } from "./reconciliation";
-import { checkProjectionEligibility } from "./aggregations";
 
 /**
  * Get complete interest breakdown report.
@@ -96,9 +97,10 @@ export async function getInterestBreakdownReport(params: {
 
 	// Calculate days remaining in tax year
 	const msPerDay = MS_PER_DAY;
+	// Floor so "days remaining" matches the TaxYearProgress convention (see isaBreakdown).
 	const daysRemainingInTaxYear = Math.max(
 		0,
-		Math.ceil((calculatedTaxYearEnd.getTime() - now.getTime()) / msPerDay),
+		Math.floor((calculatedTaxYearEnd.getTime() - now.getTime()) / msPerDay),
 	);
 
 	if (isVerboseDebug()) {

@@ -80,7 +80,11 @@ describe("migration-preflight", () => {
 
 	it("fails on duplicate ADD COLUMN intent across migrations", () => {
 		const migrationsDir = makeTempMigrationsDir();
-		writeJournal(migrationsDir, ["0000_initial", "0001_add_name", "0002_add_name_again"]);
+		writeJournal(migrationsDir, [
+			"0000_initial",
+			"0001_add_name",
+			"0002_add_name_again",
+		]);
 		fs.writeFileSync(
 			path.join(migrationsDir, "0000_initial.sql"),
 			"CREATE TABLE users (id integer primary key);",

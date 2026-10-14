@@ -102,17 +102,14 @@ vi.mock("$lib/server/tax-year-queries", () => ({
 }));
 
 import { db } from "$lib/db/client";
+import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
+import { getCurrentRate } from "$lib/server/interestRates";
+import { getActualInterestEarned } from "$lib/server/tax-year-queries";
 import {
 	calculateProjectedInterestInCents,
 	getTaxFreeStatus,
 	getUkTaxYearBounds,
 } from "$lib/utils/tax-year-utils";
-import {
-	getAccountInterestEarned,
-	getActualInterestEarned,
-} from "$lib/server/tax-year-queries";
-import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
-import { getCurrentRate } from "$lib/server/interestRates";
 
 const mockFindAccounts = vi.mocked(db.query.accounts.findMany);
 const mockGetActualInterestEarned = vi.mocked(getActualInterestEarned);

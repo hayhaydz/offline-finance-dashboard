@@ -10,9 +10,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const sorted = sortAlerts(all);
 
 	return {
-		redAlerts:   sorted.filter((a) => a.severity === 'red'),
-		amberAlerts: sorted.filter((a) => a.severity === 'amber'),
-		infoAlerts:  sorted.filter((a) => a.severity === 'info'),
+		redAlerts: sorted.filter((a) => a.severity === "red"),
+		amberAlerts: sorted.filter((a) => a.severity === "amber"),
+		infoAlerts: sorted.filter((a) => a.severity === "info"),
 		total: all.length,
 	};
 };

@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { decryptTOTPSecret, verifyBackupCode, verifyTOTP } from "$lib/auth/mfa";
-import { verifyPassword } from "$lib/auth/password";
+import { hashPassword, verifyPassword } from "$lib/auth/password";
 import { HOME_ROUTE } from "$lib/constants/routes";
 import { db } from "$lib/db/client";
 import { backupCodes, sessions, users } from "$lib/db/schema";
@@ -19,6 +19,10 @@ import {
 	logInfo,
 } from "$lib/server/logger";
 import { getFlash } from "$lib/server/utils/flash";
+
+// Pre-computed at module load (once per server process) with the same
+// Argon2id parameters as real hashes — see usage in the login action.
+const DUMMY_VERIFY_HASH = await hashPassword("timing-equalizer-dummy-password");
 
 export async function load({ cookies }) {
 	const flashMessage = getFlash(cookies);
@@ -127,8 +131,15 @@ export const actions = {
 			where: eq(users.username, username),
 		});
 
+		// Dummy hash verified when the user doesn't exist so response timing
+		// matches the exists path (argon2 dominates latency). Prevents
+		// username enumeration via timing side-channel. Generated with the
+		// same OWASP parameters at module load to guarantee identical cost.
+		const DUMMY_HASH = DUMMY_VERIFY_HASH;
+
 		// Generic error whether user exists or not (prevents username enumeration)
 		if (!user) {
+			await verifyPassword(DUMMY_HASH, password);
 			logError("login", "User not found");
 			await recordFailedAttempt(username);
 			return fail(401, { error: "Invalid credentials" });

@@ -1,5 +1,5 @@
-import { MS_PER_DAY } from "$lib/utils/time-constants";
 import { devLog, isVerboseDebug } from "$lib/server/logger";
+import { MS_PER_DAY } from "$lib/utils/time-constants";
 
 export interface RecurringPattern {
 	description: string;
@@ -18,14 +18,21 @@ export function detectRecurringPatterns(
 		transactionDate: Date;
 	}>,
 ): RecurringPattern[] {
-	if (isVerboseDebug()) devLog("detectRecurringPatterns", "Detecting recurring patterns", { txCount: txs.length });
+	if (isVerboseDebug())
+		devLog("detectRecurringPatterns", "Detecting recurring patterns", {
+			txCount: txs.length,
+		});
 	const groups = new Map<string, typeof txs>();
 
 	for (const tx of txs) {
 		if (!tx.description || tx.description.trim().length <= 3) continue;
 		const key = tx.description.toLowerCase().trim();
-		if (!groups.has(key)) groups.set(key, []);
-		groups.get(key)!.push(tx);
+		const group = groups.get(key);
+		if (group) {
+			group.push(tx);
+		} else {
+			groups.set(key, [tx]);
+		}
 	}
 
 	const patterns: RecurringPattern[] = [];
@@ -57,8 +64,11 @@ export function detectRecurringPatterns(
 		}
 		if (monthlyGaps < 2) continue;
 
+		const description = group[0].description?.trim();
+		if (!description) continue;
+
 		patterns.push({
-			description: group[0].description!.trim(),
+			description,
 			approximateAmount: median,
 			lastDate: sorted[sorted.length - 1].transactionDate,
 		});

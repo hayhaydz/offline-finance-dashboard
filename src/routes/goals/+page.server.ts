@@ -3,19 +3,19 @@ import { and, asc, count, desc, eq, gt, isNull, lt, or } from "drizzle-orm";
 import { validateUserAccess, withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, goals } from "$lib/db/schema";
-import { calculateReadyToAssign, getDebtGoalProgress } from "$lib/server/goals";
+import { getGoalListAlerts } from "$lib/server/alerts";
+import { calculateDebtStrategyMetrics } from "$lib/server/debt-strategy";
 import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
 import { updateTypeExclusions } from "$lib/server/exclusions";
 import { getNetWorthSummary } from "$lib/server/finance";
-import { requireAuth, getAuthUser } from "$lib/server/utils/auth-guard";
+import { calculateReadyToAssign, getDebtGoalProgress } from "$lib/server/goals";
 import {
 	devLog,
 	isVerboseDebug,
 	logError,
 	logFormData,
 } from "$lib/server/logger";
-import { getGoalListAlerts } from "$lib/server/alerts";
-import { calculateDebtStrategyMetrics } from "$lib/server/debt-strategy";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import { getMostRecentDate, getStaleness } from "$lib/utils/staleness";
 import type { Actions, PageServerLoad } from "./$types";
 
@@ -31,21 +31,20 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	// Parse goal type filter from URL parameter
 	const typeParam = url.searchParams.get("type");
-	const validType = typeParam === "savings" || typeParam === "debt" || typeParam === "all"
-		? typeParam
-		: "all";
+	const validType =
+		typeParam === "savings" || typeParam === "debt" || typeParam === "all"
+			? typeParam
+			: "all";
 
 	// Build where clause based on filter
-	const goalTypeFilter = validType === "all"
-		? undefined
-		: validType === "savings"
-			? or(eq(goals.goalType, "savings"), isNull(goals.goalType))
-			: eq(goals.goalType, "debt");
+	const goalTypeFilter =
+		validType === "all"
+			? undefined
+			: validType === "savings"
+				? or(eq(goals.goalType, "savings"), isNull(goals.goalType))
+				: eq(goals.goalType, "debt");
 
-	const whereConditions = [
-		eq(goals.userId, user.id),
-		isNull(goals.deletedAt),
-	];
+	const whereConditions = [eq(goals.userId, user.id), isNull(goals.deletedAt)];
 
 	if (goalTypeFilter) {
 		whereConditions.push(goalTypeFilter);
@@ -74,30 +73,34 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	// Get current balances for all debt goals (for progress calculation)
 	const debtGoalAccountIds = userGoals
-		.filter(g => g.goalType === 'debt' && g.linkedAccountId !== null)
-		.map(g => g.linkedAccountId!)
+		.flatMap((g) =>
+			g.goalType === "debt" && g.linkedAccountId !== null
+				? [g.linkedAccountId]
+				: [],
+		)
 		.filter((id, i, arr) => arr.indexOf(id) === i); // Deduplicate
 
-	const currentBalances = debtGoalAccountIds.length > 0
-		? await getCurrentBalancesForAccounts(debtGoalAccountIds)
-		: new Map<number, number>();
+	const currentBalances =
+		debtGoalAccountIds.length > 0
+			? await getCurrentBalancesForAccounts(debtGoalAccountIds)
+			: new Map<number, number>();
 
 	// Enrich goals with progress data for client-side rendering
 	const goalsWithProgress = userGoals.map((goal) => {
-		if (goal.goalType === 'debt' && goal.linkedAccountId !== null) {
+		if (goal.goalType === "debt" && goal.linkedAccountId !== null) {
 			const currentBalance = currentBalances.get(goal.linkedAccountId) ?? 0;
 			const progress = getDebtGoalProgress({
 				startingBalanceInCents: goal.startingBalanceInCents ?? 0,
 				currentBalanceInCents: currentBalance,
 			});
 
-			let color = 'red';
+			let color = "red";
 			if (progress.debtGrewBeyondStarting) {
-				color = 'red';
+				color = "red";
 			} else if (progress.percent >= 70) {
-				color = 'green';
+				color = "green";
 			} else if (progress.percent >= 30) {
-				color = 'amber';
+				color = "amber";
 			}
 
 			return {
@@ -123,7 +126,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	// Compute debt strategy metrics (only when debt goals exist)
 	let debtStrategyMetrics = null;
-	if (validType === 'debt' || validType === 'all') {
+	if (validType === "debt" || validType === "all") {
 		// Fetch ALL debt goals (not just current page) for strategy computation
 		const allDebtGoals = await db.query.goals.findMany({
 			where: and(
@@ -133,35 +136,34 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			),
 			with: {
 				linkedAccount: {
-					columns: { id: true, name: true },
+					columns: { id: true, name: true, minimumPaymentFlat: true },
 				},
 			},
 		});
 
-		const debtGoalAccountIdsForStrategy = allDebtGoals
-			.filter(g => g.linkedAccountId !== null)
-			.map(g => g.linkedAccountId!);
-		const strategyBalances = debtGoalAccountIdsForStrategy.length > 0
-			? await getCurrentBalancesForAccounts(debtGoalAccountIdsForStrategy)
-			: new Map<number, number>();
+		const debtGoalAccountIdsForStrategy = allDebtGoals.flatMap((g) =>
+			g.linkedAccountId !== null ? [g.linkedAccountId] : [],
+		);
+		const strategyBalances =
+			debtGoalAccountIdsForStrategy.length > 0
+				? await getCurrentBalancesForAccounts(debtGoalAccountIdsForStrategy)
+				: new Map<number, number>();
 
-		const debtInputs = allDebtGoals
-			.filter(g => g.linkedAccountId !== null)
-			.map(g => {
-				const bal = Math.abs(strategyBalances.get(g.linkedAccountId!) ?? 0);
-				const linked = g.linkedAccount;
-				const minPayment = linked && 'minimumPaymentFlat' in linked
-					? (linked as any).minimumPaymentFlat ?? 0
-					: 0;
-				return {
+		const debtInputs = allDebtGoals.flatMap((g) => {
+			if (g.linkedAccountId === null) return [];
+			const bal = Math.abs(strategyBalances.get(g.linkedAccountId) ?? 0);
+			const minPayment = g.linkedAccount?.minimumPaymentFlat ?? 0;
+			return [
+				{
 					goalId: g.id,
 					slug: g.slug,
 					name: g.name,
 					remainingInCents: bal,
 					aprBasisPoints: null as number | null,
 					minimumMonthlyInCents: Math.max(minPayment, 0),
-				};
-			});
+				},
+			];
+		});
 
 		if (debtInputs.length > 0) {
 			debtStrategyMetrics = calculateDebtStrategyMetrics(debtInputs);
@@ -181,7 +183,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	});
 
 	// Calculate staleness based on most recent goal creation/update
-	const staleness = getStaleness(getMostRecentDate(userGoals.map((g) => g.createdAt)));
+	const staleness = getStaleness(
+		getMostRecentDate(userGoals.map((g) => g.createdAt)),
+	);
 
 	// Calculate net worth summary (shared utility)
 	const netWorthSummary = await getNetWorthSummary(user.id);
@@ -218,7 +222,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		},
 		staleness,
 		alerts: await getGoalListAlerts(user.id),
-		filterType: validType as 'all' | 'savings' | 'debt',
+		filterType: validType as "all" | "savings" | "debt",
 		debtStrategyMetrics,
 	};
 };
@@ -230,7 +234,14 @@ export const actions: Actions = {
 
 		const formData = await request.formData();
 		const typeUpdates: Map<string, boolean> = new Map();
-		const validTypes = new Set(["current", "savings", "investment", "credit-card", "loan", "mortgage"]);
+		const validTypes = new Set([
+			"current",
+			"savings",
+			"investment",
+			"credit-card",
+			"loan",
+			"mortgage",
+		]);
 
 		for (const [key, value] of formData.entries()) {
 			if (key.startsWith("type_")) {
@@ -311,7 +322,8 @@ export const actions: Actions = {
 				}
 			});
 
-			if (isVerboseDebug()) devLog("moveTo", "Goal reordered", { slug, targetIndex });
+			if (isVerboseDebug())
+				devLog("moveTo", "Goal reordered", { slug, targetIndex });
 		} catch (error) {
 			if (error instanceof Error && error.message === "GOAL_NOT_FOUND") {
 				return fail(404, { error: "Goal not found" });
@@ -467,7 +479,8 @@ export const actions: Actions = {
 		}
 
 		// Redirect after successful move (outside try-catch so redirect exception propagates)
-		if (isVerboseDebug()) devLog("moveUp", "Action complete, redirecting to /goals");
+		if (isVerboseDebug())
+			devLog("moveUp", "Action complete, redirecting to /goals");
 		redirect(302, "/goals");
 	},
 
@@ -513,7 +526,8 @@ export const actions: Actions = {
 				});
 
 				if (!goalBelow) {
-					if (isVerboseDebug()) devLog("moveDown", "Goal already at bottom, redirecting", { slug });
+					if (isVerboseDebug())
+						devLog("moveDown", "Goal already at bottom, redirecting", { slug });
 				} else {
 					// Swap sortOrder values atomically
 					const temp = currentGoal.sortOrder;

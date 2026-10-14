@@ -1,11 +1,11 @@
 import { eq, inArray } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
-import { requireAuth } from "$lib/server/utils/auth-guard";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions, users } from "$lib/db/schema";
-import { getUkTaxYearBounds } from "$lib/utils/tax-year-utils";
 import { getInterestBreakdownReport } from "$lib/server/interestBreakdown";
 import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
+import { requireAuth } from "$lib/server/utils/auth-guard";
+import { getUkTaxYearBounds } from "$lib/utils/tax-year-utils";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -16,8 +16,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	if (isVerboseDebug()) {
 		devLog("accountsInterest", "Loading interest breakdown report", {
-		userId: user.id,
-		year,
+			userId: user.id,
+			year,
 		});
 	}
 
@@ -31,8 +31,8 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	if (isVerboseDebug()) {
 		devLog("accountsInterest", "Retrieved user tax band", {
-		userId: user.id,
-		taxBand,
+			userId: user.id,
+			taxBand,
 		});
 	}
 
@@ -89,14 +89,14 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 		if (isVerboseDebug()) {
 			devLog("accountsInterest", "Interest breakdown report generated", {
-			userId: user.id,
-			actualTotal: report.actual.total,
-			projectedTotal: report.projected.total,
-			forecastTotal: report.forecast.total,
-			taxYearStart: report.meta.taxYearStart,
-			taxYearEnd: report.meta.taxYearEnd,
-			daysRemaining: report.meta.daysRemainingInTaxYear,
-			reconciliationFlags: report.reconciliation.flags.length,
+				userId: user.id,
+				actualTotal: report.actual.total,
+				projectedTotal: report.projected.total,
+				forecastTotal: report.forecast.total,
+				taxYearStart: report.meta.taxYearStart,
+				taxYearEnd: report.meta.taxYearEnd,
+				daysRemaining: report.meta.daysRemainingInTaxYear,
+				reconciliationFlags: report.reconciliation.flags.length,
 			});
 		}
 

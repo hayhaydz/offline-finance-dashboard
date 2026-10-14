@@ -21,7 +21,7 @@ describe("buildOverpaymentScenarios", () => {
 				{ multiplier: 1.5, ttzResult: mockTTZ(43, 145000) },
 			],
 			10000, // £100
-		 now,
+			now,
 		);
 
 		expect(scenarios).toHaveLength(3);
