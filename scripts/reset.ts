@@ -10,9 +10,11 @@
  *   npm run db:reset -- --mode=standard  # wipe + migrate + seed:standard
  *   npm run db:reset -- --mode=edge      # wipe + migrate + seed:edge
  *   npm run db:reset -- --mode=stress    # wipe + migrate + seed:stress
+ *   npm run db:reset -- --scratch        # reset storage/dev-plain.db to standard seed
  */
 import { execSync } from "node:child_process";
 import { existsSync, unlinkSync } from "node:fs";
+import path from "node:path";
 import "dotenv/config";
 
 const appEnv = process.env.APP_ENV ?? "development";
@@ -22,14 +24,47 @@ if (appEnv === "production") {
 	process.exit(1);
 }
 
+const SCRATCH_DB_PATH = "storage/dev-plain.db";
+const scratchMode = process.argv.includes("--scratch");
+
+if (scratchMode) {
+	// Scratch mode: reproducible plain dev DB only. Abort on anything that
+	// smells like encrypted mode or a live/prod configured path.
+	if (process.env.ENCRYPTION_KEY) {
+		console.error(
+			"❌ --scratch refuses to run with ENCRYPTION_KEY set (encrypted mode).",
+		);
+		console.error(
+			"   Scratch sessions use the plain dev DB. Unset ENCRYPTION_KEY and retry.",
+		);
+		process.exit(1);
+	}
+	if (
+		process.env.DATABASE_URL &&
+		path.resolve(process.env.DATABASE_URL) !== path.resolve(SCRATCH_DB_PATH)
+	) {
+		console.error(
+			`❌ --scratch refuses to run: DATABASE_URL points at ${process.env.DATABASE_URL}`,
+		);
+		console.error(
+			"   (a configured live DB). Scratch always targets storage/dev-plain.db.",
+		);
+		process.exit(1);
+	}
+	console.log(
+		"🧪 Scratch mode: resetting storage/dev-plain.db to standard seed",
+	);
+}
+
 // Mirror getDatabasePath logic without importing client.ts (which has side effects)
-const DB_PATH =
-	process.env.DATABASE_URL ??
-	(appEnv === "test"
-		? "storage/test.db"
-		: process.env.ENCRYPTION_KEY
-			? "storage/dev-encrypted.db"
-			: "storage/dev-plain.db");
+const DB_PATH = scratchMode
+	? SCRATCH_DB_PATH
+	: (process.env.DATABASE_URL ??
+		(appEnv === "test"
+			? "storage/test.db"
+			: process.env.ENCRYPTION_KEY
+				? "storage/dev-encrypted.db"
+				: "storage/dev-plain.db"));
 
 const modeArg = process.argv.find((a) => a.startsWith("--mode="));
 const mode = modeArg?.split("=")[1] ?? null;
@@ -37,6 +72,10 @@ const mode = modeArg?.split("=")[1] ?? null;
 const validModes = ["standard", "edge", "stress"];
 if (mode && !validModes.includes(mode)) {
 	console.error(`❌ Unknown mode: "${mode}". Use standard | edge | stress`);
+	process.exit(1);
+}
+if (scratchMode && mode) {
+	console.error("❌ --scratch and --mode are mutually exclusive.");
 	process.exit(1);
 }
 
@@ -53,12 +92,17 @@ console.log("⟳  Applying migrations...");
 const { runMigrations } = await import("../src/lib/db/migrate");
 await runMigrations();
 
-// 3. Seed (only if mode provided)
-if (mode) {
-	console.log(`⟳  Seeding (mode: ${mode})...`);
-	execSync(`npm run seed:${mode}`, { stdio: "inherit" });
+// 3. Seed (only if mode provided, or scratch which always seeds standard)
+const seedMode = scratchMode ? "standard" : mode;
+if (seedMode) {
+	console.log(`⟳  Seeding (mode: ${seedMode})...`);
+	execSync(`npm run seed:${seedMode}`, { stdio: "inherit" });
 } else {
 	console.log("ℹ  No --mode provided, skipping seed (empty database)");
 }
 
-console.log("✓ Reset complete");
+console.log(
+	scratchMode
+		? "✓ Scratch reset complete — storage/dev-plain.db is at standard seed"
+		: "✓ Reset complete",
+);
