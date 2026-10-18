@@ -15,6 +15,7 @@ import { devLog, isVerboseDebug } from "$lib/server/logger";
 import type { Alert } from "$lib/types/alerts";
 import { formatCents } from "$lib/utils/formatting";
 import { MS_PER_DAY } from "$lib/utils/time-constants";
+import { utcMonthKey } from "$lib/utils/transaction-grouping";
 import { makeAccountAlert, makeGlobalAlert } from "./constants";
 
 export async function checkNetWorthAlerts(userId: number): Promise<Alert[]> {
@@ -301,6 +302,8 @@ export async function checkOrphanedTransfers(userId: number): Promise<Alert[]> {
 
 	// For each transfer, check if there's a matching counterpart in another account
 	const oneDayMs = 1 * MS_PER_DAY;
+	// Counterpart candidates relax the match window (same amount, ±5 days)
+	const candidateWindowMs = 5 * MS_PER_DAY;
 
 	for (const tx of transferRows) {
 		// We only alert on transfer_in to avoid double-counting
@@ -325,15 +328,43 @@ export async function checkOrphanedTransfers(userId: number): Promise<Alert[]> {
 			const formattedAmount = formatCents(Math.abs(tx.amount));
 			const formattedDate = txDate.toLocaleDateString("en-GB");
 
-			alerts.push(
-				makeAccountAlert(
-					"ORPHANED_TRANSFER",
-					"info",
-					"Unmatched transfer",
-					`${formattedAmount} transfer_in on ${formattedDate} has no matching counterpart`,
-					account,
-				),
+			const alert = makeAccountAlert(
+				"ORPHANED_TRANSFER",
+				"info",
+				"Unmatched transfer",
+				`${formattedAmount} transfer_in on ${formattedDate} has no matching counterpart`,
+				account,
+				// Primary link: this account's ledger prefiltered to the
+				// unmatched transfer_in's month
+				`/accounts/${account.slug}?type=transfer_in&month=${utcMonthKey(txDate)}`,
 			);
+
+			// Secondary counterpart link: closest same-amount transfer_out
+			// in another account within ±5 days (the strict ±1 day match
+			// already failed). Keeps links to ≤2 per alert.
+			let bestCandidate: (typeof transferRows)[number] | null = null;
+			let bestDeltaMs = Infinity;
+			for (const other of transferRows) {
+				if (other.type !== "transfer_out") continue;
+				if (other.accountId === tx.accountId) continue;
+				if (Math.abs(other.amount) !== Math.abs(tx.amount)) continue;
+				const deltaMs = Math.abs(Number(other.transactionDate) * 1000 - txDateMs);
+				if (deltaMs > candidateWindowMs) continue;
+				if (deltaMs < bestDeltaMs) {
+					bestCandidate = other;
+					bestDeltaMs = deltaMs;
+				}
+			}
+
+			if (bestCandidate) {
+				const candidateAccount = accountMap.get(bestCandidate.accountId);
+				if (candidateAccount) {
+					alert.secondaryHref = `/accounts/${candidateAccount.slug}?type=transfer_out&month=${utcMonthKey(new Date(Number(bestCandidate.transactionDate) * 1000))}`;
+					alert.secondaryLabel = `Out: ${candidateAccount.name}`;
+				}
+			}
+
+			alerts.push(alert);
 		}
 	}
 

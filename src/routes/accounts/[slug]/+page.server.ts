@@ -71,6 +71,7 @@ import {
 import {
 	computeMonthTotals,
 	resolveLedgerMonth,
+	resolveLedgerTypeFilter,
 	utcMonthRange,
 } from "$lib/utils/transaction-grouping";
 import type { Actions, PageServerLoad } from "./$types";
@@ -122,6 +123,14 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 					totals: computeMonthTotals(transactions, (tx) => tx.amount),
 				}
 			: null;
+
+	// `?type=` prefilter (alert deep links): validated against
+	// TRANSACTION_TYPES; invalid values are ignored. Filtering is
+	// client-side display-only — rows for the whole month are loaded
+	// so totals stay full-month, and the param is never persisted.
+	const ledgerTypeFilter = resolveLedgerTypeFilter(
+		url.searchParams.get("type"),
+	);
 
 	// Get interest rate history for this account
 	const rates = await db.query.interestRates.findMany({
@@ -440,6 +449,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		transactions,
 		ledgerMonth,
 		ledgerMonths: ledgerMonthKeys.toReversed(), // newest → oldest
+		ledgerTypeFilter,
 		rates,
 		currentRate,
 		interestSummary: summaryWithNav,

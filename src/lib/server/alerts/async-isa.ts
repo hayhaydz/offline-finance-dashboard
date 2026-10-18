@@ -41,7 +41,7 @@ export async function checkIsaAlerts(
 				"info",
 				"ISA allowance full",
 				`£${(used / 100).toLocaleString("en-GB")} of £20,000 used this tax year`,
-				"/accounts",
+				"/accounts/isa",
 			),
 		);
 	} else if (pct >= 0.8) {
@@ -52,12 +52,17 @@ export async function checkIsaAlerts(
 				"amber",
 				"ISA nearly full",
 				`£${(used / 100).toLocaleString("en-GB")} of £20,000 used (${Math.round(pct * 100)}%) — £${(remaining / 100).toLocaleString("en-GB")} remaining`,
-				"/accounts",
+				"/accounts/isa",
 			),
 		);
 	}
 
 	return alerts;
+}
+
+/** Current tax year slug (e.g. "2026-27") for interest-report deep links. */
+function taxYearSlug(taxYear: { start: Date; end: Date }): string {
+	return `${taxYear.start.getUTCFullYear()}-${String(taxYear.end.getUTCFullYear()).slice(-2)}`;
 }
 
 export async function checkPsaAlerts(
@@ -69,6 +74,8 @@ export async function checkPsaAlerts(
 	if (isVerboseDebug())
 		devLog("checkPsaAlerts", "Checking PSA alerts", { userId, taxBand });
 	const alerts: Alert[] = [];
+	// PSA is computed on the tax year interest report — deep link there
+	const interestHref = `/accounts/interest/${taxYearSlug(taxYear)}`;
 
 	if (taxBand === "additional") {
 		if (hasSavingsAccounts) {
@@ -78,7 +85,7 @@ export async function checkPsaAlerts(
 					"amber",
 					"No Personal Savings Allowance",
 					"Additional rate taxpayers have £0 PSA — all savings interest is taxable",
-					"/accounts",
+					interestHref,
 				),
 			);
 		}
@@ -104,7 +111,7 @@ export async function checkPsaAlerts(
 				"red",
 				"Personal Savings Allowance exceeded",
 				`£${(earned / 100).toLocaleString("en-GB")} earned — £${(over / 100).toLocaleString("en-GB")} taxable`,
-				"/accounts",
+				interestHref,
 			),
 		);
 	} else if (earned > threshold * 0.8) {
@@ -116,7 +123,7 @@ export async function checkPsaAlerts(
 				"amber",
 				"Approaching Personal Savings Allowance",
 				`£${(earned / 100).toLocaleString("en-GB")} of £${(threshold / 100).toLocaleString("en-GB")} used (${pct}%) — £${(remaining / 100).toLocaleString("en-GB")} remaining`,
-				"/accounts",
+				interestHref,
 			),
 		);
 	}
@@ -191,7 +198,7 @@ export async function checkISAPacingAlerts(userId: number): Promise<Alert[]> {
 			"info",
 			"ISA contributions behind pace",
 			`Deposited ${formatCents(deposited)} of ${formatCents(target)} — ${formatCents(monthlyNeeded)}/month needed to reach limit`,
-			"/accounts",
+			"/accounts/isa",
 		),
 	);
 

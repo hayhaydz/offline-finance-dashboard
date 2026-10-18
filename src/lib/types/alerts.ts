@@ -60,7 +60,9 @@ export interface Alert {
 	accountName?: string;
 	accountType?: string; // e.g. 'savings' | 'mortgage' | 'credit-card' | 'loan' | etc.
 	accountCategory?: string; // 'asset' | 'liability'
-	href?: string; // deep link to relevant page
+	href?: string; // deep link to relevant page (slug-based, no IDs)
+	secondaryHref?: string; // optional second deep link (e.g. transfer counterpart)
+	secondaryLabel?: string; // bracket-link label rendered for secondaryHref
 	triggeredAt: number; // Unix ms timestamp — Date objects don't survive SvelteKit load serialization
 }
 

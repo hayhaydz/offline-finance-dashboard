@@ -6,8 +6,11 @@
  *
  * Also hosts the month-keyed pagination helpers (UTC month keys,
  * boundaries, resolution and adjacency) shared by the account detail
- * server load and the ledger pager UI.
+ * server load and the ledger pager UI, plus the `?type=` prefilter
+ * helpers used by alert deep links landing on the ledger.
  */
+
+import { TRANSACTION_TYPES, type TransactionType } from "./domain-constants";
 
 export type GroupedTransaction<T> = {
 	monthKey: string;
@@ -88,6 +91,45 @@ export function resolveLedgerMonth(
 		return monthParam;
 	}
 	return monthKeys[monthKeys.length - 1];
+}
+
+/**
+ * UTC `YYYY-MM` month key for a date (e.g. "2026-09"). Single source
+ * for month keys used in ledger URLs and alert deep links.
+ */
+export function utcMonthKey(date: Date): string {
+	return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+/**
+ * Resolve the ledger `?type=` prefilter. Only values sourced from
+ * TRANSACTION_TYPES pass through; anything else (absent, malformed,
+ * unknown) resolves to null so the unfiltered month renders.
+ */
+export function resolveLedgerTypeFilter(
+	typeParam: string | null,
+): TransactionType | null {
+	if (typeParam === null) return null;
+	return (TRANSACTION_TYPES as readonly string[]).includes(typeParam)
+		? (typeParam as TransactionType)
+		: null;
+}
+
+/**
+ * Apply a display-only type prefilter to grouped month rows. Month
+ * totals (inflow/outflow/net) stay full-month by construction — only
+ * the displayed row list narrows. A null filter is the identity
+ * ("[Clear]" restores the full month view).
+ */
+export function filterGroupsByType<T extends { type: string }>(
+	groups: GroupedTransaction<T>[],
+	typeFilter: string | null,
+): GroupedTransaction<T>[] {
+	if (typeFilter === null) return groups;
+	return groups.map((group) => ({
+		...group,
+		transactions: group.transactions.filter((tx) => tx.type === typeFilter),
+	}));
 }
 
 /**

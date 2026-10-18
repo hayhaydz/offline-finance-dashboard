@@ -57,9 +57,16 @@
 							{/if}
 							<span class="text-zinc-600 text-xs">{alert.message}</span>
 						</div>
-						{#if alert.href}
-							<a href={alert.href} class="bracket-link text-xs shrink-0 ml-4">[View]</a>
-						{/if}
+					{#if alert.href || alert.secondaryHref}
+						<div class="flex gap-2 shrink-0 ml-4">
+							{#if alert.href}
+								<a href={alert.href} class="bracket-link text-xs">[View]</a>
+							{/if}
+							{#if alert.secondaryHref}
+								<a href={alert.secondaryHref} class="bracket-link text-xs" title="Counterpart account">[{alert.secondaryLabel ?? 'View'}]</a>
+							{/if}
+						</div>
+					{/if}
 					</div>
 				{/each}
 			</div>

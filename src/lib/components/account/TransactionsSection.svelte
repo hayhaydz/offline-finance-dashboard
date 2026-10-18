@@ -6,6 +6,7 @@
 	import { getTransactionTypeLabel, getTransactionTypeBadgeClass } from '$lib/utils/formatting';
 	import {
 		adjacentMonths,
+		filterGroupsByType,
 		groupTransactionsByMonth,
 		monthLabelForKey,
 	} from '$lib/utils/transaction-grouping';
@@ -39,6 +40,8 @@
 		categories,
 		recurringPatterns,
 		closedAt,
+		typeFilter = null,
+		onClearTypeFilter = undefined,
 		editMode,
 		addTransactionOpen,
 		feedback,
@@ -52,6 +55,8 @@
 		categories: Category[];
 		recurringPatterns: RecurringPattern[] | null;
 		closedAt: Date | null;
+		typeFilter?: TransactionType | null;
+		onClearTypeFilter?: () => void;
 		editMode: boolean;
 		addTransactionOpen: boolean;
 		feedback: ReturnType<typeof useSubmitFeedback>;
@@ -85,6 +90,13 @@
 			(tx) => new Date(tx.transactionDate),
 			(tx) => tx.amount,
 		)
+	);
+
+	// Display-only type prefilter (`?type=` from alert deep links):
+	// narrows the rendered rows but keeps each month header's totals
+	// computed from the full month (filterGroupsByType preserves them).
+	const displayedGroups = $derived(
+		filterGroupsByType(transactionGroups, typeFilter ?? null)
 	);
 
 	function formatDate(date: Date): string {
@@ -234,6 +246,17 @@
 		</div>
 	{/if}
 
+	<!-- Active type prefilter chip (alert deep links): visible + clearable -->
+	{#if typeFilter}
+		<div class="border-b border-black px-2 py-1 bg-amber-100 text-xs flex items-center gap-2">
+			<span class="font-bold">[Type: {typeFilter}]</span>
+			<button type="button" class="bracket-link" onclick={() => onClearTypeFilter?.()}>
+				[Clear]
+			</button>
+			<span class="text-zinc-500">month totals include all rows</span>
+		</div>
+	{/if}
+
 	{#if transactions.length === 0}
 		<p class="text-gray-600 text-xs p-2">No transactions recorded yet.</p>
 	{:else}
@@ -252,17 +275,24 @@
 					</tr>
 				</thead>
 				<tbody>
-					{#each transactionGroups as group}
-						<!-- Month header row -->
-						<tr class="bg-gray-100 border-b border-gray-300">
-							<td colspan={editMode ? 7 : 6} class="pl-2 py-1 text-xs font-bold">
-								{group.monthLabel} — {group.transactions.length} transaction{group.transactions.length !== 1 ? 's' : ''}
-								<span class="text-gray-400 font-normal"> · Net: </span>
-								<span class="{group.net >= 0 ? 'text-green-700' : 'text-red-700'}">{group.net >= 0 ? '+' : ''}{formatCurrency(group.net)}</span>
-								<span class="text-gray-400 font-normal"> ({formatCurrency(group.inflow)} in, {formatCurrency(group.outflow)} out)</span>
+				{#each displayedGroups as group}
+					<!-- Month header row — totals always full-month, even when rows are prefiltered -->
+					<tr class="bg-gray-100 border-b border-gray-300">
+						<td colspan={editMode ? 7 : 6} class="pl-2 py-1 text-xs font-bold">
+							{group.monthLabel} — {group.transactions.length} transaction{group.transactions.length !== 1 ? 's' : ''}{#if typeFilter} shown{/if}
+							<span class="text-gray-400 font-normal"> · Net: </span>
+							<span class="{group.net >= 0 ? 'text-green-700' : 'text-red-700'}">{group.net >= 0 ? '+' : ''}{formatCurrency(group.net)}</span>
+							<span class="text-gray-400 font-normal"> ({formatCurrency(group.inflow)} in, {formatCurrency(group.outflow)} out)</span>
+						</td>
+					</tr>
+					{#if group.transactions.length === 0}
+						<tr class="border-b border-gray-200">
+							<td colspan={editMode ? 7 : 6} class="pl-2 py-1 text-xs text-gray-500">
+								No {typeFilter} transactions this month.
 							</td>
 						</tr>
-						{#each group.transactions as transaction}
+					{:else}
+					{#each group.transactions as transaction}
 							<tr class="border-b border-gray-200 last:border-b-0 align-top">
 								{#if editMode}
 									<td class="pl-2 text-sm py-2 whitespace-nowrap">
@@ -311,8 +341,9 @@
 								</td>
 							</tr>
 						{/each}
-					{/each}
-				</tbody>
+					{/if}
+				{/each}
+			</tbody>
 			</table>
 		</div>
 		{#if monthNav.months.length > 1}

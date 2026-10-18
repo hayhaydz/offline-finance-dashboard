@@ -1,5 +1,6 @@
 import type { Alert, AlertSeverity } from "$lib/types/alerts";
 import { MS_PER_DAY } from "$lib/utils/time-constants";
+import { utcMonthKey } from "$lib/utils/transaction-grouping";
 import type { AccountRow, RateRow, TxSummary } from "./constants";
 import { daysSince, daysUntil, makeAccountAlert } from "./constants";
 
@@ -251,6 +252,8 @@ export function checkLiabilityPaymentAlerts(
 	if (now.getUTCDate() <= 7) return [];
 
 	const alerts: Alert[] = [];
+	// Deep link: the calendar month the payment is missing from
+	const monthKey = utcMonthKey(now);
 
 	for (const account of openAccounts) {
 		if (account.category !== "liability") continue;
@@ -263,6 +266,7 @@ export function checkLiabilityPaymentAlerts(
 					"No payment this month",
 					"No payment or deposit recorded this calendar month",
 					account,
+					`/accounts/${account.slug}?month=${monthKey}`,
 				),
 			);
 		}
@@ -299,6 +303,7 @@ export function checkInterestAccruedAlerts(
 					"Accrued interest unposted",
 					`Interest accrued ${days} days ago with no posted interest since`,
 					account,
+					`/accounts/${account.slug}?type=interest_accrued&month=${utcMonthKey(lastAccruedDate)}`,
 				),
 			);
 		}

@@ -59,13 +59,23 @@
 	{#if expanded}
 		<div class="px-2 pb-2 pt-1 border-t {severityBorder} flex justify-between items-start gap-4">
 			<span class="text-zinc-600 text-xs leading-relaxed">{alert.message}</span>
-			{#if alert.href}
-				<a
-					href={alert.href}
-					class="bracket-link text-xs shrink-0"
-					onclick={(e) => e.stopPropagation()}
-				>[View]</a>
-			{/if}
+			<div class="flex gap-2 shrink-0">
+				{#if alert.href}
+					<a
+						href={alert.href}
+						class="bracket-link text-xs"
+						onclick={(e) => e.stopPropagation()}
+					>[View]</a>
+				{/if}
+				{#if alert.secondaryHref}
+					<a
+						href={alert.secondaryHref}
+						class="bracket-link text-xs"
+						title="Counterpart account"
+						onclick={(e) => e.stopPropagation()}
+					>[{alert.secondaryLabel ?? 'View'}]</a>
+				{/if}
+			</div>
 		</div>
 	{/if}
 </div>

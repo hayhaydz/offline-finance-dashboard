@@ -40,6 +40,7 @@ export function makeAccountAlert(
 	title: string,
 	message: string,
 	account: AccountRow,
+	href?: string,
 ): Alert {
 	return {
 		id: `${type}:${account.slug}`,
@@ -51,7 +52,7 @@ export function makeAccountAlert(
 		accountName: account.name,
 		accountType: account.type,
 		accountCategory: account.category,
-		href: `/accounts/${account.slug}`,
+		href: href ?? `/accounts/${account.slug}`,
 		triggeredAt: Date.now(),
 	};
 }

@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { page as pageState } from '$app/state';
 	import AlertsSection from '$lib/components/AlertsSection.svelte';
 	import SubmitFeedback from '$lib/components/SubmitFeedback.svelte';
 	import AccountHeader from '$lib/components/account/AccountHeader.svelte';
@@ -49,6 +51,18 @@
 	$effect(() => {
 		monthParam.month = data.ledgerMonth?.monthKey ?? null;
 	});
+
+	// `?type=` ledger prefilter (alert deep links): clearing removes the
+	// param only — `month` (owned by useMonthParam) is left untouched.
+	async function clearLedgerTypeFilter() {
+		const url = new URL(pageState.url);
+		url.searchParams.delete('type');
+		await goto(url.pathname + url.search, {
+			replaceState: true,
+			noScroll: true,
+			keepFocus: true,
+		});
+	}
 
 	// Interest rates pagination state
 	const RATES_PER_PAGE = 5;
@@ -326,6 +340,8 @@
 	categories={data.categories}
 	recurringPatterns={data.recurringPatterns}
 	closedAt={data.account.closedAt}
+	typeFilter={data.ledgerTypeFilter}
+	onClearTypeFilter={clearLedgerTypeFilter}
 	{editMode}
 	{addTransactionOpen}
 	{feedback}
