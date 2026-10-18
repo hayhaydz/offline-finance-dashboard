@@ -78,6 +78,9 @@
                                 <span class="text-green-700">Within allowance</span>
                                 <span class="text-xs text-gray-600">({formatCurrency(year.status.remaining)} left)</span>
                             {/if}
+                            <span class="text-xs text-gray-600">
+                                &middot; <a href="/overview/tax" class="bracket-link">{year.taxBand.toUpperCase()}</a>{#if year.bandAssumed} <span class="text-amber-700">(assumed)</span>{/if}
+                            </span>
                         </td>
                     </tr>
                 {/each}

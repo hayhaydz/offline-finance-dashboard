@@ -1,6 +1,10 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import * as schema from "../../../src/lib/db/schema/index";
-import { calculateProjectedInterestInCents } from "../../../src/lib/utils/tax-year-utils.js";
+import {
+	calculateProjectedInterestInCents,
+	getPsaAllowanceInCents,
+	type TaxBand,
+} from "../../../src/lib/utils/tax-year-utils.js";
 import type { DB } from "./db.js";
 import { slug } from "./helpers.js";
 
@@ -22,6 +26,12 @@ export interface SnapshotOptions {
 	isaAllowanceOverride?: {
 		usedThisTaxYear?: number;
 	};
+	/**
+	 * Resolve the tax band for a snapshot date (audit #7 behaviour). When the
+	 * seed persona has dated band history, pass a resolver here so stored tax
+	 * positions reflect the snapshot's tax year instead of hardcoded basic.
+	 */
+	taxBandForDate?: (date: Date) => TaxBand;
 }
 
 export async function createSnapshot(
@@ -324,6 +334,11 @@ export async function createSnapshot(
 		},
 	};
 
+	const interestBand = opts.taxBandForDate
+		? opts.taxBandForDate(new Date(date))
+		: "basic";
+	const psaAllowance = getPsaAllowanceInCents(interestBand);
+
 	const interestBreakdownDetail = {
 		snapshotTakenAt: new Date().toISOString(),
 		snapshotDate: date,
@@ -349,13 +364,13 @@ export async function createSnapshot(
 				actualTaxFree + actualTaxable + projectedTaxFree + projectedTaxable,
 		},
 		taxPosition: {
-			taxBand: "basic",
+			taxBand: interestBand,
 			personalSavingsAllowance: {
-				allowance: 1_000_00,
+				allowance: psaAllowance,
 				used: actualTaxable,
-				remaining: Math.max(0, 1_000_00 - actualTaxable),
-				overAllowance: actualTaxable > 1_000_00,
-				taxableAmount: Math.max(0, actualTaxable - 1_000_00),
+				remaining: Math.max(0, psaAllowance - actualTaxable),
+				overAllowance: actualTaxable > psaAllowance,
+				taxableAmount: Math.max(0, actualTaxable - psaAllowance),
 			},
 		},
 		byAccount: interestByAccount,

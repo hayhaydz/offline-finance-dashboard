@@ -30,6 +30,9 @@ vi.mock("$lib/db/client", () => ({
 			users: {
 				findFirst: vi.fn(),
 			},
+			taxBandHistory: {
+				findMany: vi.fn(),
+			},
 		},
 	},
 }));
@@ -95,6 +98,8 @@ describe("/accounts/interest/[year] page load", () => {
 			id: mockUserId,
 			taxBand: "basic",
 		});
+		// No band history rows → resolver falls back to the legacy enum above
+		(db.query.taxBandHistory.findMany as any).mockResolvedValue([]);
 		(db.query.accounts.findMany as any).mockResolvedValue([]);
 		(db.query.accountTransactions.findMany as any).mockResolvedValue([]);
 	});

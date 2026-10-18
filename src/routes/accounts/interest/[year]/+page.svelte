@@ -117,13 +117,27 @@
 <!-- HEADER -->
 <div class="border-b border-black p-2 flex justify-between items-start">
 	<div>
-		<h1 class="text-lg font-bold m-0 uppercase">Interest Breakdown</h1>
-		<div class="text-sm text-gray-600 mt-1">
-			Tax Year: {data.meta.taxYearStart.getUTCFullYear()}-{String(data.meta.taxYearEnd.getUTCFullYear()).slice(-2)}
+	<h1 class="text-lg font-bold m-0 uppercase">Interest Breakdown</h1>
+	<div class="text-sm text-gray-600 mt-1">
+		Tax Year: {data.meta.taxYearStart.getUTCFullYear()}-{String(data.meta.taxYearEnd.getUTCFullYear()).slice(-2)}
+	</div>
+	{#if data.bandInfo}
+		<div class="text-sm mt-1 font-mono">
+			<a href="/overview/tax" class="bracket-link">{data.bandInfo.band.toUpperCase()}</a>
+			&bull; {formatCurrency(data.bandInfo.psaAllowanceInCents)} PSA{#if data.bandInfo.isCurrentTaxYear}&nbsp;<span class="text-amber-700">(expected)</span>{/if}
+			{#if data.bandInfo.source === 'assumed-earlier' && data.bandInfo.assumedFromTaxYear}
+				&bull; <span class="text-amber-700">assumed from {data.bandInfo.assumedFromTaxYear} history</span>
+			{/if}
 		</div>
-		<div class="text-xs text-gray-600">
-			As of {formatDateShorthand(data.meta.asOfDate)} &bull; {data.meta.daysRemainingInTaxYear} days remaining in tax year
-		</div>
+		{#if data.bandInfo.bandChangedFromPriorYear}
+			<div class="text-xs text-gray-600 mt-1">
+				Band changed from the previous tax year — it applies to this whole tax year, including interest earned before the change (no pro-rata).
+			</div>
+		{/if}
+	{/if}
+	<div class="text-xs text-gray-600">
+		As of {formatDateShorthand(data.meta.asOfDate)} &bull; {data.meta.daysRemainingInTaxYear} days remaining in tax year
+	</div>
 	</div>
 	<div class="flex flex-col items-end gap-2">
 		<div class="flex gap-2 mb-1">

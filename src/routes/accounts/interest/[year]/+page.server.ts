@@ -1,11 +1,17 @@
 import { eq, inArray } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
-import { accounts, accountTransactions, users } from "$lib/db/schema";
+import { accounts, accountTransactions } from "$lib/db/schema";
 import { getInterestBreakdownReport } from "$lib/server/interestBreakdown";
 import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
+import { bandForTaxYear } from "$lib/server/tax-bands";
 import { requireAuth } from "$lib/server/utils/auth-guard";
-import { getUkTaxYearBounds } from "$lib/utils/tax-year-utils";
+import {
+	getPsaAllowanceInCents,
+	getUkTaxYearBounds,
+	previousTaxYear,
+	taxYearLabelFromDate,
+} from "$lib/utils/tax-year-utils";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -13,6 +19,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	const { year } = params;
 	const taxYear = getUkTaxYearBounds(year);
+	const canonicalYear = taxYearLabelFromDate(taxYear.start);
 
 	if (isVerboseDebug()) {
 		devLog("accountsInterest", "Loading interest breakdown report", {
@@ -21,18 +28,30 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		});
 	}
 
-	// Get user's tax band for PSA calculation
-	const userWithTaxBand = await db.query.users.findFirst({
-		where: eq(users.id, user.id),
-		columns: { taxBand: true },
-	});
+	// Resolve the band for the VIEWED tax year — a past year uses the
+	// past-year band (e.g. 2025/26 higher → £500 PSA), not today's.
+	const [bandResolution, priorBandResolution] = await Promise.all([
+		bandForTaxYear(user.id, canonicalYear),
+		bandForTaxYear(user.id, previousTaxYear(canonicalYear)),
+	]);
+	const taxBand = bandResolution.band;
 
-	const taxBand = userWithTaxBand?.taxBand ?? "basic";
+	// Badge context: current-year expectation framing + band-change note
+	const bandInfo = {
+		band: taxBand,
+		source: bandResolution.source,
+		assumedFromTaxYear: bandResolution.fromTaxYear,
+		psaAllowanceInCents: getPsaAllowanceInCents(taxBand),
+		isCurrentTaxYear: canonicalYear === taxYearLabelFromDate(new Date()),
+		bandChangedFromPriorYear: priorBandResolution.band !== taxBand,
+	};
 
 	if (isVerboseDebug()) {
-		devLog("accountsInterest", "Retrieved user tax band", {
+		devLog("accountsInterest", "Resolved tax band for year", {
 			userId: user.id,
 			taxBand,
+			canonicalYear,
+			source: bandResolution.source,
 		});
 	}
 
@@ -106,6 +125,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 				username: user.username,
 				taxBand,
 			},
+			bandInfo,
 			meta: report.meta,
 			actual: report.actual,
 			projected: report.projected,

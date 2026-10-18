@@ -1,5 +1,11 @@
 import { eq } from "drizzle-orm";
 import * as schema from "../../../src/lib/db/schema/index";
+import {
+	previousTaxYear,
+	type TaxBand,
+	taxYearLabelFromDate,
+	taxYearMonths,
+} from "../../../src/lib/utils/tax-year-utils.js";
 import type { DB } from "../lib/db.js";
 import { daysAgo, formatGBP, loadFixture, slug } from "../lib/helpers.js";
 import { createSnapshot } from "../lib/snapshot.js";
@@ -167,6 +173,89 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 	console.log(
 		`  ✓ Past month ${prevMonth} seeded with amendment (£1,200 → £1,400)`,
 	);
+
+	// --- Tax band + income history ---
+	// Persona: basic-rate saver who crossed the higher-rate threshold in the
+	// previous tax year (Oct salary change — year-atomic band from that year).
+	// Exercises all finder verdict states: BOUNDED (gap year), FIRM (crossing
+	// year), EXPECTED (in-progress current year), UNKNOWN (earlier years).
+	console.log("\n💷 Seeding tax band + income history...");
+	const currentTaxYear = taxYearLabelFromDate(now);
+	const prevTaxYear = previousTaxYear(currentTaxYear);
+	const prevPrevTaxYear = previousTaxYear(prevTaxYear);
+
+	await db.insert(schema.taxBandHistory).values([
+		{
+			userId,
+			band: "basic",
+			fromTaxYear: prevPrevTaxYear,
+			toTaxYear: prevPrevTaxYear,
+			createdAt: now,
+			updatedAt: now,
+		},
+		{
+			userId,
+			band: "higher",
+			fromTaxYear: prevTaxYear,
+			toTaxYear: null,
+			createdAt: now,
+			updatedAt: now,
+		},
+	]);
+	// Keep the legacy enum cache in sync with the latest row
+	await db
+		.update(schema.users)
+		.set({ taxBand: "higher", updatedAt: now })
+		.where(eq(schema.users.id, userId));
+	console.log(
+		`  ✓ Bands: basic ${prevPrevTaxYear} → ${prevPrevTaxYear}, higher ${prevTaxYear} → open`,
+	);
+
+	const currentMonthStr = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+	const LOW = 3500_00;
+	const HIGH = 5200_00;
+
+	const incomeRows: Array<{
+		userId: number;
+		month: string;
+		grossIncomeInCents: number;
+		note: string | null;
+	}> = [];
+
+	// Gap year (BOUNDED): £3,500/mo with two missing months mid-year
+	const gapYearMonths = taxYearMonths(prevPrevTaxYear);
+	for (const month of gapYearMonths) {
+		if (month === gapYearMonths[5] || month === gapYearMonths[6]) continue;
+		incomeRows.push({ userId, month, grossIncomeInCents: LOW, note: null });
+	}
+
+	// Threshold-crossing year (FIRM): £3,500/mo, £5,200/mo after the October
+	// salary change → 6×£3,500 + 6×£5,200 = £52,200 ≥ £50,270
+	const crossingYearMonths = taxYearMonths(prevTaxYear);
+	for (let i = 0; i < crossingYearMonths.length; i++) {
+		const raised = i >= 6; // October = 7th month of the tax year
+		incomeRows.push({
+			userId,
+			month: crossingYearMonths[i],
+			grossIncomeInCents: raised ? HIGH : LOW,
+			note: raised && i === 6 ? "salary change" : null,
+		});
+	}
+
+	// Current year (EXPECTED): known up to last month, projects the rest
+	for (const month of taxYearMonths(currentTaxYear)) {
+		if (month >= currentMonthStr) break;
+		incomeRows.push({ userId, month, grossIncomeInCents: HIGH, note: null });
+	}
+
+	await db.insert(schema.incomeHistory).values(incomeRows);
+	console.log(
+		`  ✓ Income: ${incomeRows.length} months (${prevPrevTaxYear} gap year BOUNDED, ${prevTaxYear} FIRM crossing, ${currentTaxYear} in-progress EXPECTED)`,
+	);
+
+	// Snapshot tax positions resolve per snapshot date (audit #7 behaviour)
+	const seedBandForDate = (date: Date): TaxBand =>
+		taxYearLabelFromDate(date) <= prevPrevTaxYear ? "basic" : "higher";
 
 	// --- Goals ---
 	console.log("\n🎯 Creating goals...");
@@ -339,6 +428,7 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 		await createSnapshot(db, userId, snap.date, snap.multiplier, snap.notes, {
 			interestOverrideByName: snap.interestOverrideByName,
 			isaAllowanceOverride: snap.isaAllowanceOverride,
+			taxBandForDate: seedBandForDate,
 		});
 		console.log(`  ✓ ${snap.date}`);
 	}

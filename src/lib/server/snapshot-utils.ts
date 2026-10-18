@@ -9,7 +9,9 @@ import {
 	calculateInterestBreakdown,
 	calculateISAAllowanceBreakdown,
 } from "$lib/server/snapshotBreakdowns";
+import { bandForTaxYear } from "$lib/server/tax-bands";
 import type { SnapshotPreviewData } from "$lib/types/snapshots";
+import { taxYearLabelFromDate } from "$lib/utils/tax-year-utils";
 
 // Re-export type for consumers that import from this module
 export type { SnapshotPreviewData };
@@ -94,10 +96,20 @@ export async function calculateSnapshotData(
 		totalAllocated,
 	};
 
-	// Calculate ISA and interest breakdown (now separate objects with metadata)
+	// Calculate ISA and interest breakdown (now separate objects with metadata).
+	// The tax band resolves for the SNAPSHOT's tax year (audit #7) — never a
+	// hardcoded band.
+	const snapshotTaxYear = taxYearLabelFromDate(effectiveDate);
+	const { band: snapshotBand } = await bandForTaxYear(userId, snapshotTaxYear);
+
 	const [isaData, interestData] = await Promise.all([
 		calculateISAAllowanceBreakdown(userId, effectiveDate),
-		calculateInterestBreakdown(userId, allAccounts, effectiveDate, "basic"), // TODO: Fetch user's actual taxBand
+		calculateInterestBreakdown(
+			userId,
+			allAccounts,
+			effectiveDate,
+			snapshotBand,
+		),
 	]);
 
 	devLog("calculateSnapshotData", "Snapshot data calculated", {

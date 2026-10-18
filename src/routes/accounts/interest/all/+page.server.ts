@@ -1,7 +1,12 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
-import { accounts, accountTransactions, users } from "$lib/db/schema";
+import { accounts, accountTransactions } from "$lib/db/schema";
+import {
+	getLegacyTaxBand,
+	getTaxBandHistory,
+	resolveBandFromRows,
+} from "$lib/server/tax-bands";
 import { requireAuth } from "$lib/server/utils/auth-guard";
 import { isTaxFreeWrapper } from "$lib/utils/tax-classification";
 import {
@@ -93,23 +98,25 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		}
 	}
 
-	// 4. Get User Tax Band
-	const userWithTaxBand = await db.query.users.findFirst({
-		where: eq(users.id, user.id),
-		columns: { taxBand: true },
-	});
-	const taxBand = userWithTaxBand?.taxBand ?? "basic";
+	// 4. Resolve the band PER YEAR (history rows loaded once, resolved in-memory)
+	const [bandRows, legacyBand] = await Promise.all([
+		getTaxBandHistory(user.id),
+		getLegacyTaxBand(user.id),
+	]);
 
 	// 5. Format for display
 	const taxYears = Array.from(taxYearsMap.values())
 		.filter((year) => year.isaInterest > 0 || year.nonIsaInterest > 0)
 		.sort((a, b) => b.start.getTime() - a.start.getTime())
 		.map((year) => {
-			const status = getTaxFreeStatus(year.nonIsaInterest, taxBand);
+			// resolveBandFromRows parses both "YYYY/YY" and slug "YYYY-YY"
+			const resolution = resolveBandFromRows(bandRows, year.slug, legacyBand);
+			const status = getTaxFreeStatus(year.nonIsaInterest, resolution.band);
 			return {
 				...year,
 				status,
-				taxBand,
+				taxBand: resolution.band,
+				bandAssumed: resolution.source === "assumed-earlier",
 			};
 		});
 

@@ -1,7 +1,7 @@
 import { fail } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { db } from "$lib/db/client";
-import { systemMetadata, users } from "$lib/db/schema";
+import { systemMetadata } from "$lib/db/schema";
 import {
 	createCategory,
 	deleteCategory,
@@ -44,18 +44,11 @@ export const load: PageServerLoad = async ({ locals }) => {
 		}
 	}
 
-	// Fetch user's current tax band
-	const userRow = await db.query.users.findFirst({
-		where: eq(users.id, user.id),
-		columns: { taxBand: true },
-	});
-
 	// Fetch spending categories
 	const categories = await getCategories(user.id);
 
 	return {
 		monthlyExpensesInPence,
-		taxBand: userRow?.taxBand ?? "basic",
 		categories,
 	};
 };
@@ -145,44 +138,6 @@ export const actions: Actions = {
 			return fail(500, {
 				error: "Failed to save monthly expenses. Please try again.",
 			});
-		}
-	},
-
-	/**
-	 * Update tax band action
-	 */
-	updateTaxBand: async ({ request, locals }) => {
-		const user = getAuthUser(locals);
-		if (!user) return fail(401, { error: "Authentication required" });
-
-		const formData = await request.formData();
-		logFormData("settings-general", Object.fromEntries(formData));
-
-		const taxBand = formData.get("taxBand") as string;
-
-		const validBands = ["basic", "higher", "additional"];
-		if (!validBands.includes(taxBand)) {
-			devLog("settings-general", "Validation failed: invalid tax band", {
-				taxBand,
-			});
-			return fail(400, { error: "Invalid tax band" });
-		}
-
-		try {
-			await db
-				.update(users)
-				.set({ taxBand: taxBand as "basic" | "higher" | "additional" })
-				.where(eq(users.id, user.id));
-
-			devLog("settings-general", "Tax band updated", {
-				userId: user.id,
-				taxBand,
-			});
-
-			return { success: true };
-		} catch (error) {
-			logError("settings-general", "Failed to update tax band", error);
-			return fail(500, { error: "Failed to update tax band" });
 		}
 	},
 

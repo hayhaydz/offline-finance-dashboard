@@ -42,6 +42,7 @@ import {
 	calculateBreakEvenMonth,
 } from "$lib/server/rate-scenarios";
 import { detectRecurringPatterns } from "$lib/server/recurring-patterns";
+import { bandForTaxYear } from "$lib/server/tax-bands";
 import {
 	createTransaction,
 	deleteTransaction,
@@ -67,6 +68,7 @@ import {
 import {
 	getUkTaxYearBounds,
 	ISA_ALLOWANCE_IN_CENTS,
+	taxYearLabelFromDate,
 } from "$lib/utils/tax-year-utils";
 import {
 	computeMonthTotals,
@@ -169,12 +171,17 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		end: getTaxYearEndFromStart(selectedTaxYearStart),
 	};
 
-	// Get unified interest summary with projection eligibility
+	// Get unified interest summary with projection eligibility.
+	// Band resolves for the SELECTED tax year (history → legacy cache).
+	const { band: interestTaxBand } = await bandForTaxYear(
+		user.id,
+		taxYearLabelFromDate(taxYear.start),
+	);
 	const interestSummary = await getAccountInterestSummary({
 		accountId: account.id,
 		taxYearStart: taxYear.start,
 		taxYearEnd: taxYear.end,
-		taxBand: "basic",
+		taxBand: interestTaxBand,
 	});
 
 	// Format tax year params for navigation (only if summary exists)

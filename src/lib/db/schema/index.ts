@@ -63,3 +63,11 @@ export {
 	spendingCategoriesRelations,
 	systemMetadata,
 } from "./system";
+// Tax domain
+export type { IncomeHistoryRow, TaxBandHistoryRow } from "./tax";
+export {
+	incomeHistory,
+	incomeHistoryRelations,
+	taxBandHistory,
+	taxBandHistoryRelations,
+} from "./tax";

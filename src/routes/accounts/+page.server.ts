@@ -1,8 +1,8 @@
 import { fail } from "@sveltejs/kit";
-import { count, eq } from "drizzle-orm";
+import { count } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
-import { accounts, users } from "$lib/db/schema";
+import { accounts } from "$lib/db/schema";
 import { getAccountListAlerts } from "$lib/server/alerts";
 import {
 	getCurrentBalancesForAccounts,
@@ -12,6 +12,7 @@ import { updateTypeExclusions } from "$lib/server/exclusions";
 import { getNetWorthSummary } from "$lib/server/finance";
 import { getCurrentRate } from "$lib/server/interestRates";
 import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
+import { bandForTaxYear } from "$lib/server/tax-bands";
 import {
 	getAccountInterestEarned,
 	getISAAllowanceUsed,
@@ -26,6 +27,7 @@ import {
 	getTaxFreeStatus,
 	getUkTaxYearBounds,
 	ISA_ALLOWANCE_IN_CENTS,
+	taxYearLabelFromDate,
 } from "$lib/utils/tax-year-utils";
 import { MS_PER_DAY } from "$lib/utils/time-constants";
 import type { Actions, PageServerLoad } from "./$types";
@@ -230,12 +232,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		};
 	});
 
-	// Get user's tax band for allowance calculation
-	const userWithTaxBand = await db.query.users.findFirst({
-		where: eq(users.id, user.id),
-		columns: { taxBand: true },
-	});
-	const taxBand = userWithTaxBand?.taxBand ?? "basic";
+	// Resolve the tax band for the current tax year (history → legacy cache)
+	const { band: taxBand } = await bandForTaxYear(
+		user.id,
+		taxYearLabelFromDate(new Date()),
+	);
 
 	// Calculate tax-free status (only taxable accounts count toward allowance)
 	const totalExpectedTaxable = actualInterestTaxable + totalProjectedTaxable;

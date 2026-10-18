@@ -69,7 +69,8 @@
       { href: '/overview/snapshots', label: 'Snapshots', includeChildRoutes: true },
       { href: '/overview/routine', label: 'Routine', includeChildRoutes: true },
       { href: '/overview/budgets', label: 'Budgets' },
-      { href: '/overview/reports', label: 'Reports' }
+      { href: '/overview/reports', label: 'Reports' },
+      { href: '/overview/tax', label: 'Tax', includeChildRoutes: true }
     ]},
     { href: '/alerts', label: 'Alerts', authRequired: true },
     { href: '/tools', label: 'Tools', authRequired: true },
@@ -151,6 +152,8 @@
         budgets: 'Budgets',
         reports: 'Reports',
         snapshots: 'Snapshots',
+        tax: 'Tax',
+        income: 'Income',
         settings: 'Settings',
         tools: 'Tools',
         profile: 'Profile',

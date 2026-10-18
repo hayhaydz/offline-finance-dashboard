@@ -1,18 +1,17 @@
-import { desc, eq, inArray, sql } from "drizzle-orm";
+import { desc, inArray, sql } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
-import {
-	accounts,
-	accountTransactions,
-	interestRates,
-	users,
-} from "$lib/db/schema";
+import { accounts, accountTransactions, interestRates } from "$lib/db/schema";
 import {
 	getCurrentBalancesForAccounts,
 	getLatestTransactionDateForAccounts,
 } from "$lib/server/derivedBalances";
 import { devLog, isVerboseDebug } from "$lib/server/logger";
-import { getUkTaxYearBounds } from "$lib/utils/tax-year-utils";
+import { bandForTaxYear } from "$lib/server/tax-bands";
+import {
+	getUkTaxYearBounds,
+	taxYearLabelFromDate,
+} from "$lib/utils/tax-year-utils";
 import type { AccountRow, RateRow, TxSummary } from "./constants";
 
 export interface BulkData {
@@ -130,12 +129,9 @@ export async function fetchBulkData(userId: number): Promise<BulkData> {
 		summary.latestTxDate = latestTxDates.get(accountId) ?? null;
 	}
 
-	// Get user taxBand
-	const userRow = await db.query.users.findFirst({
-		where: eq(users.id, userId),
-		columns: { taxBand: true },
-	});
-	const taxBand = userRow?.taxBand ?? "basic";
+	// Resolve the band for the current tax year (history → legacy cache)
+	const taxBand = (await bandForTaxYear(userId, taxYearLabelFromDate(now)))
+		.band;
 
 	const hasSavingsAccounts = openAccounts.some(
 		(a) => a.category === "asset" && a.type !== "current",
