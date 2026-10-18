@@ -5,7 +5,7 @@ import { accounts } from "$lib/db/schema";
 import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
 import { getCurrentRate } from "$lib/server/rate-helpers";
 import { requireAuth } from "$lib/server/utils/auth-guard";
-import { calculateTTZ } from "$lib/utils/debt-calculator";
+import { calculateTTZ, getProjectionNullReason } from "$lib/utils/debt-calculator";
 import type { PageServerLoad } from "./$types";
 
 function getDebtStatusLabel(ttz: {
@@ -53,6 +53,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			};
 			// For liability accounts, balance is negative; convert to positive for debt calculator
 			const ttz = calculateTTZ(Math.abs(balance), currentRate, rule);
+			const projectionNullReason = getProjectionNullReason(ttz.months, rule);
 			const utilization = account.creditLimit
 				? ((balance / account.creditLimit) * 100).toFixed(1)
 				: null;
@@ -68,6 +69,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 				...account,
 				balance,
 				...ttz,
+				projectionNullReason,
 				utilization,
 				progress,
 				debtStatusLabel: getDebtStatusLabel(ttz),

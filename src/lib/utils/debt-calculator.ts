@@ -49,4 +49,32 @@ function calculateMinimumPayment(balance: number, rule: PaymentRule): number {
 	return Math.round((balance * 250) / 10000); // Default 2.5%
 }
 
+/** Why a debt projection could not be computed */
+export type ProjectionNullReason =
+	| "no_minimum_payment"
+	| "payment_below_interest";
+
+/**
+ * Determines the reason a TTZ projection is null from the rule inputs.
+ * A rule "exists" only when its type and values are set — otherwise the
+ * calculator falls back to a 2.5% default and no user rule is configured.
+ */
+export function getProjectionNullReason(
+	months: number | null,
+	rule: {
+		type: string | null;
+		flat?: number | null;
+		percentage?: number | null;
+	},
+): ProjectionNullReason | null {
+	if (months !== null) return null;
+	const hasRule =
+		(rule.type === "flat" && !!rule.flat) ||
+		(rule.type === "percentage" && !!rule.percentage) ||
+		(rule.type === "flat_or_percentage" &&
+			!!rule.flat &&
+			!!rule.percentage);
+	return hasRule ? "payment_below_interest" : "no_minimum_payment";
+}
+
 export type { MonthProjection, PaymentRule, TTZResult } from "$lib/types/debt";

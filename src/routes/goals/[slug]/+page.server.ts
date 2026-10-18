@@ -292,6 +292,70 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 };
 
 export const actions: Actions = {
+	editGoal: async ({ request, locals, params }) => {
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
+
+		const formData = await request.formData();
+		logFormData("goalsDetailEditGoal", Object.fromEntries(formData));
+
+		const name = ((formData.get("name") as string) ?? "").trim();
+		const targetStr = formData.get("target_amount") as string;
+
+		const errors: Record<string, string> = {};
+		if (!name) {
+			errors.name = "Name is required";
+		}
+
+		let targetInCents: number;
+		try {
+			targetInCents = parseCurrency(targetStr);
+			if (targetInCents <= 0) {
+				errors.target_amount = "Target must be greater than zero";
+			}
+		} catch (_e) {
+			errors.target_amount = "Invalid amount format";
+			targetInCents = 0;
+		}
+
+		if (Object.keys(errors).length > 0) {
+			return fail(400, { error: "Please fix errors", errors });
+		}
+
+		const goal = await db.query.goals.findFirst({
+			where: eq(goals.slug, params.slug),
+		});
+
+		if (!goal || goal.deletedAt) {
+			return fail(404, { error: "Goal not found" });
+		}
+
+		validateUserAccess(goal, user, "Goal");
+
+		if (targetInCents < goal.currentAllocation) {
+			return fail(400, {
+				error: `Target below current allocation £${(goal.currentAllocation / 100).toFixed(2)}`,
+			});
+		}
+
+		await db
+			.update(goals)
+			.set({
+				name,
+				targetAmountInCents: targetInCents,
+				updatedAt: new Date(),
+			})
+			.where(eq(goals.id, goal.id));
+
+		devLog("goalsDetailEditGoal", "Goal updated", {
+			goalId: goal.id,
+			name,
+			targetInCents,
+		});
+
+		redirect(303, `/goals/${params.slug}`);
+	},
+
 	addMoney: async ({ request, locals, params }) => {
 		const user = getAuthUser(locals);
 		if (!user) return fail(401, { error: "Authentication required" });

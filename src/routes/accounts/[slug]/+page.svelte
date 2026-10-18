@@ -279,6 +279,7 @@
 		currentRate={data.currentRate}
 		projection={data.projection ?? null}
 		ttz={data.ttz ?? null}
+		projectionNullReason={data.projectionNullReason ?? null}
 		debtHealthStatus={data.debtHealthStatus ?? null}
 		paymentSuggestion={data.paymentSuggestion ?? null}
 		overpaymentScenarios={data.overpaymentScenarios ?? null}

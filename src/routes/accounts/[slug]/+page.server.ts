@@ -54,7 +54,7 @@ import {
 	requireEnum,
 	requireString,
 } from "$lib/server/validation";
-import { calculateTTZ } from "$lib/utils/debt-calculator";
+import { calculateTTZ, getProjectionNullReason } from "$lib/utils/debt-calculator";
 import type { TransactionType } from "$lib/utils/domain-constants";
 import {
 	getUkTaxYearBounds,
@@ -248,6 +248,10 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		totalLiabilities: number;
 	} | null = null;
 	let breakEvenMonthIndex: number | null = null;
+	let projectionNullReason:
+		| "no_minimum_payment"
+		| "payment_below_interest"
+		| null = null;
 
 	if (account.category === "liability") {
 		// Use derived balance from transactions (source of truth)
@@ -269,6 +273,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 				years: ttzResult.years,
 				totalInterest: ttzResult.totalInterest,
 			};
+			projectionNullReason = getProjectionNullReason(ttzResult.months, rule);
 
 			// Calculate debt health status
 			if (ttz) {
@@ -425,6 +430,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		availableTaxYears: sortedTaxYears,
 		projection,
 		ttz,
+		projectionNullReason,
 		notes,
 		debtHealthStatus,
 		paymentSuggestion,

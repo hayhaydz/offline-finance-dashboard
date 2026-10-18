@@ -140,13 +140,13 @@
 			label="Posted (Actual)"
 			value={formatCurrency(data.actual.total)}
 			color="text-green-700"
-			detail="TAXABLE: {formatCurrency(data.actual.taxableTotal)}<br>TAX-FREE: {formatCurrency(data.actual.taxFreeTotal)}"
+			detail="TAXABLE: {formatCurrency(data.actual.taxableTotal)} · TAX-FREE: {formatCurrency(data.actual.taxFreeTotal)}"
 		/>
 		<KpiCard
 			label="Estimated (Projected)"
 			value={formatCurrency(data.projected.total)}
 			color="text-amber-700"
-			detail="TAXABLE: {formatCurrency(data.projected.taxableTotal)}<br>TAX-FREE: {formatCurrency(data.projected.taxFreeTotal)}"
+			detail="TAXABLE: {formatCurrency(data.projected.taxableTotal)} · TAX-FREE: {formatCurrency(data.projected.taxFreeTotal)}"
 		/>
 		<KpiCard
 			label="Forecast (Total)"

@@ -70,26 +70,41 @@
 		}
 		return null;
 	});
+
+	// Over-target amount (allocation past the target — intended, savings past a goal is valid)
+	const overAmount = $derived(() => {
+		if (debtValues()) {
+			const d = debtValues()!;
+			return d.paid > d.starting ? d.paid - d.starting : null;
+		}
+		return goal.currentAllocation > goal.targetAmountInCents
+			? goal.currentAllocation - goal.targetAmountInCents
+			: null;
+	});
 </script>
 
 <div class="p-2 bg-gray-50">
-	<!-- Progress Bar -->
-	<div class="flex items-center gap-2 text-sm leading-none font-bold {progressTextColor} mb-2">
-		<span>[</span>
-		<div class="flex-1 h-6 relative border-y border-gray-100">
-			<div class="absolute inset-0 flex justify-between opacity-20">
-				{#each Array(40) as _}
-					<div class="w-px h-full bg-current"></div>
-				{/each}
-			</div>
-			<div
-				class="h-full {progressBgColor} transition-all duration-300 mix-blend-multiply"
-				style="width: {progress()}%"
-			></div>
+<!-- Progress Bar -->
+<div class="flex items-center gap-2 text-sm leading-none font-bold {overAmount() !== null ? 'text-green-700' : progressTextColor} mb-2">
+	<span>[</span>
+	<div class="flex-1 h-6 relative border-y border-gray-100">
+		<div class="absolute inset-0 flex justify-between opacity-20">
+			{#each Array(40) as _}
+				<div class="w-px h-full bg-current"></div>
+			{/each}
 		</div>
-		<span>]</span>
-		<span class="text-sm min-w-9 text-right font-bold">{progress()}%</span>
+		<div
+			class="h-full {overAmount() !== null ? 'bg-green-700' : progressBgColor} transition-all duration-300 mix-blend-multiply"
+			style="width: {Math.min(100, progress())}%"
+		></div>
 	</div>
+	<span>]</span>
+	{#if overAmount() !== null}
+		<span class="text-sm text-right font-bold whitespace-nowrap">REACHED — {formatCurrencyShorthand(overAmount()!)} over target</span>
+	{:else}
+		<span class="text-sm min-w-9 text-right font-bold">{progress()}%</span>
+	{/if}
+</div>
 
 	<!-- Stats Row -->
 	<div class="grid grid-cols-3 border border-black divide-x divide-black mb-2">

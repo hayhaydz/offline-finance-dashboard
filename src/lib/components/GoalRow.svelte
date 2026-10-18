@@ -35,6 +35,12 @@
 
 	const staleness = $derived(getStaleness(goal.updatedAt));
 
+	// Over-target amount for savings goals (allocation past the target — intended)
+	const savingsOver = $derived(!isDebtGoal && goal.currentAllocation > goal.targetAmountInCents
+		? goal.currentAllocation - goal.targetAmountInCents
+		: null
+	);
+
 	// Debt-specific progress calculation
 	const debtProgress = $derived(isDebtGoal && paidInCents !== undefined && remainingInCents !== undefined
 		? Math.max(0, Math.round((Math.max(0, paidInCents) / (Math.max(0, paidInCents) + remainingInCents)) * 100))
@@ -105,19 +111,23 @@
 					{formatCurrencyShorthand(goal.currentAllocation)} / {formatCurrencyShorthand(goal.targetAmountInCents)}
 				{/if}
 			</div>
-			<!-- Progress bar -->
-			<div class="flex items-center gap-1 text-xs leading-none mt-1">
-				<span>[</span>
-				<div class="flex-1 h-3 relative border-y border-gray-100">
-					<div
-						class="h-full {isArchived ? 'bg-gray-400' : progressColor.bg}"
-						style="width: {debtProgress ?? progress}%"
-					></div>
-				</div>
-				<span>]</span>
-				<span class="min-w-5 font-bold">{debtProgress ?? progress}%</span>
+		<!-- Progress bar -->
+		<div class="flex items-center gap-1 text-xs leading-none mt-1">
+			<span>[</span>
+			<div class="flex-1 h-3 relative border-y border-gray-100">
+				<div
+					class="h-full {isArchived ? 'bg-gray-400' : progressColor.bg}"
+					style="width: {Math.min(100, progress)}%"
+				></div>
 			</div>
-		{:else}
+			<span>]</span>
+			{#if savingsOver !== null}
+				<span class="font-bold text-green-700 whitespace-nowrap">REACHED — {formatCurrencyShorthand(savingsOver)} over target</span>
+			{:else}
+				<span class="min-w-5 font-bold">{progress}%</span>
+			{/if}
+		</div>
+	{:else}
 			<!-- Savings goal: show current/target -->
 			<div class="font-bold {isArchived ? 'text-gray-600' : progressColor.text}">
 				{formatCurrencyShorthand(goal.currentAllocation)} / {formatCurrencyShorthand(goal.targetAmountInCents)}

@@ -32,6 +32,8 @@
 		debtFreeDate: string | null;
 	};
 
+	type ProjectionNullReason = 'no_minimum_payment' | 'payment_below_interest';
+
 	let {
 		currentBalance,
 		currentRate,
@@ -49,6 +51,7 @@
 		creditLimit,
 		originalPrincipal,
 		accountSlug,
+		projectionNullReason = null,
 	}: {
 		currentBalance: number;
 		currentRate: number | null;
@@ -66,6 +69,7 @@
 		creditLimit: number | null;
 		originalPrincipal: number | null;
 		accountSlug: string;
+		projectionNullReason?: ProjectionNullReason | null;
 	} = $props();
 
 	let projectionLength = $state(12);
@@ -77,7 +81,7 @@
 	const periodEndBalance = $derived(paginatedProjection.at(-1)?.balance ?? null);
 
 	const debtFreeDate = $derived.by(() => {
-		if (!ttz?.months) return null;
+		if (!ttz || ttz.months === null) return null;
 		const d = new Date();
 		d.setMonth(d.getMonth() + ttz.months);
 		return d.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
@@ -155,7 +159,7 @@
 	});
 
 	const simulatorDiff = $derived.by(() => {
-		if (!simulatorResult || !ttz?.months || !ttz.totalInterest) return null;
+		if (!simulatorResult || !ttz || ttz.months === null || !ttz.totalInterest) return null;
 		if (simulatorPayment === effectiveMinPayment) return null;
 		const monthsSaved = ttz.months - simulatorResult.months;
 		const interestSaved = (ttz.totalInterest ?? 0) - (simulatorResult.totalInterest ?? 0);
@@ -200,14 +204,19 @@
 			<!-- Time to Zero -->
 			<div>Time to Zero:</div>
 			<div class="text-right font-bold">
-				{#if ttz && ttz.months !== null}
+				{#if ttz && ttz.months === 0}
+					<span class="text-green-700">pays off this month</span>
+				{:else if ttz && ttz.months !== null}
 					{#if ttz.years !== null && ttz.years < 1}
 						{ttz.months} months
 					{:else}
 						{Math.floor(ttz.years || 0)}y {Math.round(((ttz.years || 0) % 1) * 12)}m
 					{/if}
+				{:else if projectionNullReason === 'no_minimum_payment'}
+					<span class="text-amber-700">No minimum payment set</span>
+					<a href="/accounts/{accountSlug}/edit" class="bracket-link ml-1">[Set rule →]</a>
 				{:else}
-					<span class="text-amber-700">Never pays off</span>
+					<span class="text-red-700">Payment below interest — CRITICAL</span>
 				{/if}
 			</div>
 

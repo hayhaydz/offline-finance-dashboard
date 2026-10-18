@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { enhance } from '$app/forms';
   import { formatCurrency, formatDateShorthand, formatAccountType } from "$lib/utils/currency";
   import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
   import { formatDays, getOnTrackClass, formatTaxWrapper } from "$lib/utils/formatting";
@@ -6,9 +7,34 @@
   import { DISPLAY_LIMITS, truncateDisplay } from "$lib/utils/fieldLimits";
   import GoalDetailCard from "$lib/components/GoalDetailCard.svelte";
   import PaginationClient from "$lib/components/PaginationClient.svelte";
-  import type { PageData } from "./$types";
+  import type { ActionData, PageData } from "./$types";
 
-  let { data }: { data: PageData } = $props();
+  let { data, form }: { data: PageData; form: ActionData } = $props();
+
+  // Edit goal state (name + target)
+  let editOpen = $state(false);
+  let editSuccess = $state(false);
+  let editName = $state('');
+  let editTarget = $state('');
+
+  $effect(() => {
+    if (!editOpen) {
+      editName = data.goal.name;
+      editTarget = (data.goal.targetAmountInCents / 100).toFixed(2);
+    }
+  });
+
+  // Field-level errors from the editGoal action (dropped from generated ActionData typing)
+  const editErrors = $derived(
+    (form as { errors?: Record<string, string> } | null | undefined)?.errors
+  );
+
+  function openEdit() {
+    editSuccess = false;
+    editName = data.goal.name;
+    editTarget = (data.goal.targetAmountInCents / 100).toFixed(2);
+    editOpen = true;
+  }
 
   // Debt-specific interactive state (seeded from server, then user-owned)
   let monthlyPayment = $state(0);
@@ -107,6 +133,77 @@
     }}
     showArchive={true}
   />
+</div>
+
+<!-- EDIT GOAL -->
+<div class="border-t border-black">
+  <div class="font-bold p-2 bg-gray-100 border-b border-black flex justify-between items-center">
+    <span>EDIT GOAL</span>
+    <button type="button" class="bracket-link text-xs font-normal" onclick={() => (editOpen ? (editOpen = false) : openEdit())}>
+      {editOpen ? '[Cancel]' : '[Edit Name/Target]'}
+    </button>
+  </div>
+  {#if editSuccess}
+    <div class="p-2 border-b border-black text-xs text-green-700 font-bold">
+      [OK] Goal updated
+    </div>
+  {/if}
+  {#if form?.error}
+    <div class="bg-red-100 border-b border-black p-2 text-sm text-red-900">
+      <span class="font-bold">ERROR:</span> {form.error}
+    </div>
+  {/if}
+  {#if editOpen}
+    <form
+      method="POST"
+      action="?/editGoal"
+      class="p-2"
+      use:enhance={() => {
+        return async ({ result, update }) => {
+          if (result.type === 'success') {
+            editOpen = false;
+            editSuccess = true;
+          }
+          await update();
+        };
+      }}
+    >
+      <div class="flex flex-wrap items-end gap-2">
+        <label class="flex flex-col gap-1" for="edit-goal-name">
+          <span class="text-xs text-gray-600">Name</span>
+          <input
+            id="edit-goal-name"
+            name="name"
+            type="text"
+            bind:value={editName}
+            maxlength="100"
+            class="border border-black px-1 py-0.5 text-sm font-mono w-48 focus:outline-none"
+          />
+        </label>
+        <label class="flex flex-col gap-1" for="edit-goal-target">
+          <span class="text-xs text-gray-600">Target (£)</span>
+          <input
+            id="edit-goal-target"
+            name="target_amount"
+            type="text"
+            inputmode="decimal"
+            bind:value={editTarget}
+            class="border border-black px-1 py-0.5 text-sm font-mono w-28 focus:outline-none"
+          />
+        </label>
+        <button type="submit" class="bracket-link text-xs font-bold">[Save]</button>
+      </div>
+      {#if editErrors?.name}
+        <div class="text-xs text-red-700 mt-1">{editErrors.name}</div>
+      {/if}
+      {#if editErrors?.target_amount}
+        <div class="text-xs text-red-700 mt-1">{editErrors.target_amount}</div>
+      {/if}
+      <div class="text-xs text-gray-500 mt-1">
+        Current allocation {formatCurrency(data.goal.currentAllocation)} — target cannot go below this.
+      </div>
+    </form>
+  {/if}
 </div>
 
 <!-- ACCOUNT ALLOCATION BREAKDOWN -->
