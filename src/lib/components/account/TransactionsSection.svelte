@@ -1,10 +1,14 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { tick } from 'svelte';
 	import { formatCurrency, formatDateShorthand, formatDateTime } from '$lib/utils/currency';
 	import { truncateDisplay, DISPLAY_LIMITS } from '$lib/utils/fieldLimits';
 	import { getTransactionTypeLabel, getTransactionTypeBadgeClass } from '$lib/utils/formatting';
-	import { groupTransactionsByMonth } from '$lib/utils/transaction-grouping';
-	import PaginationClient from '$lib/components/PaginationClient.svelte';
+	import {
+		adjacentMonths,
+		groupTransactionsByMonth,
+		monthLabelForKey,
+	} from '$lib/utils/transaction-grouping';
 	import type { useSubmitFeedback } from '$lib/utils/use-submit-feedback.svelte';
 	import {
 		TRANSACTION_TYPE_HELP,
@@ -38,8 +42,7 @@
 		editMode,
 		addTransactionOpen,
 		feedback,
-		pagination,
-		totalPages,
+		monthNav,
 		sectionRef,
 		today,
 	}: {
@@ -52,8 +55,11 @@
 		editMode: boolean;
 		addTransactionOpen: boolean;
 		feedback: ReturnType<typeof useSubmitFeedback>;
-		pagination: { page: number; updatePage: (p: number) => Promise<void> };
-		totalPages: number;
+		monthNav: {
+			months: string[]; // data-bearing months, newest → oldest
+			currentMonth: string | null;
+			updateMonth: (monthKey: string | null) => void | Promise<void>;
+		};
 		sectionRef: HTMLElement | null;
 		today: string;
 	} = $props();
@@ -83,6 +89,22 @@
 
 	function formatDate(date: Date): string {
 		return formatDateShorthand(date);
+	}
+
+	// Prev = previous data-bearing month (older); Next = next data-bearing
+	// month (newer). Empty months are absent from the list, so they're skipped.
+	const adjacent = $derived(adjacentMonths(monthNav.months, monthNav.currentMonth));
+
+	async function goToMonth(monthKey: string | null) {
+		await monthNav.updateMonth(monthKey);
+		await tick();
+		if (sectionRef) {
+			const rect = sectionRef.getBoundingClientRect();
+			const isOutOfView = rect.top < 0 || rect.bottom > window.innerHeight;
+			if (isOutOfView) {
+				sectionRef.scrollIntoView({ behavior: 'instant', block: 'start' });
+			}
+		}
 	}
 </script>
 
@@ -293,8 +315,37 @@
 				</tbody>
 			</table>
 		</div>
-		<div class="border-t border-black empty:hidden">
-			<PaginationClient page={pagination.page} totalPages={totalPages} onPageChange={pagination.updatePage} scrollTarget={sectionRef} />
-		</div>
+		{#if monthNav.months.length > 1}
+			<div class="border-t border-black p-2 flex gap-2 items-center text-sm">
+				{#if adjacent.prev}
+					<button
+						type="button"
+						class="bracket-link"
+						onclick={() => goToMonth(adjacent.prev)}
+					>
+						[Prev]
+					</button>
+				{/if}
+				<select
+					aria-label="Jump to month"
+					class="border border-black px-1 py-0.5 text-xs bg-white"
+					value={monthNav.currentMonth ?? ''}
+					onchange={(e) => goToMonth(e.currentTarget.value)}
+				>
+					{#each monthNav.months as monthKey (monthKey)}
+						<option value={monthKey}>{monthLabelForKey(monthKey)}</option>
+					{/each}
+				</select>
+				{#if adjacent.next}
+					<button
+						type="button"
+						class="bracket-link"
+						onclick={() => goToMonth(adjacent.next)}
+					>
+						[Next]
+					</button>
+				{/if}
+			</div>
+		{/if}
 	{/if}
 </div>

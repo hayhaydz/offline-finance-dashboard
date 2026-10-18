@@ -8,6 +8,7 @@
 	import NotesSection from '$lib/components/account/NotesSection.svelte';
 	import TransactionsSection from '$lib/components/account/TransactionsSection.svelte';
 	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
+	import { useMonthParam } from '$lib/utils/use-month-param.svelte';
 	import { useSubmitFeedback } from '$lib/utils/use-submit-feedback.svelte';
 	import { logComponentLifecycle, devLogClient } from '$lib/utils/client-logger';
 	import { getExclusionReason } from '$lib/utils/formatting';
@@ -37,13 +38,16 @@
 		currentIndex > 0 ? data.availableTaxYears[currentIndex - 1] : null
 	);
 
-	const txPagination = useUrlPagination('txPage');
 	const ratesPagination = useUrlPagination('ratesPage');
 	const balancesPagination = useUrlPagination('balancesPage');
 
-	// Sync transaction pagination from server data
+	// Month-keyed ledger pagination — one `?month=` param drives both the
+	// ledger pager and the monthly summary links
+	const monthParam = useMonthParam('month');
+
+	// Sync displayed month from server data
 	$effect(() => {
-		txPagination.page = data.transactionPagination.page;
+		monthParam.month = data.ledgerMonth?.monthKey ?? null;
 	});
 
 	// Interest rates pagination state
@@ -301,6 +305,8 @@
 	pagination={{ page: balancesPagination.page, updatePage: balancesPagination.updatePage }}
 	totalPages={totalBalancesPages}
 	sectionRef={balancesSectionRef}
+	currentMonth={data.ledgerMonth?.monthKey ?? null}
+	onMonthSelect={(monthKey) => monthParam.updateMonth(monthKey)}
 />
 
 <!-- NOTES SECTION -->
@@ -323,8 +329,11 @@
 	{editMode}
 	{addTransactionOpen}
 	{feedback}
-	pagination={{ page: txPagination.page, updatePage: txPagination.updatePage }}
-	totalPages={data.transactionPagination.totalPages}
+	monthNav={{
+		months: data.ledgerMonths,
+		currentMonth: data.ledgerMonth?.monthKey ?? null,
+		updateMonth: monthParam.updateMonth,
+	}}
 	sectionRef={transactionsSectionRef}
 	{today}
 />

@@ -13,11 +13,15 @@
 		pagination,
 		totalPages,
 		sectionRef,
+		currentMonth = null,
+		onMonthSelect = null,
 	}: {
 		balances: MonthlyBalance[];
 		pagination: { page: number; updatePage: (p: number) => Promise<void> };
 		totalPages: number;
 		sectionRef: HTMLElement | null;
+		currentMonth?: string | null;
+		onMonthSelect?: ((monthKey: string) => void | Promise<void>) | null;
 	} = $props();
 </script>
 
@@ -38,7 +42,20 @@
 			<tbody>
 				{#each balances as balance}
 					<tr class="border-b border-gray-200 last:border-b-0 align-top">
-						<td class="pl-2 text-sm py-2 whitespace-nowrap">{balance.monthKey}</td>
+						<td class="pl-2 text-sm py-2 whitespace-nowrap">
+							{#if onMonthSelect}
+								<button
+									type="button"
+									class="bracket-link text-sm {balance.monthKey === currentMonth ? 'font-bold' : ''}"
+									onclick={() => onMonthSelect?.(balance.monthKey)}
+									title="Show this month in the ledger"
+								>
+									[{balance.monthKey}]
+								</button>
+							{:else}
+								{balance.monthKey}
+							{/if}
+						</td>
 						<td class="text-right pr-1 text-sm tabular-nums py-2 whitespace-nowrap">
 							<span class={balance.closingBalance >= 0 ? 'text-green-700' : 'text-red-700'}>
 								{formatCurrency(balance.closingBalance)}

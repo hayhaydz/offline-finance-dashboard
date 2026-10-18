@@ -1,5 +1,5 @@
 import { fail } from "@sveltejs/kit";
-import { and, count, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import {
@@ -68,6 +68,11 @@ import {
 	getUkTaxYearBounds,
 	ISA_ALLOWANCE_IN_CENTS,
 } from "$lib/utils/tax-year-utils";
+import {
+	computeMonthTotals,
+	resolveLedgerMonth,
+	utcMonthRange,
+} from "$lib/utils/transaction-grouping";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params, url }) => {
@@ -81,36 +86,42 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		getMonthlyBalanceHistory(account.id, 24),
 	]);
 
-	// Pagination for transactions (1-indexed URL parameter)
-	const TRANSACTIONS_PER_PAGE = 20;
-	const pageParam = url.searchParams.get("txPage");
-	const parsedPage = pageParam ? Number.parseInt(pageParam, 10) : 1;
-	const validPage =
-		Number.isFinite(parsedPage) && parsedPage >= 1 ? parsedPage : 1;
-
-	// Get total transaction count for pagination
-	const [{ total }] = await db
-		.select({ total: count() })
-		.from(accountTransactions)
-		.where(eq(accountTransactions.accountId, account.id));
-	const totalTransactionPages = Math.ceil(total / TRANSACTIONS_PER_PAGE);
-	// Convert 1-indexed to 0-indexed and clamp to valid range
-	const safePage = Math.min(
-		validPage - 1,
-		Math.max(0, totalTransactionPages - 1),
+	// Month-keyed ledger pagination: one page = one calendar month (UTC,
+	// boundaries matching transaction-grouping.ts). The data-bearing months
+	// come from the monthly balances already fetched. Legacy `?page=` /
+	// `?txPage=` params are ignored (dead per decision 2026-10-18) — the
+	// default latest month renders.
+	const ledgerMonthKeys = monthlyBalances.map((m) => m.monthKey); // oldest → newest
+	const selectedMonthKey = resolveLedgerMonth(
+		ledgerMonthKeys,
+		url.searchParams.get("month"),
 	);
-	const safeOffset = safePage * TRANSACTIONS_PER_PAGE;
+	const monthRange =
+		selectedMonthKey !== null ? utcMonthRange(selectedMonthKey) : null;
 
-	// Get paginated transactions for this account
-	const transactions = await db.query.accountTransactions.findMany({
-		where: eq(accountTransactions.accountId, account.id),
-		orderBy: desc(accountTransactions.transactionDate),
-		limit: TRANSACTIONS_PER_PAGE,
-		offset: safeOffset,
-		with: {
-			category: true,
-		},
-	});
+	// Full month of transactions — no offset/limit, so a month can never be
+	// split across pages and totals always see the complete range.
+	const transactions = monthRange
+		? await db.query.accountTransactions.findMany({
+				where: and(
+					eq(accountTransactions.accountId, account.id),
+					gte(accountTransactions.transactionDate, monthRange.start),
+					lt(accountTransactions.transactionDate, monthRange.end),
+				),
+				orderBy: desc(accountTransactions.transactionDate),
+				with: {
+					category: true,
+				},
+			})
+		: [];
+
+	const ledgerMonth =
+		selectedMonthKey !== null
+			? {
+					monthKey: selectedMonthKey,
+					totals: computeMonthTotals(transactions, (tx) => tx.amount),
+				}
+			: null;
 
 	// Get interest rate history for this account
 	const rates = await db.query.interestRates.findMany({
@@ -427,10 +438,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		monthlyBalances: monthlyBalances.toReversed(),
 		currentBalance,
 		transactions,
-		transactionPagination: {
-			page: safePage,
-			totalPages: totalTransactionPages,
-		},
+		ledgerMonth,
+		ledgerMonths: ledgerMonthKeys.toReversed(), // newest → oldest
 		rates,
 		currentRate,
 		interestSummary: summaryWithNav,
