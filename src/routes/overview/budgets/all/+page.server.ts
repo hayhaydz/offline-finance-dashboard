@@ -1,4 +1,4 @@
-import { getBudgetHistory } from "$lib/server/budgets";
+import { getAmendmentTimeline, getBudgetHistory } from "$lib/server/budgets";
 import { requireAuth } from "$lib/server/utils/auth-guard";
 import type { PageServerLoad } from "./$types";
 
@@ -10,6 +10,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const page = Math.max(0, pageParam - 1);
 
 	const history = await getBudgetHistory(id, page, PAGE_SIZE);
+	const amendmentTimeline = await getAmendmentTimeline(id);
 
 	return {
 		months: history.months,
@@ -17,5 +18,6 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			page: history.pagination.page,
 			totalPages: history.pagination.totalPages,
 		},
+		amendmentTimeline,
 	};
 };

@@ -277,6 +277,10 @@ export const budgetMonths = sqliteTable(
 			.$type<number[]>()
 			.notNull()
 			.default([]),
+		excludedTypes: text("excluded_types", { mode: "json" })
+			.$type<string[]>()
+			.notNull()
+			.default([]),
 		categoryTargets: text("category_targets", { mode: "json" })
 			.$type<Record<string, number>>()
 			.notNull()
@@ -289,6 +293,34 @@ export const budgetMonths = sqliteTable(
 		userMonthIdx: index("idx_budget_months_user_month").on(
 			table.userId,
 			table.month,
+		),
+	}),
+);
+
+/**
+ * Automatic amendment trail for budget config mutations.
+ * Transactions are immutable facts — config is intent, and every
+ * change of intent is recorded here (field, old → new, optional note).
+ */
+export const budgetConfigAmendments = sqliteTable(
+	"budget_config_amendments",
+	{
+		id: integer("id").primaryKey({ autoIncrement: true }),
+		budgetMonthId: integer("budget_month_id")
+			.notNull()
+			.references(() => budgetMonths.id),
+		field: text("field").notNull(), // e.g. "totalTargetInCents", "categoryTarget:5", "excludedTypes"
+		oldValue: text("old_value").notNull(), // JSON-encoded; "null" = initial set
+		newValue: text("new_value").notNull(), // JSON-encoded,
+		note: text("note"), // Optional free-text — never required
+		createdAt: integer("created_at", { mode: "timestamp" })
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+	},
+	(table) => ({
+		monthCreatedIdx: index("idx_budget_amendments_month_created").on(
+			table.budgetMonthId,
+			table.createdAt,
 		),
 	}),
 );
@@ -318,12 +350,26 @@ export const spendingCategoriesRelations = relations(
 	}),
 );
 
-export const budgetMonthsRelations = relations(budgetMonths, ({ one }) => ({
-	user: one(users, {
-		fields: [budgetMonths.userId],
-		references: [users.id],
+export const budgetMonthsRelations = relations(
+	budgetMonths,
+	({ one, many }) => ({
+		user: one(users, {
+			fields: [budgetMonths.userId],
+			references: [users.id],
+		}),
+		amendments: many(budgetConfigAmendments),
 	}),
-}));
+);
+
+export const budgetConfigAmendmentsRelations = relations(
+	budgetConfigAmendments,
+	({ one }) => ({
+		budgetMonth: one(budgetMonths, {
+			fields: [budgetConfigAmendments.budgetMonthId],
+			references: [budgetMonths.id],
+		}),
+	}),
+);
 
 export type Snapshot = typeof snapshots.$inferSelect;
 export type SystemMetadata = typeof systemMetadata.$inferSelect;
@@ -331,3 +377,4 @@ export type Settings = typeof settings.$inferSelect;
 export type MonthlyReview = typeof monthlyReviews.$inferSelect;
 export type SpendingCategory = typeof spendingCategories.$inferSelect;
 export type BudgetMonth = typeof budgetMonths.$inferSelect;
+export type BudgetConfigAmendment = typeof budgetConfigAmendments.$inferSelect;

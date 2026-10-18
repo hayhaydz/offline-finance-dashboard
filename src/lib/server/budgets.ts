@@ -1,5 +1,6 @@
 import {
 	and,
+	asc,
 	count,
 	desc,
 	eq,
@@ -16,16 +17,22 @@ import { db } from "$lib/db/client";
 import {
 	accounts,
 	accountTransactions,
+	budgetConfigAmendments,
 	budgetMonths,
 	spendingCategories,
 } from "$lib/db/schema";
 import { devLog } from "$lib/server/logger";
 import type {
+	AmendmentTimelineEntry,
 	BudgetConfig,
 	BudgetStatus,
 	CategoryBreakdown,
 } from "$lib/types/budget";
-import { BUDGET_SPENDING_TYPES } from "$lib/utils/domain-constants";
+import {
+	BUDGET_SPENDING_TYPES,
+	TRANSACTION_TYPES,
+	type TransactionType,
+} from "$lib/utils/domain-constants";
 
 export type { BudgetConfig, CategoryBreakdown, BudgetStatus };
 
@@ -39,9 +46,18 @@ export const UNCATEGORISED_ID = -1;
  * docs/transactions/type-glossary.md. Transfers between owned accounts and
  * liability repayments (payment) are excluded. Every budget query below uses
  * these helpers so the definition cannot diverge per call site.
+ *
+ * `budgetTypeFilter` layers per-budget type exclusions on top of the
+ * taxonomy spending rules; excluding every spending type yields no rows.
  */
-const spendingTypeFilter = () =>
-	inArray(accountTransactions.type, [...BUDGET_SPENDING_TYPES]);
+function budgetTypeFilter(excludedTypes: TransactionType[]) {
+	const included = BUDGET_SPENDING_TYPES.filter(
+		(t) => !excludedTypes.includes(t),
+	);
+	return included.length === 0
+		? sql`false`
+		: inArray(accountTransactions.type, [...included]);
+}
 
 /** Net spending aggregate: spends count positive, refunds subtract. */
 function spendingSumSql() {
@@ -54,14 +70,50 @@ function parseJsonCol<T>(value: T | string): T {
 	return typeof value === "string" ? (JSON.parse(value) as T) : value;
 }
 
-function parseBudgetConfig(
+/** JSON column values are untyped at the DB level — validate on read/write. */
+function sanitizeExcludedTypes(value: string[]): TransactionType[] {
+	return value.filter((t): t is TransactionType =>
+		TRANSACTION_TYPES.includes(t as TransactionType),
+	);
+}
+
+/** A budget month row with JSON columns parsed and types validated. */
+export interface ParsedBudgetRow {
+	id: number;
+	month: string;
+	totalTargetInCents: number;
+	excludedCategoryIds: number[];
+	excludedAccountIds: number[];
+	excludedTypes: TransactionType[];
+	categoryTargets: Record<string, number>;
+}
+
+export function parseBudgetRow(
 	row: typeof budgetMonths.$inferSelect,
-): BudgetConfig {
+): ParsedBudgetRow {
 	return {
+		id: row.id,
+		month: row.month,
 		totalTargetInCents: row.totalTargetInCents,
 		excludedCategoryIds: parseJsonCol<number[]>(row.excludedCategoryIds),
 		excludedAccountIds: parseJsonCol<number[]>(row.excludedAccountIds),
+		excludedTypes: sanitizeExcludedTypes(
+			parseJsonCol<string[]>(row.excludedTypes),
+		),
 		categoryTargets: parseJsonCol<Record<string, number>>(row.categoryTargets),
+	};
+}
+
+function parseBudgetConfig(
+	row: typeof budgetMonths.$inferSelect,
+): BudgetConfig {
+	const parsed = parseBudgetRow(row);
+	return {
+		totalTargetInCents: parsed.totalTargetInCents,
+		excludedCategoryIds: parsed.excludedCategoryIds,
+		excludedAccountIds: parsed.excludedAccountIds,
+		excludedTypes: parsed.excludedTypes,
+		categoryTargets: parsed.categoryTargets,
 	};
 }
 
@@ -103,7 +155,7 @@ export async function getBudgetStatus(
 		withUserFilter(userId, accounts),
 		gte(accountTransactions.transactionDate, start),
 		lte(accountTransactions.transactionDate, end),
-		spendingTypeFilter(),
+		budgetTypeFilter(budget?.excludedTypes ?? []),
 	];
 
 	if (budget) {
@@ -163,7 +215,7 @@ export async function getCategoryBreakdown(
 		withUserFilter(userId, accounts),
 		gte(accountTransactions.transactionDate, start),
 		lte(accountTransactions.transactionDate, end),
-		spendingTypeFilter(),
+		budgetTypeFilter(budget?.excludedTypes ?? []),
 	];
 
 	if (budget && budget.excludedAccountIds.length > 0) {
@@ -276,7 +328,7 @@ export async function getBudgetHistory(
 				withUserFilter(userId, accounts),
 				gte(accountTransactions.transactionDate, start),
 				lte(accountTransactions.transactionDate, end),
-				spendingTypeFilter(),
+				budgetTypeFilter(config.excludedTypes),
 			];
 
 			if (config.excludedAccountIds.length > 0) {
@@ -345,6 +397,9 @@ async function ensureCurrentMonth(
 			totalTargetInCents: previous.totalTargetInCents,
 			excludedCategoryIds: parseJsonCol<number[]>(previous.excludedCategoryIds),
 			excludedAccountIds: parseJsonCol<number[]>(previous.excludedAccountIds),
+			excludedTypes: sanitizeExcludedTypes(
+				parseJsonCol<string[]>(previous.excludedTypes),
+			),
 			categoryTargets: parseJsonCol<Record<string, number>>(
 				previous.categoryTargets,
 			),
@@ -359,50 +414,326 @@ async function ensureCurrentMonth(
 	return newRow;
 }
 
-export async function saveBudgetRow(
+async function findBudgetRow(
 	userId: number,
 	monthStr: string,
-	updates: Partial<
-		Pick<
-			typeof budgetMonths.$inferInsert,
-			| "totalTargetInCents"
-			| "excludedCategoryIds"
-			| "excludedAccountIds"
-			| "categoryTargets"
-		>
-	>,
-): Promise<void> {
-	const existing = await db.query.budgetMonths.findFirst({
+): Promise<typeof budgetMonths.$inferSelect | null> {
+	const row = await db.query.budgetMonths.findFirst({
 		where: and(
 			withUserFilter(userId, budgetMonths),
 			eq(budgetMonths.month, monthStr),
 		),
 	});
+	return row ?? null;
+}
 
+/** Config fields a caller may mutate in one write. */
+export type BudgetRowUpdates = Partial<
+	Pick<
+		BudgetMonthsInsert,
+		| "totalTargetInCents"
+		| "excludedCategoryIds"
+		| "excludedAccountIds"
+		| "excludedTypes"
+		| "categoryTargets"
+	>
+>;
+type BudgetMonthsInsert = typeof budgetMonths.$inferInsert;
+type BudgetMonthsSelect = typeof budgetMonths.$inferSelect;
+
+/** One old → new change to record in the amendment trail. */
+interface PendingAmendment {
+	field: string;
+	oldValue: unknown;
+	newValue: unknown;
+}
+
+/**
+ * Diff provided updates against a row's current config.
+ * Category targets diff per key (`categoryTarget:<id>`) so inline markers
+ * can name the exact category that changed; list/scalar fields diff whole.
+ */
+function diffBudgetConfig(
+	existing: BudgetMonthsSelect,
+	updates: BudgetRowUpdates,
+): PendingAmendment[] {
+	const amendments: PendingAmendment[] = [];
+
+	if (updates.categoryTargets !== undefined) {
+		const oldTargets = parseJsonCol<Record<string, number>>(
+			existing.categoryTargets,
+		);
+		const keys = new Set([
+			...Object.keys(oldTargets),
+			...Object.keys(updates.categoryTargets),
+		]);
+		for (const key of keys) {
+			const old = oldTargets[key] ?? null;
+			const updated = updates.categoryTargets[key] ?? null;
+			if (old !== updated) {
+				amendments.push({
+					field: `categoryTarget:${key}`,
+					oldValue: old,
+					newValue: updated,
+				});
+			}
+		}
+	}
+
+	const simpleKeys = [
+		"totalTargetInCents",
+		"excludedCategoryIds",
+		"excludedAccountIds",
+		"excludedTypes",
+	] as const;
+	for (const key of simpleKeys) {
+		const value = updates[key];
+		if (value === undefined) continue;
+		const old = parseJsonCol(existing[key] as number | number[] | string[]);
+		if (JSON.stringify(old) !== JSON.stringify(value)) {
+			amendments.push({ field: key, oldValue: old, newValue: value });
+		}
+	}
+
+	return amendments;
+}
+
+/**
+ * Amend-and-trail write (design decision 5): persist config updates and
+ * record every actual change as an amendment row. Creating a row trails
+ * each provided field with a null old value (initial set). Unchanged
+ * fields are not trailed. Transactions are never touched.
+ */
+async function writeWithTrail(
+	existing: BudgetMonthsSelect | null,
+	userId: number,
+	monthStr: string,
+	updates: BudgetRowUpdates,
+	note: string | null,
+): Promise<boolean> {
+	if (updates.excludedTypes !== undefined) {
+		updates.excludedTypes = sanitizeExcludedTypes(updates.excludedTypes);
+	}
+
+	const amendments: PendingAmendment[] = existing
+		? diffBudgetConfig(existing, updates)
+		: (Object.keys(updates) as (keyof BudgetRowUpdates)[])
+				.filter((key) => updates[key] !== undefined)
+				.map((key) => ({
+					field: key,
+					oldValue: null,
+					newValue: updates[key],
+				}));
+
+	let rowId: number;
 	if (existing) {
+		if (Object.keys(updates).length === 0) return false;
 		await db
 			.update(budgetMonths)
 			.set(updates)
 			.where(eq(budgetMonths.id, existing.id));
+		rowId = existing.id;
 	} else {
-		await db.insert(budgetMonths).values({
-			userId,
-			month: monthStr,
-			totalTargetInCents: updates.totalTargetInCents ?? 0,
-			excludedCategoryIds: updates.excludedCategoryIds ?? [],
-			excludedAccountIds: updates.excludedAccountIds ?? [],
-			categoryTargets: updates.categoryTargets ?? {},
-		});
+		const [row] = await db
+			.insert(budgetMonths)
+			.values({
+				userId,
+				month: monthStr,
+				totalTargetInCents: updates.totalTargetInCents ?? 0,
+				excludedCategoryIds: updates.excludedCategoryIds ?? [],
+				excludedAccountIds: updates.excludedAccountIds ?? [],
+				excludedTypes: updates.excludedTypes ?? [],
+				categoryTargets: updates.categoryTargets ?? {},
+			})
+			.returning();
+		rowId = row.id;
 	}
+
+	if (amendments.length > 0) {
+		// Explicit createdAt: the column's CURRENT_TIMESTAMP default stores
+		// text this driver cannot map back to a Date. Values are stringified
+		// by hand — null olds encode as "null" (initial set), never SQL NULL.
+		const createdAt = new Date();
+		await db.insert(budgetConfigAmendments).values(
+			amendments.map((amendment) => ({
+				budgetMonthId: rowId,
+				field: amendment.field,
+				oldValue: JSON.stringify(amendment.oldValue),
+				newValue: JSON.stringify(amendment.newValue),
+				note: note?.trim() ? note.trim() : null,
+				createdAt,
+			})),
+		);
+	}
+
+	return amendments.length > 0 || Object.keys(updates).length > 0;
+}
+
+/**
+ * Mutate a month's budget config through a trail-writing helper (task 4.2).
+ * The op receives the row's parsed config and returns the updates to apply.
+ * With `applyForward`, the same logical op runs against every later month
+ * row (each diffed and trailed individually) — past months are untouched.
+ */
+export async function amendBudgetConfig(
+	userId: number,
+	monthStr: string,
+	op: (row: ParsedBudgetRow) => BudgetRowUpdates,
+	options: { note?: string | null; applyForward?: boolean } = {},
+): Promise<{ ok: true; monthsChanged: number } | { ok: false; error: string }> {
+	const current = await findBudgetRow(userId, monthStr);
+	if (!current) return { ok: false, error: "No budget set for this month" };
+
+	const note = options.note ?? null;
+	let monthsChanged = 0;
+
+	const currentUpdates = op(parseBudgetRow(current));
+	if (await writeWithTrail(current, userId, monthStr, currentUpdates, note)) {
+		monthsChanged++;
+	}
+
+	if (options.applyForward) {
+		const futureRows = await db.query.budgetMonths.findMany({
+			where: and(
+				withUserFilter(userId, budgetMonths),
+				sql`${budgetMonths.month} > ${monthStr}`,
+			),
+			orderBy: [asc(budgetMonths.month)],
+		});
+		for (const row of futureRows) {
+			const updates = op(parseBudgetRow(row));
+			if (Object.keys(updates).length === 0) continue;
+			if (await writeWithTrail(row, userId, row.month, updates, note)) {
+				monthsChanged++;
+			}
+		}
+	}
+
+	return { ok: true, monthsChanged };
+}
+
+export async function saveBudgetRow(
+	userId: number,
+	monthStr: string,
+	updates: BudgetRowUpdates,
+	options: { note?: string | null } = {},
+): Promise<void> {
+	const existing = await findBudgetRow(userId, monthStr);
+	await writeWithTrail(
+		existing,
+		userId,
+		monthStr,
+		updates,
+		options.note ?? null,
+	);
 }
 
 export async function getBudgetRow(userId: number, monthStr: string) {
 	const row = await ensureCurrentMonth(userId, monthStr);
 	if (!row) return null;
+	return parseBudgetRow(row);
+}
+
+/** Normalise createdAt across driver quirks: Date, ms/seconds number, or
+ *  SQLite text timestamps from the column default. */
+function toIsoCreatedAt(value: Date | number | string | null): string {
+	if (value instanceof Date) return value.toISOString();
+	if (typeof value === "number") {
+		return new Date(value > 1e12 ? value : value * 1000).toISOString();
+	}
+	if (typeof value === "string") {
+		const parsed = new Date(`${value.replace(" ", "T")}Z`);
+		if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+	}
+	return new Date().toISOString();
+}
+
+function mapAmendmentRow(row: {
+	id: number;
+	month: string;
+	field: string;
+	oldValue: unknown;
+	newValue: unknown;
+	note: string | null;
+	createdAt: Date | number | string | null;
+}): AmendmentTimelineEntry {
 	return {
-		...row,
-		excludedCategoryIds: parseJsonCol<number[]>(row.excludedCategoryIds),
-		excludedAccountIds: parseJsonCol<number[]>(row.excludedAccountIds),
-		categoryTargets: parseJsonCol<Record<string, number>>(row.categoryTargets),
+		id: row.id,
+		month: row.month,
+		field: row.field,
+		oldValue:
+			typeof row.oldValue === "string"
+				? JSON.parse(row.oldValue)
+				: row.oldValue,
+		newValue:
+			typeof row.newValue === "string"
+				? JSON.parse(row.newValue)
+				: row.newValue,
+		note: row.note,
+		createdAt: toIsoCreatedAt(row.createdAt),
 	};
+}
+
+/** Full amendment list for one month, newest first (task 4.4). */
+export async function getMonthAmendments(
+	userId: number,
+	monthStr: string,
+): Promise<AmendmentTimelineEntry[]> {
+	const rows = await db
+		.select({
+			id: budgetConfigAmendments.id,
+			month: budgetMonths.month,
+			field: budgetConfigAmendments.field,
+			oldValue: budgetConfigAmendments.oldValue,
+			newValue: budgetConfigAmendments.newValue,
+			note: budgetConfigAmendments.note,
+			createdAt: budgetConfigAmendments.createdAt,
+		})
+		.from(budgetConfigAmendments)
+		.innerJoin(
+			budgetMonths,
+			eq(budgetConfigAmendments.budgetMonthId, budgetMonths.id),
+		)
+		.where(
+			and(
+				withUserFilter(userId, budgetMonths),
+				eq(budgetMonths.month, monthStr),
+			),
+		)
+		.orderBy(
+			desc(budgetConfigAmendments.createdAt),
+			desc(budgetConfigAmendments.id),
+		);
+
+	return rows.map(mapAmendmentRow);
+}
+
+/** Cross-month amendment timeline, newest first (task 4.5). */
+export async function getAmendmentTimeline(
+	userId: number,
+	limit = 200,
+): Promise<AmendmentTimelineEntry[]> {
+	const rows = await db
+		.select({
+			id: budgetConfigAmendments.id,
+			month: budgetMonths.month,
+			field: budgetConfigAmendments.field,
+			oldValue: budgetConfigAmendments.oldValue,
+			newValue: budgetConfigAmendments.newValue,
+			note: budgetConfigAmendments.note,
+			createdAt: budgetConfigAmendments.createdAt,
+		})
+		.from(budgetConfigAmendments)
+		.innerJoin(
+			budgetMonths,
+			eq(budgetConfigAmendments.budgetMonthId, budgetMonths.id),
+		)
+		.where(withUserFilter(userId, budgetMonths))
+		.orderBy(
+			desc(budgetConfigAmendments.createdAt),
+			desc(budgetConfigAmendments.id),
+		)
+		.limit(limit);
+
+	return rows.map(mapAmendmentRow);
 }

@@ -5,6 +5,23 @@ import type { DB } from "./db.js";
 export async function wipeUserData(db: DB, userId: number): Promise<void> {
 	console.log("🗑️  Wiping existing user data...");
 
+	// Budget amendments reference budget months — clear the trail first
+	const budgetRows = await db.query.budgetMonths.findMany({
+		where: eq(schema.budgetMonths.userId, userId),
+		columns: { id: true },
+	});
+	if (budgetRows.length) {
+		await db.delete(schema.budgetConfigAmendments).where(
+			inArray(
+				schema.budgetConfigAmendments.budgetMonthId,
+				budgetRows.map((b) => b.id),
+			),
+		);
+	}
+	await db
+		.delete(schema.budgetMonths)
+		.where(eq(schema.budgetMonths.userId, userId));
+
 	await db.delete(schema.snapshots).where(eq(schema.snapshots.userId, userId));
 
 	const goals = await db.query.goals.findMany({
@@ -42,6 +59,6 @@ export async function wipeUserData(db: DB, userId: number): Promise<void> {
 	await db.delete(schema.accounts).where(eq(schema.accounts.userId, userId));
 
 	console.log(
-		"  ✓ Wiped accounts, transactions, rates, goals, allocations, snapshots",
+		"  ✓ Wiped budgets, amendments, accounts, transactions, rates, goals, allocations, snapshots",
 	);
 }

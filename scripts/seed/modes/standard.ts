@@ -124,7 +124,8 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 
 	// --- Budget ---
 	console.log("\n💷 Creating budget for current month...");
-	const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+	const now = new Date();
+	const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
 	await db.insert(schema.budgetMonths).values({
 		userId,
@@ -132,10 +133,40 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 		totalTargetInCents: 150000, // £1,500
 		excludedCategoryIds: JSON.stringify([]),
 		excludedAccountIds: JSON.stringify([]),
+		excludedTypes: JSON.stringify([]),
 		categoryTargets: JSON.stringify({}),
 	});
 
 	console.log(`  ✓ Budget set for ${currentMonth} (£1,500 target)`);
+
+	// One amended past month as an amendment-trail fixture (task 4.1)
+	const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+	const prevMonth = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, "0")}`;
+	const [pastBudget] = await db
+		.insert(schema.budgetMonths)
+		.values({
+			userId,
+			month: prevMonth,
+			totalTargetInCents: 140000, // £1,400 (corrected)
+			excludedCategoryIds: JSON.stringify([]),
+			excludedAccountIds: JSON.stringify([]),
+			excludedTypes: JSON.stringify([]),
+			categoryTargets: JSON.stringify({}),
+		})
+		.returning();
+
+	await db.insert(schema.budgetConfigAmendments).values({
+		budgetMonthId: pastBudget.id,
+		field: "totalTargetInCents",
+		oldValue: JSON.stringify(120000), // was £1,200
+		newValue: JSON.stringify(140000),
+		note: "corrected after reconciling the statement",
+		createdAt: new Date(prev.getFullYear(), prev.getMonth(), 12, 10, 0, 0),
+	});
+
+	console.log(
+		`  ✓ Past month ${prevMonth} seeded with amendment (£1,200 → £1,400)`,
+	);
 
 	// --- Goals ---
 	console.log("\n🎯 Creating goals...");

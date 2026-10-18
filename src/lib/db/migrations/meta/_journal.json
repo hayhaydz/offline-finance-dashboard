@@ -8,6 +8,13 @@
       "when": 1776797393280,
       "tag": "0000_curly_the_fallen",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1792326108553,
+      "tag": "0001_daily_nitro",
+      "breakpoints": true
     }
   ]
 }
