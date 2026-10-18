@@ -11,6 +11,8 @@ The debt projection section SHALL display the daily interest accrual figure alon
 
 ---
 
+---
+
 ### Requirement: Payment efficiency metric is displayed in the debt projection summary
 The debt projection section SHALL display a breakdown of each monthly payment showing what proportion services interest versus reduces principal.
 
@@ -21,6 +23,8 @@ The debt projection section SHALL display a breakdown of each monthly payment sh
 #### Scenario: Interest portion rendered in amber, principal in green
 - **WHEN** the payment efficiency metric is displayed
 - **THEN** the interest value and percentage use `text-amber-700` and the principal value uses `text-green-700`
+
+---
 
 ---
 
@@ -41,8 +45,10 @@ The debt projection section SHALL display a prominent warning when the current p
 
 ---
 
+---
+
 ### Requirement: Cumulative interest column is shown in the projection table
-The expanded month-by-month projection table SHALL include a running cumulative interest column showing the total interest accrued from month 1 to the current row.
+The expanded month-by-month projection table SHALL include a running cumulative interest column showing the total interest accrued from month 1 to the current row, and SHALL annotate the break-even row when `originalPrincipal` is known.
 
 #### Scenario: Cumulative interest column shown when table is expanded
 - **WHEN** the projection table is in its expanded state
@@ -51,6 +57,10 @@ The expanded month-by-month projection table SHALL include a running cumulative 
 #### Scenario: Cumulative total increases monotonically
 - **WHEN** the cumulative interest column is rendered
 - **THEN** each row's cumulative value is greater than or equal to the previous row's value
+
+#### Scenario: Break-even row is annotated when originalPrincipal is known
+- **WHEN** `breakEvenMonthIndex` is non-null and the projection table row index matches `breakEvenMonthIndex`
+- **THEN** that row is visually annotated with a break-even crossover marker (see `break-even-month` spec)
 
 ---
 
@@ -68,3 +78,33 @@ The debt projection section SHALL display the proportion of total lifetime repay
 #### Scenario: High interest ratio uses amber colour
 - **WHEN** the interest percentage exceeds 30%
 - **THEN** the ratio is displayed with `text-amber-700`
+
+---
+
+### Requirement: Overpayment scenario comparison table is available in the debt projection section
+The debt projection section SHALL display a pre-computed three-column table comparing minimum, +25%, and +50% payment scenarios. This requirement extends the existing debt projection data structure to include server-computed scenario results alongside the standard projection and TTZ data.
+
+#### Scenario: Scenario data is included in page load for liability accounts
+- **WHEN** the page server loads data for a liability account with a non-null TTZ
+- **THEN** `data.overpaymentScenarios` is populated with three entries computed via `calculateTTZ()` for each payment amount
+
+#### Scenario: Scenario data absent for non-liability accounts
+- **WHEN** the page server loads data for a non-liability account
+- **THEN** `data.overpaymentScenarios` is null or undefined
+
+---
+
+### Requirement: Overpayment scenario comparison is displayed in the debt projection summary
+The debt projection section SHALL display a compact scenario comparison table showing minimum, +25%, and +50% payment options — **unless** the inline overpayment simulator (Phase 3.1) is also present, in which case the scenario table SHALL be omitted in favour of the simulator.
+
+#### Scenario: Scenario table shown when simulator is not present
+- **WHEN** `data.overpaymentScenarios` is set and the overpayment simulator is not rendered
+- **THEN** the three-column scenario table (Minimum / +25% / +50%) is rendered below the debt projection summary metrics
+
+#### Scenario: Scenario table omitted when simulator is present
+- **WHEN** the inline overpayment simulator is rendered on the page
+- **THEN** `data.overpaymentScenarios` table is NOT rendered (simulator supersedes it)
+
+#### Scenario: Scenario table not shown for CRITICAL accounts
+- **WHEN** `ttz.months === null`
+- **THEN** `overpaymentScenarios` is not computed server-side and the table is not rendered

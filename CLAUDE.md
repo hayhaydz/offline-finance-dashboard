@@ -53,3 +53,9 @@
 13. **⚠️ GSD EXECUTOR VERIFICATION** — When delegating to gsd-executor agents: ALWAYS spot-check their claims by reading the files they claim to have modified. If SUMMARY.md says "Updated X file" but X file doesn't contain the changes, the executor FAILED and work is NOT complete.
 14. **📁 ACTUAL CODE > DOCUMENTATION** — The actual source files are the source of truth. Documentation files (SUMMARY.md, STATE.md, PLAN.md) that contradict actual code are WRONG. Always trust the code over the docs.
 
+7. `.docs/` organization and naming rules:
+   - Store docs only in the existing folders: `architecture/`, `ideas/brainstorm/`, `plans/`, `design/`, `mockups/`, `specs/`, `reviews/`, `notes/`.
+   - Filename format is strict: `YYYY-MM-DD-HHMM-<slug>.md` (or `.txt` for plain notes).
+   - Use the file creation date/time for `YYYY-MM-DD-HHMM`. If creating now, use current local time.
+   - `<slug>` is lowercase, hyphenated, no spaces, no punctuation except hyphens.
+   - Do not rename existing files unless explicitly asked.
