@@ -1084,7 +1084,9 @@ describe("getInterestBreakdownReport", () => {
 		expect(result.actual.total).toBe(50000);
 		expect(result.actual.taxableTotal).toBe(30000);
 		expect(result.actual.taxFreeTotal).toBe(20000);
-		expect(result.actual.transactions).toHaveLength(3); // 2 real + 1 opening (account 10)
+		// 2 real interest rows; synthetic opening rows and interest_accrued
+		// rows are excluded from paid actuals per the type glossary
+		expect(result.actual.transactions).toHaveLength(2);
 
 		// Verify projected
 		expect(result.projected.total).toBe(10000);

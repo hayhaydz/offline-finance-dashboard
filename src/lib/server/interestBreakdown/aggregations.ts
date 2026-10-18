@@ -120,8 +120,12 @@ export async function getActualInterestBreakdown(
 	});
 	const accountMapForMaturity = new Map(userAccounts.map((a) => [a.id, a]));
 
-	// Filter out transactions from accounts that mature after the tax year
+	// Filter to transactions that count as paid actuals:
+	// - interest_accrued rows never count (unrealised accrual — excluded from
+	//   paid-interest figures per docs/transactions/type-glossary.md)
+	// - accounts maturing after tax-year end pay out in a future year
 	const validTransactions = transactions.filter((tx) => {
+		if (tx.type !== "interest") return false;
 		const account = accountMapForMaturity.get(tx.accountId);
 		if (!account || !account.maturityDate) return true; // No maturity date = always valid
 		return account.maturityDate <= taxYearEnd; // Only include if matures within tax year
@@ -136,35 +140,14 @@ export async function getActualInterestBreakdown(
 	// Break down by account
 	const accountMap = new Map<number, AccountBreakdown>();
 	for (const tx of validTransactions) {
-		// Only count real interest transactions (not synthetic opening balances) for the total
-		if (tx.type === "opening") continue;
-
-		const account = accountMapForMaturity.get(tx.accountId);
-		const isAccrued = tx.type === "interest_accrued";
-
-		// Logic:
-		// 1. ISA/LISA/Premium Bonds are always tax-free
-		// 2. Accrued interest on non-matured bonds is EXCLUDED from taxable actuals for THIS year
-		// 3. Everything else is taxable (unless it's tax-free wrapper)
-
+		// Only paid `interest` rows reach here (accruals filtered above).
+		// ISA/LISA/Premium Bonds are always tax-free; everything else is taxable.
 		const isAccountTaxFree = isTaxFreeWrapper(tx.accountTaxWrapper);
 
-		let countsAsActualThisYear = true;
-		// If it's accrued interest and the account has a maturity date in the future
-		if (
-			account?.maturityDate &&
-			account.maturityDate > taxYearEnd &&
-			isAccrued
-		) {
-			countsAsActualThisYear = false;
-		}
-
-		if (countsAsActualThisYear) {
-			if (isAccountTaxFree) {
-				taxFreeTotal += tx.amount;
-			} else {
-				taxableTotal += tx.amount;
-			}
+		if (isAccountTaxFree) {
+			taxFreeTotal += tx.amount;
+		} else {
+			taxableTotal += tx.amount;
 		}
 
 		const existing = accountMap.get(tx.accountId);

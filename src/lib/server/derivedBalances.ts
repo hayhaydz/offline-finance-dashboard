@@ -1,7 +1,15 @@
-import { eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, ne, sql } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { accountTransactions } from "$lib/db/schema";
 import { devLog, isVerboseDebug } from "$lib/server/logger";
+
+/**
+ * Accrued interest is unrealised (not cash) — excluded from balance
+ * derivations per docs/transactions/type-glossary.md. Only the eventual
+ * payout, recorded as `interest`, moves the balance.
+ */
+const cashBalanceFilter = () =>
+	ne(accountTransactions.type, "interest_accrued");
 
 export interface MonthlyBalancePoint {
 	monthKey: string; // YYYY-MM
@@ -32,7 +40,12 @@ export async function getCurrentBalancesForAccounts(
 			total: sql<number>`coalesce(sum(${accountTransactions.amount}), 0)`,
 		})
 		.from(accountTransactions)
-		.where(inArray(accountTransactions.accountId, accountIds))
+		.where(
+			and(
+				inArray(accountTransactions.accountId, accountIds),
+				cashBalanceFilter(),
+			),
+		)
 		.groupBy(accountTransactions.accountId);
 
 	const result = new Map<number, number>();
@@ -104,7 +117,9 @@ export async function getMonthlyBalanceHistory(
 			closingBalance: sql<number>`sum(sum(${accountTransactions.amount})) over (order by ${monthExpr})`,
 		})
 		.from(accountTransactions)
-		.where(eq(accountTransactions.accountId, accountId))
+		.where(
+			and(eq(accountTransactions.accountId, accountId), cashBalanceFilter()),
+		)
 		.groupBy(monthExpr)
 		.orderBy(monthExpr);
 

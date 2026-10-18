@@ -47,7 +47,7 @@ describe("parseCSV", () => {
 		expect(parseCSV(MINIMAL_CSV).valid[0].category).toBeUndefined();
 	});
 
-	it("should accept all 13 valid transaction types", () => {
+	it("should accept all valid transaction types from TRANSACTION_TYPES", () => {
 		const dataRows = VALID_TRANSACTION_TYPES.map(
 			(t) => `2026-01-15,${t},100.00,Test entry`,
 		);
@@ -55,10 +55,24 @@ describe("parseCSV", () => {
 		const result = parseCSV(csv);
 
 		expect(result.errors).toHaveLength(0);
-		expect(result.valid).toHaveLength(13);
+		expect(result.valid).toHaveLength(VALID_TRANSACTION_TYPES.length);
 		expect(result.valid.map((r) => r.type)).toEqual([
 			...VALID_TRANSACTION_TYPES,
 		]);
+	});
+
+	it("should accept refund as a first-class type", () => {
+		const csv = `date,type,amount,description
+2026-01-15,refund,20.00,Shop refund for returned purchase`;
+		const result = parseCSV(csv);
+
+		expect(result.errors).toHaveLength(0);
+		expect(result.valid[0].type).toBe("refund");
+		expect(result.valid[0].amount).toBe(20);
+	});
+
+	it("should include refund in VALID_TRANSACTION_TYPES", () => {
+		expect(VALID_TRANSACTION_TYPES).toContain("refund");
 	});
 
 	it("should reject an invalid transaction type", () => {

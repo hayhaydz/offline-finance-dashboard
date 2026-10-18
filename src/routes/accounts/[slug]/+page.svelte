@@ -315,6 +315,7 @@
 <!-- TRANSACTIONS SECTION -->
 <TransactionsSection
 	accountSlug={data.account.slug}
+	accountType={data.account.type}
 	transactions={data.transactions}
 	categories={data.categories}
 	recurringPatterns={data.recurringPatterns}

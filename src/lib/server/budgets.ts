@@ -4,6 +4,7 @@ import {
 	desc,
 	eq,
 	gte,
+	inArray,
 	isNull,
 	lte,
 	notInArray,
@@ -24,11 +25,28 @@ import type {
 	BudgetStatus,
 	CategoryBreakdown,
 } from "$lib/types/budget";
+import { BUDGET_SPENDING_TYPES } from "$lib/utils/domain-constants";
 
 export type { BudgetConfig, CategoryBreakdown, BudgetStatus };
 
 /** Sentinel ID for the virtual "Uncategorised" catch-all category */
 export const UNCATEGORISED_ID = -1;
+
+/**
+ * Budget spending filter + netting.
+ *
+ * Spending = |withdrawal| + |charge| − |refund| — see
+ * docs/transactions/type-glossary.md. Transfers between owned accounts and
+ * liability repayments (payment) are excluded. Every budget query below uses
+ * these helpers so the definition cannot diverge per call site.
+ */
+const spendingTypeFilter = () =>
+	inArray(accountTransactions.type, [...BUDGET_SPENDING_TYPES]);
+
+/** Net spending aggregate: spends count positive, refunds subtract. */
+function spendingSumSql() {
+	return sql<number>`COALESCE(SUM(CASE WHEN ${accountTransactions.type} IN ('withdrawal', 'charge') THEN ABS(${accountTransactions.amount}) ELSE 0 END), 0) - COALESCE(SUM(CASE WHEN ${accountTransactions.type} = 'refund' THEN ABS(${accountTransactions.amount}) ELSE 0 END), 0)`;
+}
 
 /** Parse budget JSON columns — Drizzle's mapFromDriverValue is not invoked by
  *  better-sqlite3-multiple-ciphers, so these arrive as raw strings. */
@@ -85,7 +103,7 @@ export async function getBudgetStatus(
 		withUserFilter(userId, accounts),
 		gte(accountTransactions.transactionDate, start),
 		lte(accountTransactions.transactionDate, end),
-		sql`${accountTransactions.type} IN ('withdrawal', 'charge')`,
+		spendingTypeFilter(),
 	];
 
 	if (budget) {
@@ -105,13 +123,13 @@ export async function getBudgetStatus(
 
 	const result = await db
 		.select({
-			total: sql<number>`COALESCE(SUM(${accountTransactions.amount}), 0)`,
+			total: spendingSumSql(),
 		})
 		.from(accountTransactions)
 		.innerJoin(accounts, eq(accountTransactions.accountId, accounts.id))
 		.where(and(...conditions));
 
-	const totalSpent = Math.abs(Number(result[0]?.total ?? 0));
+	const totalSpent = Math.max(0, Number(result[0]?.total ?? 0));
 	const avgPerDay = totalSpent / Math.max(daysElapsed, 1);
 	const projectedTotal = avgPerDay * totalDays;
 
@@ -145,7 +163,7 @@ export async function getCategoryBreakdown(
 		withUserFilter(userId, accounts),
 		gte(accountTransactions.transactionDate, start),
 		lte(accountTransactions.transactionDate, end),
-		sql`${accountTransactions.type} IN ('withdrawal', 'charge')`,
+		spendingTypeFilter(),
 	];
 
 	if (budget && budget.excludedAccountIds.length > 0) {
@@ -157,7 +175,7 @@ export async function getCategoryBreakdown(
 	const spendRows = await db
 		.select({
 			categoryId: accountTransactions.categoryId,
-			total: sql<number>`COALESCE(SUM(ABS(${accountTransactions.amount})), 0)`,
+			total: spendingSumSql(),
 		})
 		.from(accountTransactions)
 		.innerJoin(accounts, eq(accountTransactions.accountId, accounts.id))
@@ -258,7 +276,7 @@ export async function getBudgetHistory(
 				withUserFilter(userId, accounts),
 				gte(accountTransactions.transactionDate, start),
 				lte(accountTransactions.transactionDate, end),
-				sql`${accountTransactions.type} IN ('withdrawal', 'charge')`,
+				spendingTypeFilter(),
 			];
 
 			if (config.excludedAccountIds.length > 0) {
@@ -279,7 +297,7 @@ export async function getBudgetHistory(
 
 			const result = await db
 				.select({
-					total: sql<number>`COALESCE(SUM(ABS(${accountTransactions.amount})), 0)`,
+					total: spendingSumSql(),
 				})
 				.from(accountTransactions)
 				.innerJoin(accounts, eq(accountTransactions.accountId, accounts.id))
@@ -288,7 +306,7 @@ export async function getBudgetHistory(
 			return {
 				month: row.month,
 				totalTarget: row.totalTargetInCents,
-				actualSpent: Number(result[0]?.total ?? 0),
+				actualSpent: Math.max(0, Number(result[0]?.total ?? 0)),
 			};
 		}),
 	);

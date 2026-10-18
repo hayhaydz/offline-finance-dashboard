@@ -13,6 +13,10 @@ import {
 	logError,
 	logFormData,
 } from "$lib/server/logger";
+import {
+	listRefundCandidates,
+	reclassifyValueChangeRefunds,
+} from "$lib/server/refund-reclassification";
 import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
@@ -56,6 +60,71 @@ export const load: PageServerLoad = async ({ locals }) => {
 };
 
 export const actions: Actions = {
+	"list-refund-candidates": async ({ locals }) => {
+		const user = getAuthUser(locals);
+		if (!user) {
+			return fail(401, { error: "Authentication required" });
+		}
+
+		try {
+			const candidates = await listRefundCandidates(user.id);
+
+			devLog(
+				"settings-data:list-refund-candidates",
+				`Found ${candidates.length} candidate rows`,
+			);
+
+			return {
+				action: "list-refund-candidates",
+				success: true,
+				candidates: candidates.map((c) => ({
+					slug: c.slug,
+					accountName: c.accountName,
+					accountSlug: c.accountSlug,
+					transactionDate: c.transactionDate.toISOString().split("T")[0],
+					amount: c.amount,
+					description: c.description,
+				})),
+			};
+		} catch (error) {
+			logError(
+				"settings-data:list-refund-candidates",
+				"Failed to list refund candidates",
+				error,
+			);
+			return fail(500, {
+				action: "list-refund-candidates",
+				error: "Failed to list refund candidates",
+			});
+		}
+	},
+
+	"reclassify-refunds": async ({ locals }) => {
+		const user = getAuthUser(locals);
+		if (!user) {
+			return fail(401, { error: "Authentication required" });
+		}
+
+		try {
+			const reclassified = await reclassifyValueChangeRefunds(user.id);
+
+			return {
+				action: "reclassify-refunds",
+				success: true,
+				reclassified,
+			};
+		} catch (error) {
+			logError(
+				"settings-data:reclassify-refunds",
+				"Failed to reclassify refunds",
+				error,
+			);
+			return fail(500, {
+				action: "reclassify-refunds",
+				error: "Failed to reclassify refunds",
+			});
+		}
+	},
 	"fetch-overlaps": async ({ request, locals }) => {
 		const user = getAuthUser(locals);
 		if (!user) {

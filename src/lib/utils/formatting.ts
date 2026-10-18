@@ -137,26 +137,14 @@ export function renderProgressBar(
 
 // ── Transaction Type Formatting ─────────────────────────────────
 
-import type { TransactionType } from "$lib/utils/domain-constants";
+import {
+	TRANSACTION_TYPE_LABELS,
+	type TransactionType,
+} from "$lib/utils/domain-constants";
 
-/** Get human-readable transaction type label */
+/** Get human-readable transaction type label (single-sourced from domain-constants) */
 export function getTransactionTypeLabel(type: TransactionType): string {
-	const labels: Record<TransactionType, string> = {
-		deposit: "Deposit",
-		withdrawal: "Withdrawal",
-		interest: "Interest",
-		interest_accrued: "Interest (Accrued)",
-		dividend: "Dividend",
-		value_change: "Value Change",
-		transfer_in: "Transfer In",
-		transfer_out: "Transfer Out",
-		charge: "Charge",
-		payment: "Payment",
-		loan_disbursement: "Loan Disbursement",
-		mortgage_disbursement: "Mortgage Disbursement",
-		interest_charge: "Interest Charge",
-	};
-	return labels[type] || type;
+	return TRANSACTION_TYPE_LABELS[type] || type;
 }
 
 /** Get CSS class for transaction type badge */
@@ -164,6 +152,7 @@ export function getTransactionTypeBadgeClass(type: TransactionType): string {
 	const classes: Record<TransactionType, string> = {
 		deposit: "bg-green-100",
 		withdrawal: "bg-red-100",
+		refund: "bg-green-100",
 		interest: "bg-blue-100",
 		interest_accrued: "bg-blue-50 border border-blue-200",
 		dividend: "bg-purple-100",

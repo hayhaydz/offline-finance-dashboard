@@ -54,8 +54,16 @@ import {
 	requireEnum,
 	requireString,
 } from "$lib/server/validation";
-import { calculateTTZ, getProjectionNullReason } from "$lib/utils/debt-calculator";
-import type { TransactionType } from "$lib/utils/domain-constants";
+import {
+	calculateTTZ,
+	getProjectionNullReason,
+} from "$lib/utils/debt-calculator";
+import {
+	getTransactionTypesForAccountType,
+	NEGATIVE_AMOUNT_TYPES,
+	SIGNED_AMOUNT_TYPES,
+	type TransactionType,
+} from "$lib/utils/domain-constants";
 import {
 	getUkTaxYearBounds,
 	ISA_ALLOWANCE_IN_CENTS,
@@ -464,16 +472,10 @@ export const actions: Actions = {
 		const categoryId = categoryIdStr ? parseInt(categoryIdStr, 10) : null;
 		const transactionDateStr = formData.get("transactionDate") as string;
 
-		// Validate type
-		const VALID_TX_TYPES: readonly TransactionType[] = [
-			"deposit",
-			"withdrawal",
-			"interest",
-			"dividend",
-			"value_change",
-			"transfer_in",
-			"transfer_out",
-		] as const;
+		// Validate type — single-sourced from TRANSACTION_TYPES via the
+		// per-account-type filter map (same source the creator form renders from)
+		const VALID_TX_TYPES: readonly TransactionType[] =
+			getTransactionTypesForAccountType(account.type);
 		const typeResult = requireEnum(type, VALID_TX_TYPES, "Transaction type");
 		if (!typeResult.ok) {
 			return fail(400, { error: typeResult.error });
@@ -484,12 +486,14 @@ export const actions: Actions = {
 		if (Number.isNaN(parsedAmount) || parsedAmount === 0) {
 			return fail(400, { error: "Invalid amount" });
 		}
-		const amount =
-			type === "withdrawal" || type === "transfer_out"
-				? -Math.abs(parsedAmount)
-				: type === "value_change"
-					? parsedAmount
-					: Math.abs(parsedAmount);
+		// Sign normalisation per glossary: money-out/debt-up types are forced
+		// negative, value_change keeps the entered sign, everything else
+		// (deposit, refund, interest, payment, ...) is forced positive.
+		const amount = NEGATIVE_AMOUNT_TYPES.includes(type)
+			? -Math.abs(parsedAmount)
+			: SIGNED_AMOUNT_TYPES.includes(type)
+				? parsedAmount
+				: Math.abs(parsedAmount);
 
 		const dateResult = requireDateISO(transactionDateStr, "Transaction date");
 		if (!dateResult.ok) {

@@ -214,6 +214,18 @@ describe("validateImportRows", () => {
 		expect(validateImportRows(rows)).toBeNull();
 	});
 
+	it("accepts refund rows (importer parity with creator)", () => {
+		const rows: unknown[] = [
+			{
+				date: "2026-01-03",
+				type: "refund",
+				amount: 20,
+				description: "Card refund",
+			},
+		];
+		expect(validateImportRows(rows)).toBeNull();
+	});
+
 	it("rejects oversized descriptions", () => {
 		const rows: unknown[] = [
 			{

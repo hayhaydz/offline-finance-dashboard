@@ -83,6 +83,7 @@ export const accountTransactions = sqliteTable(
 			enum: [
 				"deposit",
 				"withdrawal",
+				"refund",
 				"interest",
 				"interest_accrued",
 				"dividend",

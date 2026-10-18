@@ -223,6 +223,7 @@
 				<span>{data.status.daysElapsed} of {data.status.totalDays} days elapsed</span>
 				<span>Avg {formatCurrency(Math.round(data.status.avgPerDay))}/day</span>
 			</div>
+			<div class="text-xs text-gray-400 mt-1">Spending = withdrawals + card charges − refunds. Transfers and debt payments are excluded.</div>
 		</div>
 	{/if}
 
@@ -261,6 +262,9 @@
 		</button>
 		{#if filtersOpen}
 			<div class="px-2 py-1 border-b border-gray-300">
+				<div class="text-xs text-gray-400 py-1 border-b border-dotted border-gray-200">
+					Spending = withdrawals + card charges − refunds. Transfers and debt payments are excluded.
+				</div>
 				{#if data.isCurrentMonth}
 					<div class="text-gray-500 font-bold text-xs py-1">CATEGORIES</div>
 					{#each data.categories as cat (cat.id)}

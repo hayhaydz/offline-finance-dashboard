@@ -6,7 +6,12 @@
 	import { groupTransactionsByMonth } from '$lib/utils/transaction-grouping';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import type { useSubmitFeedback } from '$lib/utils/use-submit-feedback.svelte';
-	import type { TransactionType } from '$lib/utils/domain-constants';
+	import {
+		TRANSACTION_TYPE_HELP,
+		TRANSACTION_TYPE_LABELS,
+		getTransactionTypesForAccountType,
+		type TransactionType,
+	} from '$lib/utils/domain-constants';
 
 	type Category = { id: number; name: string; colour: string };
 	type Transaction = {
@@ -25,6 +30,7 @@
 
 	let {
 		accountSlug,
+		accountType,
 		transactions,
 		categories,
 		recurringPatterns,
@@ -38,6 +44,7 @@
 		today,
 	}: {
 		accountSlug: string;
+		accountType: string;
 		transactions: Transaction[];
 		categories: Category[];
 		recurringPatterns: RecurringPattern[] | null;
@@ -50,6 +57,21 @@
 		sectionRef: HTMLElement | null;
 		today: string;
 	} = $props();
+
+	// Creator type options — single-sourced from TRANSACTION_TYPES via the
+	// per-account-type filter map (permissive for unknown account types).
+	const creatableTypes: readonly TransactionType[] = $derived(
+		getTransactionTypesForAccountType(accountType),
+	);
+	// Track the user's choice; fall back to the first offered type when unset
+	// or no longer offered (keeps the select valid if the list ever changes).
+	let selectedType = $state<TransactionType | null>(null);
+	const effectiveType: TransactionType = $derived(
+		selectedType !== null && creatableTypes.includes(selectedType)
+			? selectedType
+			: creatableTypes[0],
+	);
+	const selectedTypeHelp = $derived(TRANSACTION_TYPE_HELP[effectiveType]);
 
 	const transactionGroups = $derived(
 		groupTransactionsByMonth(
@@ -92,7 +114,7 @@
 			<form
 				method="POST"
 				action="?/addTransaction"
-				use:enhance={feedback.createEnhanceHandler("Transaction added successfully", { resetForm: true, onSuccess: () => { addTransactionOpen = false; } })}
+				use:enhance={feedback.createEnhanceHandler("Transaction added successfully", { resetForm: true, onSuccess: () => { selectedType = null; addTransactionOpen = false; } })}
 				class="flex flex-col gap-2"
 			>
 				<div class="grid grid-cols-2 gap-4">
@@ -101,17 +123,18 @@
 						<select
 							id="type"
 							name="type"
+							value={effectiveType}
+							onchange={(e) => { selectedType = e.currentTarget.value as TransactionType; }}
 							required
-							class="w-full border border-black px-2 py-1 text-sm"
+							class="w-full border border-black px-2 py-1 text-sm bg-white"
 						>
-							<option value="deposit">Deposit</option>
-							<option value="withdrawal">Withdrawal</option>
-							<option value="interest">Interest</option>
-							<option value="dividend">Dividend</option>
-							<option value="value_change">Value Change</option>
-							<option value="transfer_in">Transfer In</option>
-							<option value="transfer_out">Transfer Out</option>
+							{#each creatableTypes as txType (txType)}
+								<option value={txType}>{TRANSACTION_TYPE_LABELS[txType]}</option>
+							{/each}
 						</select>
+						{#if selectedTypeHelp}
+							<div class="text-xs text-gray-500 mt-1">{selectedTypeHelp}</div>
+						{/if}
 					</div>
 					<div>
 						<label for="amount" class="block text-sm font-bold mb-1">Amount (£)</label>
