@@ -109,8 +109,9 @@ export function parseExportOptions(
 
 /**
  * Build the multi-account transactions CSV for a user. Rows are ordered by
- * date then id so the file is deterministic. Only open (non-deleted)
- * accounts are included.
+ * date then id so the file is deterministic. Only open accounts are
+ * included (deliberate scope, tested); deleted accounts are excluded by
+ * the existence guard on deletedAt.
  */
 export async function buildTransactionsCsv(
 	userId: number,
@@ -119,7 +120,8 @@ export async function buildTransactionsCsv(
 	try {
 		const conditions = [
 			withUserFilter(userId, accounts),
-			isNull(accounts.closedAt),
+			isNull(accounts.closedAt), // Open accounts only (deliberate export scope)
+			isNull(accounts.deletedAt), // Existence guard
 		];
 		if (options.accountSlugs !== null) {
 			// Slugs are unique per table, not per user — the user filter above

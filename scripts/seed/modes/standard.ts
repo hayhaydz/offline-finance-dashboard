@@ -113,7 +113,10 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 				category: a.category,
 				liquidity: a.liquidity,
 				excludedFromNetWorth: a.excludedFromNetWorth,
-				closedAt: a.closedAt ? new Date(a.closedAt) : null,
+				// Insert open — the closed-account triggers refuse transactions
+				// and rates on closed rows, so closure is applied after seeding
+				// (see "Close fixture accounts" below).
+				closedAt: null,
 				maturityDate: a.maturityDate ? new Date(a.maturityDate) : null,
 				openedAt: a.openedAt ? new Date(a.openedAt) : null,
 				minimumPaymentType: a.minimumPaymentType,
@@ -358,6 +361,22 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 		}
 
 		console.log(`  ✓ ${r.accountName} (${r.rates.length} rates)`);
+	}
+
+	// --- Close fixture accounts ---
+	// Applied after transactions/rates so trigger-guarded rows seed first.
+	// Closed accounts keep their history (still counted in interest/ISA/tax
+	// -year breakdowns; hidden from open-account lists).
+	console.log("\n🔒 Closing fixture accounts...");
+	for (const a of accounts) {
+		if (!a.closedAt) continue;
+		const account = accountByName.get(a.name);
+		if (!account) continue;
+		await db
+			.update(schema.accounts)
+			.set({ closedAt: new Date(a.closedAt), updatedAt: new Date(a.closedAt) })
+			.where(eq(schema.accounts.id, account.id));
+		console.log(`  ✓ ${a.name} closed at ${a.closedAt}`);
 	}
 
 	// --- Account Notes ---

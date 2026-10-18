@@ -1,5 +1,5 @@
 import { fail } from "@sveltejs/kit";
-import { and, desc, eq, gte, inArray, lt } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lt } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import {
@@ -145,8 +145,9 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const currentRate = await getCurrentRate(account.id);
 
 	// Get all interest transactions to determine available tax years (global context for navigation)
+	// Existence filter — closed accounts keep their tax-year history listed.
 	const userAccounts = await db.query.accounts.findMany({
-		where: withUserFilter(user.id, accounts),
+		where: and(withUserFilter(user.id, accounts), isNull(accounts.deletedAt)),
 		columns: { id: true },
 	});
 	const accountIds = userAccounts.map((a) => a.id);
@@ -427,6 +428,10 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 		});
 	const recurringPatterns = detectRecurringPatterns(allTransactionsForPatterns);
 
+	// Total transaction count gates the destructive delete affordance
+	// (empty-accounts-only delete — zero transactions means deletable)
+	const transactionCount = allTransactionsForPatterns.length;
+
 	// Get notes for this account
 	const notes = await db.query.accountNotes.findMany({
 		where: eq(accountNotes.accountId, account.id),
@@ -451,6 +456,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
 	return {
 		account,
+		transactionCount,
 		monthlyBalances: monthlyBalances.toReversed(),
 		currentBalance,
 		transactions,

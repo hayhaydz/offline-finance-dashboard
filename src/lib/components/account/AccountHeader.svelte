@@ -20,6 +20,7 @@
 		balanceDelta1m,
 		balanceDelta12m,
 		category,
+		transactionCount = null,
 	}: {
 		slug: string;
 		name: string;
@@ -36,6 +37,7 @@
 		balanceDelta1m: number | null;
 		balanceDelta12m: number | null;
 		category: string;
+		transactionCount?: number | null;
 	} = $props();
 
 	const accountAge = $derived.by(() => {
@@ -74,10 +76,20 @@
 			</span>
 		</h2>
 		{#if !closedAt}
-		<div class="flex gap-2 shrink-0">
+		<div class="flex gap-2 shrink-0 items-center">
 			<a href="/api/transactions/export?accounts={slug}" class="bracket-link text-xs">Export CSV</a>
 			<a href="/accounts/{slug}/edit" class="bracket-link text-xs">Edit</a>
-			<a href="/accounts/{slug}/delete" class="bracket-link text-xs text-red-700">Close</a>
+			<!-- Close keeps history; delete (empty accounts only) removes it — kept visually and verbally distinct -->
+			<a href="/accounts/{slug}/delete" class="bracket-link text-xs">Close account</a>
+			{#if transactionCount !== null && transactionCount === 0}
+				<a
+					href="/accounts/{slug}/delete#delete-account"
+					class="bracket-link text-xs text-red-700 font-bold"
+					title="Permanently remove this empty account (zero transactions)"
+				>
+					Delete account
+				</a>
+			{/if}
 		</div>
 	{/if}
 	</div>

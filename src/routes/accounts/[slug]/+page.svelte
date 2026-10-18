@@ -252,6 +252,7 @@
 	{balanceDelta1m}
 	{balanceDelta12m}
 	category={data.account.category}
+	transactionCount={data.transactionCount}
 />
 
 <SubmitFeedback message={feedback.message} onDismiss={feedback.dismiss} />

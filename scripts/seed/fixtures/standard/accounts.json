@@ -534,5 +534,18 @@
       }
     ],
     "openedAt": null
+  },
+  {
+    "name": "Old Savings",
+    "institution": "Santander",
+    "type": "savings",
+    "taxWrapper": "none",
+    "category": "asset",
+    "liquidity": "instant",
+    "excludedFromNetWorth": false,
+    "closedAt": "2026-09-30",
+    "maturityDate": null,
+    "balances": [],
+    "openedAt": "2024-09-01"
   }
 ]

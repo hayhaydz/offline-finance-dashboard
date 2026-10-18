@@ -36,7 +36,16 @@ export const accounts = sqliteTable(
 			.notNull()
 			.default(false),
 		openedAt: integer("opened_at", { mode: "timestamp" }), // Real-world account opening date (nullable)
-		closedAt: integer("closed_at", { mode: "timestamp" }), // Soft-delete - NULL means open
+		// Openness vs existence split (2026-10-18):
+		// - closedAt = "done with this account" — history preserved, still counted
+		//   in interest/ISA/tax-year history, hidden from open-account lists.
+		// - deletedAt = "this account was removed" (mistaken creation). Empty
+		//   accounts are hard-deleted; this marker keeps "not deleted" query
+		//   semantics honest for future data. Queries meaning *existence*
+		//   filter on deletedAt IS NULL; queries meaning *openness* filter on
+		//   closedAt IS NULL.
+		closedAt: integer("closed_at", { mode: "timestamp" }), // NULL means open (history kept)
+		deletedAt: integer("deleted_at", { mode: "timestamp" }), // NULL means not deleted (existence marker)
 		maturityDate: integer("maturity_date", { mode: "timestamp" }), // For fixed terms/bonds
 		createdAt: integer("created_at", { mode: "timestamp" })
 			.notNull()

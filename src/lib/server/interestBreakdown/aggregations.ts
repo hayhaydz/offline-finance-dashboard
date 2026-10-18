@@ -5,6 +5,7 @@
  * projected interest per-account, and projection eligibility logic.
  */
 
+import { and, isNull } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts } from "$lib/db/schema";
@@ -114,9 +115,9 @@ export async function getActualInterestBreakdown(
 		taxYearEnd,
 	);
 
-	// Get user accounts to check maturity dates
+	// Get user accounts to check maturity dates (existence — closed included)
 	const userAccounts = await db.query.accounts.findMany({
-		where: withUserFilter(userId, accounts),
+		where: and(withUserFilter(userId, accounts), isNull(accounts.deletedAt)),
 	});
 	const accountMapForMaturity = new Map(userAccounts.map((a) => [a.id, a]));
 
@@ -291,9 +292,10 @@ export async function getProjectedInterestBreakdown(
 		return { total: 0, taxableTotal: 0, taxFreeTotal: 0, byAccount: [] };
 	}
 
-	// Get all user accounts
+	// Get all user accounts (existence — closed accounts fetched too, then
+	// excluded from projections per-account via checkProjectionEligibility)
 	const userAccounts = await db.query.accounts.findMany({
-		where: withUserFilter(userId, accounts),
+		where: and(withUserFilter(userId, accounts), isNull(accounts.deletedAt)),
 	});
 	const accountIds = userAccounts.map((account) => account.id);
 

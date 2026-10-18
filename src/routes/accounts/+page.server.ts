@@ -1,5 +1,5 @@
 import { fail } from "@sveltejs/kit";
-import { count } from "drizzle-orm";
+import { and, count, isNull } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts } from "$lib/db/schema";
@@ -39,20 +39,22 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	const PAGE_SIZE = 20;
 	const { page: requestedPage } = parsePagination(url, PAGE_SIZE);
 
-	// Get total count for pagination
+	// Get total count for pagination (existence — open and closed accounts
+	// both listed; deleted accounts invisible)
 	const [{ total }] = await db
 		.select({ total: count() })
 		.from(accounts)
-		.where(withUserFilter(user.id, accounts));
+		.where(and(withUserFilter(user.id, accounts), isNull(accounts.deletedAt)));
 	const {
 		page: safePage,
 		totalPages,
 		offset,
 	} = calculatePagination(total, requestedPage, PAGE_SIZE);
 
-	// Query accounts with user filter and pagination
+	// Query accounts with user filter and pagination (existence — closed
+	// accounts included for the [Show N closed] placement; deleted invisible)
 	const userAccounts = await db.query.accounts.findMany({
-		where: withUserFilter(user.id, accounts),
+		where: and(withUserFilter(user.id, accounts), isNull(accounts.deletedAt)),
 		orderBy: (accounts, { desc }) => desc(accounts.createdAt),
 		limit: PAGE_SIZE,
 		offset,

@@ -9,12 +9,41 @@
 	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
+	import { groupAccountsByType } from '$lib/utils/account-grouping';
 
 	let { data } = $props();
 
 	// Modal state
 	let filterModalOpen = $state(false);
 	let sortModalOpen = $state(false);
+
+	// Closed-account toggle state per type section (localStorage persistence)
+	const CLOSED_TOGGLE_KEY = 'accounts:show-closed:';
+	let closedExpanded = $state<Record<string, boolean>>({});
+
+	$effect(() => {
+		// Client-only hydration of persisted toggle state ($effect skips SSR)
+		for (const section of groupedSections) {
+			if (!(section.type in closedExpanded)) {
+				closedExpanded[section.type] =
+					localStorage.getItem(CLOSED_TOGGLE_KEY + section.type) === '1';
+			}
+		}
+	});
+
+	function showClosed(type: string): boolean {
+		// Explicit closed-status filter forces expansion (the filtered rows
+		// ARE the result — hiding them behind the toggle would defeat it)
+		return activeFilters.status === 'closed' || (closedExpanded[type] ?? false);
+	}
+
+	function toggleClosed(type: string): void {
+		closedExpanded[type] = !showClosed(type);
+		localStorage.setItem(
+			CLOSED_TOGGLE_KEY + type,
+			closedExpanded[type] ? '1' : '0'
+		);
+	}
 
 	// Pagination state
 	let accountsSectionRef: HTMLElement | null = $state(null);
@@ -141,6 +170,11 @@
 
 	const sortedAccounts = $derived(sortAccounts(filteredAccounts));
 
+	// Placement: per type section, open accounts first, closed behind the
+	// collapsed [Show N closed] toggle (closed accounts still count in
+	// interest/ISA/tax-year history — placement only changes listing order)
+	const groupedSections = $derived(groupAccountsByType(sortedAccounts));
+
 	// Calculate summary stats
 	const totalAccounts = $derived(data.accounts.length);
 	const assetAccounts = $derived(
@@ -153,6 +187,18 @@
 		data.accounts.filter((a) => !a.closedAt && a.daysToMaturity !== null && a.daysToMaturity >= 0 && a.daysToMaturity <= 90)
 	);
 </script>
+
+<!-- Close/delete feedback banners (audit #10) -->
+{#if page.url.searchParams.get('closed') === '1'}
+	<div class="border-b border-black bg-green-50 p-2 text-sm text-green-900">
+		Account closed — history preserved. Closed accounts sit behind the [Show N closed] toggle per type section.
+	</div>
+{/if}
+{#if page.url.searchParams.get('deleted') === '1'}
+	<div class="border-b border-black bg-gray-100 p-2 text-sm">
+		Account deleted.
+	</div>
+{/if}
 
 <!-- NET WORTH SECTION -->
 <NetWorthDisplay
@@ -254,7 +300,7 @@
 				</tr>
 			</thead>
 			<tbody>
-				{#each sortedAccounts as account}
+				{#snippet accountRow(account: (typeof data.accounts)[number])}
 					<tr class="border-b border-gray-200 last:border-b-0">
 						<td class="pl-3 text-sm py-2 whitespace-nowrap">
 							<a href="/accounts/{account.slug}" class="bracket-link" class:line-through={account.closedAt}>{truncateDisplay(account.name, DISPLAY_LIMITS.ACCOUNT_NAME)}</a>
@@ -307,6 +353,37 @@
 						</td>
 						<td class="text-right pr-3 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>{formatDate(account.lastUpdated)}</td>
 					</tr>
+				{/snippet}
+				{#each groupedSections as section (section.type)}
+					<tr class="border-b border-black">
+						<td colspan="9" class="pl-3 py-1 bg-gray-100 font-bold text-xs uppercase">
+							{formatAccountType(section.type)}
+							<span class="font-normal text-gray-600"> ({section.open.length + section.closed.length})</span>
+						</td>
+					</tr>
+					{#each section.open as account (account.id)}
+						{@render accountRow(account)}
+					{/each}
+					{#if section.closed.length > 0}
+						<tr class="border-b border-gray-200">
+							<td colspan="9" class="pl-3 py-1 bg-gray-50">
+								<button
+									type="button"
+									class="bracket-link text-xs"
+									onclick={() => toggleClosed(section.type)}
+								>
+									{showClosed(section.type)
+										? `[Hide ${section.closed.length} closed]`
+										: `[Show ${section.closed.length} closed]`}
+								</button>
+							</td>
+						</tr>
+						{#if showClosed(section.type)}
+							{#each section.closed as account (account.id)}
+								{@render accountRow(account)}
+							{/each}
+						{/if}
+					{/if}
 				{/each}
 			</tbody>
 		</table>

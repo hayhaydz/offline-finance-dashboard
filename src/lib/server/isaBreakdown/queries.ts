@@ -4,7 +4,7 @@
  * Fetches ISA accounts and their subscription transactions from the database.
  */
 
-import { and, asc, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
@@ -35,9 +35,12 @@ export async function getISATransactions(params: {
 		});
 	}
 
+	// Existence only — closed ISAs' subscription history still counts;
+	// deleted accounts are excluded.
 	const isaAccounts = await db.query.accounts.findMany({
 		where: and(
 			withUserFilter(userId, accounts),
+			isNull(accounts.deletedAt),
 			inArray(accounts.taxWrapper, TAX_FREE_WRAPPERS),
 		),
 		columns: {
@@ -124,9 +127,11 @@ export async function getISATransactions(params: {
 export async function getISAAvailableTaxYears(
 	userId: number,
 ): Promise<Array<{ slug: string; start: Date; end: Date }>> {
+	// Existence only — closed ISAs keep their historic tax years listed.
 	const isaAccounts = await db.query.accounts.findMany({
 		where: and(
 			withUserFilter(userId, accounts),
+			isNull(accounts.deletedAt),
 			inArray(accounts.taxWrapper, TAX_FREE_WRAPPERS),
 		),
 		columns: { id: true },

@@ -35,6 +35,9 @@ export async function getISAAllowanceUsed(
 		.where(
 			and(
 				withUserFilter(userId, accounts),
+				// Existence only — closed accounts' deposits still count toward
+				// historic ISA allowance (deletedAt guards existence).
+				isNull(accounts.deletedAt),
 				inArray(accounts.taxWrapper, ["isa", "lisa"]),
 				eq(accountTransactions.type, "deposit"),
 				gte(accountTransactions.transactionDate, taxYearStart),
@@ -47,6 +50,8 @@ export async function getISAAllowanceUsed(
 
 /**
  * Sum of interest transactions in a tax year across all user accounts.
+ * Closed accounts are deliberately included (history integrity) — only
+ * deleted accounts are excluded.
  */
 export async function getActualInterestEarned(
 	userId: number,
@@ -62,6 +67,7 @@ export async function getActualInterestEarned(
 		.where(
 			and(
 				withUserFilter(userId, accounts),
+				isNull(accounts.deletedAt), // Existence only — closed accounts count
 				eq(accountTransactions.type, "interest"),
 				gte(accountTransactions.transactionDate, taxYearStart),
 				lte(accountTransactions.transactionDate, taxYearEnd),
@@ -78,7 +84,8 @@ export async function getActualInterestEarned(
 /**
  * Sum of interest transactions in a tax year, split by tax wrapper.
  * Returns totals for ISA/LISA (tax-free) vs everything else (taxable).
- * Queries ALL user accounts — no pagination.
+ * Queries ALL user accounts — no pagination. Closed accounts are
+ * deliberately included (history integrity) — only deleted ones excluded.
  */
 export async function getActualInterestByTaxWrapper(
 	userId: number,
@@ -95,6 +102,7 @@ export async function getActualInterestByTaxWrapper(
 		.where(
 			and(
 				withUserFilter(userId, accounts),
+				isNull(accounts.deletedAt), // Existence only — closed accounts count
 				eq(accountTransactions.type, "interest"),
 				gte(accountTransactions.transactionDate, taxYearStart),
 				lte(accountTransactions.transactionDate, taxYearEnd),
@@ -281,6 +289,7 @@ export async function getCumulativeISADeposits(
 		.where(
 			and(
 				withUserFilter(userId, accounts),
+				isNull(accounts.deletedAt), // Existence only — closed ISAs count
 				inArray(accounts.taxWrapper, ["isa", "lisa"]),
 				eq(accountTransactions.type, "deposit"),
 				lte(accountTransactions.transactionDate, asOfDate),

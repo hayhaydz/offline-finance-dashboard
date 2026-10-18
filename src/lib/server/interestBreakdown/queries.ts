@@ -5,7 +5,7 @@
  * Separated from aggregation/reconciliation for testability.
  */
 
-import { and, asc, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
@@ -35,9 +35,11 @@ export async function getInterestTransactions(
 		});
 	}
 
-	// Get all user accounts first to create opening balance rows
+	// Get all user accounts first to create opening balance rows.
+	// Existence only — closed accounts' interest history still counts;
+	// deleted accounts are excluded.
 	const userAccounts = await db.query.accounts.findMany({
-		where: withUserFilter(userId, accounts),
+		where: and(withUserFilter(userId, accounts), isNull(accounts.deletedAt)),
 	});
 
 	const transactions = await db
@@ -60,6 +62,7 @@ export async function getInterestTransactions(
 		.where(
 			and(
 				withUserFilter(userId, accounts),
+				isNull(accounts.deletedAt), // Existence only — closed accounts count
 				inArray(accountTransactions.type, ["interest", "interest_accrued"]),
 				gte(accountTransactions.transactionDate, taxYearStart),
 				lte(accountTransactions.transactionDate, taxYearEnd),
