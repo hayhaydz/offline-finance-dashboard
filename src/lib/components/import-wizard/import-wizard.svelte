@@ -69,6 +69,14 @@
 </script>
 
 <div class="import-wizard">
+	<!-- Server failure banner (audit #6): form.error from any failed action.
+	     Successes carry action + success; failures carry action + error. -->
+	{#if form?.error && !form?.success}
+		<div class="border border-black bg-red-50 p-2 mb-2 text-sm text-red-700">
+			{form.error}
+		</div>
+	{/if}
+
 	<!-- Hidden form for fetching overlaps -->
 	<form
 		bind:this={fetchOverlapsForm}

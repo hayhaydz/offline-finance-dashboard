@@ -1,5 +1,6 @@
 <script lang="ts">
 	import ImportWizard from "$lib/components/import-wizard/import-wizard.svelte";
+	import ReimportWizard from "$lib/components/reimport-wizard/reimport-wizard.svelte";
 	import { formatCurrency } from "$lib/utils/currency";
 
 	type RefundCandidate = {
@@ -51,6 +52,14 @@
 			categories={data.categories}
 			{form}
 		/>
+	</section>
+
+	<section class="border-t border-black">
+		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
+			<span>CSV REIMPORT — EDIT / DELETE / RESTORE</span>
+			<a href="/api/transactions/export" class="bracket-link text-xs">Export CSV</a>
+		</div>
+		<ReimportWizard {form} />
 	</section>
 
 	<section class="border-t border-black">

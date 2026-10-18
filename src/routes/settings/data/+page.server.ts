@@ -6,7 +6,9 @@ import {
 	batchInsertTransactions,
 	getOverlappingTransactions,
 	type ImportRow,
+	ImportValidationError,
 } from "$lib/server/imports";
+import { commitReimport, previewReimport } from "$lib/server/imports-update";
 import {
 	devLog,
 	isVerboseDebug,
@@ -19,6 +21,13 @@ import {
 } from "$lib/server/refund-reclassification";
 import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
+
+/** Reimport payload caps so a huge file cannot blow up the preview render. */
+const MAX_PREVIEW_EDITS = 300;
+const MAX_PREVIEW_INSERTS = 200;
+const MAX_PREVIEW_DELETES = 200;
+const MAX_REIMPORT_TEXT_CHARS = 10_000_000;
+const MAX_PREVIEW_ERRORS = 50;
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const user = requireAuth(locals);
@@ -181,7 +190,9 @@ export const actions: Actions = {
 			return fail(500, {
 				action: "fetch-overlaps",
 				error:
-					error instanceof Error ? error.message : "Failed to fetch overlaps",
+					error instanceof ImportValidationError
+						? error.message
+						: "Could not check for overlapping transactions — nothing was imported. Go back and try again.",
 			});
 		}
 	},
@@ -244,7 +255,145 @@ export const actions: Actions = {
 			logError("settings-data:import", "Import failed", error);
 			return fail(500, {
 				action: "import",
-				error: error instanceof Error ? error.message : "Import failed",
+				error:
+					error instanceof ImportValidationError
+						? error.message
+						: "Could not complete the import — nothing was changed. Check the preview and try again.",
+			});
+		}
+	},
+
+	// -----------------------------------------------------------------------
+	// CSV reimport (unified insert/edit/delete) — preview → backup → commit
+	// -----------------------------------------------------------------------
+
+	"reimport-preview": async ({ request, locals }) => {
+		const user = getAuthUser(locals);
+		if (!user) {
+			return fail(401, {
+				action: "reimport-preview",
+				errors: ["Authentication required"],
+			});
+		}
+
+		const formData = await request.formData();
+		const csvText = String(formData.get("csvText") ?? "");
+		const recovery = formData.get("recovery") === "1";
+
+		if (csvText === "") {
+			return fail(400, {
+				action: "reimport-preview",
+				errors: ["No file contents received — select a file first."],
+			});
+		}
+		if (csvText.length > MAX_REIMPORT_TEXT_CHARS) {
+			return fail(400, {
+				action: "reimport-preview",
+				errors: ["File too large — split it or narrow the export."],
+			});
+		}
+
+		try {
+			const preview = await previewReimport(user.id, csvText, { recovery });
+			if (!preview.ok) {
+				return fail(400, {
+					action: "reimport-preview",
+					errors: preview.errors.slice(0, MAX_PREVIEW_ERRORS),
+					isBackup: preview.isBackup,
+				});
+			}
+
+			devLog(
+				"settings-data:reimport-preview",
+				`Preview: ${preview.counts.inserted} inserted / ${preview.counts.edited} edited / ${preview.counts.deleted} deleted / ${preview.counts.skipped} skipped`,
+				{ recovery },
+			);
+
+			return {
+				action: "reimport-preview",
+				success: true,
+				recovery,
+				preview: {
+					counts: preview.counts,
+					edits: preview.edits.slice(0, MAX_PREVIEW_EDITS),
+					editsTruncated: Math.max(0, preview.edits.length - MAX_PREVIEW_EDITS),
+					inserts: preview.inserts.slice(0, MAX_PREVIEW_INSERTS),
+					insertsTruncated: Math.max(
+						0,
+						preview.inserts.length - MAX_PREVIEW_INSERTS,
+					),
+					deletes: preview.deletes.slice(0, MAX_PREVIEW_DELETES),
+					deletesTruncated: Math.max(
+						0,
+						preview.deletes.length - MAX_PREVIEW_DELETES,
+					),
+					isBackup: preview.isBackup,
+				},
+			};
+		} catch (err) {
+			logError(
+				"settings-data:reimport-preview",
+				"Reimport preview failed",
+				err,
+			);
+			return fail(500, {
+				action: "reimport-preview",
+				errors: [
+					"Could not preview the file — nothing was changed. Try again.",
+				],
+			});
+		}
+	},
+
+	"reimport-commit": async ({ request, locals }) => {
+		const user = getAuthUser(locals);
+		if (!user) {
+			return fail(401, {
+				action: "reimport-commit",
+				errors: ["Authentication required"],
+			});
+		}
+
+		const formData = await request.formData();
+		const csvText = String(formData.get("csvText") ?? "");
+		const recovery = formData.get("recovery") === "1";
+
+		if (csvText === "") {
+			return fail(400, {
+				action: "reimport-commit",
+				errors: [
+					"No file contents received — start over and select the file again.",
+				],
+			});
+		}
+		if (csvText.length > MAX_REIMPORT_TEXT_CHARS) {
+			return fail(400, {
+				action: "reimport-commit",
+				errors: ["File too large — split it or narrow the export."],
+			});
+		}
+
+		try {
+			const result = await commitReimport(user.id, csvText, { recovery });
+			if ("errors" in result) {
+				return fail(400, {
+					action: "reimport-commit",
+					errors: result.errors.slice(0, MAX_PREVIEW_ERRORS),
+				});
+			}
+
+			return {
+				action: "reimport-commit",
+				success: true,
+				recovery,
+				counts: result.counts,
+				backupFilename: result.backupFilename,
+			};
+		} catch (err) {
+			logError("settings-data:reimport-commit", "Reimport commit failed", err);
+			return fail(500, {
+				action: "reimport-commit",
+				errors: ["Could not apply the file — nothing was changed. Try again."],
 			});
 		}
 	},

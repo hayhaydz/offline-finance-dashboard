@@ -13,6 +13,13 @@ import { FIELD_LIMITS } from "$lib/utils/fieldLimits";
 // Types
 // ---------------------------------------------------------------------------
 
+/**
+ * An import failure caused by the submitted data (unknown type, bad date,
+ * missing account, closed account…). Safe to surface verbatim to the user;
+ * unexpected errors are mapped to generic human copy at the action layer.
+ */
+export class ImportValidationError extends Error {}
+
 export interface ImportRow {
 	date: string; // YYYY-MM-DD
 	type: TransactionType;
@@ -120,10 +127,10 @@ export async function getOverlappingTransactions(
 		});
 
 		if (!account) {
-			throw new Error(`Account ${accountId} not found`);
+			throw new ImportValidationError(`Account ${accountId} not found`);
 		}
 		if (account.userId !== userId) {
-			throw new Error("User does not own this account");
+			throw new ImportValidationError("You do not have access to that account");
 		}
 
 		const from = new Date(`${fromDate}T00:00:00.000Z`);
@@ -195,19 +202,21 @@ export async function batchInsertTransactions(
 		});
 
 		if (!account) {
-			throw new Error(`Account ${accountId} not found`);
+			throw new ImportValidationError(`Account ${accountId} not found`);
 		}
 		if (account.userId !== userId) {
-			throw new Error("User does not own this account");
+			throw new ImportValidationError("You do not have access to that account");
 		}
 		if (account.closedAt !== null) {
-			throw new Error("Cannot import transactions into a closed account");
+			throw new ImportValidationError(
+				"Cannot import transactions into a closed account",
+			);
 		}
 
 		// Re-validate untrusted rows (type enum, finite amounts, dates, lengths)
 		const validationError = validateImportRows(rows);
 		if (validationError) {
-			throw new Error(validationError);
+			throw new ImportValidationError(validationError);
 		}
 
 		let inserted = 0;

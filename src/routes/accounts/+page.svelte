@@ -212,6 +212,7 @@
 				Filters
 			</button>
 			<a href="/accounts/create" class="bracket-link text-xs">Create Account</a>
+			<a href="/api/transactions/export" class="bracket-link text-xs">Export CSV</a>
 		</div>
 	</div>
 

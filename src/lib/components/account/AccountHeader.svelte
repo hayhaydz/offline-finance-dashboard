@@ -75,6 +75,7 @@
 		</h2>
 		{#if !closedAt}
 		<div class="flex gap-2 shrink-0">
+			<a href="/api/transactions/export?accounts={slug}" class="bracket-link text-xs">Export CSV</a>
 			<a href="/accounts/{slug}/edit" class="bracket-link text-xs">Edit</a>
 			<a href="/accounts/{slug}/delete" class="bracket-link text-xs text-red-700">Close</a>
 		</div>
