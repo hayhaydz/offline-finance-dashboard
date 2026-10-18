@@ -69,6 +69,7 @@
       { href: '/overview/snapshots', label: 'Snapshots', includeChildRoutes: true },
       { href: '/overview/routine', label: 'Routine', includeChildRoutes: true },
       { href: '/overview/budgets', label: 'Budgets' },
+      { href: '/overview/expenses', label: 'Expenses' },
       { href: '/overview/reports', label: 'Reports' },
       { href: '/overview/tax', label: 'Tax', includeChildRoutes: true }
     ]},

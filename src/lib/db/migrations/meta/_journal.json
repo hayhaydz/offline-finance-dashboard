@@ -29,6 +29,13 @@
       "when": 1792343737835,
       "tag": "0003_fair_triton",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1792349872806,
+      "tag": "0004_nifty_kitty_pryde",
+      "breakpoints": true
     }
   ]
 }

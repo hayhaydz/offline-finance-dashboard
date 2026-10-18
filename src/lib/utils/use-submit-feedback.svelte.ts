@@ -22,24 +22,41 @@ export function useSubmitFeedback() {
 
 	function createEnhanceHandler(
 		successText: string,
-		options?: { resetForm?: boolean; onSuccess?: () => void },
+		options?: {
+			resetForm?: boolean;
+			onSuccess?: () => void;
+			/** Apply failure data to the page `form` prop (enables confirm round-trips). */
+			applyFailures?: boolean;
+		},
 	) {
 		return () => {
 			isSubmitting = true;
 			return async (callbackArgs: {
 				formElement: HTMLFormElement;
 				result: { type: string; data?: unknown };
+				update: (opts?: { reset?: boolean }) => Promise<void>;
 			}) => {
 				isSubmitting = false;
-				const { formElement, result } = callbackArgs;
+				const { formElement, result, update } = callbackArgs;
 				if (result.type === "success") {
 					message = { type: "success", text: successText };
 					if (options?.resetForm && formElement) formElement.reset();
 					options?.onSuccess?.();
 				} else if (result.type === "failure" && result.data) {
 					const errorData = result.data as { error?: string };
-					if (errorData.error)
+					// "confirm" failures render as an in-page banner via `form`,
+					// not as a feedback message.
+					if (
+						errorData.error &&
+						!(options?.applyFailures && errorData.error === "confirm")
+					) {
 						message = { type: "error", text: errorData.error };
+					}
+				}
+				if (options?.applyFailures) {
+					// Applies the default behavior (sets the `form` prop),
+					// driving confirm banners and clearing them on success.
+					await update({ reset: false });
 				}
 				await invalidateAll();
 			};

@@ -256,6 +256,39 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 		`  ✓ Income: ${incomeRows.length} months (${prevPrevTaxYear} gap year BOUNDED, ${prevTaxYear} FIRM crossing, ${currentTaxYear} in-progress EXPECTED)`,
 	);
 
+	// --- Expenses history ---
+	// Last 12 months: £1,800/mo, then £2,100/mo for the recent 3 months
+	const expensesStart = new Date(
+		Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 11, 1),
+	);
+	const expenseRows: Array<{
+		userId: number;
+		month: string;
+		monthlyExpensesInCents: number;
+		note: string | null;
+	}> = [];
+	for (let i = 0; i < 12; i++) {
+		const d = new Date(
+			Date.UTC(
+				expensesStart.getUTCFullYear(),
+				expensesStart.getUTCMonth() + i,
+				1,
+			),
+		);
+		const month = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+		const recent = i >= 9;
+		expenseRows.push({
+			userId,
+			month,
+			monthlyExpensesInCents: recent ? 2100_00 : 1800_00,
+			note: recent && i === 9 ? "rent increase" : null,
+		});
+	}
+	await db.insert(schema.expensesHistory).values(expenseRows);
+	console.log(
+		`  ✓ Expenses: ${expenseRows.length} months (£1,800/mo → £2,100/mo recent 3)`,
+	);
+
 	// Snapshot tax positions resolve per snapshot date (audit #7 behaviour)
 	const seedBandForDate = (date: Date): TaxBand =>
 		taxYearLabelFromDate(date) <= prevPrevTaxYear ? "basic" : "higher";

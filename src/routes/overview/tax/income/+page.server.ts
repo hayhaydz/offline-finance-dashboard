@@ -7,6 +7,11 @@ import { devLog, logError, logFormData } from "$lib/server/logger";
 import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import { parseCurrency } from "$lib/utils/currency";
 import {
+	indexToMonth,
+	isValidMonth,
+	monthToIndex,
+} from "$lib/utils/month-grid";
+import {
 	compareTaxYears,
 	taxYearLabelFromDate,
 	taxYearMonths,
@@ -14,27 +19,6 @@ import {
 import type { Actions, PageServerLoad } from "./$types";
 
 const MAX_RANGE_MONTHS = 120;
-
-const MONTH_PATTERN = /^(\d{4})-(\d{2})$/;
-
-function isValidMonth(month: string): boolean {
-	const match = month.match(MONTH_PATTERN);
-	if (!match) return false;
-	const m = Number(match[2]);
-	return m >= 1 && m <= 12;
-}
-
-function monthToIndex(month: string): number | null {
-	const match = month.match(MONTH_PATTERN);
-	if (!match) return null;
-	return Number(match[1]) * 12 + (Number(match[2]) - 1);
-}
-
-function indexToMonth(index: number): string {
-	const year = Math.floor(index / 12);
-	const month = (index % 12) + 1;
-	return `${year}-${String(month).padStart(2, "0")}`;
-}
 
 function taxYearOfMonth(month: string): string {
 	const [yearStr, monthStr] = month.split("-");
@@ -234,26 +218,32 @@ export const actions: Actions = {
 		}
 
 		try {
-			await db.transaction(async (tx) => {
+			// Sync callback: the better-sqlite3 driver rejects async
+			// transaction functions ("cannot return a promise").
+			db.transaction((tx) => {
 				if (existing.length > 0) {
-					await tx.delete(incomeHistory).where(
-						and(
-							withUserFilter(user.id, incomeHistory),
-							inArray(
-								incomeHistory.month,
-								existing.map((r) => r.month),
+					tx.delete(incomeHistory)
+						.where(
+							and(
+								withUserFilter(user.id, incomeHistory),
+								inArray(
+									incomeHistory.month,
+									existing.map((r) => r.month),
+								),
 							),
-						),
-					);
+						)
+						.run();
 				}
-				await tx.insert(incomeHistory).values(
-					allMonths.map((month) => ({
-						userId: user.id,
-						month,
-						grossIncomeInCents: amountInCents,
-						note: null,
-					})),
-				);
+				tx.insert(incomeHistory)
+					.values(
+						allMonths.map((month) => ({
+							userId: user.id,
+							month,
+							grossIncomeInCents: amountInCents,
+							note: null,
+						})),
+					)
+					.run();
 			});
 
 			devLog("tax-income:rangeFill", "Range filled", {

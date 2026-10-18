@@ -562,6 +562,19 @@ export const TABLE_RULES: Record<string, TableRule> = {
 			updatedAt: "ts",
 		},
 	},
+	expensesHistory: {
+		pk: "id",
+		orderDesc: "month",
+		columns: {
+			id: "skip",
+			userId: "skip",
+			month: "year-month",
+			monthlyExpensesInCents: "amount",
+			note: "name",
+			createdAt: "ts",
+			updatedAt: "ts",
+		},
+	},
 	budgetMonths: {
 		pk: "id",
 		orderDesc: "month",

@@ -39,6 +39,12 @@ export {
 	goals,
 	goalsRelations,
 } from "./goals";
+// Expenses domain
+export type { ExpensesHistoryRow } from "./expenses";
+export {
+	expensesHistory,
+	expensesHistoryRelations,
+} from "./expenses";
 export type {
 	BudgetConfigAmendment,
 	BudgetMonth,

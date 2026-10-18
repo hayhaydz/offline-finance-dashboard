@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import HistoryTrendChart from '$lib/components/HistoryTrendChart.svelte';
 	import SubmitFeedback from '$lib/components/SubmitFeedback.svelte';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { useSubmitFeedback } from '$lib/utils/use-submit-feedback.svelte';
@@ -9,6 +10,14 @@
 
 	const monthFeedback = useSubmitFeedback();
 	const rangeFeedback = useSubmitFeedback();
+
+	// Chronological (oldest → newest): grid is newest-year-first, months asc
+	const trendPoints = $derived(
+		[...data.grid].reverse().flatMap((year) => year.months)
+	);
+
+	const compactAmount = (cents: number) =>
+		'£' + (cents / 100).toLocaleString('en-GB', { maximumFractionDigits: 0 });
 
 	// Currently selected month for the edit panel (sparse entry)
 	let selectedMonth = $state<string | null>(null);
@@ -64,6 +73,14 @@
 		<a href="/overview/tax" class="bracket-link text-xs">[Tax]</a>
 	</div>
 
+	<!-- ═══ TREND ═══ -->
+	<section class="border-b border-black">
+		<div class="font-bold bg-gray-50 border-b border-gray-300 p-2">TREND</div>
+		<div class="p-3">
+			<HistoryTrendChart points={trendPoints} formatAmount={compactAmount} yearStartMonth={4} />
+		</div>
+	</section>
+
 	<!-- ═══ RANGE FILL ═══ -->
 	<section class="border-b border-black">
 		<div class="font-bold bg-gray-50 border-b border-gray-300 p-2">RANGE FILL</div>
@@ -73,7 +90,7 @@
 		<form
 			method="POST"
 			action="?/rangeFill"
-			use:enhance={rangeFeedback.createEnhanceHandler('Range filled.')}
+			use:enhance={rangeFeedback.createEnhanceHandler('Range filled.', { applyFailures: true })}
 			class="p-3 flex flex-wrap gap-2 items-end"
 		>
 			<div>
@@ -103,7 +120,7 @@
 				<form
 					method="POST"
 					action="?/rangeFill"
-					use:enhance={rangeFeedback.createEnhanceHandler('Range filled (existing entries overwritten).')}
+					use:enhance={rangeFeedback.createEnhanceHandler('Range filled (existing entries overwritten).', { applyFailures: true })}
 					class="flex gap-2"
 				>
 					<input type="hidden" name="fromMonth" value={confirmRangeFill.fromMonth} />

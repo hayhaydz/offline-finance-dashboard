@@ -1,22 +1,13 @@
 import { fail } from "@sveltejs/kit";
-import { eq } from "drizzle-orm";
-import { db } from "$lib/db/client";
-import { systemMetadata } from "$lib/db/schema";
 import {
 	createCategory,
 	deleteCategory,
 	getCategories,
 	updateCategory,
 } from "$lib/server/categories";
-import {
-	devLog,
-	isVerboseDebug,
-	logError,
-	logFormData,
-} from "$lib/server/logger";
+import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import { isValidHexColour } from "$lib/utils/category-colours";
-import { parseCurrency } from "$lib/utils/currency";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -29,118 +20,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 		});
 	}
 
-	// Query monthly expenses from system_metadata
-	const metadataRow = await db
-		.select({ value: systemMetadata.value })
-		.from(systemMetadata)
-		.where(eq(systemMetadata.key, "monthly_expenses"))
-		.limit(1);
-
-	let monthlyExpensesInPence: number | null = null;
-	if (metadataRow[0]?.value) {
-		const parsed = parseInt(metadataRow[0].value, 10);
-		if (!Number.isNaN(parsed)) {
-			monthlyExpensesInPence = parsed;
-		}
-	}
-
 	// Fetch spending categories
 	const categories = await getCategories(user.id);
 
 	return {
-		monthlyExpensesInPence,
 		categories,
 	};
 };
 
 export const actions: Actions = {
-	/**
-	 * Save monthly expenses action
-	 * Validates input, converts to pence, and stores in system_metadata table
-	 */
-	saveMonthlyExpenses: async ({ request, locals }) => {
-		const user = getAuthUser(locals);
-		if (!user) return fail(401, { error: "Authentication required" });
-
-		const formData = await request.formData();
-		logFormData("settings-general", Object.fromEntries(formData));
-
-		const monthlyExpensesInput = formData.get("monthlyExpenses") as string;
-
-		devLog("settings-general", "Saving monthly expenses", {
-			userId: user.id,
-			inputValue: monthlyExpensesInput,
-		});
-
-		if (!monthlyExpensesInput || monthlyExpensesInput.trim() === "") {
-			devLog("settings-general", "Validation failed: empty input");
-			return fail(400, { error: "Monthly expenses amount is required" });
-		}
-
-		let amountInPence: number;
-		try {
-			amountInPence = parseCurrency(monthlyExpensesInput);
-		} catch (err) {
-			devLog("settings-general", "Validation failed: invalid format", {
-				input: monthlyExpensesInput,
-				error: err instanceof Error ? err.message : "Unknown error",
-			});
-			return fail(400, {
-				error: "Enter amount like 2000 or 2000.00",
-			});
-		}
-
-		if (amountInPence <= 0) {
-			devLog("settings-general", "Validation failed: non-positive amount", {
-				amountInPence,
-			});
-			return fail(400, {
-				error: "Monthly expenses must be greater than 0",
-			});
-		}
-
-		try {
-			const existing = await db
-				.select({ key: systemMetadata.key })
-				.from(systemMetadata)
-				.where(eq(systemMetadata.key, "monthly_expenses"))
-				.limit(1);
-
-			if (existing.length > 0) {
-				await db
-					.update(systemMetadata)
-					.set({ value: amountInPence.toString() })
-					.where(eq(systemMetadata.key, "monthly_expenses"));
-
-				devLog("settings-general", "Updated monthly expenses", {
-					amountInPence,
-					userId: user.id,
-				});
-			} else {
-				await db.insert(systemMetadata).values({
-					key: "monthly_expenses",
-					value: amountInPence.toString(),
-				});
-
-				devLog("settings-general", "Inserted monthly expenses", {
-					amountInPence,
-					userId: user.id,
-				});
-			}
-
-			return { success: true };
-		} catch (error) {
-			logError(
-				"settings-general",
-				"Database error saving monthly expenses",
-				error,
-			);
-			return fail(500, {
-				error: "Failed to save monthly expenses. Please try again.",
-			});
-		}
-	},
-
 	/**
 	 * Create a new spending category
 	 */
