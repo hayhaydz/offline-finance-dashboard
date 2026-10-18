@@ -31,28 +31,11 @@ Object.defineProperty(globalThis, "document", {
 	configurable: true,
 });
 
-Object.defineProperty(globalThis, "navigator", {
-	value: { sendBeacon: vi.fn() },
-	writable: true,
-	configurable: true,
-});
-
-globalThis.addEventListener = vi.fn(
-	(event: string, handler: EventListenerOrEventListenerObject) => {
-		eventListeners[event] = eventListeners[event] || [];
-		eventListeners[event].push(handler as () => void);
-	},
-) as unknown as typeof globalThis.addEventListener;
-globalThis.removeEventListener = vi.fn(
-	(event: string, handler: EventListenerOrEventListenerObject) => {
-		eventListeners[event] = (eventListeners[event] || []).filter(
-			(h) => h !== (handler as () => void),
-		);
-	},
-) as unknown as typeof globalThis.removeEventListener;
-
-// Mock fetch — called by handleExpired() on session expiry
-globalThis.fetch = vi.fn().mockResolvedValue({ ok: true });
+// Mock fetch — wrapped by the module's in-flight guard while running, and
+// called by fireExpiry() through the unwrapped original. Hold the base
+// reference for assertions: globalThis.fetch becomes the wrapper mid-test.
+const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+globalThis.fetch = fetchMock;
 
 // ---------------------------------------------------------------------------
 // Import module under test (compiled via sveltekit plugin for .svelte.ts)
@@ -61,15 +44,13 @@ globalThis.fetch = vi.fn().mockResolvedValue({ ok: true });
 import { sessionTimer } from "$lib/utils/session-timer.svelte";
 
 // ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
 
 describe("sessionTimer", () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 		sessionTimer.destroy();
 		// Reset mocks
-		vi.mocked(globalThis.fetch).mockClear();
+		fetchMock.mockClear();
 		vi.clearAllMocks();
 	});
 
@@ -77,10 +58,6 @@ describe("sessionTimer", () => {
 		vi.useRealTimers();
 		sessionTimer.destroy();
 	});
-
-	// -- Helper: verify timer tick fires the interval callback ----------------
-	// `setInterval(fn, 1000)` means advancing by N ms fires ~N ticks.
-	// Vitest fake timers fire the callback once per `advanceTimersByTime(1000)`.
 
 	it("start() initializes correctly with 5-minute timeout", () => {
 		sessionTimer.start(5);
@@ -135,7 +112,7 @@ describe("sessionTimer", () => {
 		sessionTimer.start(1); // 60 seconds
 		expect(sessionTimer.secondsRemaining).toBe(60);
 
-		// Advance 3 seconds — each 1000ms fires one tick
+		// Advance 1 second — UI tick recomputes from the deadline
 		vi.advanceTimersByTime(1000);
 		expect(sessionTimer.secondsRemaining).toBe(59);
 
@@ -162,7 +139,7 @@ describe("sessionTimer", () => {
 		expect(sessionTimer.secondsRemaining).toBe(25);
 		expect(sessionTimer.phase).toBe("urgent"); // 25 <= 30
 
-		// Advance to 0s (another 25s)
+		// Advance to expiry (another 25s)
 		vi.advanceTimersByTime(25_000);
 		expect(sessionTimer.secondsRemaining).toBe(0);
 		expect(sessionTimer.phase).toBe("expired");
@@ -184,7 +161,7 @@ describe("sessionTimer", () => {
 		expect(sessionTimer.secondsRemaining).toBe(5);
 		expect(sessionTimer.phase).toBe("urgent"); // 5 <= 6
 
-		// Advance to 0s (another 5s)
+		// Advance to expiry (another 5s)
 		vi.advanceTimersByTime(5_000);
 		expect(sessionTimer.secondsRemaining).toBe(0);
 		expect(sessionTimer.phase).toBe("expired");
@@ -227,8 +204,8 @@ describe("sessionTimer", () => {
 		vi.advanceTimersByTime(60_000);
 		expect(sessionTimer.phase).toBe("expired");
 
-		// handleExpired calls fetch('/api/logout') and goto('/login?reason=expired')
-		expect(globalThis.fetch).toHaveBeenCalledWith("/api/logout", {
+		// fireExpiry calls fetch('/api/logout') and goto('/login?reason=expired')
+		expect(fetchMock).toHaveBeenCalledWith("/api/logout", {
 			method: "POST",
 		});
 
@@ -237,5 +214,18 @@ describe("sessionTimer", () => {
 
 		const { goto } = await import("$app/navigation");
 		expect(goto).toHaveBeenCalledWith("/login?reason=expired");
+	});
+
+	it("expiry fires exactly once — advancing well past the deadline does not re-fire", async () => {
+		sessionTimer.start(1);
+
+		vi.advanceTimersByTime(60_000);
+		vi.advanceTimersByTime(600_000);
+
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+
+		await vi.advanceTimersByTimeAsync(0);
+		const { goto } = await import("$app/navigation");
+		expect(goto).toHaveBeenCalledTimes(1);
 	});
 });

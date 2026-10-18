@@ -19,6 +19,7 @@ import {
 	logInfo,
 } from "$lib/server/logger";
 import { getFlash } from "$lib/server/utils/flash";
+import { sanitizeRedirectTo } from "$lib/utils/redirect-to";
 
 // Pre-computed at module load (once per server process) with the same
 // Argon2id parameters as real hashes — see usage in the login action.
@@ -85,7 +86,7 @@ export async function load({ cookies }) {
 }
 
 export const actions = {
-	default: async ({ request, cookies }) => {
+	default: async ({ request, cookies, url }) => {
 		const formData = await request.formData();
 		logFormData("login", Object.fromEntries(formData));
 
@@ -267,7 +268,9 @@ export const actions = {
 			usedBackupCode: !!usedBackupCodeId,
 		});
 
-		// Redirect to home page
-		throw redirect(302, HOME_ROUTE);
+		// Return to the URL the user was on before expiry/logout redirected
+		// them here (audit #21) — validated to stay on-origin.
+		const redirectTo = sanitizeRedirectTo(url.searchParams.get("redirectTo"));
+		throw redirect(302, redirectTo ?? HOME_ROUTE);
 	},
 };

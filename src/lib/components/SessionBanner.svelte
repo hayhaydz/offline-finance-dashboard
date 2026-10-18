@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { sessionTimer } from '$lib/utils/session-timer.svelte';
 	import type { Phase } from '$lib/utils/session-timer.svelte';
 
@@ -6,11 +7,33 @@
 	const seconds = $derived(sessionTimer.secondsRemaining);
 
 	const visible = $derived(phase !== 'active');
+	// Live countdown during the final 60 seconds of the warning window.
+	const showCountdown = $derived(phase === 'urgent' || (phase === 'warning' && seconds <= 60));
 
 	function formatCountdown(totalSeconds: number): string {
 		const m = Math.floor(totalSeconds / 60);
 		const s = totalSeconds % 60;
 		return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+	}
+
+	async function staySignedIn() {
+		// reset() records local activity + re-arms the client timer; the
+		// ping refreshes the server-side lastActivity (enforcement clock).
+		sessionTimer.reset();
+		try {
+			await fetch('/api/session-ping', { method: 'POST' });
+		} catch {
+			// Server unreachable — the local timer is still extended.
+		}
+	}
+
+	async function logoutNow() {
+		sessionTimer.stop();
+		try {
+			await fetch('/api/logout', { method: 'POST' });
+		} finally {
+			goto('/login?reason=logged-out');
+		}
 	}
 
 	const bgClass = $derived.by((): string => {
@@ -45,20 +68,21 @@
 		<div class="flex justify-between items-center">
 			{#if phase === 'expired'}
 				<span>Logging out...</span>
-			{:else if phase === 'urgent'}
+			{:else if showCountdown}
 				<span>Session expiring in {formatCountdown(seconds)}</span>
 			{:else}
 				<span>Session will expire due to inactivity</span>
 			{/if}
 
 			{#if phase !== 'expired'}
-				<button
-					type="button"
-					onclick={() => sessionTimer.reset()}
-					class="bracket-link text-xs"
-				>
-					Continue session
-				</button>
+				<div class="flex gap-2">
+					<button type="button" onclick={staySignedIn} class="bracket-link text-xs">
+						Stay signed in
+					</button>
+					<button type="button" onclick={logoutNow} class="bracket-link text-xs">
+						Log out
+					</button>
+				</div>
 			{/if}
 		</div>
 	</div>

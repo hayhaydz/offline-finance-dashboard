@@ -92,7 +92,11 @@ describe("Login Action Integration", () => {
 
 		// Execute action
 		try {
-			await (actions.default as any)({ request, cookies: mockCookies });
+			await (actions.default as any)({
+				request,
+				cookies: mockCookies,
+				url: new URL("http://localhost/login"),
+			});
 			expect.fail("Action should have thrown a redirect");
 		} catch (e: any) {
 			if (e.status === 302) {
@@ -144,13 +148,57 @@ describe("Login Action Integration", () => {
 
 		// Execute action
 		try {
-			await (actions.default as any)({ request, cookies: mockCookies });
+			await (actions.default as any)({
+				request,
+				cookies: mockCookies,
+				url: new URL("http://localhost/login"),
+			});
 			expect.fail("Action should have thrown a redirect");
 		} catch (e: any) {
 			if (e.status === 302) {
 				expect(e.location).toBe("/");
 				// Should have invalidated the backup code
 				expect(db.update).toHaveBeenCalled();
+			} else {
+				throw e;
+			}
+		}
+	});
+
+	it("should return to the preserved redirectTo after re-auth (audit #21)", async () => {
+		const mockUser = {
+			id: 1,
+			username: "testuser",
+			passwordHash: "hashed_password",
+			totpSecret: "encrypted_secret",
+			totpSecretIV: "iv",
+		};
+		(db.query.users.findFirst as any).mockResolvedValue(mockUser);
+		(password.verifyPassword as any).mockResolvedValue(true);
+		(mfa.verifyTOTP as any).mockResolvedValue(true);
+
+		const formData = new FormData();
+		formData.append("username", "testuser");
+		formData.append("password", "Password123!");
+		formData.append("totpCode", "123456");
+
+		const request = new Request("http://localhost/login", {
+			method: "POST",
+			body: formData,
+		});
+
+		try {
+			await (actions.default as any)({
+				request,
+				cookies: mockCookies,
+				url: new URL(
+					"http://localhost/login?reason=expired&redirectTo=%2Foverview%2Fbudgets%2F2026-10%3Ftab%3Dx",
+				),
+			});
+			expect.fail("Action should have thrown a redirect");
+		} catch (e: any) {
+			if (e.status === 302) {
+				expect(e.location).toBe("/overview/budgets/2026-10?tab=x");
 			} else {
 				throw e;
 			}

@@ -5,6 +5,7 @@
 	import { page } from '$app/state';
 	import { afterNavigate } from '$app/navigation';
 	import type { Snippet } from 'svelte';
+	import type { LayoutData } from './$types';
 
 	const user = $derived(page.data.user ?? null);
 	const environment = $derived(page.data.environment ?? { mode: 'unknown', isProduction: false, hasEncryption: false });
@@ -19,21 +20,24 @@
 				: '[ MODE: LOOSE / UNENCRYPTED ]'
 	);
 
-	let { children } = $props<{ children: Snippet }>();
+	let { children, data }: { children: Snippet; data: LayoutData } = $props();
 
 	let scrollContainer = $state<HTMLElement | null>(null);
 
-	// Start/stop the session inactivity timer based on auth state
+	// Start/stop the session inactivity timer based on auth state.
+	// IMPORTANT: the timer reads the LAYOUT's own `data` prop, NOT
+	// page.data — several page loads (/, /accounts, /goals, ...) return
+	// their own `user` key without inactivityTimeout, which shadowed the
+	// layout's user in the merged page.data and silently destroyed the
+	// timer on those pages (audit qa-findings/03 never-fire root cause).
+	// ensureStarted is idempotent: invalidations that refresh the layout
+	// data with the same timeout value must NOT reset the idle deadline.
 	$effect(() => {
-		if (user && typeof user.inactivityTimeout === 'number') {
-			sessionTimer.start(user.inactivityTimeout);
+		if (data.user && typeof data.user.inactivityTimeout === 'number') {
+			sessionTimer.ensureStarted(data.user.inactivityTimeout);
 		} else {
 			sessionTimer.destroy();
 		}
-
-		return () => {
-			sessionTimer.destroy();
-		};
 	});
 
 	afterNavigate(() => {

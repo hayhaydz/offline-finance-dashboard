@@ -6,10 +6,24 @@ import { db } from "$lib/db/client";
 import { runMigrations } from "$lib/db/migrate";
 import { sessions } from "$lib/db/schema";
 import { logError } from "$lib/server/logger";
+import { sanitizeRedirectTo } from "$lib/utils/redirect-to";
 import { MS_PER_DAY } from "$lib/utils/time-constants";
 
 // Run migrations once per server process and block requests until complete.
 const startupMigrations = runMigrations();
+
+/**
+ * Redirect to login with a visible reason and the preserved return URL —
+ * never a silent redirect (audit qa-findings/03 + backlog #21).
+ */
+function loginRedirect(reason: "expired" | "logged-out", url: URL): never {
+	const redirectTo = sanitizeRedirectTo(url.pathname + url.search);
+	const params = new URLSearchParams({ reason });
+	if (redirectTo) {
+		params.set("redirectTo", redirectTo);
+	}
+	throw redirect(302, `${LOGIN_ROUTE}?${params.toString()}`);
+}
 
 export const handle: Handle = async ({ event, resolve }) => {
 	await startupMigrations;
@@ -59,7 +73,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	if (!sessionToken) {
 		if (isProtectedRoute) {
-			throw redirect(302, LOGIN_ROUTE);
+			loginRedirect("logged-out", event.url);
 		}
 		return resolve(event);
 	}
@@ -75,17 +89,22 @@ export const handle: Handle = async ({ event, resolve }) => {
 	if (!session) {
 		event.cookies.delete("session", { path: "/" });
 		if (isProtectedRoute) {
-			throw redirect(302, LOGIN_ROUTE);
+			loginRedirect("logged-out", event.url);
 		}
 		return resolve(event);
 	}
 
-	// Check session expiration (24-hour inactivity)
+	// Server-side session expiry (24h inactivity) — this is the ENFORCEMENT
+	// clock. The client session-timer (src/lib/utils/session-timer.svelte.ts)
+	// is the UX warning layered on top; the per-user inactivityTimeout
+	// setting configures the client timer only. When this clock kills a
+	// mid-interaction session, the user lands on /login with reason=expired
+	// + redirectTo instead of a silent redirect.
 	if (Date.now() - session.lastActivity.getTime() > MS_PER_DAY) {
 		await db.delete(sessions).where(eq(sessions.token, sessionToken));
 		event.cookies.delete("session", { path: "/" });
 		if (isProtectedRoute) {
-			throw redirect(302, LOGIN_ROUTE);
+			loginRedirect("expired", event.url);
 		}
 		return resolve(event);
 	}

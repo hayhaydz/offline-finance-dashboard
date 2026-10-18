@@ -324,7 +324,11 @@ describe("Authentication Bypass Prevention", () => {
 				expect.fail("Should have thrown a redirect");
 			} catch (e: any) {
 				expect(e.status).toBe(302);
-				expect(e.location).toBe("/login");
+				// Reason + preserved return URL — never a silent redirect
+				const loc = new URL(e.location, "http://localhost");
+				expect(loc.pathname).toBe("/login");
+				expect(loc.searchParams.get("reason")).toBe("logged-out");
+				expect(loc.searchParams.get("redirectTo")).toBe("/accounts");
 			}
 		});
 
@@ -336,7 +340,10 @@ describe("Authentication Bypass Prevention", () => {
 				expect.fail("Should have thrown a redirect");
 			} catch (e: any) {
 				expect(e.status).toBe(302);
-				expect(e.location).toBe("/login");
+				const loc = new URL(e.location, "http://localhost");
+				expect(loc.pathname).toBe("/login");
+				expect(loc.searchParams.get("reason")).toBe("logged-out");
+				expect(loc.searchParams.get("redirectTo")).toBe("/settings");
 			}
 		});
 
@@ -350,7 +357,10 @@ describe("Authentication Bypass Prevention", () => {
 				expect.fail("Should have thrown a redirect");
 			} catch (e: any) {
 				expect(e.status).toBe(302);
-				expect(e.location).toBe("/login");
+				const loc = new URL(e.location, "http://localhost");
+				expect(loc.pathname).toBe("/login");
+				expect(loc.searchParams.get("reason")).toBe("logged-out");
+				expect(loc.searchParams.get("redirectTo")).toBe("/accounts");
 			}
 
 			// Invalid session cookie should be cleared

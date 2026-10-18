@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { page } from '$app/state';
 	import { FormField } from '$lib/components/ui/index';
 	import { required, totpOrBackupCode } from '$lib/validation/rules';
 
@@ -10,6 +11,9 @@
 	}
 
 	let { form, data }: { form: ActionData; data: any } = $props();
+
+	// Reason the user was sent here (server hooks / client timer carry it).
+	const reason = $derived(page.url.searchParams.get('reason'));
 
 	let showDelayMessage = $state(false);
 	let delayCountdown = $state(0);
@@ -72,6 +76,16 @@
 	<h1 class="text-lg font-bold mb-2 mt-0">LOG IN</h1>
 	<p class="text-gray-600 my-1">Enter your credentials and authentication code</p>
 </div>
+
+{#if reason === 'expired'}
+	<div class="border border-amber-700 border-l-4 p-2 mb-4 bg-amber-50">
+		<span class="text-amber-700 font-bold">Session expired — log in to continue where you left off.</span>
+	</div>
+{:else if reason === 'logged-out'}
+	<div class="border border-black border-l-4 p-2 mb-4 bg-gray-50">
+		<span class="font-bold">You have been logged out.</span>
+	</div>
+{/if}
 
 {#if data?.autoLoginEnabled}
 	<div class="border border-amber-700 border-l-4 p-2 mb-2">
