@@ -1,3 +1,4 @@
+import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
 import { fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { db } from "$lib/db/client";
@@ -18,6 +19,10 @@ import {
 	markRecoveryInitiated,
 	unlockKeyring,
 } from "$lib/server/crypto/keyring";
+import {
+	completeDeviceUnlock,
+	WebAuthnCeremonyError,
+} from "$lib/server/crypto/webauthn";
 import { logError } from "$lib/server/logger";
 import { sanitizeRedirectTo } from "$lib/utils/redirect-to";
 import type { Actions, PageServerLoad } from "./$types";
@@ -28,8 +33,9 @@ import type { Actions, PageServerLoad } from "./$types";
  * Session-less users are handled by /login, which performs the same
  * password unwrap as part of full authentication.
  *
- * L2 device step placeholder: once a `webauthn-prf` slot is enrolled the
- * device share becomes mandatory here (design D7).
+ * L2: once a `webauthn-prf` device slot is enrolled it is MANDATORY — the
+ * password step and the device step must BOTH unwrap the SAME DataKey
+ * (2-of-2) before the keyring opens (tasks 6.2/6.3).
  */
 export const load: PageServerLoad = async ({ locals, url }) => {
 	if (!locals.user) {
@@ -103,9 +109,65 @@ export const actions: Actions = {
 			return fail(401, { error: "Invalid credentials" });
 		}
 
+		// L2 (task 6.3): device slot enrolled → password alone must NOT
+		// unlock. Data stays sealed until the device step completes.
+		const deviceCount = await countActiveSlots(db, user.id, "webauthn-prf");
+		let deviceDataKey: Buffer | null = null;
+		if (deviceCount > 0) {
+			const token = formData.get("deviceToken") as string | null;
+			const assertionRaw = formData.get("deviceAssertion") as string | null;
+			const prfOutput = formData.get("devicePrf") as string | null;
+			if (!token || !assertionRaw || !prfOutput) {
+				return fail(401, {
+					error: "Device step required — complete it, then unlock",
+					deviceRequired: true,
+				});
+			}
+			let assertion: AuthenticationResponseJSON;
+			try {
+				assertion = JSON.parse(assertionRaw);
+			} catch {
+				return fail(400, { error: "Device step data invalid — rerun it" });
+			}
+			try {
+				deviceDataKey = await completeDeviceUnlock(db, {
+					userId: user.id,
+					token,
+					assertion,
+					prfOutput,
+				});
+			} catch (error) {
+				if (error instanceof WebAuthnCeremonyError) {
+					logError("unlock", "Device step failed", {
+						userId: user.id,
+						code: error.code,
+					});
+					await recordFailedAttempt(user.username);
+					return fail(401, {
+						error: `Device step failed: ${error.message}`,
+						deviceRequired: true,
+					});
+				}
+				throw error;
+			}
+		}
+
 		try {
-			const dataKey = await unwrapPasswordSlot(db, dbUser, password);
-			unlockKeyring(dbUser.id, dataKey);
+			const passwordDataKey = await unwrapPasswordSlot(db, dbUser, password);
+			if (deviceDataKey !== null) {
+				// 2-of-2: both factors must unwrap the SAME DataKey.
+				if (!passwordDataKey.equals(deviceDataKey)) {
+					logError("unlock", "DataKey mismatch across factors", {
+						userId: user.id,
+					});
+					await recordFailedAttempt(user.username);
+					return fail(401, {
+						error: "Invalid credentials",
+						deviceRequired: true,
+					});
+				}
+			}
+			unlockKeyring(dbUser.id, passwordDataKey);
 		} catch (error) {
 			if (error instanceof EnvelopeError) {
 				logError("unlock", "Password slot unwrap failed", {

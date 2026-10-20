@@ -1,7 +1,15 @@
 <script lang="ts">
+	import { invalidateAll } from '$app/navigation';
 	import { enhance } from '$app/forms';
 	import { FormField } from '$lib/components/ui/index';
 	import { required } from '$lib/validation/rules';
+	import { devLogClient } from '$lib/utils/client-logger';
+
+	// [PRF-DIAG] investigation logging (task 6.4). Dev-only via devLogClient.
+	// Never logs the PRF output bytes themselves — lengths only.
+	function prfDiag(stage: string, data: unknown) {
+		devLogClient('prf-diag', `[PRF-DIAG] ${stage}`, data);
+	}
 
 	interface SlotView {
 		slotId: string;
@@ -55,8 +63,156 @@
 	let rotationValid = $state(false);
 	$effect(() => { rotationValid = rotationField?.isValid ?? false; });
 
+	// L2 device enrollment (WebAuthn PRF ceremony, client-driven)
+	let deviceBusy = $state(false);
+	let deviceError = $state('');
+	let deviceDone = $state(false);
+
+	function b64(buf: ArrayBuffer): string {
+		const bytes = new Uint8Array(buf);
+		let bin = '';
+		for (const b of bytes) bin += String.fromCharCode(b);
+		return btoa(bin);
+	}
+
+	function b64ToBytes(value: string): Uint8Array {
+		const bin = atob(value);
+		const bytes = new Uint8Array(bin.length);
+		for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+		return bytes;
+	}
+
+	async function runDeviceEnrollment() {
+		deviceBusy = true;
+		deviceError = '';
+		deviceDone = false;
+		try {
+			const startRes = await fetch('/settings/security/device/start', { method: 'POST' });
+			const start = await startRes.json();
+			prfDiag('start response', {
+				ok: startRes.ok,
+				hasToken: !!start.token,
+				saltB64Length: start.salt?.length,
+				optionsExtensions: start.options?.extensions ?? '(none — expected, injected next)',
+				optionsUserVerification: start.options?.authenticatorSelection?.userVerification,
+				optionsAttachment: start.options?.authenticatorSelection?.authenticatorAttachment,
+				rp: start.options?.rp
+			});
+			if (!startRes.ok) throw new Error(start.error ?? 'Enrollment failed to start');
+
+			// Inject the prf extension client-side (BufferSource cannot cross JSON)
+			const saltBytes = b64ToBytes(start.salt);
+			(start.options as any).extensions = {
+				prf: { eval: { first: saltBytes } }
+			};
+			prfDiag('extension injected', {
+				saltByteLength: saltBytes.byteLength,
+				isUint8Array: saltBytes instanceof Uint8Array
+			});
+
+		const { startRegistration, startAuthentication } = await import('@simplewebauthn/browser');
+		const registration = await startRegistration({ optionsJSON: start.options });
+
+		const clientExt = (registration as any).clientExtensionResults ?? {};
+		const prfFirst = clientExt.prf?.results?.first;
+		prfDiag('registration result', {
+			credentialId: registration.id,
+			authenticatorAttachment: (registration as any).authenticatorAttachment,
+			transports: (registration as any).transports ?? '(helper did not surface)',
+			clientExtensionKeys: Object.keys(clientExt),
+			prf: clientExt.prf
+				? {
+						enabled: clientExt.prf.enabled,
+						hasResults: !!clientExt.prf.results,
+						firstByteLength: clientExt.prf.results?.first?.byteLength ?? null
+					}
+				: '(no prf key in clientExtensionResults)'
+		});
+
+		// Path A — CTAP2.1-style (hmac-secret-mc): the PRF was evaluated
+		// during create(); finish in one round trip.
+		// Path B — CTAP2.0 (fidont, most hmac-secret keys): `enabled` but no
+		// results — the PRF can only be evaluated on an assertion. Stage the
+		// verified registration server-side (NO slot yet), then run an
+		// immediate get() with the same salt (second touch on the device).
+		// Path C — the extension was not acknowledged at all: this
+		// authenticator/browser cannot derive device secrets (hybrid/QR
+		// phones strip PRF; some browsers never send it).
+		let verifyBody: Record<string, unknown>;
+
+		if (prfFirst) {
+			verifyBody = { token: start.token, registration, prfOutput: b64(prfFirst) };
+		} else if (clientExt.prf?.enabled) {
+			const stageRes = await fetch('/settings/security/device/verify', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ token: start.token, registration })
+			});
+			const staged = await stageRes.json();
+			prfDiag('stage response', {
+				ok: stageRes.ok,
+				evalRequired: staged.evalRequired,
+				allowCredentials: staged.options?.allowCredentials?.length ?? 0,
+				saltB64Length: staged.salt?.length
+			});
+			if (!stageRes.ok || !staged.evalRequired) {
+				throw new Error(staged.error ?? 'Enrollment staging failed');
+			}
+
+			const evalSalt = b64ToBytes(staged.salt);
+			(staged.options as any).extensions = {
+				prf: { eval: { first: evalSalt } }
+			};
+
+			const assertion = await startAuthentication({ optionsJSON: staged.options });
+			const evalExt = (assertion as any).clientExtensionResults ?? {};
+			const evalFirst = evalExt.prf?.results?.first;
+			prfDiag('eval assertion result', {
+				credentialId: assertion.id,
+				clientExtensionKeys: Object.keys(evalExt),
+				prf: evalExt.prf
+					? {
+							hasResults: !!evalExt.prf.results,
+							firstByteLength: evalExt.prf.results?.first?.byteLength ?? null
+						}
+					: '(no prf key in clientExtensionResults)'
+			});
+			if (!evalFirst) {
+				throw new Error(
+					'Authenticator acknowledged PRF but returned no output on evaluation — enrollment refused (no slot written)'
+				);
+			}
+			verifyBody = { token: staged.token, assertion, prfOutput: b64(evalFirst) };
+		} else {
+			throw new Error(
+				'This authenticator/browser did not acknowledge the PRF extension — it cannot derive device secrets. ' +
+					'Phones added via QR (hybrid) do not support PRF; use a directly-paired BLE/USB/NFC key with hmac-secret ' +
+					'(e.g. fidont paired over Bluetooth, YubiKey fw 5.2.6+).'
+			);
+		}
+
+		const verifyRes = await fetch('/settings/security/device/verify', {
+			method: 'POST',
+			headers: { 'content-type': 'application/json' },
+			body: JSON.stringify(verifyBody)
+		});
+			const verified = await verifyRes.json();
+			prfDiag('verify response', { ok: verifyRes.ok, payload: verified });
+			if (!verifyRes.ok) throw new Error(verified.error ?? 'Enrollment failed');
+
+			deviceDone = true;
+		await invalidateAll(); // slot table + count refresh immediately
+		} catch (err) {
+			deviceError = err instanceof Error ? err.message : String(err);
+			prfDiag('enrollment failed', { message: deviceError });
+		} finally {
+			deviceBusy = false;
+		}
+	}
+
 	// Recovery rotation confirmation
 	let confirmRecoveryRotate = $state(false);
+	let confirmDeviceDisable = $state(false);
 	let confirmDataKeyRotate = $state(false);
 
 	// Inactivity timeout (mirrors layout data; falls back to 5)
@@ -99,23 +255,97 @@
 		</div>
 	{/if}
 
-	{#if data?.deviceSlotCount === 0}
-		<div class="border border-black border-l-4 p-2 mb-2 bg-gray-50">
-			<span class="font-bold">[ DEVICE ENROLLMENT: L2 ]</span>
+	<!-- Per-account L2 switch (enrollment gate; enforcement = slots exist) -->
+	{#if data?.deviceEnrollmentEnabled}
+		<div class="border border-green-700 border-l-4 p-2 mb-2 bg-green-50">
+			<span class="text-green-700 font-bold">[ DEVICE UNLOCK: ON (per account) ]</span>
 			<span class="text-gray-600 text-xs block mt-1">
-				Password-only unlock (L1). Phone/device share enrollment arrives with
-				WebAuthn PRF support — the keyring is already slot-ready.
+				Enrolled devices are mandatory at unlock (2-of-2) until revoked.
 			</span>
+		</div>
+
+		<div class="border border-black p-2 mb-2">
+			<div class="flex items-center gap-3 flex-wrap">
+				{#if (data?.deviceSlotCount ?? 0) > 0}
+					<span class="text-xs font-bold">
+						[ {data?.deviceSlotCount} DEVICE SLOT{data?.deviceSlotCount > 1 ? 'S' : ''} ENROLLED ]
+					</span>
+				{/if}
+				<button type="button" class="bracket-link" disabled={deviceBusy} onclick={runDeviceEnrollment}>
+					{deviceBusy
+						? 'Waiting for device…'
+						: (data?.deviceSlotCount ?? 0) > 0
+							? 'Enroll spare device (WebAuthn PRF)'
+							: 'Enroll device (WebAuthn PRF)'}
+				</button>
+				{#if deviceDone}<span class="text-green-700 font-bold text-xs">[ ENROLLED ]</span>{/if}
+			</div>
+			<p class="text-gray-600 text-xs my-1">
+				{#if (data?.deviceSlotCount ?? 0) > 0}
+					Each enrolled device can unlock alone-with-password (2-of-2). A spare protects against losing your primary device.
+				{:else}
+					Enrolls your device as wrap slot 2 — unlock then requires password + device.
+				{/if}
+			</p>
+			{#if deviceError}
+				<p class="text-red-700 text-xs font-bold my-1">{deviceError}</p>
+			{/if}
+			{#if deviceDone && !deviceError}
+				<p class="text-green-700 text-xs font-bold my-1">
+					Device slot enrolled — unlock now requires password + device.
+				</p>
+			{/if}
+		</div>
+
+		<form method="POST" action="?/toggleDeviceEnrollment" class="mb-2">
+			{#if data?.deviceSlotCount > 0}
+				<label class="flex items-start gap-2 my-2 cursor-pointer text-sm">
+					<input type="checkbox" bind:checked={confirmDeviceDisable} class="mt-1" />
+					<span>
+						Turn OFF device unlock for this account. All {data?.deviceSlotCount}
+						enrolled device slot(s) will be revoked (data is NOT re-encrypted) and
+						unlock returns to password-only (L1).
+					</span>
+				</label>
+				<input type="hidden" name="enabled" value="false" />
+				<button type="submit" disabled={!confirmDeviceDisable} class="bracket-link">
+					Turn off device unlock
+				</button>
+			{:else}
+				<input type="hidden" name="enabled" value="false" />
+				<button type="submit" class="bracket-link">Turn off device unlock</button>
+			{/if}
+		</form>
+	{:else}
+		<div class="border border-black border-l-4 p-2 mb-2 bg-gray-50">
+			<span class="font-bold">[ DEVICE UNLOCK: OFF (per account) ]</span>
+			<span class="text-gray-600 text-xs block mt-1">
+				Password-only unlock (L1) for this account. Enabling reveals device
+				enrollment (phone/hardware key as wrap slot 2 — screen lock/UV required
+				at unlock, 2-of-2).
+			</span>
+			{#if data?.deviceEnrollmentGlobalKill}
+				<span class="text-amber-700 text-xs block mt-1">
+					[!] Globally disabled pending live PRF/UV verification — set
+					<code>WEBAUTHN_PRF_ENABLED=true</code> to allow enabling.
+				</span>
+			{/if}
+			<form method="POST" action="?/toggleDeviceEnrollment" class="mt-2">
+				<input type="hidden" name="enabled" value="true" />
+				<button type="submit" class="bracket-link" disabled={data?.deviceEnrollmentGlobalKill}>
+					Enable device unlock for this account
+				</button>
+			</form>
 		</div>
 	{/if}
 
 	<table class="w-full text-sm border border-black">
 		<thead>
-			<tr class="bg-black text-white">
-				<th class="p-1 text-left">SLOT</th>
-				<th class="p-1 text-left">ENROLLED</th>
-				<th class="p-1 text-left">NOTES</th>
-				<th class="p-1 text-right">ACTION</th>
+			<tr class="border-b border-black">
+				<th class="p-1 text-left uppercase text-[10px]">Slot</th>
+				<th class="p-1 text-left uppercase text-[10px]">Enrolled</th>
+				<th class="p-1 text-left uppercase text-[10px]">Notes</th>
+				<th class="p-1 text-right uppercase text-[10px]">Action</th>
 			</tr>
 		</thead>
 		<tbody>

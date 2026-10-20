@@ -7,6 +7,7 @@ import { normalizePassphrase } from "$lib/server/crypto/diceware";
 import {
 	enrollRecoverySlot,
 	getActiveSlots,
+	revokeSlot,
 	rewrapPasswordSlot,
 	unwrapRecoverySlot,
 } from "$lib/server/crypto/enroll";
@@ -35,6 +36,19 @@ import type { Actions, PageServerLoad } from "./$types";
 
 const RECOVERY_COOKIE = "recovery-enroll-user";
 
+/**
+ * One-shot passphrase display. The enroll action stores the generated
+ * passphrase here under a random token and redirects to `?show=<token>`;
+ * the load pops it exactly once. This avoids the SvelteKit action-rerun
+ * trap where load's "already enrolled → redirect" guard fires immediately
+ * after a successful enrollment and discards the one-time display.
+ */
+const pendingShows = new Map<
+	string,
+	{ userId: number; passphrase: string; expiresAt: number }
+>();
+const SHOW_TTL_MS = 5 * 60 * 1000;
+
 async function userById(id: number) {
 	const user = await db.query.users.findFirst({
 		where: eq(users.id, id),
@@ -62,6 +76,23 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 
 	const user = await userById(candidateId);
 	if (!user) throw redirect(302, "/login");
+
+	// One-time display of a freshly generated passphrase (?show=<token>):
+	// pop it BEFORE the enrolled-state guards below can redirect. A refresh
+	// re-enters load without a valid token → normal guards apply (the
+	// passphrase is gone by design — shown exactly once).
+	const showToken = url.searchParams.get("show");
+	if (showToken) {
+		const entry = pendingShows.get(showToken);
+		if (entry && entry.userId === candidateId && entry.expiresAt > Date.now()) {
+			pendingShows.delete(showToken);
+			return {
+				mode,
+				username: user.username,
+				passphrase: entry.passphrase,
+			};
+		}
+	}
 
 	const [passwordSlots, recoverySlots] = await Promise.all([
 		getActiveSlots(db, user.id, "password"),
@@ -127,8 +158,26 @@ export const actions: Actions = {
 			logInfo("recovery-enroll", "Recovery paper enrolled (shown once)", {
 				userId: user.id,
 			});
-			return { success: true, passphrase };
+			// One-shot display: redirect to ?show=<token> — returning the
+			// passphrase from the action would be discarded when load's
+			// "already enrolled" guard reruns and redirects.
+			const { randomBytes } = await import("node:crypto");
+			const token = randomBytes(24).toString("hex");
+			pendingShows.set(token, {
+				userId: user.id,
+				passphrase,
+				expiresAt: Date.now() + SHOW_TTL_MS,
+			});
+			throw redirect(302, `/recovery-enroll?show=${token}`);
 		} catch (error) {
+			if (
+				error &&
+				typeof error === "object" &&
+				"status" in error &&
+				error.status === 302
+			) {
+				throw error;
+			}
 			logError("recovery-enroll", "Recovery enrollment failed", {
 				userId: user.id,
 				message: error instanceof Error ? error.message : String(error),
@@ -229,6 +278,14 @@ export const actions: Actions = {
 				.where(eq(users.id, user.id));
 
 			clearRecoveryInitiated(user.id);
+
+			// Device slots cannot be re-wrapped server-side (their wrapping
+			// key never leaves the device) — revoke them so recovery lands
+			// the account at L1; settings then prompts fresh enrollment.
+			const deviceSlots = await getActiveSlots(db, user.id, "webauthn-prf");
+			for (const slot of deviceSlots) {
+				await revokeSlot(db, user.id, slot.slotId);
+			}
 
 			// Single-session policy: force everyone through the new password
 			await db.delete(sessions).where(eq(sessions.userId, user.id));

@@ -33,6 +33,7 @@ export async function ensureAdminUser(db: DB): Promise<number> {
 			passwordSalt,
 			taxBand: "basic",
 			inactivityTimeout: 5,
+			deviceEnrollmentEnabled: false, // L1 by default; enable per account in settings/security
 			createdAt: new Date(),
 			updatedAt: new Date(),
 		})

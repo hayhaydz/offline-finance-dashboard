@@ -387,6 +387,8 @@ export const TABLE_RULES: Record<string, TableRule> = {
 			mfaSetupToken: "secret",
 			taxBand: "skip",
 			inactivityTimeout: "skip",
+			// Per-account L2 switch — structural boolean, not identity data
+			deviceEnrollmentEnabled: "skip",
 			createdAt: "ts",
 			updatedAt: "ts",
 		},

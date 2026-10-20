@@ -68,6 +68,7 @@ vi.mock("$lib/security/rate-limiter", () => ({
 vi.mock("$lib/server/crypto/enroll", () => ({
 	hasEnvelope: vi.fn(() => Promise.resolve(true)),
 	unwrapPasswordSlot: vi.fn(() => Promise.resolve(Buffer.alloc(32, 5))),
+	countActiveSlots: vi.fn(() => Promise.resolve(0)),
 }));
 
 vi.mock("$lib/server/crypto/keyring", () => ({

@@ -41,8 +41,13 @@ maps to a test, a code location, or a documented decision.
 
 ## Notes
 
-- L2 controls (WebAuthn UV enforcement, PRF capability proof, AAGUID
-  handling) map in `docs/security/` when the 6.0 approval gate clears and
-  tasks 6.1–6.4 land, including the live-test record (6.4).
+- L2 (implemented, enrollment dark until live verification):
+  UV is enforced from the signed assertion (`requireUserVerification: true`
+  + `userVerified` check — `tests/unit/webauthn-ceremony.test.ts`), PRF
+  capability is probed before any slot is written, credentials are stored
+  per-slot (id/public key/counter) with counter updates for replay
+  protection, and 2-of-2 unwrap agreement is enforced at the action level
+  (`tests/integration/unlock-ceremony.test.ts`). The live phone
+  verification record lives in `.docs/notes/2026-10-20/` (task 6.4).
 - Full test suite: `npm run check` + `npm test` green at time of writing
   (664 tests, including 34 envelope/keyring/lifecycle-specific ones).

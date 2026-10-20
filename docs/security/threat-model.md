@@ -1,6 +1,6 @@
 # Threat Model — Envelope Encryption Keyring
 
-Change: `openspec/changes/envelope-encryption-keyring` (L1 shipped; L2 WebAuthn PRF pending approval gate 6.0).
+Change: `openspec/changes/envelope-encryption-keyring` (L1 shipped; L2 WebAuthn PRF implemented — enrollment dark pending the owner's live phone verification, task 6.4).
 
 ## The asset and the requirement
 
@@ -91,6 +91,11 @@ code only orchestrates.
   they feed SQL `SUM` aggregation across the codebase, which column
   encryption cannot support; extending coverage is DataKey-stable (a later
   change re-wraps nothing).
+- **PRF output transport**: the device step's PRF output travels to the
+  server in the ceremony POST over plain HTTP (localhost, no TLS by
+  design) — same exposure class as the password on this single-machine
+  app; the hot-tier ceiling note covers it. UV is enforced from the SIGNED
+  assertion flags, not the client-reported PRF bytes.
 - **Slot table as denial target**: deleting all slots = lockout (availability
   risk), never a confidentiality breach. Backing up the keyring rows is safe
   by construction.

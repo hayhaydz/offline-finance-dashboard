@@ -18,6 +18,7 @@ const mockUser1: User = {
 	mfaSetupToken: null,
 	taxBand: "basic",
 	inactivityTimeout: 5,
+	deviceEnrollmentEnabled: false,
 	createdAt: new Date(),
 	updatedAt: new Date(),
 };

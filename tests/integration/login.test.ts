@@ -45,6 +45,7 @@ vi.mock("$lib/security/rate-limiter", () => ({
 vi.mock("$lib/server/crypto/enroll", () => ({
 	hasEnvelope: vi.fn(() => Promise.resolve(true)),
 	unwrapPasswordSlot: vi.fn(() => Promise.resolve(Buffer.alloc(32, 7))),
+	countActiveSlots: vi.fn(() => Promise.resolve(0)),
 }));
 
 vi.mock("$lib/server/crypto/keyring", () => ({
@@ -230,6 +231,42 @@ describe("Login Action Integration (L1 unlock ceremony)", () => {
 		expect(result.status).toBe(401);
 		expect(result.data.error).toBe("Invalid credentials");
 		expect(keyring.unlockKeyring).not.toHaveBeenCalled();
+	});
+
+	it("L2: device-enrolled users are routed to /unlock — password alone does not unlock", async () => {
+		(db.query.users.findFirst as any).mockResolvedValue(mockUser);
+		(password.verifyPassword as any).mockResolvedValue(true);
+		(enroll.countActiveSlots as any).mockResolvedValue(1); // device slot enrolled
+
+		const formData = new FormData();
+		formData.append("username", "testuser");
+		formData.append("password", "Password123!");
+
+		const request = new Request("http://localhost/login", {
+			method: "POST",
+			body: formData,
+		});
+
+		try {
+			await (actions.default as any)({
+				request,
+				cookies: mockCookies,
+				url: new URL("http://localhost/login?redirectTo=%2Faccounts"),
+			});
+			expect.fail("Action should have thrown a redirect");
+		} catch (e: any) {
+			if (e.status === 302) {
+				const loc = new URL(e.location, "http://localhost");
+				expect(loc.pathname).toBe("/unlock");
+				expect(loc.searchParams.get("device")).toBe("1");
+				expect(loc.searchParams.get("redirectTo")).toBe("/accounts");
+				// Keyring NOT unlocked — the ceremony must complete the device step
+				expect(keyring.unlockKeyring).not.toHaveBeenCalled();
+				expect(enroll.unwrapPasswordSlot).not.toHaveBeenCalled();
+			} else {
+				throw e;
+			}
+		}
 	});
 
 	it("should fail if account is locked", async () => {

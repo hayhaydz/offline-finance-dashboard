@@ -13,6 +13,11 @@ import { EnvelopeError } from "$lib/server/crypto/envelope";
 import { requireDataKey } from "$lib/server/crypto/keyring";
 import { rotateUserEnvelope } from "$lib/server/crypto/migrate-envelope";
 import {
+	getDeviceSlots,
+	isDeviceEnrollmentEnabled,
+	isDeviceEnrollmentEnabledForUser,
+} from "$lib/server/crypto/webauthn";
+import {
 	devLog,
 	isVerboseDebug,
 	logError,
@@ -51,6 +56,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const dbUser = userData[0];
 	const deviceSlots = slots.filter((s) => s.kind === "webauthn-prf");
 	const recoverySlots = slots.filter((s) => s.kind === "recovery-passphrase");
+	const deviceEnrollmentEnabledForUser = await isDeviceEnrollmentEnabledForUser(
+		db,
+		user.id,
+	);
 
 	return {
 		user: {
@@ -66,7 +75,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 		deviceSlotCount: deviceSlots.length,
 		recoveryEnrolled: recoverySlots.length > 0,
 		promptSpareDevice: deviceSlots.length === 1,
-		deviceEnrollmentAvailable: false, // L2 — enabled with WebAuthn PRF
+		deviceEnrollmentEnabled: deviceEnrollmentEnabledForUser,
+		deviceEnrollmentGlobalKill: !isDeviceEnrollmentEnabled(),
 		inactivityTimeout: dbUser?.inactivityTimeout ?? 5,
 		accountCreated: dbUser?.createdAt?.toISOString() ?? null,
 	};
@@ -315,6 +325,56 @@ export const actions: Actions = {
 			logError("settings-security", "DataKey rotation failed", error);
 			return fail(500, { error: "DataKey rotation failed" });
 		}
+	},
+
+	/**
+	 * Per-account L2 switch. ON: reveals + permits device enrollment for
+	 * this account. OFF: revokes every enrolled device slot (spec
+	 * unlock-ceremony: disabling the device requirement revokes the slot
+	 * explicitly, behind a full unlock) — data is never re-encrypted
+	 * (slot tier). Enforcement is never gated by this flag directly: with
+	 * zero enrolled slots the account is simply L1 again.
+	 */
+	toggleDeviceEnrollment: async ({ request, locals }) => {
+		const user = getAuthUser(locals);
+		if (!user) {
+			return fail(401, { error: "Authentication required" });
+		}
+		if (!requireFullUnlock(user.id)) {
+			return fail(403, { error: "Keyring is sealed — unlock first" });
+		}
+
+		const formData = await request.formData();
+		const enable = formData.get("enabled") === "true";
+
+		if (enable && !isDeviceEnrollmentEnabled()) {
+			return fail(400, {
+				error:
+					"Device enrollment is globally disabled (pending live verification — set WEBAUTHN_PRF_ENABLED=true)",
+			});
+		}
+
+		let revokedCount = 0;
+		if (!enable) {
+			const deviceSlots = await getDeviceSlots(db, user.id);
+			for (const slot of deviceSlots) {
+				if (await revokeSlot(db, user.id, slot.slotId)) {
+					revokedCount++;
+				}
+			}
+		}
+
+		await db
+			.update(users)
+			.set({ deviceEnrollmentEnabled: enable, updatedAt: new Date() })
+			.where(eq(users.id, user.id));
+
+		return {
+			success: true,
+			message: enable
+				? "Device enrollment enabled — enroll a device below."
+				: `Device enrollment disabled${revokedCount > 0 ? ` and ${revokedCount} device slot(s) revoked` : ""}. Password-only unlock (L1) is active for this account.`,
+		};
 	},
 
 	// Seal deadline (inactivity timeout) — unchanged semantics.

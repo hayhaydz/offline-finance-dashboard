@@ -39,11 +39,11 @@
 
 ## 6. L2 WebAuthn device slot
 
-- [ ] 6.0 Approval gate: user explicitly approves `package.json` additions `@simplewebauthn/server` + `@simplewebauthn/browser` (LOCKED file) — do not install before sign-off
-- [ ] 6.1 PRF enrollment flow at RP ID `localhost`: `create()` with PRF extension, capability probe (refuse non-PRF authenticators with no slot written), wrap DataKey copy with PRF output, persist `webauthn-prf` slot + credential record
-- [ ] 6.2 Device step in unlock ceremony: `get()` with `userVerification: "required"`, server verifies signed `UV=true`, rejects otherwise; PRF output re-derives slot unwrap
-- [ ] 6.3 Enforce device-mandatory-once-enrolled in the unlock path; explicit guarded settings action to revoke the device slot (requires full unlock)
-- [ ] 6.4 Live test on owner's actual phone + Chrome over USB at localhost before enabling; document observed PRF/UV behavior in `.docs/`
+- [x] 6.0 Approval gate: user explicitly approves `package.json` additions `@simplewebauthn/server` + `@simplewebauthn/browser` (LOCKED file) — do not install before sign-off
+- [x] 6.1 PRF enrollment flow at RP ID `localhost`: `create()` with PRF extension, capability probe (refuse non-PRF authenticators with no slot written), wrap DataKey copy with PRF output, persist `webauthn-prf` slot + credential record
+- [x] 6.2 Device step in unlock ceremony: `get()` with `userVerification: "required"`, server verifies signed `UV=true`, rejects otherwise; PRF output re-derives slot unwrap
+- [x] 6.3 Enforce device-mandatory-once-enrolled in the unlock path; explicit guarded settings action to revoke the device slot (requires full unlock)
+- [x] 6.4 Live test on owner's actual phone + Chrome over USB at localhost before enabling; document observed PRF/UV behavior in `.docs/` (see `.docs/reviews/2026-10-20-2205-prf-live-verification.md`)
 
 ## 7. Verification & documentation
 

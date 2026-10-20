@@ -21,6 +21,15 @@ export const users = sqliteTable("users", {
 		.notNull()
 		.default("basic"), // UK Personal Savings Allowance tier
 	inactivityTimeout: integer("inactivity_timeout").default(5), // Minutes of inactivity before session expiry
+	// L2 per-account device-slot (WebAuthn PRF) enrollment switch. Gates NEW
+	// enrollment for THIS account only — enforcement for already-enrolled
+	// slots is never gated (turning this off revokes the device slots via a
+	// full-unlock-guarded settings action, per spec unlock-ceremony).
+	deviceEnrollmentEnabled: integer("device_enrollment_enabled", {
+		mode: "boolean",
+	})
+		.notNull()
+		.default(false),
 	createdAt: integer("created_at", { mode: "timestamp" })
 		.notNull()
 		.default(sql`CURRENT_TIMESTAMP`),

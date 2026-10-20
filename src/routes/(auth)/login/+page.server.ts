@@ -10,7 +10,11 @@ import {
 	recordFailedAttempt,
 	recordSuccessfulAttempt,
 } from "$lib/security/rate-limiter";
-import { hasEnvelope, unwrapPasswordSlot } from "$lib/server/crypto/enroll";
+import {
+	countActiveSlots,
+	hasEnvelope,
+	unwrapPasswordSlot,
+} from "$lib/server/crypto/enroll";
 import { EnvelopeError } from "$lib/server/crypto/envelope";
 import { unlockKeyring } from "$lib/server/crypto/keyring";
 import {
@@ -71,11 +75,19 @@ export async function load({ cookies }) {
 		});
 
 		// Dev convenience that exercises the REAL unwrap path: unlock with the
-		// seeded password. On any unwrap failure the app stays sealed and the
+		// seeded password. Device-enrolled users are exempt (device step is
+		// mandatory) and any unwrap failure leaves the app sealed — the
 		// /unlock ceremony takes over (hooks seal guard).
 		try {
-			const dataKey = await unwrapPasswordSlot(db, adminUser, "password");
-			unlockKeyring(adminUser.id, dataKey);
+			const deviceSlots = await countActiveSlots(
+				db,
+				adminUser.id,
+				"webauthn-prf",
+			);
+			if (deviceSlots === 0) {
+				const dataKey = await unwrapPasswordSlot(db, adminUser, "password");
+				unlockKeyring(adminUser.id, dataKey);
+			}
 		} catch (error) {
 			logError("login", "Dev auto-login could not unlock keyring", {
 				code: error instanceof EnvelopeError ? error.code : "unknown",
@@ -205,6 +217,20 @@ export const actions = {
 				userId: user.id,
 			});
 			throw redirect(302, "/migrate");
+		}
+
+		// L2 (task 6.3): an enrolled device slot makes the device step
+		// mandatory — the password alone must not assemble the DataKey. The
+		// keyring stays sealed; the ceremony completes at /unlock.
+		const deviceSlots = await countActiveSlots(db, user.id, "webauthn-prf");
+		if (deviceSlots > 0) {
+			devLog("login", "Device step required — routing to unlock ceremony", {
+				userId: user.id,
+			});
+			const redirectTo = sanitizeRedirectTo(url.searchParams.get("redirectTo"));
+			const params = new URLSearchParams({ reason: "sealed", device: "1" });
+			if (redirectTo) params.set("redirectTo", redirectTo);
+			throw redirect(302, `/unlock?${params.toString()}`);
 		}
 
 		try {

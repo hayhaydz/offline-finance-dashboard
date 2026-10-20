@@ -46,6 +46,30 @@ construct one from disk. Consequences for dev sessions:
   (one-shot, atomic: envelope creation + column encryption + mandatory
   recovery enrollment in the same session).
 
+### L2 — WebAuthn PRF device slot
+
+- Enrollment gates are TWO: the per-account switch
+  (`users.deviceEnrollmentEnabled`, settings/security — the primary control)
+  and the global env kill switch (`WEBAUTHN_PRF_ENABLED=true` in `.env`;
+  ships dark pending the owner's live phone test —
+  `.docs/notes/2026-10-20/00-l2-webauthn-prf-live-test-checklist.md`).
+  Turning the account switch OFF revokes its device slots (slot tier, no
+  data rewrite) — the account returns to L1 password-only unlock.
+- Once a device slot exists it is **mandatory**: login routes to `/unlock`,
+  which requires password + device assertion (`UV=true`) whose PRF output
+  unwraps the SAME DataKey (2-of-2). Recovery paper stays single-factor.
+- RP ID is `localhost` — browse via `http://localhost:5173`, never
+  `127.0.0.1` (different WebAuthn site). Accepted origins configurable via
+  `WEBAUTHN_EXPECTED_ORIGINS`.
+- Ceremony endpoints: `POST /settings/security/device/{start,verify}` (full
+  unlock required), `POST /unlock/device-options` (challenge + options +
+  PRF salt; client injects the `prf` extension — BufferSource can't cross
+  JSON).
+- Device loss: revoke the slot in settings (slot tier — no data rewrite);
+  recovery via paper revokes device slots and lands the account at L1.
+- DataKey rotation revokes device slots (their wrap keys never leave the
+  devices) — re-enroll after any full rotation.
+
 ## 2. Reset scratch data (one command)
 
 ```bash

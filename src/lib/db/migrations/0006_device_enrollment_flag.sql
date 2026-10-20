@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `device_enrollment_enabled` integer DEFAULT false NOT NULL;

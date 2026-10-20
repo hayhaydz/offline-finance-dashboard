@@ -101,7 +101,7 @@
 			</button>
 		</div>
 	</form>
-{:else if form?.passphrase}
+{:else if data?.passphrase}
 	<div class="border-b border-black p-2">
 		<h1 class="text-lg font-bold mb-2 mt-0">RECOVERY PASSPHRASE — WRITE IT DOWN NOW</h1>
 		<p class="text-red-700 font-bold my-1">
@@ -110,7 +110,7 @@
 	</div>
 
 	<div class="border-2 border-black p-3 my-2 bg-white font-mono text-lg tracking-wide break-words">
-		{form.passphrase}
+		{data.passphrase}
 	</div>
 
 	<div class="border border-red-700 border-l-4 p-2 mb-2 bg-red-50">
