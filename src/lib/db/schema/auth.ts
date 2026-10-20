@@ -73,6 +73,52 @@ export const backupCodes = sqliteTable(
 	}),
 );
 
+/**
+ * Envelope keyring (openspec/changes/envelope-encryption-keyring).
+ *
+ * Each credential (password, WebAuthn PRF, recovery passphrase, future
+ * kinds) wraps an independent copy of the user's DataKey:
+ *   wrappedKey/iv = AES-256-GCM(credential_key, DataKey, AAD=kind|userId|slotId)
+ *
+ * Adding/rotating/revoking a credential only adds/rewrites/removes its row —
+ * user data is never re-encrypted by credential changes. Future slot kinds
+ * (L3 Android app share, L4 hardware key) are new `kind` values, not schema
+ * changes. The slot table alone is useless without its off-disk secrets —
+ * backing it up is an availability aid, never a confidentiality risk.
+ */
+export const credentialSlots = sqliteTable(
+	"credential_slots",
+	{
+		id: integer("id").primaryKey({ autoIncrement: true }),
+		slotId: text("slot_id").notNull().unique(), // CSPRNG hex — AAD binding + revocation reference (never URL-exposed)
+		userId: integer("user_id")
+			.notNull()
+			.references(() => users.id),
+		kind: text("kind", {
+			enum: ["password", "webauthn-prf", "recovery-passphrase"],
+		}).notNull(),
+		wrappedKey: text("wrapped_key").notNull(), // Hex ciphertext + GCM tag
+		iv: text("iv").notNull(), // Hex 12-byte GCM IV
+		// Kind-specific credential metadata (JSON): salt (recovery/PRF),
+		// label, webauthn credential id / public key, device name.
+		metadata: text("metadata", { mode: "json" })
+			.$type<Record<string, unknown>>()
+			.notNull()
+			.default(sql`'{}'`),
+		createdAt: integer("created_at", { mode: "timestamp" })
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+		revokedAt: integer("revoked_at", { mode: "timestamp" }), // NULL = active
+	},
+	(table) => ({
+		userKindIdx: index("idx_credential_slots_user_kind").on(
+			table.userId,
+			table.kind,
+			table.revokedAt,
+		),
+	}),
+);
+
 export const loginAttempts = sqliteTable(
 	"login_attempts",
 	{
@@ -97,6 +143,7 @@ export const loginAttempts = sqliteTable(
 export const usersRelations = relations(users, ({ many }) => ({
 	sessions: many(sessions),
 	backupCodes: many(backupCodes),
+	credentialSlots: many(credentialSlots),
 	accounts: many(accounts),
 	goals: many(goals),
 	snapshots: many(snapshots),
@@ -119,6 +166,17 @@ export const backupCodesRelations = relations(backupCodes, ({ one }) => ({
 	}),
 }));
 
+export const credentialSlotsRelations = relations(
+	credentialSlots,
+	({ one }) => ({
+		user: one(users, {
+			fields: [credentialSlots.userId],
+			references: [users.id],
+		}),
+	}),
+);
+
 export type User = typeof users.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
 export type BackupCode = typeof backupCodes.$inferSelect;
+export type CredentialSlot = typeof credentialSlots.$inferSelect;

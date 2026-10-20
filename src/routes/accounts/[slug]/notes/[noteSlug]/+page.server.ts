@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accountNotes, accounts } from "$lib/db/schema";
+import { decryptNoteContent } from "$lib/server/crypto/protected-fields";
 import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 import { requireAuth } from "$lib/server/utils/auth-guard";
 import type { PageServerLoad } from "./$types";
@@ -62,9 +63,15 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		});
 	}
 
+	// Value layer: decrypt note content under the user's DataKey
+	const decryptedNote = {
+		...note,
+		content: decryptNoteContent(user.id, note.slug, note.content),
+	};
+
 	return {
 		account,
-		note,
+		note: decryptedNote,
 		breadcrumbOverrides: [
 			{ segmentIndex: 1, label: account.name, skipLink: false },
 			{ segmentIndex: 3, label: "Notes", skipLink: true },

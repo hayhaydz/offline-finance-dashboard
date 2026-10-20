@@ -2,6 +2,10 @@ import { desc, eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { accountNotes } from "$lib/db/schema";
+import {
+	decryptNoteContent,
+	encryptNoteContent,
+} from "$lib/server/crypto/protected-fields";
 import { logInfo } from "$lib/server/logger";
 import { err, ok, type Result } from "$lib/server/utils/result";
 import { FIELD_LIMITS } from "$lib/utils/fieldLimits";
@@ -10,6 +14,7 @@ import { sanitizeNoteContent } from "$lib/utils/sanitize";
 export interface CreateNoteData {
 	accountId: number;
 	content: string;
+	userId: number;
 }
 
 export async function createNote(
@@ -32,7 +37,9 @@ export async function createNote(
 	await db.insert(accountNotes).values({
 		slug,
 		accountId: data.accountId,
-		content: sanitizedContent,
+		// Value layer: note body encrypted under the user's DataKey,
+		// AAD-bound to this note's slug.
+		content: encryptNoteContent(data.userId, slug, sanitizedContent),
 		createdAt: new Date(),
 	});
 
@@ -45,21 +52,28 @@ export async function createNote(
 	return ok(slug);
 }
 
-export async function getNotesByAccountId(accountId: number) {
+export async function getNotesByAccountId(accountId: number, userId: number) {
 	const notes = await db.query.accountNotes.findMany({
 		where: eq(accountNotes.accountId, accountId),
 		orderBy: desc(accountNotes.createdAt),
 	});
 
-	return notes;
+	return notes.map((note) => ({
+		...note,
+		content: decryptNoteContent(userId, note.slug, note.content),
+	}));
 }
 
-export async function getNoteBySlug(slug: string) {
+export async function getNoteBySlug(slug: string, userId: number) {
 	const note = await db.query.accountNotes.findFirst({
 		where: eq(accountNotes.slug, slug),
 	});
 
-	return note ?? null;
+	if (!note) return null;
+	return {
+		...note,
+		content: decryptNoteContent(userId, note.slug, note.content),
+	};
 }
 
 export async function deleteNote(slug: string): Promise<void> {

@@ -354,6 +354,7 @@ type ColKind =
 	| "tax-year" // "YYYY/YY" → shift + snap to containing UK tax year
 	| "amount" // integer cents / basis points → ±5% jitter
 	| "name" // identity text: memoised seeded rename (shared across tables + JSON)
+	| "protected-text" // value-layer ciphertext (v1|…) kept verbatim (opaque, PII-free); legacy plaintext → seeded rename
 	| "username" // memoised seeded username, unique
 	| "slug" // 21-char seeded nanoid-alphabet regeneration (memoised)
 	| "token" // deterministic fake opaque token
@@ -410,6 +411,24 @@ export const TABLE_RULES: Record<string, TableRule> = {
 			createdAt: "ts",
 		},
 	},
+	// Envelope keyring (task 5.2): wrapped slots contain no PII — just an
+	// AES-GCM-wrapped random key. Structure preserved so anonymised fixtures
+	// exercise the real (sealed) path; wrapped material is NOT valid without
+	// the credential secrets, by construction.
+	credentialSlots: {
+		pk: "id",
+		columns: {
+			id: "skip",
+			slotId: "token",
+			userId: "skip",
+			kind: "skip",
+			wrappedKey: "secret",
+			iv: "secret",
+			metadata: "json",
+			createdAt: "ts",
+			revokedAt: "ts",
+		},
+	},
 	loginAttempts: {
 		pk: "username",
 		columns: {
@@ -454,7 +473,7 @@ export const TABLE_RULES: Record<string, TableRule> = {
 			type: "skip",
 			amount: "amount",
 			categoryId: "skip",
-			description: "name",
+			description: "protected-text",
 			transactionDate: "ts",
 			createdAt: "ts",
 		},
@@ -475,7 +494,7 @@ export const TABLE_RULES: Record<string, TableRule> = {
 			id: "skip",
 			slug: "slug",
 			accountId: "skip",
-			content: "name",
+			content: "protected-text",
 			createdAt: "ts",
 		},
 	},
@@ -611,7 +630,7 @@ export const TABLE_RULES: Record<string, TableRule> = {
 			userId: "skip",
 			yearMonth: "year-month",
 			completedItems: "json",
-			notes: "name",
+			notes: "protected-text",
 			createdAt: "ts",
 			updatedAt: "ts",
 		},
@@ -942,6 +961,17 @@ export async function runAnonymise(
 									next = fakeText(value, seed, textMemo, "name");
 								}
 								break;
+							case "protected-text":
+								// Value-layer ciphertext is opaque without the user's
+								// DataKey (no PII) — keep the encrypted format verbatim
+								// so fixtures exercise the real decrypt path. Legacy
+								// plaintext rows (pre-migration) get the seeded rename.
+								if (typeof value === "string") {
+									next = value.startsWith("v1|")
+										? value
+										: fakeText(value, seed, textMemo, "name");
+								}
+								break;
 							case "username": {
 								if (typeof value === "string") {
 									next = fakeUsername(value, seed, usernameMemo, usernameUsed);
@@ -977,6 +1007,8 @@ export async function runAnonymise(
 									next = seededToken(seed, "salt");
 								} else if (col === "mfa_setup_token") next = null;
 								else if (col === "code") next = "ANONYMISED";
+								else if (col === "wrapped_key" || col === "iv")
+									next = seededToken(seed, String(value ?? ""));
 								break;
 							}
 							case "json": {

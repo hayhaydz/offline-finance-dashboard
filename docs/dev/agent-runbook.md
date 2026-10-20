@@ -15,11 +15,36 @@ Requires Node + npm install already done (`npm install`).
 
 - `APP_ENV` must be `development` (it is, via `.env`).
 - `DEV_AUTO_LOGIN=true` in `.env` makes `/login` auto-authenticate as the
-  seeded `admin` user — no TOTP dance needed for agent sessions.
+  seeded `admin` user **and unlock the envelope keyring with the seeded
+  password** — no ceremony needed for agent sessions.
 - Production build sanity: `npm run build && npm run preview` (port 4173).
 
 **Agents: use plain mode.** Encrypted mode exists to test the encryption
 code paths themselves.
+
+### Sealed boot & the unlock requirement (envelope keyring)
+
+Every server boot starts **SEALED**: no data key in memory, and no way to
+construct one from disk. Consequences for dev sessions:
+
+- Logged in but hitting data routes → redirected to `/unlock?reason=sealed`
+  (password step re-derives the DataKey). Fresh restart mid-session is the
+  usual cause.
+- Data access while sealed throws `SealedError`
+  (`src/lib/server/crypto/keyring.ts`); hooks route pages to `/unlock`,
+  APIs get `401 {"error":"sealed"}`.
+- **Seeding creates a real envelope**: the admin user gets a password slot
+  + recovery paper slot; the seed prints the recovery passphrase ONCE.
+- **Tests that write protected columns** (descriptions/notes) must unlock
+  the keyring first: `unlockKeyring(userId, generateDataKey())` in setup
+  (see `src/lib/server/notes.test.ts` for the pattern).
+- **Loose mode rules**: plaintext dev DB is constructible in development
+  ONLY. Production boot refuses a missing `ENCRYPTION_KEY` and any
+  `PLAIN:`-prefixed secret path. Never add a code path that could produce
+  loose mode under `APP_ENV=production`.
+- Legacy (pre-envelope) databases: first login routes to `/migrate`
+  (one-shot, atomic: envelope creation + column encryption + mandatory
+  recovery enrollment in the same session).
 
 ## 2. Reset scratch data (one command)
 
@@ -40,7 +65,9 @@ for edge-case / volume seeds. See `scripts/reset.ts`.
 ## 3. Scratch credentials & data inventory (standard seed)
 
 - **Login:** `admin` / `password` (or just visit `/login` with
-  `DEV_AUTO_LOGIN=true`). MFA is seeded but auto-login bypasses it.
+  `DEV_AUTO_LOGIN=true` — auto-login also unlocks the keyring). MFA/TOTP is
+  GONE (envelope keyring replaced it); the envelope keyring is seeded with
+  the password slot + recovery paper (passphrase printed once by the seed).
 - **Accounts (16):** Main Current, Bills Current, Emergency Fund, ISA Saver,
   Stocks & Shares ISA, Visa Gold, Mastercard, Tesco Car Loan, 1-Year Fixed
   Bond, 2-Year Fixed Rate Bond, 5-Year Growth Bond, Rewards Card, Car Loan,
@@ -114,6 +141,15 @@ What it does (see `scripts/anonymise.ts` for the full contract):
 - **Auth:** usernames faked, passwords reset to `password` (argon2,
   fixed salt), TOTP replaced with a documented dummy secret, session
   tokens regenerated. The printed summary lists the fake login username.
+- **Envelope keyring:** `credential_slots` rows keep their structure with
+  re-generated opaque wrapped material (slot copies are useless without
+  the credential secrets by construction); value-layer ciphertext
+  (`v1|…`) passes through VERBATIM — it is opaque without the DataKey, so
+  anonymised fixtures still exercise the real (sealed) path. Legacy
+  plaintext protected columns get the seeded rename.
+  Note: an anonymised copy's keyring cannot be unlocked with `password`
+  (wrapped material is regenerated) — boot it sealed or insert a fresh
+  envelope for the fake user if data work is needed.
 - **Determinism:** same source + same seed → identical output.
 - **Refusals:** aborts if source/out resolves to a configured live DB or
   anything under `storage/`; aborts naming any schema table/column with

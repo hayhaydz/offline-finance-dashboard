@@ -5,7 +5,10 @@ import { accounts } from "$lib/db/schema";
 import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
 import { getCurrentRate } from "$lib/server/rate-helpers";
 import { requireAuth } from "$lib/server/utils/auth-guard";
-import { calculateTTZ, getProjectionNullReason } from "$lib/utils/debt-calculator";
+import {
+	calculateTTZ,
+	getProjectionNullReason,
+} from "$lib/utils/debt-calculator";
 import type { PageServerLoad } from "./$types";
 
 function getDebtStatusLabel(ttz: {

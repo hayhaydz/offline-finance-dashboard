@@ -348,7 +348,9 @@ export async function checkOrphanedTransfers(userId: number): Promise<Alert[]> {
 				if (other.type !== "transfer_out") continue;
 				if (other.accountId === tx.accountId) continue;
 				if (Math.abs(other.amount) !== Math.abs(tx.amount)) continue;
-				const deltaMs = Math.abs(Number(other.transactionDate) * 1000 - txDateMs);
+				const deltaMs = Math.abs(
+					Number(other.transactionDate) * 1000 - txDateMs,
+				);
 				if (deltaMs > candidateWindowMs) continue;
 				if (deltaMs < bestDeltaMs) {
 					bestCandidate = other;

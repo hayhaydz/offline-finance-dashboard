@@ -9,18 +9,32 @@ describe("liabilities TTZ display", () => {
 		const result = calculateTTZ(0, 2290, { type: "flat", flat: 5000 });
 		expect(result.months).toBe(0);
 		expect(result.years).toBe(0);
-		expect(getProjectionNullReason(result.months, { type: "flat", flat: 5000 })).toBeNull();
+		expect(
+			getProjectionNullReason(result.months, { type: "flat", flat: 5000 }),
+		).toBeNull();
 	});
 
 	it("reports no_minimum_payment when projection is null and no rule is configured", () => {
 		expect(
-			getProjectionNullReason(null, { type: null, flat: null, percentage: null }),
+			getProjectionNullReason(null, {
+				type: null,
+				flat: null,
+				percentage: null,
+			}),
 		).toBe("no_minimum_payment");
 		expect(
-			getProjectionNullReason(null, { type: "flat", flat: null, percentage: null }),
+			getProjectionNullReason(null, {
+				type: "flat",
+				flat: null,
+				percentage: null,
+			}),
 		).toBe("no_minimum_payment");
 		expect(
-			getProjectionNullReason(null, { type: "percentage", flat: null, percentage: null }),
+			getProjectionNullReason(null, {
+				type: "percentage",
+				flat: null,
+				percentage: null,
+			}),
 		).toBe("no_minimum_payment");
 	});
 
@@ -32,7 +46,11 @@ describe("liabilities TTZ display", () => {
 			getProjectionNullReason(result.months, { type: "flat", flat: 100 }),
 		).toBe("payment_below_interest");
 		expect(
-			getProjectionNullReason(null, { type: "percentage", flat: null, percentage: 100 }),
+			getProjectionNullReason(null, {
+				type: "percentage",
+				flat: null,
+				percentage: 100,
+			}),
 		).toBe("payment_below_interest");
 	});
 

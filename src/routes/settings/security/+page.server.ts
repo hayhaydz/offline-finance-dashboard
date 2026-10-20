@@ -1,15 +1,17 @@
-import { fail, redirect } from "@sveltejs/kit";
+import { fail } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
-import {
-	decryptTOTPSecret,
-	generateBackupCodes,
-	verifyBackupCode,
-	verifyTOTP,
-} from "$lib/auth/mfa";
 import { hashPassword, verifyPassword } from "$lib/auth/password";
-import { LOGIN_ROUTE } from "$lib/constants/routes";
 import { db } from "$lib/db/client";
-import { backupCodes, sessions, users } from "$lib/db/schema";
+import { users } from "$lib/db/schema";
+import {
+	enrollRecoverySlot,
+	getActiveSlots,
+	revokeSlot,
+	rewrapPasswordSlot,
+} from "$lib/server/crypto/enroll";
+import { EnvelopeError } from "$lib/server/crypto/envelope";
+import { requireDataKey } from "$lib/server/crypto/keyring";
+import { rotateUserEnvelope } from "$lib/server/crypto/migrate-envelope";
 import {
 	devLog,
 	isVerboseDebug,
@@ -17,25 +19,28 @@ import {
 	logFormData,
 } from "$lib/server/logger";
 import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
-import { setFlash } from "$lib/server/utils/flash";
 import type { Actions, PageServerLoad } from "./$types";
+
+/**
+ * Security settings — keyring status (task 3.3). The 2FA section is gone:
+ * the envelope keyring IS the second-factor story now (custody, not codes).
+ *
+ * - Slot list with revocation (device loss = slot-tier, no data rewrite)
+ * - Spare-device prompt when exactly one device slot exists (task 4.3)
+ * - Recovery paper: never re-displayed; rotation issues a new one
+ * - Full DataKey rotation for paper compromise (task 4.4)
+ * - Password change: slot re-wrap only (task 3.5)
+ */
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const user = requireAuth(locals);
 
-	if (isVerboseDebug()) {
-		devLog("settings-security", "Security settings page loaded", {
-			username: user.username,
-			userId: user.id,
-		});
-	}
+	const slots = await getActiveSlots(db, user.id);
 
-	// Query user data for MFA status
 	const userData = await db
 		.select({
 			id: users.id,
 			username: users.username,
-			mfaSetupToken: users.mfaSetupToken,
 			createdAt: users.createdAt,
 			inactivityTimeout: users.inactivityTimeout,
 		})
@@ -44,353 +49,306 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.limit(1);
 
 	const dbUser = userData[0];
-
-	// MFA is enabled if mfaSetupToken is null (setup completed)
-	const mfaEnabled = dbUser?.mfaSetupToken === null;
-
-	// Query backup codes for the user to get counts
-	const backupCodesData = await db
-		.select({ used: backupCodes.used })
-		.from(backupCodes)
-		.where(eq(backupCodes.userId, user.id));
-
-	// Calculate backup code counts
-	const totalCodes = 10; // Always 10 backup codes
-	const usedCodes = backupCodesData.filter((code) => code.used).length;
-	const remainingCodes = totalCodes - usedCodes;
-
-	// MFA enabled date (when user was created, which is when MFA was set up during registration)
-	const mfaEnabledDate =
-		mfaEnabled && dbUser?.createdAt ? new Date(dbUser.createdAt) : null;
+	const deviceSlots = slots.filter((s) => s.kind === "webauthn-prf");
+	const recoverySlots = slots.filter((s) => s.kind === "recovery-passphrase");
 
 	return {
 		user: {
 			id: user.id,
 			username: user.username,
 		},
-		mfaEnabled,
-		mfaEnabledDate,
-		totalCodes,
-		usedCodes,
-		remainingCodes,
+		slots: slots.map((s) => ({
+			slotId: s.slotId,
+			kind: s.kind,
+			label: typeof s.metadata.label === "string" ? s.metadata.label : s.kind,
+			createdAt: s.createdAt.toISOString(),
+		})),
+		deviceSlotCount: deviceSlots.length,
+		recoveryEnrolled: recoverySlots.length > 0,
+		promptSpareDevice: deviceSlots.length === 1,
+		deviceEnrollmentAvailable: false, // L2 — enabled with WebAuthn PRF
 		inactivityTimeout: dbUser?.inactivityTimeout ?? 5,
+		accountCreated: dbUser?.createdAt?.toISOString() ?? null,
 	};
 };
 
+function requireFullUnlock(userId: number): boolean {
+	try {
+		requireDataKey(userId);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
 export const actions: Actions = {
-	// Change password action
-	changePassword: async ({ request, locals, cookies }) => {
-		try {
-			const user = getAuthUser(locals);
-			if (!user) {
-				return fail(401, { error: "Authentication required" });
-			}
-
-			const formData = await request.formData();
-			logFormData("settings-security", Object.fromEntries(formData));
-
-			const currentPassword = formData.get("currentPassword") as string;
-			const newPassword = formData.get("newPassword") as string;
-			const totpCode = formData.get("totpCode") as string;
-
-			// Basic validation
-			if (!currentPassword || !newPassword || !totpCode) {
-				devLog("settings-security", "Validation failed - missing fields", {
-					userId: user.id,
-				});
-				return fail(400, { error: "All fields are required" });
-			}
-
-			// Validate new password meets requirements (12+ chars, strong password)
-			if (newPassword.length < 12) {
-				devLog("settings-security", "Validation failed - password too short", {
-					userId: user.id,
-				});
-				return fail(400, {
-					error:
-						"Password must be at least 12 characters with uppercase, lowercase, number, and special character",
-				});
-			}
-
-			// Strong password validation
-			const hasUppercase = /[A-Z]/.test(newPassword);
-			const hasLowercase = /[a-z]/.test(newPassword);
-			const hasNumber = /[0-9]/.test(newPassword);
-			const hasSpecial = /[!@#$%^&*()_+\-=[\]{}|;:',.<>?/`~]/.test(newPassword);
-
-			if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecial) {
-				devLog("settings-security", "Validation failed - weak password", {
-					userId: user.id,
-				});
-				return fail(400, {
-					error:
-						"Password must be at least 12 characters with uppercase, lowercase, number, and special character",
-				});
-			}
-
-			// Query user to get current password hash
-			const passwordData = await db
-				.select({ passwordHash: users.passwordHash })
-				.from(users)
-				.where(eq(users.id, user.id))
-				.limit(1);
-
-			if (passwordData.length === 0) {
-				logError("settings-security", "User not found", {
-					userId: user.id,
-				});
-				return fail(404, { error: "User not found" });
-			}
-
-			// Verify current password
-			const currentPasswordHash = passwordData[0].passwordHash;
-			const isCurrentPasswordValid = await verifyPassword(
-				currentPasswordHash,
-				currentPassword,
-			);
-
-			if (!isCurrentPasswordValid) {
-				devLog(
-					"settings-security",
-					"Password change failed - incorrect current password",
-					{
-						userId: user.id,
-					},
-				);
-				// Generic error message for security (prevents username enumeration)
-				return fail(400, { error: "Current password is incorrect" });
-			}
-
-			// --- TOTP verification (required before password change) ---
-
-			// Decrypt TOTP secret before verifying TOTP code
-			const systemKey = process.env.ENCRYPTION_KEY;
-			if (!systemKey) {
-				logError(
-					"settings-security",
-					"Server configuration error - missing ENCRYPTION_KEY",
-				);
-				return fail(500, { error: "Server configuration error" });
-			}
-
-			// Query TOTP secret fields (not included in earlier password hash query)
-			const mfaData = await db
-				.select({
-					totpSecret: users.totpSecret,
-					totpSecretIV: users.totpSecretIV,
-				})
-				.from(users)
-				.where(eq(users.id, user.id))
-				.limit(1);
-
-			if (mfaData.length === 0) {
-				logError("settings-security", "User not found for MFA verification", {
-					userId: user.id,
-				});
-				return fail(404, { error: "User not found" });
-			}
-
-			const totpSecretPlaintext = decryptTOTPSecret(
-				mfaData[0].totpSecret,
-				mfaData[0].totpSecretIV,
-				systemKey,
-			);
-
-			// Verify TOTP code using decrypted secret
-			let totpValid = await verifyTOTP(totpCode, totpSecretPlaintext);
-
-			// If TOTP fails, try backup code verification
-			let usedBackupCodeId: number | null = null;
-			if (!totpValid) {
-				// Query user's UNUSED backup codes
-				const userBackupCodes = await db.query.backupCodes.findMany({
-					where: eq(backupCodes.userId, user.id),
-				});
-
-				// Filter to only unused codes and extract hashes
-				const unusedHashedCodes = userBackupCodes
-					.filter((code) => !code.used)
-					.map((code) => code.code);
-
-				// Try to verify against backup codes
-				if (unusedHashedCodes.length > 0) {
-					const matchedHash = await verifyBackupCode(
-						totpCode,
-						unusedHashedCodes,
-					);
-					if (matchedHash) {
-						const usedCode = userBackupCodes.find(
-							(code) => code.code === matchedHash,
-						);
-						if (usedCode) {
-							await db
-								.update(backupCodes)
-								.set({ used: true })
-								.where(eq(backupCodes.id, usedCode.id));
-							usedBackupCodeId = usedCode.id;
-							devLog(
-								"settings-security",
-								"Backup code used for password change",
-								{
-									userId: user.id,
-									backupCodeId: usedCode.id,
-								},
-							);
-						}
-						totpValid = true;
-					}
-				}
-			}
-
-			// If both TOTP and backup code verification failed
-			if (!totpValid) {
-				logError("settings-security", "Invalid TOTP code for password change", {
-					userId: user.id,
-				});
-				return fail(400, { error: "Invalid authentication code" });
-			}
-
-			devLog(
-				"settings-security",
-				"Password validation passed, updating password",
-				{
-					userId: user.id,
-					usedBackupCode: !!usedBackupCodeId,
-				},
-			);
-
-			// Hash new password
-			const newPasswordHash = await hashPassword(newPassword);
-
-			// Update password in database
-			await db
-				.update(users)
-				.set({ passwordHash: newPasswordHash, updatedAt: new Date() })
-				.where(eq(users.id, user.id));
-
-			devLog("settings-security", "Password updated successfully", {
-				userId: user.id,
-			});
-
-			// Invalidate ALL sessions for security (force re-authentication)
-			await db.delete(sessions).where(eq(sessions.userId, user.id));
-
-			devLog(
-				"settings-security",
-				"All sessions invalidated after password change",
-				{
-					userId: user.id,
-				},
-			);
-
-			// Set flash message and redirect to login (server-side)
-			setFlash(
-				cookies,
-				"Password changed successfully. Please log in with your new password.",
-				"success",
-			);
-			throw redirect(302, LOGIN_ROUTE);
-		} catch (error) {
-			logError(
-				"settings-security",
-				"Unexpected error during password change",
-				error,
-			);
-			return fail(500, { error: "An error occurred during password change" });
-		}
-	},
-
-	// Regenerate backup codes action
-	regenerateBackupCodes: async ({ request, locals }) => {
+	/**
+	 * Password change (task 3.5): verify old password, re-wrap the password
+	 * slot ONLY — no data rewrite, no other slot touched. The inactivity
+	 * timeout setting (seal deadline) is carried over unchanged.
+	 */
+	changePassword: async ({ request, locals }) => {
 		const user = getAuthUser(locals);
 		if (!user) {
 			return fail(401, { error: "Authentication required" });
 		}
 
-		try {
-			const formData = await request.formData();
-			logFormData("settings-security", Object.fromEntries(formData));
+		const formData = await request.formData();
+		logFormData("settings-security", Object.fromEntries(formData));
 
-			devLog("settings-security", "Backup code regeneration requested", {
-				username: user.username,
+		const currentPassword = formData.get("currentPassword") as string;
+		const newPassword = formData.get("newPassword") as string;
+		const confirmPassword = formData.get("confirmPassword") as string;
+
+		if (!currentPassword || !newPassword || !confirmPassword) {
+			return fail(400, { error: "All fields are required" });
+		}
+		if (newPassword !== confirmPassword) {
+			return fail(400, { error: "New passwords do not match" });
+		}
+		if (newPassword.length < 12) {
+			return fail(400, { error: "Password must be at least 12 characters" });
+		}
+		const hasUppercase = /[A-Z]/.test(newPassword);
+		const hasLowercase = /[a-z]/.test(newPassword);
+		const hasNumber = /[0-9]/.test(newPassword);
+		const hasSpecial = /[!@#$%^&*()_+\-=[\]{}|;:',.<>?/`~]/.test(newPassword);
+		if (!hasUppercase || !hasLowercase || !hasNumber || !hasSpecial) {
+			return fail(400, {
+				error:
+					"Password must include uppercase, lowercase, number, and special character",
+			});
+		}
+
+		if (!requireFullUnlock(user.id)) {
+			return fail(403, {
+				error: "Keyring is sealed — unlock before changing password",
+			});
+		}
+
+		const passwordData = await db
+			.select({
+				passwordHash: users.passwordHash,
+				passwordSalt: users.passwordSalt,
+			})
+			.from(users)
+			.where(eq(users.id, user.id))
+			.limit(1);
+
+		if (passwordData.length === 0) {
+			return fail(404, { error: "User not found" });
+		}
+
+		const isCurrentPasswordValid = await verifyPassword(
+			passwordData[0].passwordHash,
+			currentPassword,
+		);
+		if (!isCurrentPasswordValid) {
+			devLog("settings-security", "Password change failed — wrong password", {
+				userId: user.id,
+			});
+			return fail(400, { error: "Current password is incorrect" });
+		}
+
+		try {
+			// Slot-tier rotation only: fresh salt, same DataKey, no data rewrite.
+			const { passwordSalt } = await rewrapPasswordSlot(db, {
+				userId: user.id,
+				currentPassword,
+				currentPasswordSalt: passwordData[0].passwordSalt,
+				newPassword,
+			});
+
+			const newPasswordHash = await hashPassword(newPassword);
+			await db
+				.update(users)
+				.set({
+					passwordHash: newPasswordHash,
+					passwordSalt,
+					updatedAt: new Date(),
+				})
+				.where(eq(users.id, user.id));
+
+			devLog("settings-security", "Password updated (slot re-wrapped)", {
 				userId: user.id,
 			});
 
-			// Step 1: Generate 10 new plaintext backup codes
-			const newCodes = generateBackupCodes();
-
-			devLog("settings-security", "New backup codes generated", {
-				username: user.username,
-				codeCount: newCodes.length,
-			});
-
-			// Step 2: Replace existing codes atomically
-			await db.transaction(async (tx) => {
-				await tx.delete(backupCodes).where(eq(backupCodes.userId, user.id));
-
-				for (const code of newCodes) {
-					const hashedCode = await hashPassword(code);
-					await tx.insert(backupCodes).values({
-						userId: user.id,
-						code: hashedCode,
-						used: false,
-						createdAt: new Date(),
-					});
-				}
-			});
-
-			devLog("settings-security", "Backup codes stored successfully", {
-				username: user.username,
-				codesStored: newCodes.length,
-			});
-
-			// Step 3: Return plaintext codes for one-time display
 			return {
 				success: true,
-				codes: newCodes,
+				message:
+					"Password changed. Your data was NOT re-encrypted — only the password slot was re-wrapped.",
 			};
 		} catch (error) {
-			logError("settings-security", "Failed to regenerate backup codes", error);
-			return fail(500, { error: "Failed to regenerate backup codes" });
+			logError("settings-security", "Password change failed", error);
+			return fail(500, { error: "An error occurred during password change" });
 		}
 	},
 
-	// Save inactivity timeout action
+	/**
+	 * Rotate the recovery paper (slot tier): revoke the old slot, enroll a
+	 * fresh CSPRNG passphrase over the SAME DataKey — no data rewrite. The
+	 * new passphrase is shown exactly once. (The old one can never be
+	 * re-displayed — that is the paper re-enrollment guard.)
+	 */
+	rotateRecoverySlot: async ({ locals }) => {
+		const user = getAuthUser(locals);
+		if (!user) {
+			return fail(401, { error: "Authentication required" });
+		}
+		if (!requireFullUnlock(user.id)) {
+			return fail(403, { error: "Keyring is sealed — unlock first" });
+		}
+
+		try {
+			const dataKey = requireDataKey(user.id);
+			const oldSlots = await getActiveSlots(db, user.id, "recovery-passphrase");
+			for (const slot of oldSlots) {
+				await revokeSlot(db, user.id, slot.slotId);
+			}
+			const { passphrase } = await enrollRecoverySlot(db, {
+				userId: user.id,
+				dataKey,
+			});
+			return { success: true, recoveryPassphrase: passphrase };
+		} catch (error) {
+			logError("settings-security", "Recovery rotation failed", error);
+			return fail(500, { error: "Recovery passphrase rotation failed" });
+		}
+	},
+
+	/**
+	 * Revoke a credential slot (task 4.3). Stolen device? Its slot alone
+	 * could never unlock (2-of-2) — revocation is immediate and re-writes
+	 * nothing. The password slot cannot be revoked (lockout by design).
+	 */
+	revokeSlot: async ({ request, locals }) => {
+		const user = getAuthUser(locals);
+		if (!user) {
+			return fail(401, { error: "Authentication required" });
+		}
+
+		const formData = await request.formData();
+		const slotId = formData.get("slotId") as string;
+		if (!slotId) {
+			return fail(400, { error: "Slot id is required" });
+		}
+
+		const slots = await getActiveSlots(db, user.id);
+		const target = slots.find((s) => s.slotId === slotId);
+		if (!target) {
+			return fail(404, { error: "Slot not found" });
+		}
+		if (target.kind === "password") {
+			return fail(400, {
+				error:
+					"The password slot cannot be revoked — you would be locked out forever",
+			});
+		}
+		if (target.kind === "recovery-passphrase") {
+			// Revoking the only break-glass slot = guaranteed lockout on
+			// password loss; require rotating it to a new one instead.
+			return fail(400, {
+				error:
+					"Revoke the recovery paper only by rotating it to a new passphrase (use 'Rotate recovery passphrase')",
+			});
+		}
+
+		const revoked = await revokeSlot(db, user.id, slotId);
+		if (!revoked) {
+			return fail(404, { error: "Slot not found" });
+		}
+		return {
+			success: true,
+			message: "Slot revoked. No data was re-encrypted.",
+		};
+	},
+
+	/**
+	 * Full DataKey rotation (task 4.4) — recovery-paper compromise only.
+	 * Re-encrypts EVERYTHING under a fresh DataKey, re-wraps all slots, and
+	 * issues a new recovery passphrase shown once. Behind full unlock +
+	 * password confirmation.
+	 */
+	rotateDataKey: async ({ request, locals }) => {
+		const user = getAuthUser(locals);
+		if (!user) {
+			return fail(401, { error: "Authentication required" });
+		}
+		if (!requireFullUnlock(user.id)) {
+			return fail(403, { error: "Keyring is sealed — unlock first" });
+		}
+
+		const formData = await request.formData();
+		const password = formData.get("password") as string;
+		if (!password) {
+			return fail(400, { error: "Password confirmation is required" });
+		}
+
+		const passwordData = await db
+			.select({ passwordHash: users.passwordHash })
+			.from(users)
+			.where(eq(users.id, user.id))
+			.limit(1);
+		if (passwordData.length === 0) {
+			return fail(404, { error: "User not found" });
+		}
+		const valid = await verifyPassword(passwordData[0].passwordHash, password);
+		if (!valid) {
+			return fail(400, { error: "Password is incorrect" });
+		}
+
+		try {
+			const { passphrase } = await rotateUserEnvelope(db, {
+				userId: user.id,
+				password,
+			});
+			return {
+				success: true,
+				recoveryPassphrase: passphrase,
+				message:
+					"Full rotation complete: all data re-encrypted under a fresh key, every slot re-wrapped.",
+			};
+		} catch (error) {
+			if (error instanceof EnvelopeError) {
+				return fail(400, { error: "Rotation failed — no data was changed" });
+			}
+			logError("settings-security", "DataKey rotation failed", error);
+			return fail(500, { error: "DataKey rotation failed" });
+		}
+	},
+
+	// Seal deadline (inactivity timeout) — unchanged semantics.
 	saveInactivityTimeout: async ({ request, locals }) => {
 		const user = getAuthUser(locals);
 		if (!user) {
 			return fail(401, { error: "Authentication required" });
 		}
 
-		try {
-			const formData = await request.formData();
-			logFormData("settings-security", Object.fromEntries(formData));
+		const formData = await request.formData();
+		logFormData("settings-security", Object.fromEntries(formData));
 
-			const timeout = parseInt(formData.get("inactivityTimeout") as string, 10);
+		const timeout = parseInt(formData.get("inactivityTimeout") as string, 10);
 
-			// Validate: must be 1, 5, or 10
-			if (![1, 5, 10].includes(timeout)) {
-				devLog("settings-security", "Invalid timeout value", {
+		if (![1, 5, 10].includes(timeout)) {
+			return fail(400, { error: "Invalid timeout value" });
+		}
+
+		await db
+			.update(users)
+			.set({ inactivityTimeout: timeout, updatedAt: new Date() })
+			.where(eq(users.id, user.id));
+
+		if (isVerboseDebug()) {
+			devLog(
+				"settings-security",
+				"Seal deadline (inactivity timeout) updated",
+				{
 					userId: user.id,
 					timeout,
-				});
-				return fail(400, { error: "Invalid timeout value" });
-			}
-
-			await db
-				.update(users)
-				.set({ inactivityTimeout: timeout, updatedAt: new Date() })
-				.where(eq(users.id, user.id));
-
-			devLog("settings-security", "Inactivity timeout updated", {
-				userId: user.id,
-				timeout,
-			});
-
-			return { success: true, inactivityTimeout: timeout };
-		} catch (error) {
-			logError("settings-security", "Failed to save inactivity timeout", error);
-			return fail(500, { error: "Failed to save inactivity timeout" });
+				},
+			);
 		}
+
+		return { success: true, inactivityTimeout: timeout };
 	},
 };

@@ -14,6 +14,7 @@ import { and, asc, eq, inArray, lt } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
+import { decryptTxDescription } from "$lib/server/crypto/protected-fields";
 import { devLog, logInfo } from "$lib/server/logger";
 
 export interface RefundCandidate {
@@ -57,7 +58,10 @@ export async function listRefundCandidates(
 		)
 		.orderBy(asc(accountTransactions.transactionDate));
 
-	return rows;
+	return rows.map((row) => ({
+		...row,
+		description: decryptTxDescription(userId, row.slug, row.description),
+	}));
 }
 
 /**

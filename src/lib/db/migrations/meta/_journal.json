@@ -36,6 +36,13 @@
       "when": 1792349872806,
       "tag": "0004_nifty_kitty_pryde",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1792522753107,
+      "tag": "0005_credential_slots",
+      "breakpoints": true
     }
   ]
 }

@@ -40,6 +40,9 @@ describe("hooks startup migration gate", () => {
 		const { handle } = await import("../../src/hooks.server");
 		const resolve = vi.fn(async () => new Response("ok", { status: 200 }));
 
+		// "/" is a data-bearing route: with no session the (sealed) app now
+		// redirects to /login instead of resolving — the gate under test is
+		// that this redirect happens ONLY after startup migrations settle.
 		const handlePromise = handle({
 			event: {
 				url: new URL("http://localhost/"),
@@ -55,8 +58,16 @@ describe("hooks startup migration gate", () => {
 		expect(resolve).not.toHaveBeenCalled();
 
 		deferred.resolve();
-		await handlePromise;
-
-		expect(resolve).toHaveBeenCalledTimes(1);
+		// "/" with no session redirects (throws SvelteKit Redirect) to /login
+		let redirectLocation: string | null = null;
+		try {
+			await handlePromise;
+		} catch (error) {
+			const status = (error as { status?: number }).status;
+			redirectLocation = (error as { location?: string }).location ?? null;
+			expect(status).toBe(302);
+		}
+		expect(resolve).not.toHaveBeenCalled();
+		expect(redirectLocation).toContain("/login");
 	});
 });

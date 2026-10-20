@@ -202,7 +202,9 @@ describe("alert deep links: budget alerts link to the budget month", () => {
 	});
 
 	it("BUDGET_OVERSPEND links to /overview/budgets/[current-month]", async () => {
-		const { checkBudgetAlerts } = await import("$lib/server/alerts/async-goals");
+		const { checkBudgetAlerts } = await import(
+			"$lib/server/alerts/async-goals"
+		);
 		const { getBudgetStatus, getCategoryBreakdown } = await import(
 			"$lib/server/budgets"
 		);
@@ -320,7 +322,9 @@ describe("alert deep links: unmatched-transfer link shape", () => {
 		const alert = alerts[0];
 		expect(alert.type).toBe("ORPHANED_TRANSFER");
 		// Slug-based, no numeric IDs anywhere in the links
-		expect(alert.href).toBe("/accounts/acme-savings?type=transfer_in&month=2026-09");
+		expect(alert.href).toBe(
+			"/accounts/acme-savings?type=transfer_in&month=2026-09",
+		);
 		expect(alert.href).not.toMatch(/\/\d+|\bid=|accountId/);
 		expect(alert.secondaryHref).toBe(
 			"/accounts/barclays-current?type=transfer_out&month=2026-09",
@@ -352,7 +356,9 @@ describe("alert deep links: unmatched-transfer link shape", () => {
 
 		const alerts = await checkOrphanedTransfers(1);
 		expect(alerts).toHaveLength(1);
-		expect(alerts[0].href).toBe("/accounts/acme-savings?type=transfer_in&month=2026-09");
+		expect(alerts[0].href).toBe(
+			"/accounts/acme-savings?type=transfer_in&month=2026-09",
+		);
 		expect(alerts[0].secondaryHref).toBeUndefined();
 	});
 

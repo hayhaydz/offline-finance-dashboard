@@ -2,6 +2,7 @@ import { redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { db } from "$lib/db/client";
 import { sessions } from "$lib/db/schema";
+import { sealKeyring } from "$lib/server/crypto/keyring";
 import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 
 export const actions = {
@@ -28,7 +29,12 @@ export const actions = {
 			// Clear session cookie
 			cookies.delete("session", { path: "/" });
 
-			if (isVerboseDebug()) devLog("logout", "Logout successful", { username });
+			// Logout seals: DataKey zeroized, app returns to sealed state
+			// (spec unlock-ceremony: seal triggers wipe observable state).
+			sealKeyring("logout");
+
+			if (isVerboseDebug())
+				devLog("logout", "Logout successful (keyring sealed)", { username });
 		} catch (error) {
 			logError("logout", "Unexpected error during logout", error);
 		}

@@ -2,6 +2,7 @@ import { fail, redirect } from "@sveltejs/kit";
 import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
+import { encryptTxDescription } from "$lib/server/crypto/protected-fields";
 import {
 	devLog,
 	isVerboseDebug,
@@ -177,12 +178,17 @@ export const actions: Actions = {
 				// Use midnight UTC for consistent date comparison
 				const todayMidnight = new Date();
 				todayMidnight.setUTCHours(0, 0, 0, 0);
+				const openingSlug = nanoid(21);
 				await db.insert(accountTransactions).values({
 					accountId: newAccount.id,
-					slug: nanoid(21),
+					slug: openingSlug,
 					type: "deposit",
 					amount: balanceInCents,
-					description: "Opening balance",
+					description: encryptTxDescription(
+						user.id,
+						openingSlug,
+						"Opening balance",
+					),
 					categoryId: null,
 					transactionDate: todayMidnight,
 					createdAt: new Date(),

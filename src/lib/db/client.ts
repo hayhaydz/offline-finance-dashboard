@@ -5,6 +5,12 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import { devLog, logError } from "$lib/server/logger";
 import * as schema from "./schema";
 
+// Envelope encryption: the keyring state machine owns data confidentiality
+// (src/lib/server/crypto/keyring.ts). This client opens the DB FILE with the
+// machine-local file-layer key only — possessing this key (and the DB file,
+// and all server code) is NOT sufficient to read encrypted user data.
+export { SealedError } from "$lib/server/crypto/keyring";
+
 // Load environment variables from .env file
 import "dotenv/config";
 
@@ -64,7 +70,12 @@ export function createDb(customPath?: string) {
 	sqlite.pragma("foreign_keys = ON");
 
 	// ============================================================================
-	// ENCRYPTION LOGIC
+	// FILE-LAYER ENCRYPTION (design D3 — envelope-encryption-keyring)
+	//
+	// ENCRYPTION_KEY protects the DB file at rest (page scraps, WAL, temp
+	// artifacts). It is MACHINE-LOCAL and is NOT part of the data
+	// confidentiality claim: user data is value-layer encrypted under a
+	// per-user DataKey that only exists in memory after the unlock ceremony.
 	// ============================================================================
 
 	if (appEnv === "production") {
@@ -72,12 +83,16 @@ export function createDb(customPath?: string) {
 			sqlite.close();
 			throw new Error("CRITICAL: ENCRYPTION_KEY not set in production");
 		}
+		if (encryptionKey.startsWith("PLAIN:")) {
+			sqlite.close();
+			throw new Error("CRITICAL: PLAIN: file-layer key refused in production");
+		}
 
 		sqlite.pragma(`key = "${encryptionKey}"`);
 		sqlite.pragma("cipher_page_size = 4096");
 		sqlite.pragma("cipher_memory_security = ON");
 		if (!isTest)
-			devLog("database", "Database encryption ENABLED (AES-256-CBC)");
+			devLog("database", "File-layer encryption ENABLED (AES-256-CBC)");
 
 		// Startup security checks (only for existing databases)
 		if (!isNewDatabase) {
@@ -98,6 +113,9 @@ export function createDb(customPath?: string) {
 						throw new Error("CRITICAL: Production database has no encryption!");
 					}
 
+					// Production refuses any plaintext/PLAIN: path (task 2.4).
+					// Legacy TOTP columns (until the 5.3 release step drops them)
+					// must never hold PLAIN: secrets.
 					const plainDataCheck = sqlite
 						.prepare(
 							"SELECT COUNT(*) as count FROM users WHERE totp_secret LIKE 'PLAIN:%'",
@@ -124,7 +142,9 @@ export function createDb(customPath?: string) {
 			}
 		}
 	} else {
-		// DEVELOPMENT or TEST MODE
+		// DEVELOPMENT or TEST MODE — loose mode (plaintext dev DB) is
+		// constructible HERE ONLY. Production boot refuses this path above;
+		// loose mode must never be reachable from a production code path.
 		if (encryptionKey) {
 			sqlite.pragma(`key = "${encryptionKey}"`);
 			sqlite.pragma("cipher_page_size = 4096");
@@ -132,12 +152,12 @@ export function createDb(customPath?: string) {
 			if (!isTest)
 				devLog(
 					"database",
-					`Database encryption ENABLED (${appEnv.toUpperCase()} Dev Key)`,
+					`File-layer encryption ENABLED (${appEnv.toUpperCase()} dev key)`,
 				);
 		} else if (!isTest) {
 			devLog(
 				"database",
-				`WARNING: Database encryption DISABLED (${appEnv.toUpperCase()} Loose Mode)`,
+				`WARNING: File-layer encryption DISABLED (${appEnv.toUpperCase()} Loose Mode) — value-layer envelope still applies`,
 			);
 		}
 	}

@@ -3,7 +3,9 @@ import { actions } from "../../src/routes/goals/[slug]/+page.server";
 
 const mocks = vi.hoisted(() => {
 	const goalRow = { value: null as Record<string, unknown> | null };
-	const set = vi.fn().mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
+	const set = vi
+		.fn()
+		.mockReturnValue({ where: vi.fn().mockResolvedValue(undefined) });
 	const update = vi.fn().mockReturnValue({ set });
 	const findFirst = vi.fn().mockImplementation(async () => goalRow.value);
 	const authUser = { value: null as { id: number; username: string } | null };
@@ -88,9 +90,7 @@ describe("editGoal action", () => {
 		} as any)) as { status: number; data: { error: string } };
 
 		expect(result.status).toBe(400);
-		expect(result.data.error).toBe(
-			"Target below current allocation £5000.00",
-		);
+		expect(result.data.error).toBe("Target below current allocation £5000.00");
 		expect(mocks.update).not.toHaveBeenCalled();
 	});
 

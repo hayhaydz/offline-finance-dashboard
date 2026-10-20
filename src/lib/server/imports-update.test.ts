@@ -4,6 +4,8 @@ import { nanoid } from "nanoid";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions, users } from "$lib/db/schema";
+import { generateDataKey, unlockKeyring } from "$lib/server/crypto/keyring";
+import { decryptTxDescription } from "$lib/server/crypto/protected-fields";
 import { parseBackupHeaderLine } from "$lib/server/csv-format";
 import { buildTransactionsCsv } from "./exports";
 import {
@@ -83,7 +85,12 @@ async function getTx(id: number) {
 		.select()
 		.from(accountTransactions)
 		.where(eq(accountTransactions.id, id));
-	return tx;
+	if (!tx) return tx;
+	// Value layer: descriptions are stored encrypted — decrypt for assertions
+	return {
+		...tx,
+		description: decryptTxDescription(testUserId, tx.slug, tx.description),
+	};
 }
 
 function csvLine(
@@ -111,6 +118,8 @@ const HEADER = "account_slug,id,date,type,amount,description,category,_delete";
 
 beforeAll(async () => {
 	testUserId = await insertUser();
+	// Value-layer writes (description encryption) need an unlocked keyring
+	unlockKeyring(testUserId, generateDataKey());
 	otherUserId = await insertUser();
 	cleanupUserIds.push(testUserId, otherUserId);
 	accountA = await insertAccount(testUserId);
@@ -480,7 +489,12 @@ describe("commitReimport — full round-trip", () => {
 			.select()
 			.from(accountTransactions)
 			.where(eq(accountTransactions.accountId, accountB.id));
-		const newRow = inserted.find((tx) => tx.description === "brand new");
+		const newRow = inserted
+			.map((tx) => ({
+				...tx,
+				description: decryptTxDescription(testUserId, tx.slug, tx.description),
+			}))
+			.find((tx) => tx.description === "brand new");
 		expect(newRow).toBeDefined();
 		expect(newRow?.amount).toBe(1234);
 		expect(newRow?.type).toBe("dividend");
@@ -623,7 +637,11 @@ describe("commitReimport — full round-trip", () => {
 			.from(accountTransactions)
 			.where(eq(accountTransactions.accountId, accountA.id));
 		expect(
-			rows.some((tx) => tx.description === "rt-new" && tx.amount === -110),
+			rows.some(
+				(tx) =>
+					decryptTxDescription(testUserId, tx.slug, tx.description) ===
+						"rt-new" && tx.amount === -110,
+			),
 		).toBe(true);
 	});
 });

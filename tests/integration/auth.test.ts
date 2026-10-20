@@ -23,6 +23,18 @@ vi.mock("$lib/auth/password", () => ({
 	hashPassword: vi.fn(() => Promise.resolve("hashed_password")),
 }));
 
+// Envelope: password slot enrollment + keyring unlock are exercised through
+// mocks (real Argon2id + GCM are covered by tests/unit/envelope.test.ts).
+vi.mock("$lib/server/crypto/enroll", () => ({
+	enrollPasswordSlot: vi.fn(() =>
+		Promise.resolve({ dataKey: Buffer.alloc(32, 3), slotId: "slot-1" }),
+	),
+}));
+
+vi.mock("$lib/server/crypto/keyring", () => ({
+	unlockKeyring: vi.fn(),
+}));
+
 describe("Registration Action Integration", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
@@ -59,10 +71,12 @@ describe("Registration Action Integration", () => {
 		} catch (e: any) {
 			// SvelteKit uses throws for redirects
 			if (e.status === 302) {
-				expect(e.location).toBe("/mfa-setup");
+				// Registration now creates the envelope (DataKey + password
+				// slot) and REQUIRES recovery enrollment in the same session.
+				expect(e.location).toBe("/recovery-enroll?mode=register");
 				expect(cookies.set).toHaveBeenCalledWith(
-					"mfa-setup-token",
-					expect.any(String),
+					"recovery-enroll-user",
+					"1",
 					expect.any(Object),
 				);
 			} else {

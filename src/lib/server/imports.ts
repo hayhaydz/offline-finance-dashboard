@@ -2,6 +2,10 @@ import { and, eq, gte, lte } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
+import {
+	decryptTxDescription,
+	encryptTxDescription,
+} from "$lib/server/crypto/protected-fields";
 import { devLog, logError, logInfo } from "$lib/server/logger";
 import {
 	TRANSACTION_TYPES,
@@ -169,7 +173,7 @@ export async function getOverlappingTransactions(
 			slug: row.slug,
 			type: row.type,
 			amount: row.amount,
-			description: row.description,
+			description: decryptTxDescription(userId, row.slug, row.description),
 			transactionDate: row.transactionDate.toISOString().split("T")[0],
 		}));
 	} catch (error) {
@@ -223,13 +227,18 @@ export async function batchInsertTransactions(
 
 		db.transaction((tx) => {
 			for (const row of rows) {
+				const slug = nanoid(21);
 				tx.insert(accountTransactions)
 					.values({
-						slug: nanoid(21),
+						slug,
 						accountId,
 						type: row.type,
 						amount: poundsToCents(row.amount),
-						description: row.description || null,
+						description: encryptTxDescription(
+							userId,
+							slug,
+							row.description || null,
+						),
 						categoryId: null,
 						transactionDate: new Date(`${row.date}T00:00:00.000Z`),
 					})

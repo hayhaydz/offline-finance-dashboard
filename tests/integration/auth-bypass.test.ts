@@ -63,6 +63,25 @@ vi.mock("$lib/security/rate-limiter", () => ({
 	recordSuccessfulAttempt: vi.fn(() => Promise.resolve()),
 }));
 
+// Mock envelope keyring: the login ceremony unwraps the password slot —
+// real crypto is covered by tests/unit/envelope.test.ts
+vi.mock("$lib/server/crypto/enroll", () => ({
+	hasEnvelope: vi.fn(() => Promise.resolve(true)),
+	unwrapPasswordSlot: vi.fn(() => Promise.resolve(Buffer.alloc(32, 5))),
+}));
+
+vi.mock("$lib/server/crypto/keyring", () => ({
+	unlockKeyring: vi.fn(),
+	sealKeyring: vi.fn(),
+	keyringStatus: vi.fn(() => ({
+		state: "unlocked",
+		userId: 1,
+		recoveryInitiated: false,
+	})),
+	isUnlockedFor: vi.fn(() => true),
+	countActiveSlots: vi.fn(() => Promise.resolve(1)),
+}));
+
 // Mock logger
 vi.mock("$lib/utils/logger", () => ({
 	devLog: vi.fn(),
@@ -73,7 +92,12 @@ vi.mock("$lib/utils/logger", () => ({
 import { verifyPassword } from "$lib/auth/password";
 // Import after mocks
 import { db } from "$lib/db/client";
-import { checkRateLimit } from "$lib/security/rate-limiter";
+import {
+	checkRateLimit,
+	recordFailedAttempt,
+} from "$lib/security/rate-limiter";
+import { unwrapPasswordSlot as unwrapPasswordSlotMock } from "$lib/server/crypto/enroll";
+import { EnvelopeError } from "$lib/server/crypto/envelope";
 import { handle } from "../../src/hooks.server";
 import { actions as loginActions } from "../../src/routes/(auth)/login/+page.server";
 import { actions as mfaSetupActions } from "../../src/routes/(auth)/mfa-setup/+page.server";
@@ -184,7 +208,6 @@ describe("Authentication Bypass Prevention", () => {
 			const formData = new FormData();
 			formData.append("username", "testuser");
 			formData.append("password", "password123");
-			formData.append("totpCode", "123456");
 
 			const cookies = {
 				set: vi.fn(),
@@ -219,7 +242,6 @@ describe("Authentication Bypass Prevention", () => {
 			const formData = new FormData();
 			formData.append("username", "testuser");
 			formData.append("password", "password123");
-			formData.append("totpCode", "123456");
 
 			const cookies = {
 				set: vi.fn(),
@@ -244,31 +266,31 @@ describe("Authentication Bypass Prevention", () => {
 			expect(result.data.error).toContain("wait before trying again");
 		});
 
-		it("should block at MFA verification boundary when rate limit hit mid-flow", async () => {
-			// First check passes (initial rate limit)
-			// Second check blocks (MFA verification boundary)
-			(checkRateLimit as any)
-				.mockResolvedValueOnce({ allowed: true, attemptsRemaining: 3 })
-				.mockResolvedValueOnce({
-					allowed: false,
-					locked: true,
-					attemptsRemaining: 0,
-				});
+		it("counts a failed slot unwrap as a rate-limited failed attempt (GCM not an oracle)", async () => {
+			// The TOTP dual-boundary is gone with 2FA; the L1 equivalent is
+			// the unwrap boundary: auth hash passes but the slot will not
+			// open — the attempt MUST land in rate-limit accounting.
+			(checkRateLimit as any).mockResolvedValue({
+				allowed: true,
+				attemptsRemaining: 3,
+			});
 
 			(db.query.users.findFirst as any).mockResolvedValue({
 				id: 1,
 				username: "testuser",
 				passwordHash: "hashed-password",
-				totpSecret: "PLAIN:testsecret",
-				totpSecretIV: "00000000000000000000000000000000",
+				passwordSalt: "a".repeat(32),
 			});
 
 			(verifyPassword as any).mockResolvedValue(true);
+			// Simulate slot unwrap failure (wrong-password-wrapped slot)
+			(unwrapPasswordSlotMock as any).mockRejectedValue(
+				new EnvelopeError("TAMPERED", "nope"),
+			);
 
 			const formData = new FormData();
 			formData.append("username", "testuser");
 			formData.append("password", "password123");
-			formData.append("totpCode", "123456");
 
 			const cookies = {
 				set: vi.fn(),
@@ -288,12 +310,9 @@ describe("Authentication Bypass Prevention", () => {
 				cookies,
 			});
 
-			expect(result.status).toBe(429);
-			expect(result.data.locked).toBe(true);
-			// Verify dual rate limit: initial check + MFA boundary check
-			expect(checkRateLimit).toHaveBeenCalledTimes(2);
-			expect(checkRateLimit).toHaveBeenNthCalledWith(1, "testuser");
-			expect(checkRateLimit).toHaveBeenNthCalledWith(2, "testuser");
+			expect(result.status).toBe(401);
+			expect(result.data.error).toBe("Invalid credentials");
+			expect(recordFailedAttempt).toHaveBeenCalledWith("testuser");
 		});
 	});
 

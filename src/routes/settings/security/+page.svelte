@@ -1,515 +1,286 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { browser } from '$app/environment';
-	import { invalidateAll } from '$app/navigation';
-	import { FormField, SettingsSectionNav } from '$lib/components/ui/index';
-	import { required, minLength, hasUppercase, hasLowercase, hasNumber, hasSpecial, matches } from '$lib/validation/rules';
-	import type { ActionData } from './$types';
+	import { FormField } from '$lib/components/ui/index';
+	import { required } from '$lib/validation/rules';
 
-	let { data, form } = $props();
-
-	// State for modals
-	let showConfirmModal = $state<boolean>(false);
-	let showCodesModal = $state<boolean>(false);
-	let newBackupCodes = $state<string[] | null>(null);
-	let regenerationError = $state<string | null>(null);
-	let isRegenerating = $state<boolean>(false);
-	let copiedCodeIndex = $state<number | null>(null);
-
-	// Handle keyboard (Escape to close modals)
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') {
-			closeModals();
-		}
+	interface SlotView {
+		slotId: string;
+		kind: string;
+		label: string;
+		createdAt: string;
 	}
 
-	// Handle backdrop click
-	function handleBackdropClick(e: MouseEvent) {
-		if (e.target === e.currentTarget) {
-			closeModals();
-		}
+	interface ActionData {
+		error?: string;
+		success?: boolean;
+		message?: string;
+		recoveryPassphrase?: string;
+		inactivityTimeout?: number;
 	}
 
-	// Handle backdrop keyboard (Enter/Space to close)
-	function handleBackdropKeydown(e: KeyboardEvent) {
-		if (e.key === 'Enter' || e.key === ' ') {
-			if (e.target === e.currentTarget) {
-				e.preventDefault();
-				closeModals();
-			}
-		}
+	let { form, data }: { form: ActionData | null; data: any } = $props();
+
+	const kindLabels: Record<string, string> = {
+		password: 'PASSWORD SLOT',
+		'webauthn-prf': 'DEVICE SLOT',
+		'recovery-passphrase': 'RECOVERY PAPER SLOT'
+	};
+	const kindDescriptions: Record<string, string> = {
+		password: 'Unlocks via your password (wrap slot 1).',
+		'webauthn-prf': 'Unlocks via your device (wrap slot 2) — 2-of-2 with the password.',
+		'recovery-passphrase': 'Break-glass single-factor paper copy.'
+	};
+
+	// Password change form
+	interface FormFieldRef {
+		isValid: boolean;
 	}
-
-	// Close all modals
-	function closeModals() {
-		if (showCodesModal) {
-			// Intentionally lose codes when closing codes modal
-			showCodesModal = false;
-			newBackupCodes = null;
-		}
-		if (showConfirmModal) {
-			showConfirmModal = false;
-		}
-	}
-
-	// Start regeneration flow
-	function startRegeneration() {
-		showConfirmModal = true;
-		regenerationError = null;
-	}
-
-	// Handle form success
-	async function handleFormSuccess({ result }: { result: any }) {
-		if (result.type === 'success' && result.data?.success) {
-			// Show codes modal with plaintext codes
-			newBackupCodes = result.data.codes;
-			showCodesModal = true;
-			showConfirmModal = false;
-			isRegenerating = false;
-			// Refresh page data to update backup code counts
-			await invalidateAll();
-		} else if (result.type === 'failure') {
-			regenerationError = result.data?.error || 'Failed to regenerate backup codes';
-			isRegenerating = false;
-		}
-	}
-
-	// Copy code to clipboard
-	async function copyCode(code: string, index: number) {
-		if (!browser) return;
-
-		try {
-			await navigator.clipboard.writeText(code);
-			copiedCodeIndex = index;
-			// Clear feedback after 2 seconds
-			setTimeout(() => {
-				copiedCodeIndex = null;
-			}, 2000);
-		} catch (error) {
-			console.error('Failed to copy code:', error);
-		}
-	}
-
-	// Close codes modal and lose codes
-	function closeCodesModal() {
-		showCodesModal = false;
-		newBackupCodes = null;
-		copiedCodeIndex = null;
-	}
-
-	// Inactivity timeout success message
-	let inactivitySuccessMessage = $state<string | null>(null);
-
-	// Handle inactivity timeout form
-	function handleInactivityTimeout({ result }: { result: any }) {
-		if (result.type === 'success' && result.data?.success) {
-			inactivitySuccessMessage = 'Inactivity timeout updated to ' + result.data.inactivityTimeout + ' minute(s).';
-			// Clear message after 3 seconds
-			setTimeout(() => {
-				inactivitySuccessMessage = null;
-			}, 3000);
-		}
-	}
-
-	// Password change form field values
 	let currentPassword = $state('');
-	let totpCode = $state('');
 	let newPassword = $state('');
 	let confirmPassword = $state('');
+	const pwRules = [required()];
+	let currentField = $state<FormFieldRef | undefined>();
+	let newField = $state<FormFieldRef | undefined>();
+	let confirmField = $state<FormFieldRef | undefined>();
+	let currentValid = $state(false);
+	let newValid = $state(false);
+	let confirmValid = $state(false);
+	$effect(() => { currentValid = currentField?.isValid ?? false; });
+	$effect(() => { newValid = newField?.isValid ?? false; });
+	$effect(() => { confirmValid = confirmField?.isValid ?? false; });
 
-	// Form data for cross-field validation
-	const passwordFormData = $derived.by(() => ({
-		currentPassword,
-		totpCode,
-		newPassword,
-		confirmPassword
-	}));
+	// DataKey rotation confirmation
+	let rotationPassword = $state('');
+	let rotationField = $state<FormFieldRef | undefined>();
+	let rotationValid = $state(false);
+	$effect(() => { rotationValid = rotationField?.isValid ?? false; });
 
-	// Validation rules for each field
-	const currentPasswordRules = [required('Current password is required')];
-	const totpCodeRules = [required('Authentication code is required')];
-	const newPasswordRules = [
-		required('New password is required'),
-		minLength(12, 'Password must be at least 12 characters'),
-		hasUppercase(),
-		hasLowercase(),
-		hasNumber(),
-		hasSpecial()
-	];
-	const confirmPasswordRules = [
-		required('Please confirm your new password'),
-		matches('newPassword', 'Passwords must match')
-	];
+	// Recovery rotation confirmation
+	let confirmRecoveryRotate = $state(false);
+	let confirmDataKeyRotate = $state(false);
 
-	// Form validation state
-	let currentPasswordValid = $state(false);
-	let totpCodeValid = $state(false);
-	let newPasswordValid = $state(false);
-	let confirmPasswordValid = $state(false);
-
-	// Form is valid when all fields are valid
-	const isPasswordFormValid = $derived(
-		currentPasswordValid && totpCodeValid && newPasswordValid && confirmPasswordValid
-	);
-
-	// Component refs for validation access
-	let currentPasswordField = $state<{ isValid: boolean; validate: () => boolean } | undefined>();
-	let totpCodeField = $state<{ isValid: boolean; validate: () => boolean } | undefined>();
-	let newPasswordField = $state<{ isValid: boolean; validate: () => boolean } | undefined>();
-	let confirmPasswordField = $state<{ isValid: boolean; validate: () => boolean } | undefined>();
-
-	// Update validation state when fields change
+	// Inactivity timeout (mirrors layout data; falls back to 5)
+	let inactivityTimeout = $state<number>(5);
 	$effect(() => {
-		currentPasswordValid = currentPasswordField?.isValid ?? false;
-		totpCodeValid = totpCodeField?.isValid ?? false;
-		newPasswordValid = newPasswordField?.isValid ?? false;
-		confirmPasswordValid = confirmPasswordField?.isValid ?? false;
+		inactivityTimeout = data?.inactivityTimeout ?? 5;
 	});
-
-	// MFA status from server data
-	const mfaEnabled = $derived(data.mfaEnabled ?? false);
-	const mfaEnabledDate = $derived(data.mfaEnabledDate);
-	const totalCodes = $derived(data.totalCodes ?? 10);
-	const usedCodes = $derived(data.usedCodes ?? 0);
-	const remainingCodes = $derived(data.remainingCodes ?? 10);
-
-	const sections = [
-		{ id: 'section-password', label: 'Password' },
-		{ id: 'section-2fa', label: '2FA' },
-		{ id: 'section-backup-codes', label: 'Backup Codes' },
-		{ id: 'section-inactivity', label: 'Inactivity' }
-	];
 </script>
 
-<svelte:window onkeydown={handleKeydown} />
+<div class="border-b border-black p-2">
+	<h1 class="text-lg font-bold mb-2 mt-0">SECURITY — KEYRING</h1>
+	<p class="text-gray-600 my-1">
+		Your data is sealed under a per-user data key. Credentials are wrap slots:
+		adding, rotating, or revoking them never re-encrypts your data.
+	</p>
+</div>
 
-<main>
-		<SettingsSectionNav {sections} />
-		<!-- PASSWORD CHANGE SECTION -->
-		<section id="section-password" style="scroll-margin-top: 2.5rem;">
-			<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-				<span>PASSWORD</span>
-			</div>
-			<div class="bg-gray-50 p-4 border-b border-black">
-				<h2 class="mt-0 mb-2">Change Password</h2>
-				<p class="mb-4 text-xs">
-					After changing your password, you will be logged out of all sessions and need to log in again.
-				</p>
-
-				<form
-					method="POST"
-					action="?/changePassword"
-					use:enhance={() => {
-						return async ({ update }) => {
-							await update();
-						};
-					}}
-				>
-					<FormField
-						bind:this={currentPasswordField}
-						label="Current Password"
-						name="currentPassword"
-						type="password"
-						bind:value={currentPassword}
-						rules={currentPasswordRules}
-						placeholder="Enter current password"
-						autocomplete="current-password"
-						formData={passwordFormData}
-					/>
-
-					<FormField
-						bind:this={totpCodeField}
-						label="Authentication code"
-						name="totpCode"
-						type="text"
-						bind:value={totpCode}
-						rules={totpCodeRules}
-						placeholder="Enter 6-digit code (or backup code)"
-						autocomplete="one-time-code"
-						formData={passwordFormData}
-					/>
-
-					<FormField
-						bind:this={newPasswordField}
-						label="New Password"
-						name="newPassword"
-						type="password"
-						bind:value={newPassword}
-						rules={newPasswordRules}
-						placeholder="Enter new password (12+ characters, mixed case, number, special)"
-						autocomplete="new-password"
-						formData={passwordFormData}
-					/>
-
-					<FormField
-						bind:this={confirmPasswordField}
-						label="Confirm New Password"
-						name="confirmPassword"
-						type="password"
-						bind:value={confirmPassword}
-						rules={confirmPasswordRules}
-						placeholder="Confirm new password"
-						autocomplete="new-password"
-						formData={passwordFormData}
-					/>
-
-					{#if form?.error}
-						<p class="text-red-700 font-bold my-2">{form.error}</p>
-					{/if}
-
-					<div class="mb-2">
-						<button
-							type="submit"
-							disabled={!isPasswordFormValid}
-							class="bracket-link disabled:opacity-50 disabled:cursor-not-allowed"
-						>
-							Change Password
-						</button>
-					</div>
-				</form>
-
-				<p class="mt-2 mb-0 text-xs text-gray-600">
-					<strong>Password requirements:</strong> At least 12 characters with uppercase, lowercase, number, and special character.
-				</p>
-			</div>
-		</section>
-
-		<section id="section-2fa" style="scroll-margin-top: 2.5rem;">
-			<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-				<span>TWO-FACTOR AUTHENTICATION</span>
-			</div>
-			<div class="bg-gray-50 p-4 border-b border-black">
-				<h2 class="mt-0 mb-2">MFA Status</h2>
-				<div class="flex justify-between my-1">
-					<span><strong>Status:</strong></span>
-					<span
-						class:bg-green-50={mfaEnabled}
-						class:text-green-700={mfaEnabled}
-						class:bg-red-50={!mfaEnabled}
-						class:text-red-700={!mfaEnabled}
-						class:px-2={mfaEnabled || !mfaEnabled}
-						class:py-1={mfaEnabled || !mfaEnabled}
-					>
-						{mfaEnabled ? 'Enabled' : 'Disabled'}
-					</span>
-				</div>
-				{#if mfaEnabled && mfaEnabledDate}
-					<div class="flex justify-between my-1 text-xs text-gray-600">
-						<span><strong>Enabled since:</strong></span>
-						<span>{mfaEnabledDate.toLocaleDateString()}</span>
-					</div>
-				{/if}
-				<p class="mt-2 mb-0 text-xs">
-					Your account is protected by TOTP-based two-factor authentication.
-				</p>
-			</div>
-		</section>
-
-		<section id="section-backup-codes" style="scroll-margin-top: 2.5rem;">
-			<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-				<span>BACKUP CODES</span>
-			</div>
-			<div class="bg-gray-50 p-4">
-				<h2 class="mt-0 mb-2">Backup Codes</h2>
-				<div class="flex justify-between my-1">
-					<span><strong>Total codes:</strong></span>
-					<span class:px-2={true} class:py-1={true} class:bg-gray-200={true}>
-						{totalCodes}
-					</span>
-				</div>
-				<div class="flex justify-between my-1">
-					<span><strong>Remaining codes:</strong></span>
-					<span class:px-2={true} class:py-1={true} class:bg-gray-200={true}>
-						{remainingCodes} / {totalCodes}
-					</span>
-				</div>
-				{#if usedCodes > 0}
-					<div class="flex justify-between my-1 text-xs text-gray-600">
-						<span><strong>Used codes:</strong></span>
-						<span>{usedCodes}</span>
-					</div>
-				{/if}
-				<p class="mt-2 mb-2 text-xs">
-					Backup codes can be used to access your account if you lose your TOTP device. Each
-					code can only be used once.
-				</p>
-
-				{#if !mfaEnabled}
-					<p class="mb-2 text-xs text-red-700">
-						[!] MFA is not enabled. Backup codes are only available when MFA is active.
-					</p>
-				{:else}
-					<button
-						type="button"
-						onclick={startRegeneration}
-						disabled={isRegenerating}
-						class="bracket-link text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-					>
-						{isRegenerating ? 'Regenerating...' : 'Regenerate Backup Codes'}
-					</button>
-				{/if}
-
-				{#if regenerationError}
-					<p class="mt-2 text-xs text-red-700">Error: {regenerationError}</p>
-				{/if}
-			</div>
-		</section>
-
-		<section id="section-inactivity" style="scroll-margin-top: 2.5rem;">
-			<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-				<span>INACTIVITY TIMEOUT</span>
-			</div>
-			<div class="bg-gray-50 p-4 border-b border-black">
-				<h2 class="mt-0 mb-2">Auto-Logout Timer</h2>
-				<p class="mb-4 text-xs">
-					Automatically log out after a period of inactivity. Takes effect immediately.
-				</p>
-				<form
-					method="POST"
-					action="?/saveInactivityTimeout"
-					use:enhance={() => {
-						return async ({ result, update }) => {
-							await update();
-							handleInactivityTimeout({ result });
-						};
-					}}
-				>
-					<div class="flex justify-between items-center my-1">
-						<label for="inactivityTimeout" class="text-sm"><strong>Inactivity timeout:</strong></label>
-						<select name="inactivityTimeout" id="inactivityTimeout" class="border border-black px-2 py-1 text-sm font-mono">
-							<option value="1" selected={data.inactivityTimeout === 1}>1 minute</option>
-							<option value="5" selected={data.inactivityTimeout === 5}>5 minutes (default)</option>
-							<option value="10" selected={data.inactivityTimeout === 10}>10 minutes</option>
-						</select>
-					</div>
-					<div class="mb-2 mt-3">
-						<button type="submit" class="bracket-link">Save</button>
-					</div>
-					{#if inactivitySuccessMessage}
-						<p class="text-xs text-green-700 mt-1">{inactivitySuccessMessage}</p>
-					{/if}
-				</form>
-			</div>
-		</section>
-</main>
-
-<!-- CONFIRMATION MODAL -->
-{#if showConfirmModal}
-	<div
-		class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-		onclick={handleBackdropClick}
-		onkeydown={handleBackdropKeydown}
-		role="dialog"
-		aria-modal="true"
-		aria-labelledby="confirm-title"
-		tabindex="-1"
-	>
-		<div class="bg-white border-2 border-black p-4 max-w-md w-full mx-4">
-			<h2 id="confirm-title" class="text-base font-bold mb-2 mt-0">Confirm Regeneration</h2>
-			<p class="mb-4 text-sm">
-				Are you sure you want to regenerate your backup codes? This will immediately
-				invalidate all existing backup codes. You will not be able to use old codes after
-				regeneration.
-			</p>
-
-			<div class="flex gap-2 justify-end">
-				<button
-					onclick={() => (showConfirmModal = false)}
-					class="bracket-link text-sm"
-					type="button"
-				>
-					Cancel
-				</button>
-				<form
-					method="POST"
-					action="?/regenerateBackupCodes"
-					use:enhance={() => {
-						return async ({ result, update }) => {
-							await update();
-							handleFormSuccess({ result });
-						};
-					}}
-				>
-					<button
-						type="submit"
-						onclick={() => (isRegenerating = true)}
-						class="bracket-link text-sm text-red-700"
-						disabled={isRegenerating}
-					>
-						{isRegenerating ? 'Regenerating...' : 'Regenerate'}
-					</button>
-				</form>
-			</div>
-		</div>
+{#if form?.message && !form.recoveryPassphrase}
+	<div class="border border-green-700 border-l-4 p-2 mb-4 bg-green-50">
+		<span class="text-green-700 font-bold">{form.message}</span>
 	</div>
 {/if}
 
-<!-- CODES DISPLAY MODAL -->
-{#if showCodesModal && newBackupCodes}
-	<div
-		class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-		onclick={handleBackdropClick}
-		onkeydown={handleBackdropKeydown}
-		role="dialog"
-		aria-modal="true"
-		aria-labelledby="codes-title"
-		tabindex="-1"
-	>
-		<div class="bg-white border-2 border-black mx-4 shadow-[8px_8px_0_rgba(0,0,0,0.2)]" style="width: 500px; max-width: 95vw;">
-			<!-- Title bar -->
-			<div class="bg-black text-white px-2 py-0.5 flex justify-between items-center text-xs font-bold">
-				<span id="codes-title">BACKUP CODES</span>
-				<button
-					type="button"
-					class="bracket-link text-white"
-					onclick={closeCodesModal}
-					aria-label="Close modal"
-				>
-					X
-				</button>
-			</div>
-
-			<!-- Content -->
-			<div class="p-4">
-				<!-- Warning message -->
-				<div class="text-xs text-red-700 mb-4 font-bold border border-red-700 bg-red-50 p-2">
-					SAVE THESE CODES NOW. You will not see them again.
-				</div>
-
-				<!-- Codes grid -->
-				<div class="grid grid-cols-2 gap-2 mb-4">
-					{#each newBackupCodes as code, index (index)}
-						<div class="border border-black p-2 flex justify-between items-center">
-							<span class="font-mono text-sm font-bold">{code}</span>
-							<button
-								type="button"
-								onclick={() => copyCode(code, index)}
-								class="text-xs bracket-link"
-								aria-label="Copy code"
-							>
-								{copiedCodeIndex === index ? 'Copied!' : 'Copy'}
-							</button>
-						</div>
-					{/each}
-				</div>
-
-				<!-- Footer note -->
-				<div class="text-xs text-gray-600 border-t border-dotted border-gray-400 pt-2">
-					Each backup code can only be used once. Store them securely. When you close this
-					modal, the codes will be lost.
-				</div>
-			</div>
-
-			<!-- Footer -->
-			<div class="flex justify-end px-4 py-2 bg-gray-100 border-t border-black">
-				<button
-					type="button"
-					onclick={closeCodesModal}
-					class="bracket-link text-sm"
-				>
-					I have saved my codes
-				</button>
-			</div>
-		</div>
+{#if form?.error}
+	<div class="border border-red-700 border-l-4 p-2 mb-4 bg-red-50">
+		<span class="text-red-700 font-bold">{form.error}</span>
 	</div>
 {/if}
+
+<!-- ══════════ SLOT LIST (task 4.3) ══════════ -->
+<div class="border-b border-black p-2">
+	<h2 class="font-bold mt-0 mb-2">CREDENTIAL SLOTS</h2>
+
+	{#if data?.promptSpareDevice}
+		<div class="border border-amber-700 border-l-4 p-2 mb-2 bg-amber-50">
+			<span class="text-amber-700 font-bold">
+				Only one device slot enrolled — a lost device would force paper
+				recovery. Enroll a spare.
+			</span>
+		</div>
+	{/if}
+
+	{#if data?.deviceSlotCount === 0}
+		<div class="border border-black border-l-4 p-2 mb-2 bg-gray-50">
+			<span class="font-bold">[ DEVICE ENROLLMENT: L2 ]</span>
+			<span class="text-gray-600 text-xs block mt-1">
+				Password-only unlock (L1). Phone/device share enrollment arrives with
+				WebAuthn PRF support — the keyring is already slot-ready.
+			</span>
+		</div>
+	{/if}
+
+	<table class="w-full text-sm border border-black">
+		<thead>
+			<tr class="bg-black text-white">
+				<th class="p-1 text-left">SLOT</th>
+				<th class="p-1 text-left">ENROLLED</th>
+				<th class="p-1 text-left">NOTES</th>
+				<th class="p-1 text-right">ACTION</th>
+			</tr>
+		</thead>
+		<tbody>
+			{#each data?.slots ?? [] as slot (slot.slotId)}
+				<tr class="border-t border-black">
+					<td class="p-1 font-bold">{kindLabels[slot.kind] ?? slot.kind}</td>
+					<td class="p-1">{new Date(slot.createdAt).toLocaleDateString('en-GB')}</td>
+					<td class="p-1 text-xs">{kindDescriptions[slot.kind] ?? ''}</td>
+					<td class="p-1 text-right">
+						{#if slot.kind !== 'password' && slot.kind !== 'recovery-passphrase'}
+							<form method="POST" action="?/revokeSlot" use:enhance class="inline">
+								<input type="hidden" name="slotId" value={slot.slotId} />
+								<button type="submit" class="bracket-link">[Revoke]</button>
+							</form>
+						{:else if slot.kind === 'recovery-passphrase'}
+							<span class="text-gray-600 text-xs">rotate below</span>
+						{:else}
+							<span class="text-gray-600 text-xs">—</span>
+						{/if}
+					</td>
+				</tr>
+			{/each}
+		</tbody>
+	</table>
+
+	<p class="text-gray-600 text-xs mt-2">
+		A stolen device slot alone cannot unlock your data — unlock requires the
+		password too (2-of-2). Revoking a slot never re-encrypts data.
+	</p>
+</div>
+
+<!-- ══════════ RECOVERY PAPER ══════════ -->
+<div class="border-b border-black p-2">
+	<h2 class="font-bold mt-0 mb-2">RECOVERY PAPER</h2>
+
+	{#if form?.recoveryPassphrase}
+		<div class="border border-red-700 border-l-4 p-2 mb-2 bg-red-50">
+			<span class="text-red-700 font-bold">
+				New recovery passphrase — shown exactly once, never again:
+			</span>
+			<div class="border border-black p-2 my-2 bg-white font-mono break-words">
+				{form.recoveryPassphrase}
+			</div>
+			<span class="text-xs">Write it down and store it offline now.</span>
+		</div>
+	{/if}
+
+	{#if data?.recoveryEnrolled}
+		<p class="text-gray-600 text-xs mb-2">
+			The existing passphrase cannot be re-displayed (shown once at
+			enrollment). Rotating issues a fresh one and revokes the old — your
+			data is NOT re-encrypted.
+		</p>
+		<label class="flex items-start gap-2 my-2 cursor-pointer text-sm">
+			<input type="checkbox" bind:checked={confirmRecoveryRotate} class="mt-1" />
+			<span>I want a new recovery passphrase; the old one will stop working.</span>
+		</label>
+		<form method="POST" action="?/rotateRecoverySlot" use:enhance>
+			<button type="submit" disabled={!confirmRecoveryRotate} class="bracket-link">
+				Rotate recovery passphrase
+			</button>
+		</form>
+	{:else}
+		<p class="text-amber-700 font-bold text-sm">
+			No recovery slot enrolled — <a href="/recovery-enroll" class="bracket-link">enroll now</a>
+			(required; losing your password without it means permanent data loss).
+		</p>
+	{/if}
+</div>
+
+<!-- ══════════ PASSWORD CHANGE (task 3.5) ══════════ -->
+<div class="border-b border-black p-2">
+	<h2 class="font-bold mt-0 mb-2">CHANGE PASSWORD</h2>
+	<p class="text-gray-600 text-xs mb-2">
+		Re-wraps your password slot only — data and other slots are untouched.
+	</p>
+	<form method="POST" action="?/changePassword" use:enhance>
+		<FormField
+			bind:this={currentField}
+			label="Current password"
+			name="currentPassword"
+			type="password"
+			bind:value={currentPassword}
+			rules={pwRules}
+			autocomplete="current-password"
+		/>
+		<FormField
+			bind:this={newField}
+			label="New password"
+			name="newPassword"
+			type="password"
+			bind:value={newPassword}
+			rules={pwRules}
+			placeholder="12+ chars, mixed case, number, special"
+			autocomplete="new-password"
+		/>
+		<FormField
+			bind:this={confirmField}
+			label="Confirm new password"
+			name="confirmPassword"
+			type="password"
+			bind:value={confirmPassword}
+			rules={pwRules}
+			autocomplete="new-password"
+		/>
+		<div class="mb-2 mt-2">
+			<button
+				type="submit"
+				disabled={!currentValid || !newValid || !confirmValid}
+				class="bracket-link"
+			>
+				Change password
+			</button>
+		</div>
+	</form>
+</div>
+
+<!-- ══════════ SEAL DEADLINE ══════════ -->
+<div class="border-b border-black p-2">
+	<h2 class="font-bold mt-0 mb-2">SEAL AFTER INACTIVITY</h2>
+	<p class="text-gray-600 text-xs mb-2">
+		Idle timeout now SEALS: the data key is wiped from memory and the unlock
+		ceremony is required to continue.
+	</p>
+	<form method="POST" action="?/saveInactivityTimeout" use:enhance class="flex items-center gap-2">
+		<select name="inactivityTimeout" bind:value={inactivityTimeout} class="border border-black p-1 bg-white">
+			<option value={1}>1 minute</option>
+			<option value={5}>5 minutes</option>
+			<option value={10}>10 minutes</option>
+		</select>
+		<button type="submit" class="bracket-link">Save</button>
+	</form>
+</div>
+
+<!-- ══════════ FULL DATA-KEY ROTATION (task 4.4) ══════════ -->
+<div class="border-b border-black p-2">
+	<h2 class="font-bold mt-0 mb-2 text-red-700">EMERGENCY: RECOVERY PAPER COMPROMISED</h2>
+	<p class="text-gray-600 text-xs mb-2">
+		Full data-key rotation re-encrypts EVERYTHING under a fresh key and
+		re-wraps every slot. Reserved for suspected compromise of the recovery
+		passphrase — device loss needs only slot revocation above.
+	</p>
+	<label class="flex items-start gap-2 my-2 cursor-pointer text-sm">
+		<input type="checkbox" bind:checked={confirmDataKeyRotate} class="mt-1" />
+		<span>
+			I suspect the paper passphrase is compromised. I understand this
+			re-encrypts all data and issues a new passphrase.
+		</span>
+	</label>
+	{#if confirmDataKeyRotate}
+		<form method="POST" action="?/rotateDataKey" use:enhance class="mb-2">
+			<FormField
+				bind:this={rotationField}
+				label="Confirm password"
+				name="password"
+				type="password"
+				bind:value={rotationPassword}
+				rules={pwRules}
+				autocomplete="current-password"
+			/>
+			<div class="mt-2">
+				<button type="submit" disabled={!rotationValid} class="bracket-link">
+					Rotate data key (full re-encryption)
+				</button>
+			</div>
+		</form>
+	{/if}
+</div>

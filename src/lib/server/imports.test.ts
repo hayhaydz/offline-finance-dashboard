@@ -3,6 +3,8 @@ import { nanoid } from "nanoid";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions, users } from "$lib/db/schema";
+import { generateDataKey, unlockKeyring } from "$lib/server/crypto/keyring";
+import { decryptTxDescription } from "$lib/server/crypto/protected-fields";
 import {
 	batchInsertTransactions,
 	getOverlappingTransactions,
@@ -27,6 +29,8 @@ beforeAll(async () => {
 		})
 		.returning({ id: users.id });
 	testUserId = user.id;
+	// Value-layer writes (description encryption) need an unlocked keyring
+	unlockKeyring(testUserId, generateDataKey());
 
 	const [account] = await db
 		.insert(accounts)
@@ -137,9 +141,13 @@ describe("batchInsertTransactions", () => {
 			.from(accountTransactions)
 			.where(eq(accountTransactions.accountId, testAccountId));
 
-		const imported = inserted.filter((tx) =>
-			tx.description?.startsWith("Batch import test"),
-		);
+		// Value layer: decrypt descriptions before asserting on content
+		const imported = inserted
+			.map((tx) => ({
+				...tx,
+				description: decryptTxDescription(testUserId, tx.slug, tx.description),
+			}))
+			.filter((tx) => tx.description?.startsWith("Batch import test"));
 
 		expect(imported).toHaveLength(2);
 		// Amount should be converted to cents

@@ -73,18 +73,18 @@ export async function checkGoalAlerts(userId: number): Promise<Alert[]> {
 							? goal.currentAllocation / goal.targetAmountInCents
 							: 1;
 				}
-			if (progress < 0.9) {
-				const pct = Math.round(progress * 100);
-				alerts.push({
-					id: `GOAL_DEADLINE_APPROACHING:goal:${goal.slug}`,
-					type: "GOAL_DEADLINE_APPROACHING",
-					severity: "amber",
-					title: "Goal deadline approaching",
-					message: `"${goal.name}" — ${pct}% funded, deadline in ${days} day${days === 1 ? "" : "s"}`,
-					href: `/goals/${goal.slug}`,
-					triggeredAt: Date.now(),
-				});
-			}
+				if (progress < 0.9) {
+					const pct = Math.round(progress * 100);
+					alerts.push({
+						id: `GOAL_DEADLINE_APPROACHING:goal:${goal.slug}`,
+						type: "GOAL_DEADLINE_APPROACHING",
+						severity: "amber",
+						title: "Goal deadline approaching",
+						message: `"${goal.name}" — ${pct}% funded, deadline in ${days} day${days === 1 ? "" : "s"}`,
+						href: `/goals/${goal.slug}`,
+						triggeredAt: Date.now(),
+					});
+				}
 			}
 		}
 
@@ -99,15 +99,15 @@ export async function checkGoalAlerts(userId: number): Promise<Alert[]> {
 				currentBalance !== undefined &&
 				Math.abs(currentBalance) > Math.abs(goal.startingBalanceInCents)
 			) {
-			alerts.push({
-				id: `DEBT_GREW_BEYOND_STARTING:goal:${goal.slug}`,
-				type: "DEBT_GREW_BEYOND_STARTING",
-				severity: "red",
-				title: "Debt increased",
-				message: `"${goal.name}" balance has exceeded the starting balance`,
-				href: `/goals/${goal.slug}`,
-				triggeredAt: Date.now(),
-			});
+				alerts.push({
+					id: `DEBT_GREW_BEYOND_STARTING:goal:${goal.slug}`,
+					type: "DEBT_GREW_BEYOND_STARTING",
+					severity: "red",
+					title: "Debt increased",
+					message: `"${goal.name}" balance has exceeded the starting balance`,
+					href: `/goals/${goal.slug}`,
+					triggeredAt: Date.now(),
+				});
 			}
 		}
 	}

@@ -3,6 +3,10 @@ import { nanoid } from "nanoid";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { type Account, accounts, accountTransactions } from "$lib/db/schema";
+import {
+	decryptTxDescription,
+	encryptTxDescription,
+} from "$lib/server/crypto/protected-fields";
 import { logError, logInfo } from "$lib/server/logger";
 import {
 	err,
@@ -48,7 +52,13 @@ export async function createTransaction(
 		accountId: account.id,
 		type: data.type,
 		amount: data.amount,
-		description: data.description ?? null,
+		// Value layer: description encrypted under the account owner's
+		// DataKey, AAD-bound to this transaction's slug.
+		description: encryptTxDescription(
+			account.userId,
+			slug,
+			data.description ?? null,
+		),
 		categoryId: data.categoryId ?? null,
 		transactionDate: data.transactionDate,
 		createdAt: new Date(),
@@ -110,6 +120,11 @@ export async function getTransactions(
 
 	return rows.map((row) => ({
 		...row.transaction,
+		description: decryptTxDescription(
+			userId,
+			row.transaction.slug,
+			row.transaction.description,
+		),
 		account: row.account,
 	}));
 }
@@ -119,7 +134,7 @@ export async function getTransactions(
  * Returns null if not found.
  */
 export async function getTransactionBySlug(slug: string) {
-	return db.query.accountTransactions.findFirst({
+	const tx = await db.query.accountTransactions.findFirst({
 		where: eq(accountTransactions.slug, slug),
 		with: {
 			account: {
@@ -134,6 +149,15 @@ export async function getTransactionBySlug(slug: string) {
 			},
 		},
 	});
+	if (!tx) return tx;
+	return {
+		...tx,
+		description: decryptTxDescription(
+			tx.account.userId,
+			tx.slug,
+			tx.description,
+		),
+	};
 }
 
 /**
@@ -149,10 +173,19 @@ export async function updateTransaction(
 		categoryId?: number | null;
 		transactionDate?: Date;
 	},
+	userId?: number,
 ): Promise<VoidResult> {
 	const result = await db
 		.update(accountTransactions)
-		.set(data)
+		.set({
+			...data,
+			// Value layer: description re-encrypted under the DataKey when
+			// updated (AAD bound to the unchanged slug).
+			description:
+				data.description !== undefined && userId !== undefined
+					? encryptTxDescription(userId, slug, data.description)
+					: data.description,
+		})
 		.where(eq(accountTransactions.slug, slug))
 		.returning({ slug: accountTransactions.slug });
 

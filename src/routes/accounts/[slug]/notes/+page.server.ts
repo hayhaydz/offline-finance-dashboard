@@ -3,6 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accountNotes, accounts } from "$lib/db/schema";
+import { decryptNoteContent } from "$lib/server/crypto/protected-fields";
 import { requireAuth } from "$lib/server/utils/auth-guard";
 import type { PageServerLoad } from "./$types";
 
@@ -22,11 +23,16 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 
 	validateUserAccess(account, user, "Account");
 
-	// Get all notes for this account
-	const notes = await db.query.accountNotes.findMany({
+	// Get all notes for this account (content decrypted under the DataKey)
+	const noteRows = await db.query.accountNotes.findMany({
 		where: eq(accountNotes.accountId, account.id),
 		orderBy: desc(accountNotes.createdAt),
 	});
+	const notes = noteRows.map((note) => ({
+		...note,
+		// content column is NOT NULL — ?? "" satisfies the type only
+		content: decryptNoteContent(user.id, note.slug, note.content) ?? "",
+	}));
 
 	return {
 		account,

@@ -22,6 +22,7 @@ import {
 	accountTransactions,
 	spendingCategories,
 } from "$lib/db/schema";
+import { decryptTxDescription } from "$lib/server/crypto/protected-fields";
 import {
 	serializeTransactionCsv,
 	type TransactionCsvRow,
@@ -151,6 +152,7 @@ export async function buildTransactionsCsv(
 		const rows = await db
 			.select({
 				id: accountTransactions.id,
+				slug: accountTransactions.slug,
 				transactionDate: accountTransactions.transactionDate,
 				type: accountTransactions.type,
 				amount: accountTransactions.amount,
@@ -178,7 +180,7 @@ export async function buildTransactionsCsv(
 					date: utcDateString(row.transactionDate),
 					type: row.type,
 					amountCents: row.amount,
-					description: row.description,
+					description: decryptTxDescription(userId, row.slug, row.description),
 					category: row.categoryName ?? null,
 					deleteFlag: false,
 				}),

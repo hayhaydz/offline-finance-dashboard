@@ -1,16 +1,18 @@
 import crypto from "node:crypto";
 import { fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
-import { decryptTOTPSecret, verifyBackupCode, verifyTOTP } from "$lib/auth/mfa";
 import { hashPassword, verifyPassword } from "$lib/auth/password";
 import { HOME_ROUTE } from "$lib/constants/routes";
 import { db } from "$lib/db/client";
-import { backupCodes, sessions, users } from "$lib/db/schema";
+import { sessions, users } from "$lib/db/schema";
 import {
 	checkRateLimit,
 	recordFailedAttempt,
 	recordSuccessfulAttempt,
 } from "$lib/security/rate-limiter";
+import { hasEnvelope, unwrapPasswordSlot } from "$lib/server/crypto/enroll";
+import { EnvelopeError } from "$lib/server/crypto/envelope";
+import { unlockKeyring } from "$lib/server/crypto/keyring";
 import {
 	devLog,
 	isVerboseDebug,
@@ -68,6 +70,18 @@ export async function load({ cookies }) {
 			maxAge: 60 * 60 * 24 * 30, // 30 days in development
 		});
 
+		// Dev convenience that exercises the REAL unwrap path: unlock with the
+		// seeded password. On any unwrap failure the app stays sealed and the
+		// /unlock ceremony takes over (hooks seal guard).
+		try {
+			const dataKey = await unwrapPasswordSlot(db, adminUser, "password");
+			unlockKeyring(adminUser.id, dataKey);
+		} catch (error) {
+			logError("login", "Dev auto-login could not unlock keyring", {
+				code: error instanceof EnvelopeError ? error.code : "unknown",
+			});
+		}
+
 		if (isVerboseDebug()) {
 			devLog("login", "Development auto-login successful", {
 				sessionMaxAge: "30 days",
@@ -92,10 +106,9 @@ export const actions = {
 
 		const username = formData.get("username") as string;
 		const password = formData.get("password") as string;
-		const totpCode = formData.get("totpCode") as string;
 
 		// Basic validation
-		if (!username || !password || !totpCode) {
+		if (!username || !password) {
 			// Generic error message (prevents username enumeration)
 			logError("login", "Missing required fields");
 			await recordFailedAttempt(username);
@@ -146,7 +159,10 @@ export const actions = {
 			return fail(401, { error: "Invalid credentials" });
 		}
 
-		// Verify password
+		// STEP 1 — Argon2id auth-hash verification (rate-limited gate).
+		// A wrong password NEVER reaches the slot unwrap (design D2: the
+		// auth hash is the verifier; unwrap failure must not be the only
+		// signal, and GCM tag errors must not become an oracle).
 		const passwordValid = await verifyPassword(user.passwordHash, password);
 		if (!passwordValid) {
 			logError("login", "Invalid password");
@@ -154,91 +170,7 @@ export const actions = {
 			return fail(401, { error: "Invalid credentials" });
 		}
 
-		// Re-check rate limit before TOTP verification.
-		// Previous requests may have exhausted the allowance with TOTP
-		// failures — this catches accumulated TOTP brute-force attempts
-		// at the verification boundary, not just at the request start.
-		const mfaRateLimit = await checkRateLimit(username);
-		if (mfaRateLimit.locked) {
-			logError("login", "Account locked before MFA verification");
-			return fail(429, {
-				locked: true,
-				error: "Account locked due to too many failed attempts",
-			});
-		}
-		if (mfaRateLimit.delay) {
-			logInfo("login", "Login blocked: rate-limit delay (pre-MFA)", {
-				delayMs: mfaRateLimit.delay,
-				attemptsRemaining: mfaRateLimit.attemptsRemaining,
-			});
-			return fail(429, {
-				delay: mfaRateLimit.delay,
-				error: "Too many failed attempts. Please wait before trying again.",
-			});
-		}
-
-		// Decrypt TOTP secret before verifying TOTP code
-		// The secret is stored AES-256-GCM encrypted in the database
-		const systemKey = process.env.ENCRYPTION_KEY;
-		if (!systemKey) {
-			logError("login", "Server configuration error - missing ENCRYPTION_KEY");
-			return fail(500, { error: "Server configuration error" });
-		}
-
-		const totpSecretPlaintext = decryptTOTPSecret(
-			user.totpSecret,
-			user.totpSecretIV,
-			systemKey,
-		);
-
-		// Verify TOTP code using decrypted secret
-		let totpValid = await verifyTOTP(totpCode, totpSecretPlaintext);
-
-		// If TOTP fails, try backup code verification
-		let usedBackupCodeId: number | null = null;
-		if (!totpValid) {
-			// Query user's UNUSED backup codes
-			const userBackupCodes = await db.query.backupCodes.findMany({
-				where: eq(backupCodes.userId, user.id),
-			});
-
-			// Filter to only unused codes and extract hashes
-			const unusedHashedCodes = userBackupCodes
-				.filter((code) => !code.used)
-				.map((code) => code.code);
-
-			// Try to verify against backup codes
-			if (unusedHashedCodes.length > 0) {
-				const matchedHash = await verifyBackupCode(totpCode, unusedHashedCodes);
-				if (matchedHash) {
-					// Find the specific backup code that was used
-					const usedCode = userBackupCodes.find(
-						(code) => code.code === matchedHash,
-					);
-					if (usedCode) {
-						// Mark the backup code as used
-						await db
-							.update(backupCodes)
-							.set({ used: true })
-							.where(eq(backupCodes.id, usedCode.id));
-						usedBackupCodeId = usedCode.id;
-						devLog("login", "Backup code used", {
-							backupCodeId: usedCode.id,
-						});
-					}
-					totpValid = true;
-				}
-			}
-		}
-
-		// If both TOTP and backup code verification failed
-		if (!totpValid) {
-			logError("login", "Invalid TOTP code");
-			await recordFailedAttempt(username);
-			return fail(401, { error: "Invalid credentials" });
-		}
-
-		// Successful login - clear failed attempts
+		// Successful credential — clear failed attempts
 		await recordSuccessfulAttempt(username);
 
 		// Single session: Invalidate any existing sessions for this user
@@ -264,9 +196,35 @@ export const actions = {
 			maxAge: 60 * 60 * 24, // 24 hours
 		});
 
-		devLog("login", "Login successful", {
-			usedBackupCode: !!usedBackupCodeId,
-		});
+		// STEP 2 — Unlock ceremony: unwrap the password slot → DataKey in
+		// memory. Legacy accounts (pre-envelope, no slots yet) are routed to
+		// the one-shot migration instead (task 5.1).
+		const enrolled = await hasEnvelope(db, user.id);
+		if (!enrolled) {
+			devLog("login", "Legacy account — envelope migration required", {
+				userId: user.id,
+			});
+			throw redirect(302, "/migrate");
+		}
+
+		try {
+			const dataKey = await unwrapPasswordSlot(db, user, password);
+			unlockKeyring(user.id, dataKey);
+		} catch (error) {
+			if (error instanceof EnvelopeError) {
+				// Auth hash passed but the slot will not unwrap — treat as a
+				// credential failure (slot belongs to a different password).
+				logError("login", "Password slot unwrap failed", {
+					userId: user.id,
+					code: error.code,
+				});
+				await recordFailedAttempt(username);
+				return fail(401, { error: "Invalid credentials" });
+			}
+			throw error;
+		}
+
+		devLog("login", "Login + unlock successful", { userId: user.id });
 
 		// Return to the URL the user was on before expiry/logout redirected
 		// them here (audit #21) — validated to stay on-origin.

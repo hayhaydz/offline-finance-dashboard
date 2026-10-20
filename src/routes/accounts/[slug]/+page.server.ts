@@ -14,6 +14,10 @@ import { buildAvailableTaxYears } from "$lib/server/account-tax-year";
 import { getAlertsForAccount } from "$lib/server/alerts";
 import { getCategories } from "$lib/server/categories";
 import {
+	decryptNoteContent,
+	decryptTxDescription,
+} from "$lib/server/crypto/protected-fields";
+import {
 	calculateMinimumPayment,
 	calculatePaymentSuggestion,
 	formatTaxYearStartParam,
@@ -424,20 +428,35 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	const allTransactionsForPatterns =
 		await db.query.accountTransactions.findMany({
 			where: eq(accountTransactions.accountId, account.id),
-			columns: { description: true, amount: true, transactionDate: true },
+			columns: {
+				slug: true,
+				description: true,
+				amount: true,
+				transactionDate: true,
+			},
 		});
-	const recurringPatterns = detectRecurringPatterns(allTransactionsForPatterns);
+	const recurringPatterns = detectRecurringPatterns(
+		allTransactionsForPatterns.map((t) => ({
+			...t,
+			description: decryptTxDescription(user.id, t.slug, t.description),
+		})),
+	);
 
 	// Total transaction count gates the destructive delete affordance
 	// (empty-accounts-only delete — zero transactions means deletable)
 	const transactionCount = allTransactionsForPatterns.length;
 
-	// Get notes for this account
-	const notes = await db.query.accountNotes.findMany({
+	// Get notes for this account (content decrypted under the DataKey)
+	const noteRows = await db.query.accountNotes.findMany({
 		where: eq(accountNotes.accountId, account.id),
 		orderBy: desc(accountNotes.createdAt),
 		limit: 10, // Show 10 most recent notes
 	});
+	const notes = noteRows.map((note) => ({
+		...note,
+		// content column is NOT NULL — ?? "" satisfies the type only
+		content: decryptNoteContent(user.id, note.slug, note.content) ?? "",
+	}));
 
 	// Get BoE base rate from settings (stored as basis points, e.g. "450" = 4.50%)
 	const boeRow = await db.query.settings.findFirst({
@@ -743,6 +762,7 @@ export const actions: Actions = {
 	 */
 	addNote: async ({ request, locals, params }) => {
 		const account = await requireAccountOwnership(locals, params.slug);
+		const user = requireAuth(locals);
 
 		const formData = await request.formData();
 		const content = formData.get("content") as string;
@@ -761,6 +781,7 @@ export const actions: Actions = {
 			const result = await createNote({
 				accountId: account.id,
 				content: trimmedContent,
+				userId: user.id,
 			});
 
 			if (!result.ok) {
@@ -801,7 +822,7 @@ export const actions: Actions = {
 
 		try {
 			// Verify note belongs to this account (account ownership already validated above)
-			const note = await getNoteBySlug(noteSlug);
+			const note = await getNoteBySlug(noteSlug, locals.user?.id ?? 0);
 			if (!note || note.accountId !== account.id) {
 				return fail(404, { error: "Note not found" });
 			}

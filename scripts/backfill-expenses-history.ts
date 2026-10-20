@@ -58,10 +58,7 @@ for (const user of allUsers) {
 			note: "migrated from legacy monthly expenses setting",
 		})
 		.onConflictDoNothing({
-			target: [
-				schema.expensesHistory.userId,
-				schema.expensesHistory.month,
-			],
+			target: [schema.expensesHistory.userId, schema.expensesHistory.month],
 		});
 
 	if (result.changes > 0) {

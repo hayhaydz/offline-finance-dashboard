@@ -71,9 +71,7 @@ export function getProjectionNullReason(
 	const hasRule =
 		(rule.type === "flat" && !!rule.flat) ||
 		(rule.type === "percentage" && !!rule.percentage) ||
-		(rule.type === "flat_or_percentage" &&
-			!!rule.flat &&
-			!!rule.percentage);
+		(rule.type === "flat_or_percentage" && !!rule.flat && !!rule.percentage);
 	return hasRule ? "payment_below_interest" : "no_minimum_payment";
 }
 

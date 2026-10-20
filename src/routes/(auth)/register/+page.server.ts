@@ -1,10 +1,11 @@
 import crypto from "node:crypto";
 import { fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
-import { encryptTOTPSecret, generateTOTPSecret } from "$lib/auth/mfa";
 import { hashPassword } from "$lib/auth/password";
 import { db } from "$lib/db/client";
 import { users } from "$lib/db/schema";
+import { enrollPasswordSlot } from "$lib/server/crypto/enroll";
+import { unlockKeyring } from "$lib/server/crypto/keyring";
 import {
 	devLog,
 	isVerboseDebug,
@@ -75,53 +76,53 @@ export const actions = {
 			if (isVerboseDebug())
 				devLog("register", "Validation passed", { username });
 
-			// Generate TOTP secret
-			const totpSecret = generateTOTPSecret();
-
-			// Generate password salt for user key derivation
+			// Envelope enrollment (design D1/D2):
+			// 1. random 256-bit DataKey — encrypts the user's data, never stored raw
+			// 2. password slot = DataKey wrapped under Argon2id(password, salt)→HKDF
+			// 3. recovery paper slot — REQUIRED, enrolled in the same session
+			//    (next screen; wallet consequences stated before acceptance)
 			const passwordSalt = crypto.randomBytes(16).toString("hex");
-
-			// Generate random token for MFA setup
-			const mfaSetupToken = crypto.randomBytes(32).toString("hex");
-
-			// Hash password with Argon2id
 			const passwordHash = await hashPassword(password);
 
-			// Encrypt TOTP secret with system key (or use PLAIN: prefix in loose mode)
-			const systemKey = process.env.ENCRYPTION_KEY;
-			const encryptionResult = encryptTOTPSecret(totpSecret, systemKey);
-			const totpSecretEncrypted = encryptionResult.encrypted;
-			const totpSecretIV = encryptionResult.iv;
+			const [newUser] = await db
+				.insert(users)
+				.values({
+					username,
+					passwordHash,
+					passwordSalt,
+					// Legacy TOTP columns (dropped in the 5.3 release step): inert
+					// placeholder values satisfy NOT NULL for fresh accounts.
+					totpSecret: "REMOVED",
+					totpSecretIV: "REMOVED",
+					createdAt: new Date(),
+				})
+				.returning();
 
-			// Create user with hashed password and ENCRYPTED TOTP secret
-			await db.insert(users).values({
-				username,
-				passwordHash,
-				totpSecret: totpSecretEncrypted,
-				totpSecretIV,
+			const { dataKey } = await enrollPasswordSlot(db, {
+				userId: newUser.id,
+				password,
 				passwordSalt,
-				mfaSetupToken,
-				createdAt: new Date(),
 			});
 
+			// Unlock immediately — registration session starts unsealed.
+			unlockKeyring(newUser.id, dataKey);
+
 			if (isVerboseDebug()) {
-				devLog("register", "User created successfully", {
+				devLog("register", "User created with envelope keyring", {
 					username,
-					hasMfaSetupToken: !!mfaSetupToken,
+					userId: newUser.id,
 				});
 			}
 
-			// Store setup token in cookie for MFA setup page
-			cookies.set("mfa-setup-token", mfaSetupToken, {
+			// Recovery enrollment is REQUIRED in the same session (spec
+			// recovery-credentials: "Migration cannot skip recovery enrollment").
+			cookies.set("recovery-enroll-user", String(newUser.id), {
 				path: "/",
 				httpOnly: true,
 				sameSite: "strict",
 				secure: process.env.APP_ENV === "production",
-				maxAge: 60 * 15, // 15 minutes to complete MFA setup
+				maxAge: 60 * 15, // 15 minutes to complete enrollment
 			});
-
-			if (isVerboseDebug())
-				devLog("register", "MFA setup initiated", { username });
 		} catch (error) {
 			// SvelteKit's redirect() throws an error with status code - let it through
 			if (
@@ -136,7 +137,7 @@ export const actions = {
 			return fail(500, { error: "An error occurred during registration" });
 		}
 
-		// Redirect to MFA setup page
-		throw redirect(302, "/mfa-setup");
+		// Redirect to recovery enrollment — required before the app is usable
+		throw redirect(302, "/recovery-enroll?mode=register");
 	},
 };

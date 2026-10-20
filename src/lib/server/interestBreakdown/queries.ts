@@ -9,8 +9,8 @@ import { and, asc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
+import { decryptTxDescription } from "$lib/server/crypto/protected-fields";
 import { devLog, isVerboseDebug } from "$lib/server/logger";
-
 import type { InterestTransaction } from "$lib/types/breakdown";
 
 /**
@@ -106,7 +106,7 @@ export async function getInterestTransactions(
 			transactionDate: tx.transactionDate,
 			type: tx.type,
 			amount: tx.amount,
-			description: tx.description,
+			description: decryptTxDescription(userId, tx.slug, tx.description),
 			runningTotal,
 			accountId: tx.accountId,
 			accountSlug: tx.accountSlug,

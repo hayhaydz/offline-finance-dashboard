@@ -113,7 +113,7 @@
 			disabled={!isFormValid}
 			class="bracket-link"
 		>
-			Continue to MFA Setup
+			Create account + envelope
 		</button>
 	</div>
 </form>

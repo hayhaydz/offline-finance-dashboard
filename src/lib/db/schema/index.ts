@@ -19,16 +19,24 @@ export {
 	interestRatesRelations,
 } from "./accounts";
 // Inferred types
-export type { User } from "./auth";
+export type { CredentialSlot, User } from "./auth";
 export {
 	backupCodes,
 	backupCodesRelations,
+	credentialSlots,
+	credentialSlotsRelations,
 	loginAttempts,
 	sessions,
 	sessionsRelations,
 	users,
 	usersRelations,
 } from "./auth";
+// Expenses domain
+export type { ExpensesHistoryRow } from "./expenses";
+export {
+	expensesHistory,
+	expensesHistoryRelations,
+} from "./expenses";
 export type { Goal, GoalAllocation, GoalMilestone } from "./goals";
 // Goal domain
 export {
@@ -39,12 +47,6 @@ export {
 	goals,
 	goalsRelations,
 } from "./goals";
-// Expenses domain
-export type { ExpensesHistoryRow } from "./expenses";
-export {
-	expensesHistory,
-	expensesHistoryRelations,
-} from "./expenses";
 export type {
 	BudgetConfigAmendment,
 	BudgetMonth,

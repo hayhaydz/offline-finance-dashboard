@@ -9,6 +9,7 @@ import {
 	goalAllocations,
 	goals,
 } from "$lib/db/schema";
+import { decryptTxDescription } from "$lib/server/crypto/protected-fields";
 import {
 	calculateRecentAveragePayment,
 	getCurrentApr,
@@ -184,11 +185,15 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		});
 
 		if (linkedAccount) {
-			const transactions = await db.query.accountTransactions.findMany({
+			const txRows = await db.query.accountTransactions.findMany({
 				where: eq(accountTransactions.accountId, goal.linkedAccountId),
 				orderBy: [desc(accountTransactions.transactionDate)],
 				limit: 100,
 			});
+			const transactions = txRows.map((t) => ({
+				...t,
+				description: decryptTxDescription(user.id, t.slug, t.description),
+			}));
 
 			const apr = getCurrentApr(
 				linkedAccount.interestRates.map((r) => ({

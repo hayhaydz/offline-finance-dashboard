@@ -8,6 +8,7 @@ import { and, asc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
+import { decryptTxDescription } from "$lib/server/crypto/protected-fields";
 import { devLog, isVerboseDebug } from "$lib/server/logger";
 import type { ISATransaction } from "$lib/types/breakdown";
 import { TAX_FREE_WRAPPERS } from "$lib/utils/domain-constants";
@@ -106,7 +107,7 @@ export async function getISATransactions(params: {
 			transactionDate: tx.transactionDate,
 			type: tx.type,
 			amount: tx.amount,
-			description: tx.description,
+			description: decryptTxDescription(userId, tx.slug, tx.description),
 			runningTotal,
 			accountId: account.id,
 			accountSlug: account.slug,

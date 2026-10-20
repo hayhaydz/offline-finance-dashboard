@@ -3,6 +3,11 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { db } from "$lib/db/client";
 import { accountNotes, accounts, users } from "$lib/db/schema";
 import {
+	generateDataKey,
+	sealKeyring,
+	unlockKeyring,
+} from "$lib/server/crypto/keyring";
+import {
 	createNote,
 	deleteNote,
 	getNoteBySlug,
@@ -30,6 +35,9 @@ describe("Account Notes CRUD", () => {
 			.returning();
 		testUserId = user.id;
 		createdUserIds.push(user.id);
+
+		// Value-layer encryption requires an unlocked keyring for this user
+		unlockKeyring(testUserId, generateDataKey());
 
 		// Create test account
 		const [account] = await db
@@ -66,12 +74,14 @@ describe("Account Notes CRUD", () => {
 		// Reset arrays
 		createdUserIds = [];
 		createdAccountIds = [];
+		sealKeyring("test-teardown");
 	});
 
 	it("should create a note with unique slug", async () => {
 		const result = await createNote({
 			accountId: testAccountId,
 			content: "Test note content",
+			userId: testUserId,
 		});
 		expect(result.ok).toBe(true);
 		if (!result.ok) return; // type narrowing
@@ -80,10 +90,18 @@ describe("Account Notes CRUD", () => {
 	});
 
 	it("should retrieve notes for account ordered by date desc", async () => {
-		await createNote({ accountId: testAccountId, content: "First note" });
-		await createNote({ accountId: testAccountId, content: "Second note" });
+		await createNote({
+			accountId: testAccountId,
+			content: "First note",
+			userId: testUserId,
+		});
+		await createNote({
+			accountId: testAccountId,
+			content: "Second note",
+			userId: testUserId,
+		});
 
-		const notes = await getNotesByAccountId(testAccountId);
+		const notes = await getNotesByAccountId(testAccountId, testUserId);
 		expect(notes).toHaveLength(2);
 		expect(notes[0].content).toBe("Second note"); // Most recent first
 	});
@@ -92,10 +110,11 @@ describe("Account Notes CRUD", () => {
 		const created = await createNote({
 			accountId: testAccountId,
 			content: "Find me by slug",
+			userId: testUserId,
 		});
 		if (!created.ok) throw new Error("setup failed");
 
-		const found = await getNoteBySlug(created.data);
+		const found = await getNoteBySlug(created.data, testUserId);
 		expect(found).toBeDefined();
 		expect(found?.content).toBe("Find me by slug");
 	});
@@ -104,12 +123,13 @@ describe("Account Notes CRUD", () => {
 		const created = await createNote({
 			accountId: testAccountId,
 			content: "Delete me",
+			userId: testUserId,
 		});
 		if (!created.ok) throw new Error("setup failed");
 
 		await deleteNote(created.data);
 
-		const found = await getNoteBySlug(created.data);
+		const found = await getNoteBySlug(created.data, testUserId);
 		expect(found).toBeNull();
 	});
 
@@ -117,6 +137,7 @@ describe("Account Notes CRUD", () => {
 		const result = await createNote({
 			accountId: testAccountId,
 			content: "x".repeat(5001), // exceeds limit
+			userId: testUserId,
 		});
 		expect(result.ok).toBe(false);
 		if (result.ok) return; // type narrowing
@@ -127,6 +148,7 @@ describe("Account Notes CRUD", () => {
 		const result = await createNote({
 			accountId: testAccountId,
 			content: "   ",
+			userId: testUserId,
 		});
 		expect(result.ok).toBe(false);
 		if (result.ok) return; // type narrowing

@@ -3,6 +3,10 @@ import { nanoid } from "nanoid";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { monthlyReviews } from "$lib/db/schema";
+import {
+	decryptReviewNotes,
+	encryptReviewNotes,
+} from "$lib/server/crypto/protected-fields";
 import { devLog, logError, logInfo } from "$lib/server/logger";
 import { CHECKLIST_ITEMS, formatYearMonth } from "$lib/utils/reviews";
 
@@ -43,7 +47,10 @@ export async function getOrCreateReview(
 
 	if (existing) {
 		devLog("reviews", "Found existing review", { userId, yearMonth });
-		return existing;
+		return {
+			...existing,
+			notes: decryptReviewNotes(userId, existing.slug, existing.notes),
+		};
 	}
 
 	devLog("reviews", "Creating new review", { userId, yearMonth });
@@ -112,7 +119,10 @@ export async function toggleChecklistItem(
 		nowChecked: updated.includes(itemKey),
 	});
 
-	return result;
+	return {
+		...result,
+		notes: decryptReviewNotes(userId, result.slug, result.notes),
+	};
 }
 
 /**
@@ -134,11 +144,20 @@ export async function updateReviewNotes(
 
 	const [result] = await db
 		.update(monthlyReviews)
-		.set({ notes: notes.trim() || null, updatedAt: new Date() })
+		.set({
+			// Value layer: notes encrypted under the DataKey (AAD: review slug)
+			notes: notes.trim()
+				? encryptReviewNotes(userId, reviewSlug, notes.trim())
+				: null,
+			updatedAt: new Date(),
+		})
 		.where(eq(monthlyReviews.slug, reviewSlug))
 		.returning();
 
-	return result;
+	return {
+		...result,
+		notes: decryptReviewNotes(userId, result.slug, result.notes),
+	};
 }
 
 export interface ReviewHistoryEntry {
@@ -170,7 +189,7 @@ export async function getReviewHistory(
 		completedCount: (r.completedItems ?? []).length,
 		totalItems: CHECKLIST_ITEMS.length,
 		isComplete: (r.completedItems ?? []).length === CHECKLIST_ITEMS.length,
-		notes: r.notes,
+		notes: decryptReviewNotes(userId, r.slug, r.notes),
 		createdAt: r.createdAt,
 	}));
 }

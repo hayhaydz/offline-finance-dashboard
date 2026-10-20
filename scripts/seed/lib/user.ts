@@ -1,11 +1,11 @@
 import crypto from "node:crypto";
 import { eq } from "drizzle-orm";
-import {
-	encryptTOTPSecret,
-	generateTOTPSecret,
-} from "../../../src/lib/auth/mfa.js";
 import { hashPassword } from "../../../src/lib/auth/password.js";
 import * as schema from "../../../src/lib/db/schema/index";
+import {
+	enrollPasswordSlot,
+	enrollRecoverySlot,
+} from "../../../src/lib/server/crypto/enroll.js";
 import type { DB } from "./db.js";
 
 export async function ensureAdminUser(db: DB): Promise<number> {
@@ -18,20 +18,6 @@ export async function ensureAdminUser(db: DB): Promise<number> {
 		return existing.id;
 	}
 
-	const encryptionKey = process.env.ENCRYPTION_KEY;
-	const totpSecret = generateTOTPSecret();
-	let secretToStore = totpSecret;
-	let ivToStore = "";
-
-	if (encryptionKey) {
-		const result = encryptTOTPSecret(totpSecret, encryptionKey);
-		secretToStore = result.encrypted;
-		ivToStore = result.iv;
-	} else {
-		secretToStore = `PLAIN:${totpSecret}`;
-		ivToStore = "PLAIN";
-	}
-
 	const passwordSalt = crypto.randomBytes(16).toString("hex");
 	const passwordHash = await hashPassword("password");
 
@@ -40,8 +26,10 @@ export async function ensureAdminUser(db: DB): Promise<number> {
 		.values({
 			username: "admin",
 			passwordHash,
-			totpSecret: secretToStore,
-			totpSecretIV: ivToStore,
+			// Legacy TOTP columns (dropped in the 5.3 release step): inert
+			// placeholders satisfy NOT NULL until then.
+			totpSecret: "REMOVED",
+			totpSecretIV: "REMOVED",
 			passwordSalt,
 			taxBand: "basic",
 			inactivityTimeout: 5,
@@ -52,22 +40,17 @@ export async function ensureAdminUser(db: DB): Promise<number> {
 
 	const userId = newUser.id;
 
-	const codes: Array<{
-		userId: number;
-		code: string;
-		used: boolean;
-		createdAt: Date;
-	}> = [];
-	for (let i = 0; i < 10; i++) {
-		const code = crypto.randomBytes(4).toString("hex").toUpperCase();
-		codes.push({
-			userId,
-			code: await hashPassword(code),
-			used: false,
-			createdAt: new Date(),
-		});
-	}
-	await db.insert(schema.backupCodes).values(codes);
+	// Envelope fixtures (task 2.2): real password slot + recovery paper slot
+	// wrapping a real DataKey, so seeded databases exercise the actual path.
+	const { dataKey } = await enrollPasswordSlot(db, {
+		userId,
+		password: "password",
+		passwordSalt,
+	});
+	const { passphrase } = await enrollRecoverySlot(db, {
+		userId,
+		dataKey,
+	});
 
 	await db.insert(schema.sessions).values({
 		token: crypto.randomBytes(32).toString("hex"),
@@ -76,6 +59,9 @@ export async function ensureAdminUser(db: DB): Promise<number> {
 		createdAt: new Date(),
 	});
 
+	// The recovery passphrase is shown ONCE, here (seed context = dev only).
 	console.log("✅ Created admin user (admin / password)");
+	console.log(`🔑 Envelope keyring enrolled (password + recovery slots)`);
+	console.log(`📄 DEV recovery passphrase (shown once): ${passphrase}`);
 	return userId;
 }

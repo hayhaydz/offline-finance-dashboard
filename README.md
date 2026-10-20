@@ -73,13 +73,15 @@ Security is loose — you can use SQLite viewers directly on the dev database.
 
 ```bash
 export APP_ENV=production
-export ENCRYPTION_KEY=$(openssl rand -hex 32)  # Save this somewhere safe!
+export ENCRYPTION_KEY=$(openssl rand -hex 32)  # File-layer key (machine-local)
 
 npm run build
-npm run start          # Startup auto-applies pending migrations
+npm run start          # Startup auto-applies pending migrations; boots SEALED
 ```
 
-The app will refuse to start if encryption is missing or if it finds unencrypted user data. Lose the key, lose the data.
+The app will refuse to start if file-layer encryption is missing or if it finds unencrypted user data.
+
+**Custody model (envelope keyring):** `ENCRYPTION_KEY` protects the DB file at rest only — it is not the data master key. Your data is encrypted under a per-user DataKey that exists only in memory between unlock and seal: the disk alone (DB file + `.env` + code) can never reassemble it. Unlock requires your password; lose the password AND the recovery paper and the data is unrecoverable — there is no reset.
 
 ---
 

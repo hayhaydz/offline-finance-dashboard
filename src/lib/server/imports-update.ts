@@ -32,6 +32,10 @@ import {
 	spendingCategories,
 } from "$lib/db/schema";
 import {
+	decryptTxDescription,
+	encryptTxDescription,
+} from "$lib/server/crypto/protected-fields";
+import {
 	BACKUP_HEADER_PREFIX,
 	parseBackupHeaderLine,
 	serializeTransactionCsv,
@@ -140,6 +144,7 @@ interface PreStateRow {
 	id: number;
 	accountId: number;
 	accountSlug: string;
+	txSlug: string;
 	date: string;
 	type: string;
 	amountCents: number;
@@ -418,6 +423,7 @@ async function resolvePlan(
 			.select({
 				id: accountTransactions.id,
 				accountId: accountTransactions.accountId,
+				txSlug: accountTransactions.slug,
 				accountSlug: accounts.slug,
 				transactionDate: accountTransactions.transactionDate,
 				type: accountTransactions.type,
@@ -442,10 +448,11 @@ async function resolvePlan(
 				id: row.id,
 				accountId: row.accountId,
 				accountSlug: row.accountSlug,
+				txSlug: row.txSlug,
 				date: utcDateString(row.transactionDate),
 				type: row.type,
 				amountCents: row.amount,
-				description: row.description,
+				description: decryptTxDescription(userId, row.txSlug, row.description),
 				categoryName: row.categoryName ?? null,
 			});
 		}
@@ -774,8 +781,11 @@ export async function commitReimport(
 				.set({
 					type: edit.row.type as TransactionType,
 					amount: poundsToCents(edit.row.amount),
-					description:
+					description: encryptTxDescription(
+						userId,
+						edit.pre.txSlug,
 						edit.row.description === "" ? null : edit.row.description,
+					),
 					categoryId:
 						edit.row.category === ""
 							? null
@@ -786,16 +796,21 @@ export async function commitReimport(
 				.run();
 		}
 		for (const ins of plan.inserts) {
+			const slug = nanoid(21);
 			tx.insert(accountTransactions)
 				.values({
 					// Recovery reinserts keep their original id; normal inserts
 					// get a fresh one from the autoincrement column.
 					...(ins.row.id !== null ? { id: ins.row.id } : {}),
-					slug: nanoid(21),
+					slug,
 					accountId: ins.accountId,
 					type: ins.row.type as TransactionType,
 					amount: poundsToCents(ins.row.amount),
-					description: ins.row.description === "" ? null : ins.row.description,
+					description: encryptTxDescription(
+						userId,
+						slug,
+						ins.row.description === "" ? null : ins.row.description,
+					),
 					categoryId:
 						ins.row.category === ""
 							? null
