@@ -16,7 +16,14 @@ export function sanitizeRedirectTo(
 	if (
 		value.startsWith("/login") ||
 		value.startsWith("/register") ||
-		value.startsWith("/mfa-setup")
+		value.startsWith("/mfa-setup") ||
+		// Ceremony/bounce set (auth-session-hardening): redirectTo must never
+		// chain a completed ceremony straight into another one — the user
+		// would land mid-flow with confusing (or looping) state.
+		value.startsWith("/unlock") ||
+		value.startsWith("/logout") ||
+		value.startsWith("/recovery-enroll") ||
+		value.startsWith("/migrate")
 	) {
 		return null;
 	}

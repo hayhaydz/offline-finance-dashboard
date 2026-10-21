@@ -1,5 +1,5 @@
 import { devLog, isVerboseDebug } from "$lib/server/logger";
-import { requireAuth } from "$lib/server/utils/auth-guard";
+import { requireAuth, userDto } from "$lib/server/utils/auth-guard";
 import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -12,8 +12,15 @@ export const load: PageServerLoad = async ({ locals }) => {
 		});
 	}
 
+	// Session DTO: non-secret timing fields only — the raw session row
+	// carries the live token and must never reach the browser.
 	return {
-		user,
-		session: locals.session,
+		user: userDto(user),
+		session: locals.session
+			? {
+					createdAt: locals.session.createdAt,
+					lastActivity: locals.session.lastActivity,
+				}
+			: null,
 	};
 };

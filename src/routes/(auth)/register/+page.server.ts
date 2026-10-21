@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { hashPassword } from "$lib/auth/password";
+import { issueRecoveryEnrollment } from "$lib/server/auth/recovery-enroll-token";
 import { db } from "$lib/db/client";
 import { credentialSlots, users } from "$lib/db/schema";
 import { unlockKeyring } from "$lib/server/crypto/keyring";
@@ -12,6 +13,10 @@ import {
 } from "$lib/server/crypto/envelope";
 import { derivePasswordSlotKey } from "$lib/server/crypto/slot-keys";
 import {
+	checkRegistrationRateLimit,
+	recordRegistrationAttempt,
+} from "$lib/security/rate-limiter";
+import {
 	devLog,
 	isVerboseDebug,
 	logError,
@@ -19,7 +24,7 @@ import {
 } from "$lib/server/logger";
 
 export const actions = {
-	default: async ({ request, cookies }) => {
+	default: async ({ request, cookies, getClientAddress }) => {
 		try {
 			const formData = await request.formData();
 			logFormData("register", Object.fromEntries(formData));
@@ -77,6 +82,20 @@ export const actions = {
 				devLog("register", "Username already taken", { username });
 				return fail(400, { error: "Username already taken" });
 			}
+
+			// IP-scoped registration cap (auth-session-hardening): ~10
+			// attempts/hour per client IP — counted only for submissions that
+			// passed validation (validation errors create nothing).
+			const clientIp = getClientAddress();
+			if (!checkRegistrationRateLimit(clientIp)) {
+				logError("register", "Registration rate limit exceeded", {
+					clientIp,
+				});
+				return fail(429, {
+					error: "Too many registrations from this address — try again later",
+				});
+			}
+			recordRegistrationAttempt(clientIp);
 
 			if (isVerboseDebug())
 				devLog("register", "Validation passed", { username });
@@ -146,13 +165,9 @@ export const actions = {
 
 			// Recovery enrollment is REQUIRED in the same session (spec
 			// recovery-credentials: "Migration cannot skip recovery enrollment").
-			cookies.set("recovery-enroll-user", String(newUser.id), {
-				path: "/",
-				httpOnly: true,
-				sameSite: "strict",
-				secure: process.env.APP_ENV === "production",
-				maxAge: 60 * 15, // 15 minutes to complete enrollment
-			});
+			// The handoff cookie carries a capability TOKEN (server-mapped),
+			// never the raw user id.
+			issueRecoveryEnrollment(cookies, newUser.id);
 		} catch (error) {
 			// SvelteKit's redirect() throws an error with status code - let it through
 			if (

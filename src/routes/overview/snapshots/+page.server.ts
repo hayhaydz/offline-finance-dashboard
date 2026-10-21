@@ -3,7 +3,7 @@ import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { snapshots } from "$lib/db/schema";
 import { devLog, isVerboseDebug } from "$lib/server/logger";
-import { requireAuth } from "$lib/server/utils/auth-guard";
+import { requireAuth, userDto } from "$lib/server/utils/auth-guard";
 import { getMostRecentDate, getStaleness } from "$lib/utils/staleness";
 import type { PageServerLoad } from "./$types";
 
@@ -59,7 +59,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	);
 
 	return {
-		user,
+		user: userDto(user),
 		snapshots: snapshotsList,
 		page: safePage,
 		totalPages,

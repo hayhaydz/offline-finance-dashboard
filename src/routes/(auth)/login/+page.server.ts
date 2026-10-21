@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { hashPassword, verifyPassword } from "$lib/auth/password";
+import { hashSessionToken } from "$lib/auth/session-token";
 import { HOME_ROUTE } from "$lib/constants/routes";
 import { db } from "$lib/db/client";
 import { sessions, users } from "$lib/db/schema";
@@ -57,9 +58,10 @@ export async function load({ cookies }) {
 		// Generate opaque session token (32 random bytes as hex string)
 		const sessionToken = crypto.randomBytes(32).toString("hex");
 
-		// Create session in database
+		// Create session in database (token stored hashed — the cookie alone
+		// carries the raw value; a stolen DB file yields no usable tokens)
 		await db.insert(sessions).values({
-			token: sessionToken,
+			token: hashSessionToken(sessionToken),
 			userId: adminUser.id,
 			createdAt: new Date(),
 			lastActivity: new Date(),
@@ -191,9 +193,10 @@ export const actions = {
 		// Generate opaque session token (32 random bytes as hex string)
 		const sessionToken = crypto.randomBytes(32).toString("hex");
 
-		// Create session in database
+		// Create session in database (token stored hashed — the cookie alone
+		// carries the raw value; a stolen DB file yields no usable tokens)
 		await db.insert(sessions).values({
-			token: sessionToken,
+			token: hashSessionToken(sessionToken),
 			userId: user.id,
 			createdAt: new Date(),
 			lastActivity: new Date(),

@@ -1,6 +1,7 @@
 import type { Handle, HandleServerError } from "@sveltejs/kit";
 import { redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
+import { hashSessionToken } from "$lib/auth/session-token";
 import { HOME_ROUTE, LOGIN_ROUTE } from "$lib/constants/routes";
 import { db } from "$lib/db/client";
 import { runMigrations } from "$lib/db/migrate";
@@ -137,9 +138,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 		return resolve(event);
 	}
 
-	// Validate session with database
+	// Validate session with database — the cookie carries the raw token, the
+	// table stores only its SHA-256 hash (auth-session-hardening).
 	const session = await db.query.sessions.findFirst({
-		where: eq(sessions.token, sessionToken),
+		where: eq(sessions.token, hashSessionToken(sessionToken)),
 		with: {
 			user: true,
 		},
@@ -172,7 +174,9 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// AND seals the keyring (DataKey wiped) as one single event
 	// (spec session-expiry-reliability, MODIFIED).
 	if (Date.now() - session.lastActivity.getTime() > MS_PER_DAY) {
-		await db.delete(sessions).where(eq(sessions.token, sessionToken));
+		await db
+			.delete(sessions)
+			.where(eq(sessions.token, hashSessionToken(sessionToken)));
 		event.cookies.delete("session", { path: "/" });
 		sealKeyring("session-expired");
 		loginRedirect("expired", event.url);
@@ -191,7 +195,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	await db
 		.update(sessions)
 		.set({ lastActivity: new Date() })
-		.where(eq(sessions.token, sessionToken));
+		.where(eq(sessions.token, hashSessionToken(sessionToken)));
 
 	// Populate locals with user data
 	event.locals.user = session.user;

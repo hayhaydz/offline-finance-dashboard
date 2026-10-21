@@ -532,8 +532,21 @@ export const actions: Actions = {
 			return fail(400, { error: typeResult.error });
 		}
 
-		// Parse amount (handle both decimal and integer input)
-		const parsedAmount = Math.round(parseFloat(amountStr) * 100);
+		// Parse amount (handle both decimal and integer input). Finite +
+		// bounded: rejects NaN/Infinity and anything past the importer's
+		// £10m sanity ceiling (auth-session-hardening; 1e308 etc. never
+		// reaches Math.round overflow).
+		const MAX_TX_AMOUNT_POUNDS = 10_000_000;
+		const parsedFloat = parseFloat(amountStr);
+		if (
+			!Number.isFinite(parsedFloat) ||
+			Math.abs(parsedFloat) > MAX_TX_AMOUNT_POUNDS
+		) {
+			return fail(400, {
+				error: `Amount must be a finite number no greater than £${MAX_TX_AMOUNT_POUNDS}`,
+			});
+		}
+		const parsedAmount = Math.round(parsedFloat * 100);
 		if (Number.isNaN(parsedAmount) || parsedAmount === 0) {
 			return fail(400, { error: "Invalid amount" });
 		}

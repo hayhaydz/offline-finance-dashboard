@@ -12,7 +12,7 @@ import {
 	logError,
 	logFormData,
 } from "$lib/server/logger";
-import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
+import { getAuthUser, requireAuth, userDto } from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -27,7 +27,10 @@ export const load: PageServerLoad = async ({ locals }) => {
 	});
 
 	const existingDebtGoals = await db.query.goals.findMany({
-		where: eq(goals.goalType, "debt"),
+		// RLS parity (auth-session-hardening): the linked-account exclusion
+		// set is scoped to THIS user's debt goals — an unscoped read let any
+		// user's debt goal hide a shared-named account from this form.
+		where: and(withUserFilter(user.id, goals), eq(goals.goalType, "debt")),
 		columns: { linkedAccountId: true },
 	});
 	const linkedAccountIds = new Set(
@@ -40,7 +43,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		(acc) => !linkedAccountIds.has(acc.id),
 	);
 
-	return { user, availableAccounts };
+	return { user: userDto(user), availableAccounts };
 };
 
 export const actions: Actions = {

@@ -1,8 +1,13 @@
-import { and, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
-import { type Account, accounts, accountTransactions } from "$lib/db/schema";
+import {
+	type Account,
+	accounts,
+	accountTransactions,
+	spendingCategories,
+} from "$lib/db/schema";
 import {
 	decryptTxDescription,
 	encryptTxDescription,
@@ -47,6 +52,29 @@ export async function createTransaction(
 ): Promise<Result<string>> {
 	const slug = nanoid(21);
 
+	// Ownership check on the client-supplied category reference
+	// (auth-session-hardening): a foreign/unknown category id is
+	// neutralized to "no category" instead of persisted — same UX as the
+	// importer, and no cross-user reference ever reaches the DB.
+	let categoryId = data.categoryId ?? null;
+	if (categoryId !== null) {
+		const ownedCategory = await db.query.spendingCategories.findFirst({
+			where: and(
+				eq(spendingCategories.id, categoryId),
+				eq(spendingCategories.userId, account.userId),
+				isNull(spendingCategories.deletedAt),
+			),
+			columns: { id: true },
+		});
+		if (!ownedCategory) {
+			categoryId = null;
+			logInfo("createTransaction", "Foreign categoryId dropped", {
+				transactionSlug: slug,
+				categoryId: data.categoryId,
+			});
+		}
+	}
+
 	await db.insert(accountTransactions).values({
 		slug,
 		accountId: account.id,
@@ -59,7 +87,7 @@ export async function createTransaction(
 			slug,
 			data.description ?? null,
 		),
-		categoryId: data.categoryId ?? null,
+		categoryId,
 		transactionDate: data.transactionDate,
 		createdAt: new Date(),
 	});

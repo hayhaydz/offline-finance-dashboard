@@ -15,6 +15,33 @@
 import { redirect } from "@sveltejs/kit";
 
 /**
+ * Browser-safe user DTO (auth-session-hardening spec: page data never
+ * contains secret material). The ONLY user shape any load may return —
+ * `locals.user` is the full `users` row (passwordHash, passwordSalt, TOTP
+ * material) and must never be serialized to the client.
+ */
+export interface UserDto {
+	id: number;
+	username: string;
+	createdAt: Date;
+	inactivityTimeout: number | null;
+}
+
+export function userDto(user: {
+	id: number;
+	username: string;
+	createdAt: Date;
+	inactivityTimeout: number | null;
+}): UserDto {
+	return {
+		id: user.id,
+		username: user.username,
+		createdAt: user.createdAt,
+		inactivityTimeout: user.inactivityTimeout,
+	};
+}
+
+/**
  * Require authentication in a load function.
  *
  * Returns the user if authenticated, throws redirect to /login if not.

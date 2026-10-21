@@ -81,6 +81,18 @@ code only orchestrates.
 
 ## Residual risks & decisions
 
+- **Deployment note (auth-session-hardening)**: session tokens moved to
+  SHA-256-at-rest in this release. Existing sessions (raw-token rows) no
+  longer match the hashed lookup — the rollout invalidates every live
+  session exactly once; each user re-logins on first request afterwards.
+- **Global `settings` table is single-owner by design**: the app binds to
+  localhost and assumes one owner (per AGENTS.md "Server = Trusted,
+  single-owner"), so `settings` is a global table without a `user_id` —
+  there is exactly one principal who could hold a preference. If multi-user
+  mode is ever enabled, this becomes a cross-tenant disclosure/override
+  surface and MUST be refactored to a per-user (`user_id`-scoped) table
+  with `withUserFilter` on every read/write before the first second user
+  exists.
 - **Wallet semantics**: forgotten password + lost paper = permanent data
   loss. Stated at enrollment with explicit acknowledgement; no reset path
   exists by design (verified: no endpoint can modify slots without an

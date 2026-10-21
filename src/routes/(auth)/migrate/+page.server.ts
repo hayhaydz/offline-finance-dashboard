@@ -1,6 +1,12 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { verifyPassword } from "$lib/auth/password";
+import { issueRecoveryEnrollment } from "$lib/server/auth/recovery-enroll-token";
+import {
+	checkRateLimit,
+	recordFailedAttempt,
+	recordSuccessfulAttempt,
+} from "$lib/security/rate-limiter";
 import { db } from "$lib/db/client";
 import { users } from "$lib/db/schema";
 import { hasEnvelope, unwrapPasswordSlot } from "$lib/server/crypto/enroll";
@@ -40,6 +46,22 @@ export const actions: Actions = {
 			return fail(400, { error: "Password confirmation is required" });
 		}
 
+		// Rate-limited credential verification (auth-session-hardening):
+		// the migration password gate shares the login limiter.
+		const rateLimitResult = await checkRateLimit(user.username);
+		if (rateLimitResult.locked) {
+			return fail(429, {
+				locked: true,
+				error: "Account locked due to too many failed attempts",
+			});
+		}
+		if (rateLimitResult.delay) {
+			return fail(429, {
+				delay: rateLimitResult.delay,
+				error: "Too many failed attempts. Please wait before trying again.",
+			});
+		}
+
 		const dbUser = await db.query.users.findFirst({
 			where: eq(users.id, user.id),
 		});
@@ -47,6 +69,7 @@ export const actions: Actions = {
 
 		const passwordValid = await verifyPassword(dbUser.passwordHash, password);
 		if (!passwordValid) {
+			await recordFailedAttempt(user.username);
 			return fail(401, { error: "Invalid password" });
 		}
 
@@ -64,6 +87,7 @@ export const actions: Actions = {
 				password,
 				passwordSalt: dbUser.passwordSalt,
 			});
+			await recordSuccessfulAttempt(user.username);
 
 			if (result.dataKey) {
 				// Fresh migration — the keyring unlocks with the DataKey the
@@ -78,13 +102,9 @@ export const actions: Actions = {
 			}
 
 			// Recovery enrollment is REQUIRED in the same session.
-			cookies.set("recovery-enroll-user", String(user.id), {
-				path: "/",
-				httpOnly: true,
-				sameSite: "strict",
-				secure: process.env.APP_ENV === "production",
-				maxAge: 60 * 15,
-			});
+			// The handoff cookie carries a capability TOKEN (server-mapped),
+			// never the raw user id.
+			issueRecoveryEnrollment(cookies, user.id);
 
 			return {
 				success: true,

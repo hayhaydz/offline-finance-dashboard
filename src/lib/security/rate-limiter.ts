@@ -117,3 +117,47 @@ export async function recordFailedAttempt(username: string): Promise<void> {
 export async function recordSuccessfulAttempt(username: string): Promise<void> {
 	await db.delete(loginAttempts).where(eq(loginAttempts.username, username));
 }
+
+// ---------------------------------------------------------------------------
+// Registration — IP-scoped, in-memory, ~10/hour sliding window
+// (auth-session-hardening). Deliberately NOT the username limiter: there is
+// no username before the account exists. Best-effort client IP (localhost
+// app: every request is local; the cap bounds automated account spam).
+// ---------------------------------------------------------------------------
+
+const REGISTRATION_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const REGISTRATION_MAX_ATTEMPTS = 10;
+const registrationAttempts = new Map<string, number[]>();
+
+function pruneRegistrationWindow(ip: string, now: number): void {
+	const stamps = registrationAttempts.get(ip);
+	if (!stamps) return;
+	const fresh = stamps.filter((t) => now - t < REGISTRATION_WINDOW_MS);
+	if (fresh.length === 0) registrationAttempts.delete(ip);
+	else registrationAttempts.set(ip, fresh);
+}
+
+/** True when the IP is still under the hourly registration cap. */
+export function checkRegistrationRateLimit(
+	ip: string,
+	now = Date.now(),
+): boolean {
+	pruneRegistrationWindow(ip, now);
+	return (registrationAttempts.get(ip)?.length ?? 0) < REGISTRATION_MAX_ATTEMPTS;
+}
+
+/** Count a registration attempt against the IP's hourly window. */
+export function recordRegistrationAttempt(
+	ip: string,
+	now = Date.now(),
+): void {
+	pruneRegistrationWindow(ip, now);
+	const stamps = registrationAttempts.get(ip) ?? [];
+	stamps.push(now);
+	registrationAttempts.set(ip, stamps);
+}
+
+/** Test access: clear the in-memory registration windows. */
+export function resetRegistrationRateLimit(): void {
+	registrationAttempts.clear();
+}

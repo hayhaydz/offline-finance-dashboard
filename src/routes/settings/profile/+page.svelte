@@ -40,14 +40,6 @@
 		</div>
 		<div class="bg-gray-50 p-4 border-b border-black">
 			<div class="flex justify-between my-1">
-				<span><strong>Session ID:</strong></span>
-				<span>{data.session?.id || 'N/A'}</span>
-			</div>
-			<div class="flex justify-between my-1">
-				<span><strong>Session token:</strong></span>
-				<span>{data.session?.token ? data.session.token.substring(0, 16) + '...' : 'N/A'}</span>
-			</div>
-			<div class="flex justify-between my-1">
 				<span><strong>Session created:</strong></span>
 				<span>{data.session?.createdAt ? new Date(data.session.createdAt).toLocaleString() : 'N/A'}</span>
 			</div>

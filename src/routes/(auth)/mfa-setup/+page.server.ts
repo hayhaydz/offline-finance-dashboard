@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { hashSessionToken } from "$lib/auth/session-token";
 import { error, fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import {
@@ -220,7 +221,7 @@ export const actions = {
 		const sessionToken = crypto.randomBytes(32).toString("hex");
 
 		await db.insert(sessions).values({
-			token: sessionToken,
+			token: hashSessionToken(sessionToken),
 			userId: user.id,
 			createdAt: new Date(),
 			lastActivity: new Date(),

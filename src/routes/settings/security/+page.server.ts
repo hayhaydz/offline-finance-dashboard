@@ -18,6 +18,11 @@ import {
 	isDeviceEnrollmentEnabledForUser,
 } from "$lib/server/crypto/webauthn";
 import {
+	checkRateLimit,
+	recordFailedAttempt,
+	recordSuccessfulAttempt,
+} from "$lib/security/rate-limiter";
+import {
 	devLog,
 	isVerboseDebug,
 	logError,
@@ -136,6 +141,22 @@ export const actions: Actions = {
 			});
 		}
 
+		// Rate-limited credential verification (auth-session-hardening):
+		// the current-password proof shares the login limiter.
+		const rateLimitResult = await checkRateLimit(user.username);
+		if (rateLimitResult.locked) {
+			return fail(429, {
+				locked: true,
+				error: "Account locked due to too many failed attempts",
+			});
+		}
+		if (rateLimitResult.delay) {
+			return fail(429, {
+				delay: rateLimitResult.delay,
+				error: "Too many failed attempts. Please wait before trying again.",
+			});
+		}
+
 		const passwordData = await db
 			.select({
 				passwordHash: users.passwordHash,
@@ -154,6 +175,7 @@ export const actions: Actions = {
 			currentPassword,
 		);
 		if (!isCurrentPasswordValid) {
+			await recordFailedAttempt(user.username);
 			devLog("settings-security", "Password change failed — wrong password", {
 				userId: user.id,
 			});
@@ -182,6 +204,7 @@ export const actions: Actions = {
 			devLog("settings-security", "Password updated (slot re-wrapped)", {
 				userId: user.id,
 			});
+			await recordSuccessfulAttempt(user.username);
 
 			return {
 				success: true,
@@ -294,6 +317,22 @@ export const actions: Actions = {
 			return fail(400, { error: "Password confirmation is required" });
 		}
 
+		// Rate-limited credential verification (auth-session-hardening):
+		// rotation's password confirmation shares the login limiter.
+		const rateLimitResult = await checkRateLimit(user.username);
+		if (rateLimitResult.locked) {
+			return fail(429, {
+				locked: true,
+				error: "Account locked due to too many failed attempts",
+			});
+		}
+		if (rateLimitResult.delay) {
+			return fail(429, {
+				delay: rateLimitResult.delay,
+				error: "Too many failed attempts. Please wait before trying again.",
+			});
+		}
+
 		const passwordData = await db
 			.select({ passwordHash: users.passwordHash })
 			.from(users)
@@ -304,6 +343,7 @@ export const actions: Actions = {
 		}
 		const valid = await verifyPassword(passwordData[0].passwordHash, password);
 		if (!valid) {
+			await recordFailedAttempt(user.username);
 			return fail(400, { error: "Password is incorrect" });
 		}
 
@@ -315,6 +355,7 @@ export const actions: Actions = {
 					password,
 				},
 			);
+			await recordSuccessfulAttempt(user.username);
 			return {
 				success: true,
 				recoveryPassphrase: passphrase,

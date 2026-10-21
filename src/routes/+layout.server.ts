@@ -1,3 +1,4 @@
+import { userDto } from "$lib/server/utils/auth-guard";
 import type { LayoutServerLoad } from "./$types";
 
 export const load: LayoutServerLoad = async ({ locals }) => {
@@ -5,15 +6,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 	const hasEncryptionKey = !!process.env.ENCRYPTION_KEY;
 
 	return {
-		user: locals.user
-			? {
-					id: locals.user.id,
-					username: locals.user.username,
-					createdAt: locals.user.createdAt,
-					inactivityTimeout: locals.user.inactivityTimeout,
-				}
-			: null,
-		session: locals.session ?? null,
+		user: locals.user ? userDto(locals.user) : null,
 		environment: {
 			mode: appEnv,
 			isProduction: appEnv === "production",

@@ -333,6 +333,22 @@ describe("sanitizeRedirectTo", () => {
 		expect(sanitizeRedirectTo("/mfa-setup")).toBeNull();
 	});
 
+	it("rejects ceremony/bounce routes (no chained ceremonies)", () => {
+		expect(sanitizeRedirectTo("/unlock")).toBeNull();
+		expect(sanitizeRedirectTo("/unlock?reason=sealed&device=1")).toBeNull();
+		expect(sanitizeRedirectTo("/logout")).toBeNull();
+		expect(sanitizeRedirectTo("/recovery-enroll")).toBeNull();
+		expect(sanitizeRedirectTo("/recovery-enroll?mode=register")).toBeNull();
+		expect(sanitizeRedirectTo("/migrate")).toBeNull();
+		// Similar-but-different app paths stay allowed
+		expect(sanitizeRedirectTo("/overview/unlocking-guide")).toBe(
+			"/overview/unlocking-guide",
+		);
+		expect(sanitizeRedirectTo("/tools/migration-helper")).toBe(
+			"/tools/migration-helper",
+		);
+	});
+
 	it("rejects header-injection characters", () => {
 		expect(sanitizeRedirectTo("/ok\r\nSet-Cookie: x=1")).toBeNull();
 		expect(sanitizeRedirectTo("/ok\nX: y")).toBeNull();

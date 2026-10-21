@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import { db } from "$lib/db/client";
 import { goals } from "$lib/db/schema";
 import { devLog, isVerboseDebug, logFormData } from "$lib/server/logger";
-import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
+import { getAuthUser, requireAuth, userDto } from "$lib/server/utils/auth-guard";
 import {
 	FIELD_LIMITS,
 	requireDateISO,
@@ -16,7 +16,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 	const user = requireAuth(locals);
 
 	return {
-		user: user,
+		user: userDto(user),
 	};
 };
 

@@ -9,7 +9,7 @@ import {
 	logError,
 	logFormData,
 } from "$lib/server/logger";
-import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
+import { getAuthUser, requireAuth, userDto } from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -44,7 +44,7 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	}
 
 	return {
-		user,
+		user: userDto(user),
 		snapshot,
 		breadcrumbOverrides: [
 			{ segmentIndex: 1, label: snapshot.snapshotDate, skipLink: false },

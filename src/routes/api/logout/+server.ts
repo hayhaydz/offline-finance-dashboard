@@ -1,5 +1,6 @@
 import { json } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
+import { hashSessionToken } from "$lib/auth/session-token";
 import { db } from "$lib/db/client";
 import { sessions } from "$lib/db/schema";
 import { sealKeyring } from "$lib/server/crypto/keyring";
@@ -15,30 +16,43 @@ import type { RequestHandler } from "./$types";
  *
  * Logout BOTH ends the session AND seals the keyring (DataKey zeroized) —
  * the single expiry event of spec session-expiry-reliability (MODIFIED).
+ *
+ * Authenticated-only side effects (auth-session-hardening): the keyring
+ * seals (and the session row is deleted) only when the request carries a
+ * VALID session — an unauthenticated cross-site POST must not mutate
+ * keyring state (it answers 401 instead).
  */
 export const POST: RequestHandler = async ({ cookies, locals }) => {
 	try {
 		const username = locals.user?.username || "unknown";
-		if (isVerboseDebug()) {
-			devLog("api:logout", "Programmatic logout request", {
-				username,
-				userId: locals.user?.id,
-			});
-		}
 
 		const sessionToken = cookies.get("session");
+		let authenticated = !!locals.user;
 
 		if (sessionToken) {
-			await db.delete(sessions).where(eq(sessions.token, sessionToken));
-			if (isVerboseDebug()) {
-				devLog("api:logout", "Session deleted from database", { username });
+			const tokenHash = hashSessionToken(sessionToken);
+			const existing = await db.query.sessions.findFirst({
+				where: eq(sessions.token, tokenHash),
+			});
+			authenticated = authenticated || !!existing;
+
+			if (authenticated) {
+				await db.delete(sessions).where(eq(sessions.token, tokenHash));
+				cookies.delete("session", { path: "/" });
+				if (isVerboseDebug()) {
+					devLog("api:logout", "Session deleted from database", { username });
+				}
 			}
 		}
 
-		cookies.delete("session", { path: "/" });
+		if (!authenticated) {
+			// No valid session on the request: nothing is deleted, the
+			// keyring stays as it is (cross-site logout denial).
+			return json({ success: false }, { status: 401 });
+		}
 
-		// Seal regardless of session presence: expiry fires through here and
-		// must wipe the DataKey even if the session row already vanished.
+		// Seal: expiry fires through here and must wipe the DataKey even if
+		// the session row already vanished (locals.user still present).
 		sealKeyring("logout");
 
 		if (isVerboseDebug()) {

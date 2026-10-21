@@ -210,6 +210,7 @@ describe("registration atomicity (task 2.2)", () => {
 					body: formData,
 				}),
 				cookies: cookiesStub(),
+				getClientAddress: () => "127.0.0.1",
 			} as never);
 			expect.fail("expected redirect");
 		} catch (e) {
@@ -248,6 +249,7 @@ describe("registration atomicity (task 2.2)", () => {
 				body: formData,
 			}),
 			cookies: cookiesStub(),
+			getClientAddress: () => "127.0.0.1",
 		} as never);
 
 		expect((result as { status?: number }).status).toBe(500);

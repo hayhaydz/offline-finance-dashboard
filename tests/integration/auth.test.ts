@@ -74,17 +74,23 @@ describe("Registration Action Integration", () => {
 
 		// Execute action
 		try {
-			await (actions.default as any)({ request, cookies });
+			await (actions.default as any)({
+				request,
+				cookies,
+				getClientAddress: () => "127.0.0.1",
+			});
 			expect.fail("Action should have thrown a redirect");
 		} catch (e: any) {
 			// SvelteKit uses throws for redirects
 			if (e.status === 302) {
 				// Registration now creates the envelope (DataKey + password
 				// slot) and REQUIRES recovery enrollment in the same session.
+				// The handoff cookie carries a random capability token —
+				// never the raw user id.
 				expect(e.location).toBe("/recovery-enroll?mode=register");
 				expect(cookies.set).toHaveBeenCalledWith(
 					"recovery-enroll-user",
-					"1",
+					expect.any(String),
 					expect.any(Object),
 				);
 			} else {

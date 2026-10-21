@@ -1,5 +1,6 @@
 import { redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
+import { hashSessionToken } from "$lib/auth/session-token";
 import { db } from "$lib/db/client";
 import { sessions } from "$lib/db/schema";
 import { sealKeyring } from "$lib/server/crypto/keyring";
@@ -21,7 +22,9 @@ export const actions = {
 
 			if (sessionToken) {
 				// Delete session from database
-				await db.delete(sessions).where(eq(sessions.token, sessionToken));
+				await db
+					.delete(sessions)
+					.where(eq(sessions.token, hashSessionToken(sessionToken)));
 				if (isVerboseDebug())
 					devLog("logout", "Session deleted from database", { username });
 			}

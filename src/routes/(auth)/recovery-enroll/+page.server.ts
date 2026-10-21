@@ -1,8 +1,17 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { hashPassword, verifyPassword } from "$lib/auth/password";
+import {
+	checkRateLimit,
+	recordFailedAttempt,
+	recordSuccessfulAttempt,
+} from "$lib/security/rate-limiter";
 import { db } from "$lib/db/client";
 import { sessions, users } from "$lib/db/schema";
+import {
+	clearRecoveryEnrollment,
+	resolveRecoveryEnrollment,
+} from "$lib/server/auth/recovery-enroll-token";
 import { normalizePassphrase } from "$lib/server/crypto/diceware";
 import {
 	enrollRecoverySlot,
@@ -34,7 +43,7 @@ import type { Actions, PageServerLoad } from "./$types";
  * once, never user-invented, never shown again.
  */
 
-const RECOVERY_COOKIE = "recovery-enroll-user";
+const SHOW_TTL_MS = 5 * 60 * 1000;
 
 /**
  * One-shot passphrase display. The enroll action stores the generated
@@ -47,7 +56,6 @@ const pendingShows = new Map<
 	string,
 	{ userId: number; passphrase: string; expiresAt: number }
 >();
-const SHOW_TTL_MS = 5 * 60 * 1000;
 
 /**
  * Key hygiene (spec key-hygiene): pending disclosures are one-time
@@ -79,13 +87,14 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 		return { mode: "recovery", username: locals.user.username };
 	}
 
-	// Register / migrate: user has a password slot but no recovery slot yet
+	// Register / migrate: user has a password slot but no recovery slot yet.
+	// The handoff cookie holds a capability TOKEN (never a raw user id) —
+	// an arbitrary cookie value resolves to nothing.
 	let candidateId: number | null = null;
 	if (locals.user) {
 		candidateId = locals.user.id;
 	} else {
-		const cookieId = Number(cookies.get(RECOVERY_COOKIE));
-		if (Number.isInteger(cookieId) && cookieId > 0) candidateId = cookieId;
+		candidateId = resolveRecoveryEnrollment(cookies);
 	}
 	if (!candidateId) throw redirect(302, "/login");
 
@@ -143,8 +152,9 @@ export const actions: Actions = {
 	enroll: async ({ locals, cookies }) => {
 		let userId: number | null = locals.user?.id ?? null;
 		if (!userId) {
-			const cookieId = Number(cookies.get(RECOVERY_COOKIE));
-			if (Number.isInteger(cookieId) && cookieId > 0) userId = cookieId;
+			// Capability token (never a raw user id) — invalid value yields
+			// nothing, no disclosure.
+			userId = resolveRecoveryEnrollment(cookies);
 		}
 		if (!userId) return fail(401, { error: "Enrollment session expired" });
 
@@ -205,7 +215,7 @@ export const actions: Actions = {
 
 	/** Acknowledgement complete — finish enrollment and move on. */
 	done: async ({ locals, cookies }) => {
-		cookies.delete(RECOVERY_COOKIE, { path: "/" });
+		clearRecoveryEnrollment(cookies);
 
 		if (locals.user) {
 			if (keyringStatus().recoveryInitiated) {
@@ -244,6 +254,23 @@ export const actions: Actions = {
 			return fail(400, { error: "Password must be at least 12 characters" });
 		}
 
+		// Rate-limited credential verification (auth-session-hardening): the
+		// current-credential proof (old password or recovery passphrase)
+		// shares the login limiter.
+		const rateLimitResult = await checkRateLimit(user.username);
+		if (rateLimitResult.locked) {
+			return fail(429, {
+				locked: true,
+				error: "Account locked due to too many failed attempts",
+			});
+		}
+		if (rateLimitResult.delay) {
+			return fail(429, {
+				delay: rateLimitResult.delay,
+				error: "Too many failed attempts. Please wait before trying again.",
+			});
+		}
+
 		const dbUser = await userById(user.id);
 		if (!dbUser) return fail(401, { error: "Authentication required" });
 
@@ -267,6 +294,7 @@ export const actions: Actions = {
 					normalizePassphrase(currentPassword),
 				);
 			} catch {
+				await recordFailedAttempt(user.username);
 				return fail(400, {
 					error: "Enter your previous password or the recovery passphrase",
 				});
@@ -306,6 +334,7 @@ export const actions: Actions = {
 
 			// Single-session policy: force everyone through the new password
 			await db.delete(sessions).where(eq(sessions.userId, user.id));
+			await recordSuccessfulAttempt(user.username);
 
 			logInfo("recovery-enroll", "Password re-enrolled after recovery", {
 				userId: user.id,
