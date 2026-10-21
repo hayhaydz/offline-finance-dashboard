@@ -59,7 +59,7 @@ While sealed, all value-layer data access SHALL fail with a typed sealed-state e
 - **THEN** no user data values appear in the response
 
 ### Requirement: Rotation tiers are distinct operations
-Slot rotation (rewrapping the DataKey for a new/rotated credential) SHALL be available at any time while unlocked and SHALL NOT re-encrypt data. DataKey rotation SHALL be a separate, explicit, full-re-encryption operation reserved for compromise of a single-factor-total credential (the recovery passphrase).
+Slot rotation (rewrapping the DataKey for a new/rotated credential) SHALL be available at any time while unlocked and SHALL NOT re-encrypt data. DataKey rotation SHALL be a separate, explicit, full-re-encryption operation reserved for compromise of a single-factor-total credential (the recovery passphrase). Full DataKey rotation SHALL re-encrypt protected data and re-wrap every re-wrappable slot in a single atomic transaction, and SHALL revoke (not re-wrap) device slots that cannot be re-wrapped server-side. A crash at any point SHALL leave either the complete pre-rotation state or the complete post-rotation state — never a mixture.
 
 #### Scenario: Slot rotation after device loss
 - **WHEN** a device is lost and its slot is revoked and replaced
@@ -69,9 +69,32 @@ Slot rotation (rewrapping the DataKey for a new/rotated credential) SHALL be ava
 - **WHEN** the recovery passphrase may have been compromised and DataKey rotation is invoked
 - **THEN** all encrypted data is re-encrypted under a fresh DataKey and every remaining slot is re-wrapped
 
+#### Scenario: Rotation revokes device slots
+- **WHEN** a user with an enrolled `webauthn-prf` device slot completes full DataKey rotation
+- **THEN** all active device slots are revoked in the same transaction and the rotation result instructs the user to re-enroll a device
+- **AND** unlock immediately after rotation succeeds with password only (L1)
+
+#### Scenario: Mid-rotation crash is recoverable
+- **WHEN** the process dies during full DataKey rotation
+- **THEN** the next unlock yields a DataKey that decrypts every protected row (no row is encrypted under a key no slot wraps)
+
 ### Requirement: The file-layer key is not part of the security claim
 The SQLCipher-family file encryption key SHALL continue to protect the database file at rest, but the system's confidentiality SHALL NOT depend on that key's secrecy: possession of the database file together with the file-layer key and all server code SHALL NOT be sufficient to read encrypted user data.
 
 #### Scenario: Full machine-disk compromise yields no plaintext
 - **WHEN** an attacker obtains the complete disk contents of the machine (database, `.env`, code)
 - **THEN** the user's encrypted data cannot be decrypted without the user's password plus an enrolled device credential
+
+### Requirement: Migration succeeds without a pre-existing password slot
+The one-shot migration action SHALL create the password slot from the verified password and unlock with the DataKey the migration produced; it SHALL NOT require unwrapping a password slot before one exists.
+
+#### Scenario: Legacy account migrates on first attempt
+- **WHEN** a pre-envelope user submits a valid password at `/migrate`
+- **THEN** the migration completes and the keyring unlocks in the same request (no 500, no dependency on a prior slot)
+
+### Requirement: Account creation is atomic
+User registration SHALL create the user row and its password slot in one transaction; a failure of either write SHALL leave no partial account.
+
+#### Scenario: Slot enrollment failure leaves no orphan user
+- **WHEN** password-slot enrollment throws during registration
+- **THEN** the user row is not persisted and the username remains available
