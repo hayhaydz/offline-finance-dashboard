@@ -41,11 +41,15 @@ Unlock SHALL require the password slot and, once a device slot is enrolled for t
 - **THEN** the data remains sealed
 
 ### Requirement: Value-layer encryption binds ciphertext to its location
-Encrypted columns SHALL use AES-256-GCM with per-row random IVs and additional authenticated data binding table name, row identifier, and column, such that ciphertext moved between rows, columns, or tables fails authentication.
+Value-layer encryption SHALL apply to every write path — application actions, seed fixtures, and tooling — using the per-user DataKey via AES-256-GCM with AAD binding (table, row id, column); tooling SHALL NOT write plaintext into protected columns or alter the row identity of rows bearing protected ciphertext.
 
 #### Scenario: Ciphertext transposition is rejected
 - **WHEN** an encrypted value is copied from one row/column to another
 - **THEN** decryption fails the GCM authenticity check and the value is not returned
+
+#### Scenario: Seed fixture write is encrypted
+- **WHEN** the seed inserts a transaction with a description
+- **THEN** the stored value is `v1|` ciphertext decryptable only with the seeded user's DataKey and the correct (table, slug, column) AAD
 
 ### Requirement: Sealed state denies data reads and is user-visibly routed
 While sealed, all value-layer data access SHALL fail with a typed sealed-state error, and guarded routes SHALL route the user to the unlock ceremony rather than rendering sealed errors as content. After a successful unlock the user SHALL return to the URL they were attempting to reach.
