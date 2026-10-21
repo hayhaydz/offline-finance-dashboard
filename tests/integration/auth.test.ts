@@ -4,17 +4,25 @@ import { actions } from "../../src/routes/(auth)/register/+page.server";
 
 // Mock dependencies
 vi.mock("$lib/db/client", () => {
+	// Registration is atomic (crypto-rotation-safety 2.2): user insert +
+	// password slot commit inside ONE synchronous db.transaction — the mock
+	// mirrors the sync drizzle surface (.returning().all() / .run()).
+	const mockTx = {
+		insert: vi.fn(() => ({
+			values: vi.fn(() => ({
+				returning: vi.fn(() => ({ all: () => [{ id: 1 }] })),
+				run: vi.fn(),
+			})),
+		})),
+	};
 	const mockDb = {
 		query: {
 			users: {
 				findFirst: vi.fn(),
 			},
 		},
-		insert: vi.fn().mockReturnValue({
-			values: vi.fn().mockReturnValue({
-				returning: vi.fn().mockResolvedValue([{ id: 1 }]),
-			}),
-		}),
+		insert: mockTx.insert,
+		transaction: vi.fn((cb: (tx: typeof mockTx) => unknown) => cb(mockTx)),
 	};
 	return { db: mockDb };
 });

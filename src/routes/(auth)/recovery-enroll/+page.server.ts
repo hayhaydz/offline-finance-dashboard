@@ -49,6 +49,21 @@ const pendingShows = new Map<
 >();
 const SHOW_TTL_MS = 5 * 60 * 1000;
 
+/**
+ * Key hygiene (spec key-hygiene): pending disclosures are one-time
+ * passphrases held in process memory — expired entries are DELETED on every
+ * read and insert (mirroring the WebAuthn challenge sweep), not only when
+ * consumed. Exported for tests (direct expiry set).
+ */
+export function sweepPendingShows(now = Date.now()): void {
+	for (const [token, entry] of pendingShows) {
+		if (entry.expiresAt <= now) pendingShows.delete(token);
+	}
+}
+
+/** Test access to the in-memory pending disclosures (sweep verification). */
+export const pendingShowsForTest = pendingShows;
+
 async function userById(id: number) {
 	const user = await db.query.users.findFirst({
 		where: eq(users.id, id),
@@ -83,6 +98,7 @@ export const load: PageServerLoad = async ({ locals, cookies, url }) => {
 	// passphrase is gone by design — shown exactly once).
 	const showToken = url.searchParams.get("show");
 	if (showToken) {
+		sweepPendingShows(); // expired disclosures never linger (key hygiene)
 		const entry = pendingShows.get(showToken);
 		if (entry && entry.userId === candidateId && entry.expiresAt > Date.now()) {
 			pendingShows.delete(showToken);
@@ -163,6 +179,7 @@ export const actions: Actions = {
 			// "already enrolled" guard reruns and redirects.
 			const { randomBytes } = await import("node:crypto");
 			const token = randomBytes(24).toString("hex");
+			sweepPendingShows(); // expired disclosures never linger (key hygiene)
 			pendingShows.set(token, {
 				userId: user.id,
 				passphrase,

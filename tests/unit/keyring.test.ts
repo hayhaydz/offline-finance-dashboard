@@ -54,6 +54,20 @@ describe("keyring state machine", () => {
 		expect(isUnlockedFor(7)).toBe(false);
 	});
 
+	it("same-user re-unlock seals (zeroizes) the previous key first (key hygiene)", () => {
+		const oldKey = generateDataKey();
+		const newKey = generateDataKey();
+		unlockKeyring(7, oldKey);
+		expect(keyringStatus().userId).toBe(7);
+
+		// Non-recovery re-unlock of the SAME user — the previous DataKey is
+		// discarded zeroized via the seal path, not silently overwritten.
+		unlockKeyring(7, newKey);
+		expect(oldKey.every((b) => b === 0)).toBe(true);
+		expect(newKey.every((b) => b === 0)).toBe(false);
+		expect(isUnlockedFor(7)).toBe(true);
+	});
+
 	it("value-layer access throws typed SealedError while sealed", () => {
 		sealKeyring("setup");
 		expect(() =>

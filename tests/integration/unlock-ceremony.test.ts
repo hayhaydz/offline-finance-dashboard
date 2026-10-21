@@ -234,3 +234,66 @@ describe("unlock ceremony L1 (no device slot)", () => {
 		expect(completeDeviceUnlock).not.toHaveBeenCalled();
 	});
 });
+
+describe("key hygiene at unlock (crypto-rotation-safety 4.1)", () => {
+	it("mismatched factors zeroize the device buffer before the failure response", async () => {
+		const user = await setupUser(true);
+		const { verifyPassword } = await import("$lib/auth/password");
+		(verifyPassword as any).mockResolvedValue(true);
+		// Device yields a DIFFERENT key than the password slot holds — hold
+		// the buffer reference so zeroization is observable.
+		const deviceBuf = crypto.randomBytes(32);
+		(completeDeviceUnlock as any).mockResolvedValue(deviceBuf);
+		expect(deviceBuf.every((b) => b !== 0)).toBe(true);
+
+		const result = await post(
+			{
+				password: PASSWORD,
+				deviceToken: "t",
+				deviceAssertion: JSON.stringify({ id: "cred-1" }),
+				devicePrf: crypto.randomBytes(32).toString("base64"),
+			},
+			user,
+		);
+
+		expect(result.status).toBe(401);
+		expect(keyringStatus().state).toBe("sealed");
+		// No key residue: the discarded device factor buffer is zeroized
+		expect(deviceBuf.every((b) => b === 0)).toBe(true);
+	});
+
+	it("password unwrap failure after a successful device step zeroizes the device buffer", async () => {
+		const user = await setupUser(true);
+		const { verifyPassword } = await import("$lib/auth/password");
+		(verifyPassword as any).mockResolvedValue(true);
+
+		const deviceBuf = crypto.randomBytes(32);
+		(completeDeviceUnlock as any).mockResolvedValue(deviceBuf);
+
+		// Corrupt the password slot so the post-device unwrap fails (GCM
+		// authentication failure → EnvelopeError → 401).
+		await db
+			.update(credentialSlots)
+			.set({ wrappedKey: "ab".repeat(48) })
+			.where(
+				and(
+					eq(credentialSlots.userId, userId),
+					eq(credentialSlots.kind, "password"),
+				),
+			);
+
+		const result = await post(
+			{
+				password: PASSWORD,
+				deviceToken: "t",
+				deviceAssertion: JSON.stringify({ id: "cred-1" }),
+				devicePrf: crypto.randomBytes(32).toString("base64"),
+			},
+			user,
+		);
+
+		expect(result.status).toBe(401);
+		expect(keyringStatus().state).toBe("sealed");
+		expect(deviceBuf.every((b) => b === 0)).toBe(true);
+	});
+});

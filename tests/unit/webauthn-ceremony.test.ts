@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "$lib/db/client";
 import { credentialSlots, users } from "$lib/db/schema";
@@ -15,9 +15,13 @@ import {
 	completeDeviceEnrollment,
 	completeDeviceEnrollmentEval,
 	completeDeviceUnlock,
+	deviceMetadata,
+	expectedOrigins,
 	getDeviceSlots,
 	stageDeviceEnrollment,
+	WebAuthnCeremonyError,
 } from "$lib/server/crypto/webauthn";
+import { EnvelopeError } from "$lib/server/crypto/envelope";
 
 /**
  * L2 WebAuthn PRF ceremony (tasks 6.1–6.3) with @simplewebauthn/server
@@ -595,5 +599,196 @@ describe("device unlock step (task 6.2)", () => {
 			}),
 		).rejects.toThrow(); // SealedError from requireDataKey
 		expect(keyringStatus().state).toBe("sealed");
+	});
+});
+
+describe("enrollment hardening (crypto-rotation-safety)", () => {
+	async function unlockedEnrolledUser(credentialId = "cred-1") {
+		const user = await insertUser();
+		await enrollPasswordSlot(db, {
+			userId: user.id,
+			password: "password-123456",
+			passwordSalt: user.passwordSalt,
+		});
+		unlockKeyring(user.id, dataKey);
+		const start = await beginDeviceEnrollment(db, {
+			id: user.id,
+			username: user.username,
+		});
+		verifyRegistrationResponse.mockResolvedValue(registrationInfo(credentialId));
+		await completeDeviceEnrollment(db, {
+			userId: user.id,
+			token: start.token,
+			registration: regResponse(),
+			prfOutput: prfKey.toString("base64"),
+		});
+		return user;
+	}
+
+	it("3.1 rejects a duplicate active credentialId — no second slot written", async () => {
+		const user = await unlockedEnrolledUser("cred-1");
+		expect(await getDeviceSlots(db, user.id)).toHaveLength(1);
+
+		// A client that ignored excludeCredentials replays the SAME
+		// credential id — the server rejects regardless of client behavior.
+		const start = await beginDeviceEnrollment(db, {
+			id: user.id,
+			username: user.username,
+		});
+		verifyRegistrationResponse.mockResolvedValue(registrationInfo("cred-1"));
+
+		await expect(
+			completeDeviceEnrollment(db, {
+				userId: user.id,
+				token: start.token,
+				registration: regResponse(),
+				prfOutput: crypto.randomBytes(32).toString("base64"),
+			}),
+		).rejects.toMatchObject({
+			code: "UNKNOWN_CREDENTIAL",
+			name: "WebAuthnCeremonyError",
+		});
+		expect(await getDeviceSlots(db, user.id)).toHaveLength(1);
+	});
+
+	it("3.2 deviceMetadata hard-fails on missing prfSalt (no random fallback)", () => {
+		const corruptSlot = {
+			slotId: "s",
+			kind: "webauthn-prf" as const,
+			wrappedKey: "aa",
+			iv: "bb",
+			metadata: { label: "X", credentialId: "c", publicKey: "k" }, // no prfSalt
+			createdAt: new Date(),
+		};
+		let err: unknown;
+		try {
+			deviceMetadata(corruptSlot);
+		} catch (e) {
+			err = e;
+		}
+		expect(err).toBeInstanceOf(EnvelopeError);
+		expect(err).toMatchObject({ code: "BAD_FORMAT" });
+	});
+
+	it("3.2 corrupt slot (no prfSalt) surfaces a format error at ceremony start", async () => {
+		const user = await unlockedEnrolledUser("cred-1");
+		// Corrupt the stored slot: strip prfSalt from its metadata
+		const slots = await getDeviceSlots(db, user.id);
+		const meta = { ...slots[0].metadata } as Record<string, unknown>;
+		delete meta.prfSalt;
+		await db
+			.update(credentialSlots)
+			.set({ metadata: meta })
+			.where(eq(credentialSlots.slotId, slots[0].slotId));
+
+		sealKeyring("corrupt-slot-check");
+		await expect(beginDeviceUnlock(db, user.id)).rejects.toMatchObject({
+			name: "EnvelopeError",
+			code: "BAD_FORMAT",
+		});
+	});
+
+	it("3.3 counter persistence is atomic and never regresses (json_set + max guard)", async () => {
+		const user = await unlockedEnrolledUser("cred-1");
+		sealKeyring("counter-tests");
+
+		// Ceremony A reports counter 7
+		let start = await beginDeviceUnlock(db, user.id);
+		verifyAuthenticationResponse.mockResolvedValue({
+			verified: true,
+			authenticationInfo: {
+				credentialID: "cred-1",
+				newCounter: 7,
+				userVerified: true,
+			},
+		});
+		await completeDeviceUnlock(db, {
+			userId: user.id,
+			token: start.token,
+			assertion: authResponse("cred-1"),
+			prfOutput: prfKey.toString("base64"),
+		});
+		let slots = await getDeviceSlots(db, user.id);
+		expect(slots[0].metadata.counter).toBe(7);
+
+		// Ceremony B — "completed" concurrently from a STALE read — reports a
+		// LOWER counter (3). The stored counter must stay at the higher value
+		// (no lost update, no regression), and other metadata stays intact.
+		start = await beginDeviceUnlock(db, user.id);
+		verifyAuthenticationResponse.mockResolvedValue({
+			verified: true,
+			authenticationInfo: {
+				credentialID: "cred-1",
+				newCounter: 3,
+				userVerified: true,
+			},
+		});
+		await completeDeviceUnlock(db, {
+			userId: user.id,
+			token: start.token,
+			assertion: authResponse("cred-1"),
+			prfOutput: prfKey.toString("base64"),
+		});
+		slots = await getDeviceSlots(db, user.id);
+		expect(slots[0].metadata.counter).toBe(7);
+		expect(typeof slots[0].metadata.prfSalt).toBe("string");
+		expect(typeof slots[0].metadata.label).toBe("string");
+	});
+});
+
+describe("expectedOrigins (crypto-rotation-safety 3.4)", () => {
+	const savedEnv = {
+		appEnv: process.env.APP_ENV,
+		origins: process.env.WEBAUTHN_EXPECTED_ORIGINS,
+	};
+
+	afterEach(() => {
+		if (savedEnv.appEnv === undefined) delete process.env.APP_ENV;
+		else process.env.APP_ENV = savedEnv.appEnv;
+		if (savedEnv.origins === undefined) delete process.env.WEBAUTHN_EXPECTED_ORIGINS;
+		else process.env.WEBAUTHN_EXPECTED_ORIGINS = savedEnv.origins;
+	});
+
+	it("dev ports when APP_ENV=development and no explicit origins", () => {
+		delete process.env.WEBAUTHN_EXPECTED_ORIGINS;
+		process.env.APP_ENV = "development";
+		expect(expectedOrigins()).toEqual([
+			"http://localhost:5173",
+			"http://localhost:4173",
+			"http://localhost:3000",
+		]);
+	});
+
+	it("dev ports when APP_ENV is unset", () => {
+		delete process.env.WEBAUTHN_EXPECTED_ORIGINS;
+		delete process.env.APP_ENV;
+		expect(expectedOrigins()).toEqual([
+			"http://localhost:5173",
+			"http://localhost:4173",
+			"http://localhost:3000",
+		]);
+	});
+
+	it("explicit WEBAUTHN_EXPECTED_ORIGINS always wins", () => {
+		process.env.APP_ENV = "production";
+		process.env.WEBAUTHN_EXPECTED_ORIGINS =
+			"https://finance.example.com, https://alt.example.com";
+		expect(expectedOrigins()).toEqual([
+			"https://finance.example.com",
+			"https://alt.example.com",
+		]);
+	});
+
+	it("fails closed outside development without WEBAUTHN_EXPECTED_ORIGINS", () => {
+		delete process.env.WEBAUTHN_EXPECTED_ORIGINS;
+		process.env.APP_ENV = "production";
+		let err: unknown;
+		try {
+			expectedOrigins();
+		} catch (e) {
+			err = e;
+		}
+		expect(err).toBeInstanceOf(WebAuthnCeremonyError);
+		expect(err).toMatchObject({ code: "ORIGINS_UNCONFIGURED" });
 	});
 });

@@ -308,15 +308,20 @@ export const actions: Actions = {
 		}
 
 		try {
-			const { passphrase } = await rotateUserEnvelope(db, {
-				userId: user.id,
-				password,
-			});
+			const { passphrase, deviceSlotsRevoked } = await rotateUserEnvelope(
+				db,
+				{
+					userId: user.id,
+					password,
+				},
+			);
 			return {
 				success: true,
 				recoveryPassphrase: passphrase,
-				message:
-					"Full rotation complete: all data re-encrypted under a fresh key, every slot re-wrapped.",
+				deviceSlotsRevoked,
+				message: deviceSlotsRevoked
+					? "Full rotation complete: all data re-encrypted under a fresh key, every slot re-wrapped. Device slots revoked — re-enroll your device."
+					: "Full rotation complete: all data re-encrypted under a fresh key, every slot re-wrapped.",
 			};
 		} catch (error) {
 			if (error instanceof EnvelopeError) {

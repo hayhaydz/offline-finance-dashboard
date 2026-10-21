@@ -3,9 +3,14 @@ import { fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { hashPassword } from "$lib/auth/password";
 import { db } from "$lib/db/client";
-import { users } from "$lib/db/schema";
-import { enrollPasswordSlot } from "$lib/server/crypto/enroll";
+import { credentialSlots, users } from "$lib/db/schema";
 import { unlockKeyring } from "$lib/server/crypto/keyring";
+import {
+	generateDataKey,
+	generateSlotId,
+	wrapSlot,
+} from "$lib/server/crypto/envelope";
+import { derivePasswordSlotKey } from "$lib/server/crypto/slot-keys";
 import {
 	devLog,
 	isVerboseDebug,
@@ -81,27 +86,52 @@ export const actions = {
 			// 2. password slot = DataKey wrapped under Argon2id(password, salt)→HKDF
 			// 3. recovery paper slot — REQUIRED, enrolled in the same session
 			//    (next screen; wallet consequences stated before acceptance)
+			//
+			// Atomic account creation (spec envelope-encryption): the user row
+			// and its password slot commit in ONE synchronous transaction — a
+			// slot-enrollment failure rolls the user insert back, leaving the
+			// username available (no partial account that bricks against the
+			// fixed /migrate). Argon2id runs BEFORE the transaction; wrapSlot
+			// is sync node:crypto and runs inside it.
 			const passwordSalt = crypto.randomBytes(16).toString("hex");
 			const passwordHash = await hashPassword(password);
+			const dataKey = generateDataKey();
+			const slotKey = await derivePasswordSlotKey(password, passwordSalt);
 
-			const [newUser] = await db
-				.insert(users)
-				.values({
-					username,
-					passwordHash,
-					passwordSalt,
-					// Legacy TOTP columns (dropped in the 5.3 release step): inert
-					// placeholder values satisfy NOT NULL for fresh accounts.
-					totpSecret: "REMOVED",
-					totpSecretIV: "REMOVED",
-					createdAt: new Date(),
-				})
-				.returning();
+			const newUser = db.transaction((tx) => {
+				const [row] = tx
+					.insert(users)
+					.values({
+						username,
+						passwordHash,
+						passwordSalt,
+						// Legacy TOTP columns (dropped in the 5.3 release step): inert
+						// placeholder values satisfy NOT NULL for fresh accounts.
+						totpSecret: "REMOVED",
+						totpSecretIV: "REMOVED",
+						createdAt: new Date(),
+					})
+					.returning()
+					.all();
 
-			const { dataKey } = await enrollPasswordSlot(db, {
-				userId: newUser.id,
-				password,
-				passwordSalt,
+				const slotId = generateSlotId();
+				const wrapped = wrapSlot(dataKey, slotKey, {
+					kind: "password",
+					userId: row.id,
+					slotId,
+				});
+				tx.insert(credentialSlots)
+					.values({
+						slotId,
+						userId: row.id,
+						kind: "password",
+						wrappedKey: wrapped.wrappedKey,
+						iv: wrapped.iv,
+						metadata: { label: "Password" },
+						createdAt: new Date(),
+					})
+					.run();
+				return row;
 			});
 
 			// Unlock immediately — registration session starts unsealed.

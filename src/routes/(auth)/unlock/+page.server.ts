@@ -1,4 +1,5 @@
 import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
+import crypto from "node:crypto";
 import { fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { db } from "$lib/db/client";
@@ -14,7 +15,7 @@ import {
 	unwrapPasswordSlot,
 	unwrapRecoverySlot,
 } from "$lib/server/crypto/enroll";
-import { EnvelopeError } from "$lib/server/crypto/envelope";
+import { EnvelopeError, zeroize } from "$lib/server/crypto/envelope";
 import {
 	markRecoveryInitiated,
 	unlockKeyring,
@@ -155,8 +156,14 @@ export const actions: Actions = {
 		try {
 			const passwordDataKey = await unwrapPasswordSlot(db, dbUser, password);
 			if (deviceDataKey !== null) {
-				// 2-of-2: both factors must unwrap the SAME DataKey.
-				if (!passwordDataKey.equals(deviceDataKey)) {
+				// 2-of-2: both factors must unwrap the SAME DataKey —
+				// constant-time comparison on equal-length buffers (key
+				// hygiene spec: no byte-wise early-exit on key material).
+				if (
+					passwordDataKey.length !== deviceDataKey.length ||
+					!crypto.timingSafeEqual(passwordDataKey, deviceDataKey)
+				) {
+					zeroize(passwordDataKey, deviceDataKey);
 					logError("unlock", "DataKey mismatch across factors", {
 						userId: user.id,
 					});
@@ -168,7 +175,13 @@ export const actions: Actions = {
 				}
 			}
 			unlockKeyring(dbUser.id, passwordDataKey);
+			// The keyring owns the password-factor buffer now; the device
+			// factor's equal-but-redundant copy is discarded zeroized.
+			zeroize(deviceDataKey);
 		} catch (error) {
+			// The device factor already unwrapped a key buffer — discard it
+			// zeroized before surfacing the failure (key hygiene spec).
+			zeroize(deviceDataKey);
 			if (error instanceof EnvelopeError) {
 				logError("unlock", "Password slot unwrap failed", {
 					userId: dbUser.id,

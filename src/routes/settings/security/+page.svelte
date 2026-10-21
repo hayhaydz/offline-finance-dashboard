@@ -23,6 +23,7 @@
 		success?: boolean;
 		message?: string;
 		recoveryPassphrase?: string;
+		deviceSlotsRevoked?: boolean;
 		inactivityTimeout?: number;
 	}
 
@@ -390,6 +391,15 @@
 				{form.recoveryPassphrase}
 			</div>
 			<span class="text-xs">Write it down and store it offline now.</span>
+		</div>
+	{/if}
+
+	{#if form?.deviceSlotsRevoked}
+		<div class="border border-amber-700 border-l-4 p-2 mb-2 bg-amber-50">
+			<span class="text-amber-700 font-bold">
+				Device slots revoked — re-enroll your device (unlock is password-only
+				until you do).
+			</span>
 		</div>
 	{/if}
 

@@ -54,17 +54,18 @@ export function sealKeyring(reason: string): void {
 }
 
 /**
- * Unlock the keyring for a user. Any previously unlocked state (e.g. a
- * different user's key from a prior session in the same process) is sealed
- * first — the keyring is single-tenant at any instant.
+ * Unlock the keyring for a user. ANY previously unlocked state — including
+ * a same-user non-recovery re-unlock — is sealed (zeroized) first (key
+ * hygiene spec: one live keyring state per process; overwriting unlocked
+ * state zeroizes the previous DataKey before the new one is assigned).
  */
 export function unlockKeyring(
 	userId: number,
 	dataKey: Buffer,
 	options: { recoveryInitiated?: boolean } = {},
 ): void {
-	if (unlocked && (unlocked.userId !== userId || unlocked.recoveryInitiated)) {
-		sealKeyring("user-switch");
+	if (unlocked) {
+		sealKeyring("keyring-overwrite");
 	}
 	unlocked = {
 		userId,

@@ -56,15 +56,26 @@ export const actions: Actions = {
 		}
 
 		try {
-			// Unlock first (resume runs read the DataKey from the keyring).
-			const dataKey = await unwrapPasswordSlot(db, dbUser, password);
-			unlockKeyring(user.id, dataKey);
-
+			// Migrate FIRST: the migration creates the password slot from the
+			// verified password (no pre-existing slot is needed) and returns
+			// the DataKey it created — unlock with that.
 			const result = await migrateUserEnvelope(db, {
 				userId: user.id,
 				password,
 				passwordSalt: dbUser.passwordSalt,
 			});
+
+			if (result.dataKey) {
+				// Fresh migration — the keyring unlocks with the DataKey the
+				// migration itself produced.
+				unlockKeyring(user.id, result.dataKey);
+			} else {
+				// Resume path: a password slot already existed (previous run
+				// completed the atomic migration; only the session unlock was
+				// lost). NOW unwrapping is possible.
+				const dataKey = await unwrapPasswordSlot(db, dbUser, password);
+				unlockKeyring(user.id, dataKey);
+			}
 
 			// Recovery enrollment is REQUIRED in the same session.
 			cookies.set("recovery-enroll-user", String(user.id), {

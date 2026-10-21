@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { eq, inArray } from "drizzle-orm";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { hashPassword } from "$lib/auth/password";
 import { db } from "$lib/db/client";
 import {
@@ -27,6 +27,7 @@ import {
 import { EnvelopeError } from "$lib/server/crypto/envelope";
 import {
 	decryptField,
+	isUnlockedFor,
 	sealKeyring,
 	unlockKeyring,
 } from "$lib/server/crypto/keyring";
@@ -414,5 +415,210 @@ describe("one-shot migration (task 5.1)", () => {
 			.where(eq(users.id, user.id));
 		const viaPassword = await unwrapPasswordSlot(db, freshUser, PASSWORD);
 		expect(viaPaper.equals(viaPassword)).toBe(true);
+	});
+});
+
+describe("rotation safety (crypto-rotation-safety)", () => {
+	const RECOVERY_PASSPHRASE =
+		"one two three four five six seven eight nine ten eleven twelve";
+
+	async function rotationSetup(withDeviceSlot: boolean) {
+		const user = await insertLegacyUser(`env-safe-${Date.now()}-${crypto.randomBytes(2).toString("hex")}`);
+		const { dataKey } = await enrollPasswordSlot(db, {
+			userId: user.id,
+			password: PASSWORD,
+			passwordSalt: user.passwordSalt,
+		});
+		await enrollRecoverySlot(db, {
+			userId: user.id,
+			dataKey,
+			passphrase: RECOVERY_PASSPHRASE,
+		});
+
+		// Fake device slot: kind flip of a second slot (wrap material is
+		// opaque to rotation — it revokes by kind, never unwraps it).
+		let deviceSlotId: string | null = null;
+		if (withDeviceSlot) {
+			const { slotId } = await enrollRecoverySlot(db, {
+				userId: user.id,
+				dataKey,
+				passphrase:
+					"alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu",
+			});
+			await db
+				.update(credentialSlots)
+				.set({ kind: "webauthn-prf" })
+				.where(eq(credentialSlots.slotId, slotId));
+			deviceSlotId = slotId;
+		}
+
+		const [account] = await db
+			.insert(accounts)
+			.values({
+				slug: `safe-account-${user.id}`,
+				userId: user.id,
+				name: "Safety Account",
+				type: "current",
+				taxWrapper: "none",
+				category: "asset",
+			})
+			.returning();
+		const txSlug = `safe-tx-${user.id}`;
+		await db.insert(accountTransactions).values({
+			slug: txSlug,
+			accountId: account.id,
+			type: "interest",
+			amount: 4242,
+			description: "Rotation payload",
+			transactionDate: new Date(),
+		});
+		const { encryptField } = await import("$lib/server/crypto/keyring");
+		unlockKeyring(user.id, dataKey);
+		await db
+			.update(accountTransactions)
+			.set({
+				description: encryptField(
+					user.id,
+					{
+						table: "account_transactions",
+						rowId: txSlug,
+						column: "description",
+					},
+					"Rotation payload",
+				),
+			})
+			.where(eq(accountTransactions.slug, txSlug));
+
+		const [before] = await db
+			.select()
+			.from(accountTransactions)
+			.where(eq(accountTransactions.slug, txSlug));
+
+		return { user, dataKey, txSlug, before, deviceSlotId };
+	}
+
+	it("rotation with an enrolled device slot revokes it and unlock returns to L1", async () => {
+		const { user, txSlug, deviceSlotId } = await rotationSetup(true);
+		expect(deviceSlotId).not.toBeNull();
+
+		const { passphrase, deviceSlotsRevoked } = await rotateUserEnvelope(db, {
+			userId: user.id,
+			password: PASSWORD,
+		});
+		expect(deviceSlotsRevoked).toBe(true);
+		expect(passphrase.split(" ")).toHaveLength(12);
+
+		// Every active device slot is revoked — unlock is password-only (L1)
+		expect(await getActiveSlots(db, user.id, "webauthn-prf")).toHaveLength(0);
+
+		// L1 unlock works immediately: password unwrap (fresh salt row)
+		// yields the NEW DataKey and decrypts the re-encrypted rows.
+		const [freshUser] = await db
+			.select({ id: users.id, passwordSalt: users.passwordSalt })
+			.from(users)
+			.where(eq(users.id, user.id));
+		expect(freshUser.passwordSalt).not.toBe(user.passwordSalt);
+		const viaPassword = await unwrapPasswordSlot(db, freshUser, PASSWORD);
+
+		sealKeyring("l1-check");
+		unlockKeyring(user.id, viaPassword);
+		const [after] = await db
+			.select()
+			.from(accountTransactions)
+			.where(eq(accountTransactions.slug, txSlug));
+		expect(
+			decryptField(
+				user.id,
+				{ table: "account_transactions", rowId: txSlug, column: "description" },
+				after.description,
+			),
+		).toBe("Rotation payload");
+	});
+
+	it("simulated mid-rotation throw rolls back — old state stays fully decryptable", async () => {
+		const { user, dataKey, txSlug, before } = await rotationSetup(true);
+
+		// Poison the commit transaction: throw inside the synchronous body
+		// after the first row update lands — better-sqlite3 must roll the
+		// WHOLE rotation back (ciphertexts, slots, revocations).
+		const realTransaction = db.transaction.bind(db);
+		let updates = 0;
+		vi.spyOn(db, "transaction").mockImplementationOnce(((cb: unknown) => {
+			return realTransaction(((tx: unknown) => {
+				return (cb as (t: unknown) => unknown)(
+					new Proxy(tx as object, {
+						get(target: object, prop, receiver) {
+							if (prop === "update") {
+								const orig = (
+									target as { update: (...a: unknown[]) => unknown }
+								).update.bind(target);
+								return (...args: unknown[]) => {
+									if (++updates >= 2) {
+										throw new Error("simulated mid-rotation crash");
+									}
+									return orig(...args);
+								};
+							}
+							return Reflect.get(target, prop, receiver);
+						},
+					}),
+				);
+			}) as never);
+		}) as never);
+
+		await expect(
+			rotateUserEnvelope(db, { userId: user.id, password: PASSWORD }),
+		).rejects.toThrow("simulated mid-rotation crash");
+		expect(updates).toBeGreaterThanOrEqual(2);
+		vi.restoreAllMocks();
+
+		// Ciphertext unchanged (same bytes as before the attempt)
+		const [after] = await db
+			.select()
+			.from(accountTransactions)
+			.where(eq(accountTransactions.slug, txSlug));
+		expect(after.description).toBe(before.description);
+
+		// The keyring was never swapped — it still holds the OLD DataKey and
+		// decrypts the untouched ciphertext.
+		expect(isUnlockedFor(user.id)).toBe(true);
+		expect(
+			decryptField(
+				user.id,
+				{ table: "account_transactions", rowId: txSlug, column: "description" },
+				after.description,
+			),
+		).toBe("Rotation payload");
+
+		// Password unwrap still yields the OLD key (slot re-wrap rolled back)
+		const viaPassword = await unwrapPasswordSlot(db, user, PASSWORD);
+		expect(viaPassword.equals(dataKey)).toBe(true);
+
+		// Old recovery paper still works; device + recovery slots intact
+		expect(
+			(await unwrapRecoverySlot(db, user.id, RECOVERY_PASSPHRASE)).equals(
+				dataKey,
+			),
+		).toBe(true);
+		expect(await getActiveSlots(db, user.id, "webauthn-prf")).toHaveLength(1);
+		expect(await getActiveSlots(db, user.id, "recovery-passphrase")).toHaveLength(
+			1,
+		);
+
+		// The OLD DataKey buffer is NOT zeroized on the rollback path — the
+		// pre-rotation state must remain fully usable (only a successful
+		// commit discards it).
+		expect(dataKey.every((b) => b === 0)).toBe(false);
+	});
+
+	it("rotation zeroizes the old DataKey after commit (key hygiene)", async () => {
+		const { user, dataKey } = await rotationSetup(false);
+
+		await rotateUserEnvelope(db, { userId: user.id, password: PASSWORD });
+
+		// unlockKeyring swapped in the new key via the always-seal path —
+		// the previous DataKey buffer is zeroized where it lives.
+		expect(dataKey.every((b) => b === 0)).toBe(true);
+		expect(isUnlockedFor(user.id)).toBe(true);
 	});
 });

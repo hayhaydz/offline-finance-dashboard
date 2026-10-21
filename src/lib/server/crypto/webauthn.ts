@@ -9,7 +9,7 @@ import {
 	verifyAuthenticationResponse,
 	verifyRegistrationResponse,
 } from "@simplewebauthn/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { credentialSlots, users } from "$lib/db/schema";
 import { logError, logInfo } from "$lib/server/logger";
 import { getActiveSlots, type KeyringDb, type SlotRecord } from "./enroll";
@@ -73,11 +73,28 @@ const DEFAULT_ORIGINS = [
 
 export function expectedOrigins(): string[] {
 	const raw = process.env.WEBAUTHN_EXPECTED_ORIGINS;
-	if (!raw) return DEFAULT_ORIGINS;
-	return raw
-		.split(",")
-		.map((o) => o.trim())
-		.filter(Boolean);
+	if (raw) {
+		return raw
+			.split(",")
+			.map((o) => o.trim())
+			.filter(Boolean);
+	}
+	const appEnv = process.env.APP_ENV;
+	if (!appEnv || appEnv === "development") {
+		return DEFAULT_ORIGINS;
+	}
+	// Fail closed outside development: no fabricated origins, no silent
+	// acceptance of arbitrary source origins. Surfaced at the first ceremony
+	// that needs them (clear log, typed error).
+	logError(
+		"webauthn",
+		"WEBAUTHN_EXPECTED_ORIGINS is not set (non-development APP_ENV) — ceremonies fail closed",
+		{ appEnv },
+	);
+	throw new WebAuthnCeremonyError(
+		"ORIGINS_UNCONFIGURED",
+		"WebAuthn expected origins are not configured — set WEBAUTHN_EXPECTED_ORIGINS",
+	);
 }
 
 /**
@@ -126,7 +143,8 @@ export class WebAuthnCeremonyError extends Error {
 			| "CHALLENGE_EXPIRED"
 			| "UNKNOWN_CREDENTIAL"
 			| "ENROLLMENT_DISABLED"
-			| "KEY_MISMATCH",
+			| "KEY_MISMATCH"
+			| "ORIGINS_UNCONFIGURED",
 		message: string,
 	) {
 		super(message);
@@ -244,16 +262,23 @@ export function deviceMetadata(slot: SlotRecord): DeviceSlotMetadata | null {
 	if (typeof m.credentialId !== "string" || typeof m.publicKey !== "string") {
 		return null;
 	}
+	// Salt integrity (spec unlock-ceremony): a device slot without its PRF
+	// salt is corrupt — hard-fail instead of fabricating a random salt (a
+	// fabricated salt would silently evaluate the wrong PRF input and
+	// permanently brick the slot's unlock).
+	if (typeof m.prfSalt !== "string") {
+		throw new EnvelopeError(
+			"BAD_FORMAT",
+			"Device slot metadata is corrupt: missing prfSalt",
+		);
+	}
 	return {
 		label: typeof m.label === "string" ? m.label : "Device",
 		credentialId: m.credentialId,
 		publicKey: m.publicKey,
 		counter: typeof m.counter === "number" ? m.counter : 0,
 		transports: Array.isArray(m.transports) ? m.transports : undefined,
-		prfSalt:
-			typeof m.prfSalt === "string"
-				? m.prfSalt
-				: crypto.randomBytes(32).toString("hex"),
+		prfSalt: m.prfSalt,
 		deviceType: typeof m.deviceType === "string" ? m.deviceType : undefined,
 		backedUp: typeof m.backedUp === "boolean" ? m.backedUp : undefined,
 		aaguid: typeof m.aaguid === "string" ? m.aaguid : undefined,
@@ -374,6 +399,19 @@ async function writeDeviceSlot(
 	},
 ): Promise<string> {
 	const dataKey = requireDataKey(params.userId); // settings: full unlock
+
+	// Duplicate-credential guard (spec unlock-ceremony): reject a second
+	// ACTIVE slot with the same credentialId regardless of client behavior
+	// (excludeCredentials is advisory — the server decides).
+	const existingSlots = await getDeviceSlots(db, params.userId);
+	for (const slot of existingSlots) {
+		if (deviceMetadata(slot)?.credentialId === params.credential.id) {
+			throw new WebAuthnCeremonyError(
+				"UNKNOWN_CREDENTIAL",
+				"This device credential is already enrolled — no second slot written",
+			);
+		}
+	}
 
 	const slotId = generateSlotId();
 	const wrapped = wrapSlot(dataKey, params.prfKey, {
@@ -731,14 +769,14 @@ export async function completeDeviceUnlock(
 	}
 
 	// Persist the reported counter (replay protection moving target).
-	// Scoped to the user (RLS parity with every other slot write).
+	// Atomic (spec unlock-ceremony): writes ONLY the counter field via
+	// json_set — no read-modify-write of the whole metadata blob — scoped to
+	// slotId+userId (RLS parity), with a max() guard so a concurrent
+	// ceremony's higher counter can never regress.
 	await db
 		.update(credentialSlots)
 		.set({
-			metadata: {
-				...slot.metadata,
-				counter: verification.authenticationInfo.newCounter,
-			} as Record<string, unknown>,
+			metadata: sql`json_set(${credentialSlots.metadata}, '$.counter', max(coalesce(json_extract(${credentialSlots.metadata}, '$.counter'), 0), ${verification.authenticationInfo.newCounter}))`,
 		})
 		.where(
 			and(
