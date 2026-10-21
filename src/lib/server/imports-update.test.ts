@@ -802,3 +802,73 @@ describe("backup file isolation", () => {
 		}
 	});
 });
+
+describe("backup encryption (data-layer-integrity 3.1/3.3)", () => {
+	it("backup file on disk is v1| ciphertext — no plaintext descriptions at rest", async () => {
+		const id = await insertTx(
+			accountA.id,
+			"deposit",
+			4242,
+			"2026-11-01",
+			"secret plan",
+		);
+		const result = await commitReimport(
+			testUserId,
+			[
+				HEADER,
+				csvLine(
+					accountA.slug,
+					String(id),
+					"2026-11-01",
+					"deposit",
+					"42.42",
+					"secret plan",
+					"1",
+				),
+			].join("\n"),
+			{ recovery: false },
+		);
+		expect("errors" in result).toBe(false);
+		if ("errors" in result || !result.backupFilename)
+			throw new Error("expected an encrypted backup file");
+
+		const { readFile } = await import("node:fs/promises");
+		const raw = await readFile(
+			`${backupDir(testUserId)}/${result.backupFilename}`,
+			"utf-8",
+		);
+		expect(raw.startsWith("v1|")).toBe(true);
+		expect(raw).not.toContain("secret plan");
+		expect(raw).not.toContain("account_slug");
+
+		// Restore path decrypts: readBackupFile returns the plaintext CSV
+		const decrypted = await readBackupFile(testUserId, result.backupFilename);
+		expect(decrypted).toContain("account_slug,id,date,type,amount");
+		expect(decrypted).toContain("secret plan");
+
+		// Restore round-trips from the encrypted file
+		const restored = await commitReimport(testUserId, decrypted ?? "", {
+			recovery: true,
+		});
+		expect("errors" in restored).toBe(false);
+		const row = await getTx(id);
+		expect(row?.description).toBe("secret plan");
+		expect(row?.amount).toBe(4242);
+	});
+
+	it("legacy plaintext backup files (pre-encryption) still read unchanged", async () => {
+		const { writeFile } = await import("node:fs/promises");
+		const legacyName = "backup-1700000000000-abcdefgh.csv";
+		const legacyCsv = [
+			HEADER,
+			csvLine(accountA.slug, "1", "2026-01-01", "deposit", "1.00", "old"),
+		].join("\n");
+		await writeFile(
+			`${backupDir(testUserId)}/${legacyName}`,
+			legacyCsv,
+			"utf-8",
+		);
+		const content = await readBackupFile(testUserId, legacyName);
+		expect(content).toBe(legacyCsv);
+	});
+});

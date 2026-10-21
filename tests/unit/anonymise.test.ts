@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -11,6 +12,10 @@ import {
 	TABLE_RULES,
 	verifyCoverage,
 } from "../../scripts/anonymise";
+import {
+	decryptValue,
+	encryptValue,
+} from "../../src/lib/server/crypto/value-codec";
 
 const MIGRATIONS_DIR = path.resolve("src/lib/db/migrations");
 const tempDirs: string[] = [];
@@ -529,3 +534,176 @@ async function runFixture(
 	await runAnonymise({ source, out, seed });
 	return { source, out };
 }
+
+describe("anonymise — value-layer AAD safety (data-layer-integrity 2.1/2.2)", () => {
+	const dataKey = crypto.randomBytes(32);
+
+	/** Fixture DB with v1|-ciphertext rows in every slug-bound protected column. */
+	function buildEncryptedFixtureDb(filePath: string): void {
+		const db = new Database(filePath);
+		for (const file of fs
+			.readdirSync(MIGRATIONS_DIR)
+			.filter((f) => f.endsWith(".sql"))
+			.sort()) {
+			const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, file), "utf8");
+			for (const stmt of sql.split("--> statement-breakpoint")) {
+				if (stmt.trim()) db.exec(stmt);
+			}
+		}
+
+		db.prepare(
+			"INSERT INTO users (username, password_hash, totp_secret, totp_secret_iv, password_salt, tax_band, inactivity_timeout, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)",
+		).run(
+			"encuser",
+			"realhash",
+			"PLAIN:realsecret",
+			"PLAIN",
+			"realsalt",
+			"basic",
+			5,
+			ts("2026-01-01"),
+			ts("2026-01-01"),
+		);
+		db.prepare(
+			"INSERT INTO accounts (slug, user_id, name, type, tax_wrapper, category, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)",
+		).run(
+			"enc-acct-slug",
+			1,
+			"Enc Account",
+			"current",
+			"none",
+			"asset",
+			ts("2026-01-01"),
+			ts("2026-01-01"),
+		);
+
+		// Encrypted transaction — AAD bound to (account_transactions, tx-enc-slug, description)
+		const encTxDesc = encryptValue(dataKey, "Salary secret", {
+			table: "account_transactions",
+			rowId: "tx-enc-slug",
+			column: "description",
+		});
+		db.prepare(
+			"INSERT INTO account_transactions (slug, account_id, type, amount, description, transaction_date, created_at) VALUES (?,?,?,?,?,?,?)",
+		).run(
+			"tx-enc-slug",
+			1,
+			"deposit",
+			250000,
+			encTxDesc,
+			ts("2026-01-05"),
+			ts("2026-01-05"),
+		);
+		// Plaintext sibling — its slug SHOULD be regenerated
+		db.prepare(
+			"INSERT INTO account_transactions (slug, account_id, type, amount, description, transaction_date, created_at) VALUES (?,?,?,?,?,?,?)",
+		).run(
+			"tx-plain-slug",
+			1,
+			"withdrawal",
+			-100,
+			"Plain shop",
+			ts("2026-01-06"),
+			ts("2026-01-06"),
+		);
+
+		// Encrypted note — AAD bound to (account_notes, note-enc-slug, content)
+		const encNote = encryptValue(dataKey, "Note secret", {
+			table: "account_notes",
+			rowId: "note-enc-slug",
+			column: "content",
+		});
+		db.prepare(
+			"INSERT INTO account_notes (slug, account_id, content, created_at) VALUES (?,?,?,?)",
+		).run("note-enc-slug", 1, encNote, ts("2026-01-07"));
+
+		// Encrypted review — AAD bound to (monthly_reviews, review-enc-slug, notes)
+		const encNotes = encryptValue(dataKey, "Review secret", {
+			table: "monthly_reviews",
+			rowId: "review-enc-slug",
+			column: "notes",
+		});
+		db.prepare(
+			"INSERT INTO monthly_reviews (slug, user_id, year_month, completed_items, notes, created_at, updated_at) VALUES (?,?,?,?,?,?,?)",
+		).run(
+			"review-enc-slug",
+			1,
+			"2026-01",
+			"[]",
+			encNotes,
+			ts("2026-02-01"),
+			ts("2026-02-01"),
+		);
+
+		db.close();
+	}
+
+	it("keeps slugs of v1| rows verbatim so every protected value still decrypts", async () => {
+		const dir = makeTmpDir("anon-aad-");
+		const source = path.join(dir, "source.db");
+		const out = path.join(dir, "out.db");
+		buildEncryptedFixtureDb(source);
+
+		await runAnonymise({ source, out, seed: "aad-1" });
+
+		const db = new Database(out, { readonly: true });
+
+		// Encrypted transaction: slug preserved, ciphertext decrypts
+		const encTx = db
+			.prepare(
+				"SELECT slug, description FROM account_transactions WHERE description LIKE 'v1|%'",
+			)
+			.get() as { slug: string; description: string };
+		expect(encTx.slug).toBe("tx-enc-slug");
+		expect(() =>
+			decryptValue(dataKey, encTx.description, {
+				table: "account_transactions",
+				rowId: "tx-enc-slug",
+				column: "description",
+			}),
+		).not.toThrow();
+		expect(
+			decryptValue(dataKey, encTx.description, {
+				table: "account_transactions",
+				rowId: "tx-enc-slug",
+				column: "description",
+			}),
+		).toBe("Salary secret");
+
+		// Encrypted note: slug preserved, content decrypts
+		const encNote = db
+			.prepare("SELECT slug, content FROM account_notes")
+			.get() as { slug: string; content: string };
+		expect(encNote.slug).toBe("note-enc-slug");
+		expect(
+			decryptValue(dataKey, encNote.content, {
+				table: "account_notes",
+				rowId: "note-enc-slug",
+				column: "content",
+			}),
+		).toBe("Note secret");
+
+		// Encrypted review: slug preserved, notes decrypt
+		const encReview = db
+			.prepare("SELECT slug, notes FROM monthly_reviews")
+			.get() as { slug: string; notes: string };
+		expect(encReview.slug).toBe("review-enc-slug");
+		expect(
+			decryptValue(dataKey, encReview.notes, {
+				table: "monthly_reviews",
+				rowId: "review-enc-slug",
+				column: "notes",
+			}),
+		).toBe("Review secret");
+
+		// Plaintext sibling: slug still regenerated (rename path stays active)
+		const plainTx = db
+			.prepare(
+				"SELECT slug, description FROM account_transactions WHERE description NOT LIKE 'v1|%'",
+			)
+			.get() as { slug: string; description: string };
+		expect(plainTx.slug).not.toBe("tx-plain-slug");
+
+		db.close();
+	});
+});

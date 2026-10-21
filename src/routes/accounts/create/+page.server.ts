@@ -141,65 +141,70 @@ export const actions: Actions = {
 				});
 			}
 
-			// Insert account with user_id for row-level security and slug
+			// Insert account + optional opening balance in ONE transaction —
+			// a failing opening-balance write rolls the account back with it
+			// (no half-created accounts).
 			const accountSlug = nanoid(16);
-			const [newAccount] = await db
-				.insert(accounts)
-				.values({
-					userId: user.id,
-					slug: accountSlug,
-					name: name.trim(),
-					type: type as
-						| "current"
-						| "savings"
-						| "investment"
-						| "credit-card"
-						| "loan"
-						| "mortgage",
-					taxWrapper: taxWrapper as "none" | "isa" | "lisa" | "premium-bonds",
-					category: category as "asset" | "liability",
-					institution: institution?.trim() || null,
-					liquidity:
-						(liquidity as "instant" | "delayed" | "locked" | null) || null,
-					closedAt: null,
-					excludedFromNetWorth: false,
-				})
-				.returning();
+			const openingSlug = nanoid(21);
+			// Use midnight UTC for consistent date comparison
+			const todayMidnight = new Date();
+			todayMidnight.setUTCHours(0, 0, 0, 0);
+
+			const newAccount = db.transaction((tx) => {
+				const account = tx
+					.insert(accounts)
+					.values({
+						userId: user.id,
+						slug: accountSlug,
+						name: name.trim(),
+						type: type as
+							| "current"
+							| "savings"
+							| "investment"
+							| "credit-card"
+							| "loan"
+							| "mortgage",
+						taxWrapper: taxWrapper as "none" | "isa" | "lisa" | "premium-bonds",
+						category: category as "asset" | "liability",
+						institution: institution?.trim() || null,
+						liquidity:
+							(liquidity as "instant" | "delayed" | "locked" | null) || null,
+						closedAt: null,
+						excludedFromNetWorth: false,
+					})
+					.returning()
+					.get();
+
+				// If initial balance provided, create an opening deposit
+				// transaction in the same transaction.
+				if (balanceInCents !== null) {
+					tx.insert(accountTransactions)
+						.values({
+							accountId: account.id,
+							slug: openingSlug,
+							type: "deposit",
+							amount: balanceInCents,
+							description: encryptTxDescription(
+								user.id,
+								openingSlug,
+								"Opening balance",
+							),
+							categoryId: null,
+							transactionDate: todayMidnight,
+							createdAt: new Date(),
+						})
+						.run();
+				}
+
+				return account;
+			});
 
 			if (isVerboseDebug()) {
 				devLog("createAccount", "Account created", {
 					accountId: newAccount.id,
 					slug: accountSlug,
+					openingBalanceInCents: balanceInCents,
 				});
-			}
-
-			// If initial balance provided, create an opening deposit transaction.
-			if (balanceInCents !== null) {
-				// Use midnight UTC for consistent date comparison
-				const todayMidnight = new Date();
-				todayMidnight.setUTCHours(0, 0, 0, 0);
-				const openingSlug = nanoid(21);
-				await db.insert(accountTransactions).values({
-					accountId: newAccount.id,
-					slug: openingSlug,
-					type: "deposit",
-					amount: balanceInCents,
-					description: encryptTxDescription(
-						user.id,
-						openingSlug,
-						"Opening balance",
-					),
-					categoryId: null,
-					transactionDate: todayMidnight,
-					createdAt: new Date(),
-				});
-				if (isVerboseDebug()) {
-					devLog("createAccount", "Opening transaction added", {
-						accountId: newAccount.id,
-						amountInCents: balanceInCents,
-						transactionDate: todayMidnight.toISOString(),
-					});
-				}
 			}
 
 			// Redirect to accounts list on success

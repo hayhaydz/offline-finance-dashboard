@@ -31,10 +31,16 @@ import {
 	accountTransactions,
 	spendingCategories,
 } from "$lib/db/schema";
+import { requireDataKey } from "$lib/server/crypto/keyring";
 import {
 	decryptTxDescription,
 	encryptTxDescription,
 } from "$lib/server/crypto/protected-fields";
+import {
+	decryptValue,
+	encryptValue,
+	type ValueAAD,
+} from "$lib/server/crypto/value-codec";
 import {
 	BACKUP_HEADER_PREFIX,
 	parseBackupHeaderLine,
@@ -666,6 +672,16 @@ function backupFilename(now = new Date()): string {
 const BACKUP_FILENAME_PATTERN = /^backup-\d{13}-[A-Za-z0-9_-]{8}\.csv$/;
 
 /**
+ * Backup files are encrypted at rest under the user's DataKey (AES-256-GCM,
+ * same versioned codec as protected columns). AAD binds the backup's owner
+ * and filename, so a ciphertext moved between users or renamed files fails
+ * authentication: `backup|user-<id>|<filename>`.
+ */
+function backupAAD(userId: number, filename: string): ValueAAD {
+	return { table: "backup", rowId: `user-${userId}`, column: filename };
+}
+
+/**
  * Write the timestamped "before" CSV for a plan's touched rows (edited rows'
  * old values + deleted rows' full pre-state; inserted rows have no
  * pre-state). Written BEFORE the commit transaction runs.
@@ -705,13 +721,22 @@ async function writeBackup(
 	const { mkdir, writeFile } = await import("node:fs/promises");
 	await mkdir(dir, { recursive: true });
 	const filename = backupFilename(now);
-	await writeFile(`${dir}/${filename}`, csv, "utf-8");
+	// Value layer: no plaintext descriptions on disk — the CSV bytes are
+	// sealed under the user's DataKey before touching the filesystem.
+	const encrypted = encryptValue(
+		requireDataKey(userId),
+		csv,
+		backupAAD(userId, filename),
+	);
+	await writeFile(`${dir}/${filename}`, encrypted, "utf-8");
 	return filename;
 }
 
 /**
  * Read a backup file for download. The filename must match the generated
- * pattern and live inside the user's own backup directory.
+ * pattern and live inside the user's own backup directory. Encrypted (v1|)
+ * files are decrypted with the unlocked keyring; legacy plaintext backups
+ * from before backup encryption pass through unchanged.
  */
 export async function readBackupFile(
 	userId: number,
@@ -722,6 +747,13 @@ export async function readBackupFile(
 	const { readFile } = await import("node:fs/promises");
 	try {
 		const content = await readFile(`${dir}/${filename}`, "utf-8");
+		if (content.startsWith("v1|")) {
+			return decryptValue(
+				requireDataKey(userId),
+				content,
+				backupAAD(userId, filename),
+			);
+		}
 		return content;
 	} catch {
 		return null;

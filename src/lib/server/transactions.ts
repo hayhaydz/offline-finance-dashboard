@@ -189,45 +189,6 @@ export async function getTransactionBySlug(slug: string) {
 }
 
 /**
- * Update a transaction by slug.
- * Only allows updating certain fields.
- */
-export async function updateTransaction(
-	slug: string,
-	data: {
-		type?: TransactionType;
-		amount?: number;
-		description?: string;
-		categoryId?: number | null;
-		transactionDate?: Date;
-	},
-	userId?: number,
-): Promise<VoidResult> {
-	const result = await db
-		.update(accountTransactions)
-		.set({
-			...data,
-			// Value layer: description re-encrypted under the DataKey when
-			// updated (AAD bound to the unchanged slug).
-			description:
-				data.description !== undefined && userId !== undefined
-					? encryptTxDescription(userId, slug, data.description)
-					: data.description,
-		})
-		.where(eq(accountTransactions.slug, slug))
-		.returning({ slug: accountTransactions.slug });
-
-	if (result.length === 0) {
-		logError("updateTransaction", "Transaction not found", { slug });
-		return err("Transaction not found");
-	}
-
-	logInfo("updateTransaction", "Transaction updated", { slug });
-
-	return okVoid();
-}
-
-/**
  * Delete a transaction by slug.
  */
 export async function deleteTransaction(slug: string): Promise<VoidResult> {

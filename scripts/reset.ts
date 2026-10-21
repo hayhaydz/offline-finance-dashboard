@@ -15,7 +15,13 @@
 import { execSync } from "node:child_process";
 import { existsSync, unlinkSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import "dotenv/config";
+
+const REPO_ROOT = path.resolve(
+	path.dirname(fileURLToPath(import.meta.url)),
+	"..",
+);
 
 const appEnv = process.env.APP_ENV ?? "development";
 
@@ -78,6 +84,37 @@ if (scratchMode && mode) {
 	console.error("❌ --scratch and --mode are mutually exclusive.");
 	process.exit(1);
 }
+
+// Anonymise-style live-path guard (data-layer-integrity task 6.6): the
+// unlink below only ever runs against the known dev/test defaults, or a
+// DATABASE_URL path that provably lives inside <repo>/storage/ and is not
+// the production file.
+const DEFAULT_DB_PATHS = new Set(
+	["storage/dev-plain.db", "storage/dev-encrypted.db", "storage/test.db"].map(
+		(p) => path.resolve(REPO_ROOT, p),
+	),
+);
+
+function guardWipePath(dbPath: string): void {
+	const resolved = path.resolve(dbPath);
+	if (DEFAULT_DB_PATHS.has(resolved)) return;
+
+	const storageDir = path.resolve(REPO_ROOT, "storage");
+	const isProd = resolved === path.resolve(REPO_ROOT, "storage/prod.db");
+	const insideStorage = resolved.startsWith(`${storageDir}${path.sep}`);
+	if (isProd || !insideStorage) {
+		console.error(`❌ db:reset refuses to wipe non-default path: ${resolved}`);
+		console.error(
+			"   Defaults: storage/dev-plain.db | storage/dev-encrypted.db | storage/test.db",
+		);
+		console.error(
+			"   A custom DATABASE_URL target must live inside <repo>/storage/ and never be prod.db.",
+		);
+		process.exit(1);
+	}
+}
+
+guardWipePath(DB_PATH);
 
 // 1. Wipe (must happen before importing client.ts which creates the DB file)
 if (existsSync(DB_PATH)) {

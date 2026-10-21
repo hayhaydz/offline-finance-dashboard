@@ -1,22 +1,20 @@
-import Database from "better-sqlite3";
-
-function getDatabasePath(): string {
-	if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
-
-	switch (process.env.APP_ENV) {
-		case "development":
-			return "storage/dev.db";
-		case "test":
-			return "storage/test.db";
-		case "production":
-			return "storage/prod.db";
-		default:
-			return "storage/database.db";
-	}
-}
+import "dotenv/config";
+import {
+	explainOpenFailure,
+	getDatabasePath,
+	openSqliteDatabase,
+} from "./db-doctor";
 
 const dbPath = process.argv[2] || getDatabasePath();
-const sqlite = new Database(dbPath, { readonly: true });
+
+let sqlite: ReturnType<typeof openSqliteDatabase>;
+try {
+	sqlite = openSqliteDatabase(dbPath, { readonly: true });
+} catch (error) {
+	console.error(`❌ Cannot open database: ${dbPath}`);
+	console.error(`   ${explainOpenFailure(error)}`);
+	process.exit(1);
+}
 
 const queries = [
 	{

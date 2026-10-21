@@ -1,5 +1,9 @@
 import { eq } from "drizzle-orm";
 import * as schema from "../../../src/lib/db/schema/index";
+import {
+	encryptNoteContent,
+	encryptTxDescription,
+} from "../../../src/lib/server/crypto/protected-fields.js";
 import type { DB } from "../lib/db.js";
 import { daysAgo, loadFixture, randomBetween, slug } from "../lib/helpers.js";
 import { createSnapshot } from "../lib/snapshot.js";
@@ -95,13 +99,15 @@ export async function seedEdge(db: DB, userId: number): Promise<void> {
 		// Insert explicit transactions that define balance history (before closing account)
 		for (const b of a.balances) {
 			const transactionDate = daysAgo(b.daysAgo);
+			const txSlug = slug();
 			await db.insert(schema.accountTransactions).values({
-				slug: slug(),
+				slug: txSlug,
 				accountId: account.id,
 				type: "value_change",
 				amount: b.balanceInCents,
-				category: null,
-				description: b.notes,
+				categoryId: null,
+				// Value layer: encrypted under the seeded user's DataKey
+				description: encryptTxDescription(userId, txSlug, b.notes),
 				transactionDate,
 				createdAt: transactionDate,
 			});
@@ -120,7 +126,7 @@ export async function seedEdge(db: DB, userId: number): Promise<void> {
 					accountId: account.id,
 					type: "value_change",
 					amount,
-					category: null,
+					categoryId: null,
 					description: null,
 					transactionDate,
 					createdAt: transactionDate,
@@ -262,11 +268,12 @@ export async function seedEdge(db: DB, userId: number): Promise<void> {
 		}
 
 		const now = new Date();
+		const noteSlug = slug();
 		await db.insert(schema.accountNotes).values({
-			slug: slug(),
-			userId,
+			slug: noteSlug,
 			accountId: account.id,
-			content: edgeCase.content,
+			// Value layer: encrypted under the seeded user's DataKey
+			content: encryptNoteContent(userId, noteSlug, edgeCase.content),
 			createdAt: now,
 		});
 		totalNotes++;

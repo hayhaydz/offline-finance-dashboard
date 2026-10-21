@@ -1,5 +1,9 @@
 import { eq } from "drizzle-orm";
 import * as schema from "../../../src/lib/db/schema/index";
+import {
+	encryptNoteContent,
+	encryptTxDescription,
+} from "../../../src/lib/server/crypto/protected-fields.js";
 import type { DB } from "../lib/db.js";
 import { daysAgo, randomBetween, slug } from "../lib/helpers.js";
 import { wipeUserData } from "../lib/wipe.js";
@@ -215,11 +219,12 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 			now.getTime() - daysOffset * 24 * 60 * 60 * 1000,
 		);
 
+		const noteSlug = slug();
 		await db.insert(schema.accountNotes).values({
-			slug: slug(),
-			userId,
+			slug: noteSlug,
 			accountId: stressNoteAccountId,
-			content,
+			// Value layer: encrypted under the seeded user's DataKey
+			content: encryptNoteContent(userId, noteSlug, content),
 			createdAt,
 		});
 		totalNotes++;
@@ -238,11 +243,16 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 				now.getTime() - daysOffset * 24 * 60 * 60 * 1000,
 			);
 
+			const noteSlug = slug();
 			await db.insert(schema.accountNotes).values({
-				slug: slug(),
-				userId,
+				slug: noteSlug,
 				accountId,
-				content: `Stress test note ${j + 1} for account ${i + 1}`,
+				// Value layer: encrypted under the seeded user's DataKey
+				content: encryptNoteContent(
+					userId,
+					noteSlug,
+					`Stress test note ${j + 1} for account ${i + 1}`,
+				),
 				createdAt,
 			});
 			totalNotes++;
@@ -260,13 +270,19 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 	// 500 entries on the pagination account
 	for (let i = 0; i < 500; i++) {
 		const transactionDate = daysAgo(500 - i);
+		const txSlug = slug();
 		await db.insert(schema.accountTransactions).values({
-			slug: slug(),
+			slug: txSlug,
 			accountId: stressPaginationAccountId,
 			type: "value_change",
 			amount: 100000 + i * 200,
-			category: null,
-			description: i % 50 === 0 ? "x".repeat(1000) : null,
+			categoryId: null,
+			// Value layer: encrypted under the seeded user's DataKey
+			description: encryptTxDescription(
+				userId,
+				txSlug,
+				i % 50 === 0 ? "x".repeat(1000) : null,
+			),
 			transactionDate,
 			createdAt: transactionDate,
 		});
@@ -290,13 +306,19 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 	for (let i = 0; i < extremeTransactions.length; i++) {
 		const accountId = createdAccountIds[i + 5] ?? createdAccountIds[i]; // skip pagination account
 		const transactionDate = daysAgo(0);
+		const txSlug = slug();
 		await db.insert(schema.accountTransactions).values({
-			slug: slug(),
+			slug: txSlug,
 			accountId,
 			type: "value_change",
 			amount: extremeTransactions[i].amount,
-			category: null,
-			description: extremeTransactions[i].description,
+			categoryId: null,
+			// Value layer: encrypted under the seeded user's DataKey
+			description: encryptTxDescription(
+				userId,
+				txSlug,
+				extremeTransactions[i].description,
+			),
 			transactionDate,
 			createdAt: transactionDate,
 		});
@@ -306,13 +328,15 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 	const edgeAccountId = createdAccountIds[12] ?? createdAccountIds[0];
 	for (const val of [MAX_SAFE, -MAX_SAFE, 2_147_483_647]) {
 		const transactionDate = daysAgo(randomBetween(1, 30));
+		const txSlug = slug();
 		await db.insert(schema.accountTransactions).values({
-			slug: slug(),
+			slug: txSlug,
 			accountId: edgeAccountId,
 			type: "value_change",
 			amount: val,
-			category: null,
-			description: `Edge value: ${val}`,
+			categoryId: null,
+			// Value layer: encrypted under the seeded user's DataKey
+			description: encryptTxDescription(userId, txSlug, `Edge value: ${val}`),
 			transactionDate,
 			createdAt: transactionDate,
 		});
@@ -326,7 +350,7 @@ export async function seedStress(db: DB, userId: number): Promise<void> {
 			accountId: createdAccountIds[i % createdAccountIds.length],
 			type: "value_change",
 			amount: randomBetween(10000, 500000),
-			category: null,
+			categoryId: null,
 			description: null,
 			transactionDate,
 			createdAt: transactionDate,

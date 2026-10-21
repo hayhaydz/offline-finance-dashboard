@@ -371,6 +371,11 @@ type TableRule = {
 	// collide transiently unless the holder of a target value is always
 	// processed before the row moving into it (safe for positive offsets).
 	orderDesc?: string;
+	// Property name of this table's protected-text column, when its value-
+	// layer AAD binds the row's slug. Rows whose protected column holds
+	// `v1|` ciphertext keep their slug VERBATIM — regenerating it would
+	// break the (table, slug, column) AAD and make the copy undecryptable.
+	protectedColumn?: string;
 	columns: Record<string, ColKind>;
 };
 
@@ -468,6 +473,7 @@ export const TABLE_RULES: Record<string, TableRule> = {
 	},
 	accountTransactions: {
 		pk: "id",
+		protectedColumn: "description",
 		columns: {
 			id: "skip",
 			slug: "slug",
@@ -492,6 +498,7 @@ export const TABLE_RULES: Record<string, TableRule> = {
 	},
 	accountNotes: {
 		pk: "id",
+		protectedColumn: "content",
 		columns: {
 			id: "skip",
 			slug: "slug",
@@ -626,6 +633,7 @@ export const TABLE_RULES: Record<string, TableRule> = {
 	monthlyReviews: {
 		pk: "id",
 		orderDesc: "yearMonth",
+		protectedColumn: "notes",
 		columns: {
 			id: "skip",
 			slug: "slug",
@@ -921,6 +929,17 @@ export async function runAnonymise(
 					const pkTrail = `${dbTableName}#${pkValue}`;
 					const sets: Array<[string, unknown]> = [];
 
+					// AAD safety: a row whose protected column holds v1| ciphertext
+					// must keep its slug — the ciphertext is bound to (table, slug,
+					// column) and would fail authentication after a slug swap.
+					const protectedCol = rule.protectedColumn
+						? ddl(rule.protectedColumn)
+						: null;
+					const hasCiphertext =
+						protectedCol !== null &&
+						typeof row[protectedCol] === "string" &&
+						(row[protectedCol] as string).startsWith("v1|");
+
 					for (const [prop, kind] of Object.entries(rule.columns)) {
 						const col = ddl(prop);
 						if (!col) continue;
@@ -982,6 +1001,9 @@ export async function runAnonymise(
 							}
 							case "slug": {
 								if (typeof value === "string") {
+									// Ciphertext-bearing rows keep their slug verbatim
+									// (see hasCiphertext above — AAD binding).
+									if (hasCiphertext) break;
 									let candidate = slugMemo.get(value);
 									if (candidate === undefined) {
 										candidate = seededNanoId(seed, value);

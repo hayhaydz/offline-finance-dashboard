@@ -50,6 +50,13 @@
       "when": 1792526590052,
       "tag": "0006_device_enrollment_flag",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1792613158921,
+      "tag": "0007_cool_george_stacy",
+      "breakpoints": true
     }
   ]
 }

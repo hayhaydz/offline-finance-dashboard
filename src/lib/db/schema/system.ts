@@ -1,5 +1,11 @@
 import { relations, sql } from "drizzle-orm";
-import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import {
+	index,
+	integer,
+	sqliteTable,
+	text,
+	uniqueIndex,
+} from "drizzle-orm/sqlite-core";
 import { users } from "./auth";
 
 export const monthlyReviews = sqliteTable(
@@ -24,7 +30,9 @@ export const monthlyReviews = sqliteTable(
 			.default(sql`CURRENT_TIMESTAMP`),
 	},
 	(table) => ({
-		userYearMonthIdx: index("idx_monthly_reviews_user_year_month").on(
+		// One review per user per month — getOrCreateReview handles conflicts
+		// via onConflictDoNothing + re-read.
+		userYearMonthIdx: uniqueIndex("idx_monthly_reviews_user_year_month").on(
 			table.userId,
 			table.yearMonth,
 		),
@@ -256,7 +264,7 @@ export const snapshots = sqliteTable(
 			table.userId,
 			table.snapshotDate,
 		),
-		slugIdx: index("idx_snapshots_slug").on(table.slug),
+		// slug is already UNIQUE — a separate slug index is redundant.
 	}),
 );
 
@@ -290,7 +298,9 @@ export const budgetMonths = sqliteTable(
 			.default(sql`CURRENT_TIMESTAMP`),
 	},
 	(table) => ({
-		userMonthIdx: index("idx_budget_months_user_month").on(
+		// One budget row per user per month — ensureCurrentMonth handles
+		// conflicts via onConflictDoNothing + re-read.
+		userMonthIdx: uniqueIndex("idx_budget_months_user_month").on(
 			table.userId,
 			table.month,
 		),

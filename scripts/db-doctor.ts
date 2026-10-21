@@ -1,6 +1,6 @@
 import "dotenv/config";
 import fs from "node:fs";
-import Database from "better-sqlite3";
+import Database from "better-sqlite3-multiple-ciphers";
 
 export interface DoctorReport {
 	dbPath: string;
@@ -32,6 +32,42 @@ export function getDatabasePath(
 	}
 }
 
+/**
+ * Open a database file with the cipher-capable driver. Applies the file-
+ * layer key from ENCRYPTION_KEY when set, and forces a real read so a
+ * missing/wrong key fails HERE with SQLite's cipher error instead of
+ * silently returning garbage later.
+ */
+export function openSqliteDatabase(
+	dbPath: string,
+	opts: { readonly?: boolean } = {},
+): Database.Database {
+	const sqlite = new Database(dbPath, { readonly: opts.readonly ?? false });
+	const key = process.env.ENCRYPTION_KEY;
+	if (key) {
+		sqlite.pragma(`key = "${key}"`);
+		sqlite.pragma("cipher_page_size = 4096");
+		sqlite.pragma("cipher_memory_security = ON");
+	}
+	// Cipher-encrypted files open lazily — probe sqlite_master to surface
+	// "file is not a database" while we can still explain the cause.
+	sqlite.prepare("SELECT count(*) AS c FROM sqlite_master").get();
+	return sqlite;
+}
+
+/** Human-readable explanation for cipher-flavoured open failures. */
+export function explainOpenFailure(error: unknown): string {
+	const message = error instanceof Error ? error.message : String(error);
+	if (
+		/file is not a database|file is encrypted|not a database/i.test(message)
+	) {
+		return process.env.ENCRYPTION_KEY
+			? `database is encrypted but rejected ENCRYPTION_KEY (wrong key?) — check the key in .env: ${message}`
+			: `database looks encrypted but ENCRYPTION_KEY is not set — add it to .env (or point at the plain dev DB): ${message}`;
+	}
+	return message;
+}
+
 export function doctorDatabase(dbPath: string): DoctorReport {
 	const issues: string[] = [];
 
@@ -49,7 +85,22 @@ export function doctorDatabase(dbPath: string): DoctorReport {
 		};
 	}
 
-	const sqlite = new Database(dbPath, { readonly: true });
+	let sqlite: Database.Database;
+	try {
+		sqlite = openSqliteDatabase(dbPath, { readonly: true });
+	} catch (error) {
+		return {
+			dbPath,
+			ok: false,
+			issues: [`Cannot open database: ${explainOpenFailure(error)}`],
+			summary: {
+				tableCount: 0,
+				hasMigrationsTable: false,
+				migrationRowCount: 0,
+			},
+		};
+	}
+
 	try {
 		const tableNames = sqlite
 			.prepare(

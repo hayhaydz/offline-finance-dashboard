@@ -389,7 +389,9 @@ async function ensureCurrentMonth(
 
 	if (!previous) return null;
 
-	const [newRow] = await db
+	// (user_id, month) is unique — a concurrent roll-forward wins the insert;
+	// onConflictDoNothing + re-read returns the surviving row either way.
+	const inserted = await db
 		.insert(budgetMonths)
 		.values({
 			userId,
@@ -404,14 +406,26 @@ async function ensureCurrentMonth(
 				previous.categoryTargets,
 			),
 		})
+		.onConflictDoNothing({
+			target: [budgetMonths.userId, budgetMonths.month],
+		})
 		.returning();
 
-	devLog("ensureCurrentMonth", "Rolled budget to new month", {
-		from: previous.month,
-		to: monthStr,
-	});
+	if (inserted.length > 0) {
+		devLog("ensureCurrentMonth", "Rolled budget to new month", {
+			from: previous.month,
+			to: monthStr,
+		});
+		return inserted[0];
+	}
 
-	return newRow;
+	const conflictWinner = await db.query.budgetMonths.findFirst({
+		where: and(
+			withUserFilter(userId, budgetMonths),
+			eq(budgetMonths.month, monthStr),
+		),
+	});
+	return conflictWinner ?? null;
 }
 
 async function findBudgetRow(
@@ -525,45 +539,69 @@ async function writeWithTrail(
 					newValue: updates[key],
 				}));
 
-	let rowId: number;
+	let _rowId: number;
 	if (existing) {
 		if (Object.keys(updates).length === 0) return false;
-		await db
-			.update(budgetMonths)
-			.set(updates)
-			.where(eq(budgetMonths.id, existing.id));
-		rowId = existing.id;
+		db.transaction((tx) => {
+			tx.update(budgetMonths)
+				.set(updates)
+				.where(eq(budgetMonths.id, existing.id))
+				.run();
+			if (amendments.length > 0) {
+				// Explicit createdAt: the column's CURRENT_TIMESTAMP default stores
+				// text this driver cannot map back to a Date. Values are stringified
+				// by hand — null olds encode as "null" (initial set), never SQL NULL.
+				const createdAt = new Date();
+				tx.insert(budgetConfigAmendments)
+					.values(
+						amendments.map((amendment) => ({
+							budgetMonthId: existing.id,
+							field: amendment.field,
+							oldValue: JSON.stringify(amendment.oldValue),
+							newValue: JSON.stringify(amendment.newValue),
+							note: note?.trim() ? note.trim() : null,
+							createdAt,
+						})),
+					)
+					.run();
+			}
+		});
+		_rowId = existing.id;
 	} else {
-		const [row] = await db
-			.insert(budgetMonths)
-			.values({
-				userId,
-				month: monthStr,
-				totalTargetInCents: updates.totalTargetInCents ?? 0,
-				excludedCategoryIds: updates.excludedCategoryIds ?? [],
-				excludedAccountIds: updates.excludedAccountIds ?? [],
-				excludedTypes: updates.excludedTypes ?? [],
-				categoryTargets: updates.categoryTargets ?? {},
-			})
-			.returning();
-		rowId = row.id;
-	}
-
-	if (amendments.length > 0) {
-		// Explicit createdAt: the column's CURRENT_TIMESTAMP default stores
-		// text this driver cannot map back to a Date. Values are stringified
-		// by hand — null olds encode as "null" (initial set), never SQL NULL.
-		const createdAt = new Date();
-		await db.insert(budgetConfigAmendments).values(
-			amendments.map((amendment) => ({
-				budgetMonthId: rowId,
-				field: amendment.field,
-				oldValue: JSON.stringify(amendment.oldValue),
-				newValue: JSON.stringify(amendment.newValue),
-				note: note?.trim() ? note.trim() : null,
-				createdAt,
-			})),
-		);
+		// Config write + amendment trail commit in ONE transaction — a
+		// failing amendment insert rolls the config write back with it.
+		const row = db.transaction((tx) => {
+			const inserted = tx
+				.insert(budgetMonths)
+				.values({
+					userId,
+					month: monthStr,
+					totalTargetInCents: updates.totalTargetInCents ?? 0,
+					excludedCategoryIds: updates.excludedCategoryIds ?? [],
+					excludedAccountIds: updates.excludedAccountIds ?? [],
+					excludedTypes: updates.excludedTypes ?? [],
+					categoryTargets: updates.categoryTargets ?? {},
+				})
+				.returning()
+				.get();
+			if (amendments.length > 0) {
+				const createdAt = new Date();
+				tx.insert(budgetConfigAmendments)
+					.values(
+						amendments.map((amendment) => ({
+							budgetMonthId: inserted.id,
+							field: amendment.field,
+							oldValue: JSON.stringify(amendment.oldValue),
+							newValue: JSON.stringify(amendment.newValue),
+							note: note?.trim() ? note.trim() : null,
+							createdAt,
+						})),
+					)
+					.run();
+			}
+			return inserted;
+		});
+		_rowId = row.id;
 	}
 
 	return amendments.length > 0 || Object.keys(updates).length > 0;

@@ -1,6 +1,11 @@
 import { eq } from "drizzle-orm";
 import * as schema from "../../../src/lib/db/schema/index";
 import {
+	encryptNoteContent,
+	encryptReviewNotes,
+	encryptTxDescription,
+} from "../../../src/lib/server/crypto/protected-fields.js";
+import {
 	previousTaxYear,
 	type TaxBand,
 	taxYearLabelFromDate,
@@ -10,6 +15,15 @@ import type { DB } from "../lib/db.js";
 import { daysAgo, formatGBP, loadFixture, slug } from "../lib/helpers.js";
 import { createSnapshot } from "../lib/snapshot.js";
 import { wipeUserData } from "../lib/wipe.js";
+
+/**
+ * JSON-mode columns on this driver: values are stored pre-stringified (the
+ * driver does not invoke mapToDriverValue) — bind the string with the
+ * column's inferred type so the insert type-checks.
+ */
+function jsonColumn<T>(value: T) {
+	return JSON.stringify(value) as unknown as T;
+}
 
 interface AccountFixture {
 	name: string;
@@ -140,10 +154,10 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 		userId,
 		month: currentMonth,
 		totalTargetInCents: 150000, // £1,500
-		excludedCategoryIds: JSON.stringify([]),
-		excludedAccountIds: JSON.stringify([]),
-		excludedTypes: JSON.stringify([]),
-		categoryTargets: JSON.stringify({}),
+		excludedCategoryIds: jsonColumn<number[]>([]),
+		excludedAccountIds: jsonColumn<number[]>([]),
+		excludedTypes: jsonColumn<string[]>([]),
+		categoryTargets: jsonColumn<Record<string, number>>({}),
 	});
 
 	console.log(`  ✓ Budget set for ${currentMonth} (£1,500 target)`);
@@ -157,10 +171,10 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 			userId,
 			month: prevMonth,
 			totalTargetInCents: 140000, // £1,400 (corrected)
-			excludedCategoryIds: JSON.stringify([]),
-			excludedAccountIds: JSON.stringify([]),
-			excludedTypes: JSON.stringify([]),
-			categoryTargets: JSON.stringify({}),
+			excludedCategoryIds: jsonColumn<number[]>([]),
+			excludedAccountIds: jsonColumn<number[]>([]),
+			excludedTypes: jsonColumn<string[]>([]),
+			categoryTargets: jsonColumn<Record<string, number>>({}),
 		})
 		.returning();
 
@@ -325,7 +339,7 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 				goalId: goal.id,
 				accountId: account?.id ?? null,
 				amount: alloc.amount,
-				type: alloc.type,
+				type: alloc.type as (typeof schema.goalAllocations.$inferInsert)["type"],
 				allocationDate: now,
 				createdAt: now,
 			});
@@ -356,13 +370,16 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 
 		for (const tx of t.transactions) {
 			const categoryId = null;
+			const txSlug = slug();
 			await db.insert(schema.accountTransactions).values({
-				slug: slug(),
+				slug: txSlug,
 				accountId: account.id,
 				type: tx.type,
 				amount: tx.amount,
 				categoryId,
-				description: tx.description,
+				// Value layer: description encrypted under the seeded user's
+				// DataKey, AAD-bound to this transaction's slug.
+				description: encryptTxDescription(userId, txSlug, tx.description),
 				transactionDate: daysAgo(tx.daysAgo),
 				createdAt: new Date(),
 			});
@@ -460,11 +477,13 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 				now.getTime() - daysOffset * 24 * 60 * 60 * 1000,
 			);
 
+			const noteSlug = slug();
 			await db.insert(schema.accountNotes).values({
-				slug: slug(),
-				userId,
+				slug: noteSlug,
 				accountId: account.id,
-				content,
+				// Value layer: content encrypted under the seeded user's
+				// DataKey, AAD-bound to this note's slug.
+				content: encryptNoteContent(userId, noteSlug, content),
 				createdAt,
 			});
 			totalNotes++;
@@ -545,12 +564,15 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 
 	for (const r of reviewFixtures) {
 		const createdAt = new Date(`${r.yearMonth}-05T12:00:00Z`);
+		const reviewSlug = slug();
 		await db.insert(schema.monthlyReviews).values({
-			slug: slug(),
+			slug: reviewSlug,
 			userId,
 			yearMonth: r.yearMonth,
 			completedItems: r.completedItems,
-			notes: r.notes,
+			// Value layer: notes encrypted under the seeded user's DataKey,
+			// AAD-bound to this review's slug.
+			notes: r.notes ? encryptReviewNotes(userId, reviewSlug, r.notes) : null,
 			createdAt,
 			updatedAt: createdAt,
 		});
@@ -598,6 +620,8 @@ async function seedDebtGoals(db: DB, _userId: number): Promise<void> {
 		return;
 	}
 
+	const adminUserId = adminUser.id;
+
 	// Helper to create debt goal with milestones
 	async function createDebtGoal(
 		name: string,
@@ -618,7 +642,7 @@ async function seedDebtGoals(db: DB, _userId: number): Promise<void> {
 		const [debtGoal] = await db
 			.insert(schema.goals)
 			.values({
-				userId: adminUser.id,
+				userId: adminUserId,
 				slug,
 				name,
 				goalType: "debt",

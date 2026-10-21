@@ -55,7 +55,9 @@ export async function getOrCreateReview(
 
 	devLog("reviews", "Creating new review", { userId, yearMonth });
 
-	const [created] = await db
+	// (user_id, year_month) is unique — a concurrent creation wins the insert;
+	// onConflictDoNothing + re-read returns the surviving row either way.
+	const inserted = await db
 		.insert(monthlyReviews)
 		.values({
 			slug: nanoid(21),
@@ -66,9 +68,28 @@ export async function getOrCreateReview(
 			createdAt: new Date(),
 			updatedAt: new Date(),
 		})
+		.onConflictDoNothing({
+			target: [monthlyReviews.userId, monthlyReviews.yearMonth],
+		})
 		.returning();
 
-	return created;
+	if (inserted.length > 0) return inserted[0];
+
+	const winner = await db.query.monthlyReviews.findFirst({
+		where: and(
+			withUserFilter(userId, monthlyReviews),
+			eq(monthlyReviews.yearMonth, yearMonth),
+		),
+	});
+	if (!winner) {
+		throw new Error(
+			`getOrCreateReview: insert conflicted but no row exists for ${yearMonth}`,
+		);
+	}
+	return {
+		...winner,
+		notes: decryptReviewNotes(userId, winner.slug, winner.notes),
+	};
 }
 
 /**

@@ -16,12 +16,16 @@ export function setupDb() {
 
 	if (!fs.existsSync(dbPath)) {
 		console.error(`❌ Database not found: ${dbPath}`);
-		console.error("Run: npm run db:migrate");
+		console.error("Run: npm run db:reset");
 		process.exit(1);
 	}
 
 	const sqlite = new Database(dbPath);
 	const encryptionKey = process.env.ENCRYPTION_KEY;
+
+	// Referential integrity: the wipe deletes children before parents —
+	// with FKs ON, a missed table aborts loudly instead of leaving orphans.
+	sqlite.pragma("foreign_keys = ON");
 
 	if (encryptionKey) {
 		try {

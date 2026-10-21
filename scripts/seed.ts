@@ -10,6 +10,7 @@
  */
 import { setupDb } from "./seed/lib/db.js";
 import { ensureAdminUser } from "./seed/lib/user.js";
+import { sealKeyring } from "../src/lib/server/crypto/keyring.js";
 import { seedEdge } from "./seed/modes/edge.js";
 import { seedStandard } from "./seed/modes/standard.js";
 import { seedStress } from "./seed/modes/stress.js";
@@ -20,17 +21,25 @@ const mode =
 const { db } = setupDb();
 const userId = await ensureAdminUser(db);
 
-switch (mode) {
-	case "standard":
-		await seedStandard(db, userId);
-		break;
-	case "edge":
-		await seedEdge(db, userId);
-		break;
-	case "stress":
-		await seedStress(db, userId);
-		break;
-	default:
-		console.error(`❌ Unknown mode: "${mode}". Use standard | edge | stress`);
-		process.exit(1);
+try {
+	switch (mode) {
+		case "standard":
+			await seedStandard(db, userId);
+			break;
+		case "edge":
+			await seedEdge(db, userId);
+			break;
+		case "stress":
+			await seedStress(db, userId);
+			break;
+		default:
+			console.error(
+				`❌ Unknown mode: "${mode}". Use standard | edge | stress`,
+			);
+			process.exit(1);
+	}
+} finally {
+	// Key hygiene: the seed unlocked the keyring for fixture writes —
+	// zeroize the in-memory DataKey before exiting.
+	sealKeyring("seed-exit");
 }

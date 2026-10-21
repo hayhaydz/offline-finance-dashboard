@@ -22,7 +22,14 @@ describe("db-doctor", () => {
 			process.env.ENCRYPTION_KEY = "dev-key";
 			expect(getDatabasePath("development")).toBe("storage/dev-encrypted.db");
 		} finally {
-			process.env.ENCRYPTION_KEY = originalKey;
+			// Restoring `undefined` via assignment stores the string
+			// "undefined" — delete the key instead so later cipher-aware
+			// opens (doctorDatabase) see it as unset.
+			if (originalKey === undefined) {
+				delete process.env.ENCRYPTION_KEY;
+			} else {
+				process.env.ENCRYPTION_KEY = originalKey;
+			}
 		}
 	});
 

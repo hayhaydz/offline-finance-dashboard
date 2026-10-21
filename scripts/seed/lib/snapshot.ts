@@ -167,7 +167,7 @@ export async function createSnapshot(
 		accountId: number;
 		accountSlug: string;
 		name: string;
-		taxWrapper: string;
+		taxWrapper: "none" | "isa" | "lisa" | "premium-bonds";
 		actualInterestEarned: number;
 		projectedInterest: number;
 		currentRate: number | null;
@@ -175,7 +175,9 @@ export async function createSnapshot(
 	}> = [];
 
 	// Helper to check if tax wrapper is tax-free
-	const isTaxFree = (taxWrapper: string): boolean => {
+	const isTaxFree = (
+		taxWrapper: "none" | "isa" | "lisa" | "premium-bonds",
+	): boolean => {
 		return (
 			taxWrapper === "isa" ||
 			taxWrapper === "lisa" ||

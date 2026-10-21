@@ -18,7 +18,7 @@
 - **PATTERN:** `/accounts/[slug]/[sub-resource-slug]`.
 
 ## 💻 CODE STANDARDS
-- **LOGGING:** Use `$lib/utils/logger.ts`. NO `console.log` in server code.
+- **LOGGING:** Use `src/lib/server/logger.ts` (`$lib/server/logger`). NO `console.log` in server code. `console.*` IS allowed in `scripts/` (CLI tooling).
 - **DB:** Update `scripts/seed.ts` immediately on schema change.
 - **PHASE:** Active Dev. Direct schema edits (db:push) > migrations.
 - **🔒 DATABASE LOCKED:** DO NOT touch raw SQLite files. DO NOT run migrations without EXPLICIT permission.
@@ -47,7 +47,7 @@
 7. **GENERAL DOCUMENTATION goes in `docs/` folder** — organize by topic/category.
 8. **🔒 PACKAGE.JSON LOCKED** — User has manually configured dependencies. DO NOT modify `package.json` without explicit permission. Additions to other files are okay, but changing existing setup requires approval first.
 9. **ALWAYS FOLLOW TERMINAL AESTHETIC** — use existing CSS classes, maintain bordered layout, monospace font, bracket links.
-10. **📋 ALWAYS USE CUSTOM LOGGER SYSTEM** — Import from `$lib/utils/logger.ts`. NEVER use `console.log()` in server-side code (`*.server.ts` files).
+10. **📋 ALWAYS USE CUSTOM LOGGER SYSTEM** — Import from `src/lib/server/logger.ts` (`$lib/server/logger`). NEVER use `console.log()` in server-side code (`*.server.ts` files). `console.*` is explicitly allowed in `scripts/` (CLI tooling, no logger setup).
 11. **🔍 VERIFICATION BEFORE CLAIMING COMPLETION** — NEVER claim work is complete without ACTUALLY VERIFYING the files were changed. Use Read tool to check file contents match what was supposedly implemented. Run `grep` to verify new code exists. Check `git diff` shows actual changes.
 12. **🚫 SUMMARY.MD MUST REFLECT REALITY** — NEVER create a SUMMARY.md that describes work that wasn't actually done to the codebase. Summary files are documentation of ACTUAL changes, not plans or intentions. If the code wasn't modified, the work is NOT complete.
 13. **⚠️ GSD EXECUTOR VERIFICATION** — When delegating to gsd-executor agents: ALWAYS spot-check their claims by reading the files they claim to have modified. If SUMMARY.md says "Updated X file" but X file doesn't contain the changes, the executor FAILED and work is NOT complete.
