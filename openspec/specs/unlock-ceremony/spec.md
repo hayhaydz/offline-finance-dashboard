@@ -15,11 +15,11 @@ The unlock flow SHALL collect the password (deriving the password-slot key via A
 - **THEN** the existing Argon2id auth-hash verification rejects it before any slot unwrap is attempted, under the existing login rate limits
 
 ### Requirement: The system never verifies a factor it can generate itself
-No authentication or unlock factor SHALL rely on a symmetric secret stored such that the server can produce a valid factor without the user. TOTP, HOTP, and any shared-secret code scheme SHALL NOT be used as an unlock factor.
+No TOTP, backup-code, or any server-verifiable code factor SHALL exist in the codebase; second factors SHALL be authenticator-held secrets (WebAuthn PRF) with recovery paper as break-glass. All TOTP/MFA code paths, storage, routes, and dependencies SHALL be removed.
 
-#### Scenario: No code-based factors exist
-- **WHEN** the unlock and settings surfaces are inspected after this change
-- **THEN** no TOTP/HOTP verification, authenticator QR setup, or server-decryptable code secret exists anywhere in the codebase
+#### Scenario: Post-purge invariant check
+- **WHEN** the codebase is searched for `otplib`, `totpSecret`, `backup_codes`, or `mfa-setup` routes
+- **THEN** no production references remain (test fixtures for the purge itself excepted)
 
 ### Requirement: WebAuthn PRF device slot enrollment requires capability proof
 Device-slot enrollment SHALL use WebAuthn with the PRF extension at RP ID `localhost`, SHALL verify the authenticator returns a usable PRF output before committing the slot, and SHALL wrap a DataKey copy with that output. The PRF secret SHALL never be persisted server-side.
