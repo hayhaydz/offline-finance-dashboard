@@ -14,7 +14,7 @@
 		accountSlug,
 		notes,
 		closedAt,
-		addNoteOpen,
+		addNoteOpen = $bindable(false),
 		feedback,
 	}: {
 		accountSlug: string;
@@ -28,15 +28,18 @@
 <div class="border-t border-black">
 	<div class="border-b border-black bg-gray-100 p-2 font-bold flex justify-between items-center">
 		<span>NOTES ({notes.length})</span>
-		{#if !closedAt}
-			<button
-				type="button"
-				class="bracket-link text-xs"
-				onclick={() => addNoteOpen = !addNoteOpen}
-			>
-				{addNoteOpen ? '[Cancel]' : '[Add Note]'}
-			</button>
-		{/if}
+		<div class="flex gap-2">
+			<a href="/accounts/{accountSlug}/notes" class="bracket-link text-xs">[All Notes]</a>
+			{#if !closedAt}
+				<button
+					type="button"
+					class="bracket-link text-xs"
+					onclick={() => addNoteOpen = !addNoteOpen}
+				>
+					{addNoteOpen ? '[Cancel]' : '[Add Note]'}
+				</button>
+			{/if}
+		</div>
 	</div>
 
 	{#if addNoteOpen && !closedAt}

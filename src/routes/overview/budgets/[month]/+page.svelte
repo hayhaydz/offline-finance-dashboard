@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { enhance } from "$app/forms";
-	import { invalidateAll } from "$app/navigation";
 	import { formatCurrency } from "$lib/utils/currency";
 	import PaginationClient from "$lib/components/PaginationClient.svelte";
 	import SubmitFeedback from "$lib/components/SubmitFeedback.svelte";
 	import { useSubmitFeedback } from "$lib/utils/use-submit-feedback.svelte";
+	import { useUrlPagination } from "$lib/utils/use-url-pagination.svelte";
 	import {
 		BUDGET_SPENDING_TYPES,
 		TRANSACTION_TYPE_LABELS,
@@ -17,6 +17,12 @@
 	// ── Form feedback (audit #5): shared composable, consistent copy ──
 	const targetFeedback = useSubmitFeedback();
 	const filterFeedback = useSubmitFeedback();
+
+	// ── History pagination: URL-synced via goto (router-safe) ──
+	const historyPagination = useUrlPagination("page");
+	$effect(() => {
+		historyPagination.page = data.history.pagination.page;
+	});
 
 	// ── Amendment options shared by every config form (task 4.3) ──
 	let amendNote = $state("");
@@ -502,7 +508,7 @@
 
 				{#if editingCategoryId === cat.id}
 					<!-- Inline edit mode -->
-					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200 bg-yellow-50 px-1">
+					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200 bg-amber-50 px-1">
 						<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
 						<span class="text-xs w-32 shrink-0">{cat.name}</span>
 						<form method="POST" action="?/saveCategoryTarget" use:enhance={validatedAmountSubmit(targetFeedback, 'Saved')}>
@@ -545,7 +551,7 @@
 			<div class="text-gray-500 font-bold text-xs py-1 {targetedCategories.length > 0 ? 'mt-1' : ''}">WITHOUT TARGETS</div>
 			{#each untargetedCategories as cat (cat.id)}
 				{#if editingCategoryId === cat.id}
-					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200 bg-yellow-50 px-1">
+					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200 bg-amber-50 px-1">
 						<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
 						<span class="text-xs w-32 shrink-0">{cat.name}</span>
 						<form method="POST" action="?/saveCategoryTarget" use:enhance={validatedAmountSubmit(targetFeedback, 'Saved')}>
@@ -574,7 +580,7 @@
 		{#if editingCategoryId && !targetedCategories.find(c => c.id === editingCategoryId) && !untargetedCategories.find(c => c.id === editingCategoryId)}
 			{@const cat = data.categories.find(c => c.id === editingCategoryId)}
 			{#if cat}
-				<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200 bg-yellow-50 px-1">
+				<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200 bg-amber-50 px-1">
 					<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
 					<span class="text-xs w-32 shrink-0">{cat.name}</span>
 					<form method="POST" action="?/saveCategoryTarget" use:enhance={validatedAmountSubmit(targetFeedback, 'Saved')}>
@@ -661,21 +667,12 @@
 					{/each}
 				</tbody>
 			</table>
-			<PaginationClient
-				page={data.history.pagination.page}
-				totalPages={data.history.pagination.totalPages}
-				onPageChange={async (newPage) => {
-					const url = new URL(window.location.href);
-					if (newPage > 0) {
-						url.searchParams.set('page', String(newPage + 1));
-					} else {
-						url.searchParams.delete('page');
-					}
-					history.pushState({}, '', url);
-					await invalidateAll();
-				}}
-				scrollTarget={historyRef}
-			/>
+		<PaginationClient
+			page={historyPagination.page}
+			totalPages={data.history.pagination.totalPages}
+			onPageChange={historyPagination.updatePage}
+			scrollTarget={historyRef}
+		/>
 		{:else}
 			<div class="text-xs text-gray-400 py-1">No history yet.</div>
 		{/if}

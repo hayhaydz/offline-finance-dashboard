@@ -143,12 +143,35 @@ function handleFormSuccess() {
 	onClose();
 }
 
+// Submission error line (failure/error results) — rendered above the footer
+let submissionError = $state<string | null>(null);
+
+// Clear stale errors whenever the modal opens
+$effect(() => {
+	if (open) {
+		submissionError = null;
+	}
+});
+
 const handleExclusionUpdate: SubmitFunction = () => {
 	return async ({ result, update }) => {
 		if (result.type === "success") {
 			await update();
 			handleFormSuccess();
+			return;
 		}
+		if (result.type === "redirect") {
+			await update();
+			return;
+		}
+		if (result.type === "failure" && result.data) {
+			const errorData = result.data as { error?: string };
+			submissionError = errorData.error ?? "Failed to save exclusions — try again.";
+		} else {
+			// Thrown/5xx action: no data to render, generic message
+			submissionError = "Failed to save exclusions — try again.";
+		}
+		await update();
 	};
 };
 </script>
@@ -167,7 +190,7 @@ const handleExclusionUpdate: SubmitFunction = () => {
     tabindex="-1"
   >
     <div
-      class="bg-white border-2 border-black mx-4 shadow-[8px_8px_0_rgba(0,0,0,0.2)]"
+      class="bg-white border-2 border-black mx-4 shadow-hard"
       style="width: 380px; max-width: 380px;"
       onclick={(e) => e.stopPropagation()}
       role="presentation"
@@ -247,6 +270,11 @@ const handleExclusionUpdate: SubmitFunction = () => {
       </div>
 
       <!-- Footer with save/cancel -->
+      {#if submissionError}
+        <div class="bg-red-100 border-t border-black px-2 py-1 text-xs text-red-900">
+          <span class="font-bold">ERROR:</span> {submissionError}
+        </div>
+      {/if}
       <div
         class="flex justify-between px-2 py-2 bg-gray-100 border-t border-black"
       >

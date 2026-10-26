@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { enhance } from "$app/forms";
+	import type { SubmitFunction } from "@sveltejs/kit";
 	import ImportWizard from "$lib/components/import-wizard/import-wizard.svelte";
 	import ReimportWizard from "$lib/components/reimport-wizard/reimport-wizard.svelte";
 	import { formatCurrency } from "$lib/utils/currency";
@@ -36,9 +38,37 @@
 		}
 	});
 
-	function scanCandidates() {
+	// Refund-scan feedback (audit: previously-silent failures). The scan form
+	// uses an applyFailures-style enhance so `scanning` always resets and
+	// failures reach the `form` prop for rendering below.
+	let scanError = $state<string | null>(null);
+
+	const scanEnhance: SubmitFunction = () => {
 		scanning = true;
-	}
+		scanError = null;
+		return async ({ result, update }) => {
+			scanning = false;
+			if (result.type === "redirect") {
+				await update();
+				return;
+			}
+			if (result.type === "error") {
+				scanError = "Failed to list refund candidates — try again.";
+			}
+			// Apply the result to the page so success data / failure errors
+			// flow through `form`.
+			await update({ reset: false });
+		};
+	};
+
+	const refundError = $derived(
+		scanError ??
+			(form?.error &&
+			(form.action === "list-refund-candidates" ||
+				form.action === "reclassify-refunds")
+				? (form.error as string)
+				: null),
+	);
 </script>
 
 <main>
@@ -73,11 +103,22 @@
 				<span class="font-mono">value_change</span> rows with negative amounts; nothing changes until you confirm.
 			</p>
 
-			<form method="POST" action="?/list-refund-candidates" class="mb-2" onsubmit={scanCandidates}>
-				<button type="submit" class="bracket-link" disabled={scanning}>
-					{scanning ? 'Scanning...' : '[Scan For Candidates]'}
-				</button>
-			</form>
+		{#if refundError}
+			<div class="border border-black bg-red-100 p-1 mb-2 text-xs text-red-900">
+				<span class="font-bold">ERROR:</span> {refundError}
+			</div>
+		{/if}
+
+		<form
+			method="POST"
+			action="?/list-refund-candidates"
+			class="mb-2"
+			use:enhance={scanEnhance}
+		>
+			<button type="submit" class="bracket-link" disabled={scanning}>
+				{scanning ? 'Scanning...' : '[Scan For Candidates]'}
+			</button>
+		</form>
 
 			{#if reclassifiedCount !== null}
 				<div class="border border-black bg-green-50 p-1 mb-2">

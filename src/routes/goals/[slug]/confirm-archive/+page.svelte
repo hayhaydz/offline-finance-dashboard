@@ -42,13 +42,14 @@
 			<label for="confirm-name" class="text-sm block mb-1">
 				Type <span class="font-bold">{data.goal.name}</span> to confirm:
 			</label>
-			<input
-				type="text"
-				id="confirm-name"
-				bind:value={nameInput}
-				autocomplete="off"
-				class="border border-black p-1 text-sm font-mono w-full"
-			/>
+		<input
+			type="text"
+			id="confirm-name"
+			name="confirmName"
+			bind:value={nameInput}
+			autocomplete="off"
+			class="border border-black p-1 text-sm font-mono w-full"
+		/>
 		</div>
 
 		<div class="flex gap-2">

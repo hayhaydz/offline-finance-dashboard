@@ -39,7 +39,7 @@
 		interestSummary,
 		isaSummary,
 		rates,
-		addRateOpen,
+		addRateOpen = $bindable(false),
 		feedback,
 		ratesPagination,
 		totalRatesPages,

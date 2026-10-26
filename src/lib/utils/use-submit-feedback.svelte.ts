@@ -33,11 +33,21 @@ export function useSubmitFeedback() {
 			isSubmitting = true;
 			return async (callbackArgs: {
 				formElement: HTMLFormElement;
-				result: { type: string; data?: unknown };
+				result: {
+					type: string;
+					data?: unknown;
+					error?: { message?: string };
+				};
 				update: (opts?: { reset?: boolean }) => Promise<void>;
 			}) => {
 				isSubmitting = false;
 				const { formElement, result, update } = callbackArgs;
+				if (result.type === "redirect") {
+					// Follow action redirects through the framework's apply path
+					// (the page is navigating away — no feedback or invalidation).
+					await update();
+					return;
+				}
 				if (result.type === "success") {
 					message = { type: "success", text: successText };
 					if (options?.resetForm && formElement) formElement.reset();
@@ -52,6 +62,16 @@ export function useSubmitFeedback() {
 					) {
 						message = { type: "error", text: errorData.error };
 					}
+				} else if (result.type === "error") {
+					// Thrown/5xx action results: generic banner (dev appends the
+					// server error message) instead of failing silently.
+					const detail = import.meta.env?.DEV
+						? ` (${result.error?.message ?? "unknown error"})`
+						: "";
+					message = {
+						type: "error",
+						text: `Action failed — try again${detail}`,
+					};
 				}
 				if (options?.applyFailures) {
 					// Applies the default behavior (sets the `form` prop),

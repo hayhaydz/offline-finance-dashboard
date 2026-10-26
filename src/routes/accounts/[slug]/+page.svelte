@@ -277,7 +277,7 @@
 	interestSummary={data.interestSummary}
 	isaSummary={data.isaSummary}
 	rates={data.rates}
-	{addRateOpen}
+	bind:addRateOpen
 	{feedback}
 	ratesPagination={{ page: ratesPagination.page, updatePage: ratesPagination.updatePage }}
 	{totalRatesPages}
@@ -329,7 +329,7 @@
 	accountSlug={data.account.slug}
 	notes={data.notes}
 	closedAt={data.account.closedAt}
-	{addNoteOpen}
+	bind:addNoteOpen
 	{feedback}
 />
 
@@ -343,8 +343,8 @@
 	closedAt={data.account.closedAt}
 	typeFilter={data.ledgerTypeFilter}
 	onClearTypeFilter={clearLedgerTypeFilter}
-	{editMode}
-	{addTransactionOpen}
+	bind:editMode
+	bind:addTransactionOpen
 	{feedback}
 	monthNav={{
 		months: data.ledgerMonths,

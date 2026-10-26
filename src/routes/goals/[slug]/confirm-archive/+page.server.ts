@@ -9,7 +9,11 @@ import {
 	logError,
 	logFormData,
 } from "$lib/server/logger";
-import { getAuthUser, requireAuth, userDto } from "$lib/server/utils/auth-guard";
+import {
+	getAuthUser,
+	requireAuth,
+	userDto,
+} from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ params, locals }) => {
@@ -48,7 +52,8 @@ export const actions: Actions = {
 		const user = getAuthUser(locals);
 		if (!user) return fail(401, { error: "Authentication required" });
 
-		logFormData("goalsArchiveConfirm", await request.formData());
+		const formData = await request.formData();
+		logFormData("goalsArchiveConfirm", formData);
 
 		// Fetch goal by slug
 		const goal = await db.query.goals.findFirst({
@@ -61,6 +66,14 @@ export const actions: Actions = {
 		}
 
 		validateUserAccess(goal, user, "Goal");
+
+		// Typed-confirmation gate, enforced server-side (mirrors account delete)
+		const confirmName = formData.get("confirmName")?.toString().trim();
+		if (confirmName !== goal.name) {
+			return fail(400, {
+				error: "Typed name does not match the goal name. Goal unchanged.",
+			});
+		}
 
 		try {
 			// Insert allocation record for the goal deletion (returns money to pool)

@@ -214,12 +214,6 @@ export const actions: Actions = {
 		const user = getAuthUser(locals);
 		if (!user) return fail(401, { error: "Authentication required" });
 
-		const formData = await request.formData();
-		const confirmed = formData.get("confirmed") === "true";
-		if (!confirmed) {
-			return fail(400, { error: "Please confirm the archive action" });
-		}
-
 		const goal = await db.query.goals.findFirst({
 			where: eq(goals.slug, params.slug),
 		});
@@ -230,6 +224,15 @@ export const actions: Actions = {
 
 		validateUserAccess(goal, user, "Goal");
 
+		// Typed-confirmation gate, enforced server-side (mirrors account delete)
+		const formData = await request.formData();
+		const confirmName = formData.get("confirmName")?.toString().trim();
+		if (confirmName !== goal.name) {
+			return fail(400, {
+				error: "Typed name does not match the goal name. Goal unchanged.",
+			});
+		}
+
 		try {
 			await db
 				.update(goals)
@@ -237,10 +240,13 @@ export const actions: Actions = {
 				.where(eq(goals.id, goal.id));
 
 			devLog("debtGoalArchive", "Debt goal archived", { slug: params.slug });
-			redirect(303, "/goals");
 		} catch (err) {
 			logError("debtGoalArchive", "Failed to archive debt goal", err);
 			return fail(500, { error: "Failed to archive debt goal" });
 		}
+
+		// Redirect after successful archive (outside try-catch so the
+		// redirect exception propagates instead of becoming a 500 failure)
+		redirect(303, "/goals");
 	},
 };

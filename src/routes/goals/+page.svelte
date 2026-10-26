@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 	import { page as pageState } from '$app/state';
 	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
 	import { formatCurrency } from '$lib/utils/currency';
@@ -74,69 +74,81 @@
 
 	const staleness = $derived(lastUpdated ? getStaleness(lastUpdated) : null);
 
-	// Reorder mode state
-	let reorderMode = $state(false);
+// Reorder mode state
+let reorderMode = $state(false);
+// Feedback for a failed move (revert is silent no more)
+let reorderError = $state<string | null>(null);
 
-	// Toggle reorder mode (clear selection on exit)
-	function toggleReorderMode() {
-		reorderMode = !reorderMode;
-		selectedSlug = null;
-	}
+// Shared move submission: error feedback on failure, invalidation on success
+async function submitMove(slug: string, targetIndex: number) {
+	const formData = new FormData();
+	formData.append('slug', slug);
+	formData.append('targetIndex', targetIndex.toString());
 
-	// Select a goal to move (toggle deselect)
-	function selectGoal(slug: string) {
-		selectedSlug = selectedSlug === slug ? null : slug;
-	}
-
-	// Place selected goal before the target goal's current position
-	async function placeAt(targetSlug: string) {
-		const slug = selectedSlug;
-		if (!slug || slug === targetSlug) return;
-
-		const selected = goals.find(g => g.slug === slug);
-		if (!selected) return;
-
-		// Use original index so the selected item lands exactly at the clicked row's position
-		const originalTargetIdx = goals.findIndex(g => g.slug === targetSlug);
-
-		const others = goals.filter(g => g.slug !== slug);
-		const clampedIdx = Math.min(originalTargetIdx, others.length);
-		others.splice(clampedIdx, 0, selected);
-		goals = others;
-		selectedSlug = null;
-
-		const formData = new FormData();
-		formData.append('slug', slug);
-		formData.append('targetIndex', originalTargetIdx.toString());
-
-		const response = await fetch('/goals?/moveTo', { method: 'POST', body: formData });
-		if (!response.ok) {
-			goals = [...data.goals]; // revert on failure
+	const response = await fetch('/goals?/moveTo', { method: 'POST', body: formData });
+	if (!response.ok) {
+		goals = [...data.goals]; // revert on failure
+		let errorText = 'Failed to move goal — try again.';
+		try {
+			const body = await response.json();
+			if (body?.error) errorText = body.error;
+		} catch {
+			// non-JSON error body — keep the generic message
 		}
+		reorderError = errorText;
+		return;
 	}
+	reorderError = null;
+	await invalidateAll();
+}
 
-	// Place selected goal at the end
-	async function placeAtEnd() {
-		const slug = selectedSlug;
-		if (!slug) return;
+// Toggle reorder mode (clear selection on exit)
+function toggleReorderMode() {
+	reorderMode = !reorderMode;
+	selectedSlug = null;
+	reorderError = null;
+}
 
-		const selected = goals.find(g => g.slug === slug);
-		if (!selected) return;
+// Select a goal to move (toggle deselect)
+function selectGoal(slug: string) {
+	selectedSlug = selectedSlug === slug ? null : slug;
+}
 
-		const others = goals.filter(g => g.slug !== slug);
-		others.push(selected);
-		goals = others;
-		selectedSlug = null;
+// Place selected goal before the target goal's current position
+async function placeAt(targetSlug: string) {
+	const slug = selectedSlug;
+	if (!slug || slug === targetSlug) return;
 
-		const formData = new FormData();
-		formData.append('slug', slug);
-		formData.append('targetIndex', others.length.toString());
+	const selected = goals.find(g => g.slug === slug);
+	if (!selected) return;
 
-		const response = await fetch('/goals?/moveTo', { method: 'POST', body: formData });
-		if (!response.ok) {
-			goals = [...data.goals];
-		}
-	}
+	// Use original index so the selected item lands exactly at the clicked row's position
+	const originalTargetIdx = goals.findIndex(g => g.slug === targetSlug);
+
+	const others = goals.filter(g => g.slug !== slug);
+	const clampedIdx = Math.min(originalTargetIdx, others.length);
+	others.splice(clampedIdx, 0, selected);
+	goals = others;
+	selectedSlug = null;
+
+	await submitMove(slug, originalTargetIdx);
+}
+
+// Place selected goal at the end
+async function placeAtEnd() {
+	const slug = selectedSlug;
+	if (!slug) return;
+
+	const selected = goals.find(g => g.slug === slug);
+	if (!selected) return;
+
+	const others = goals.filter(g => g.slug !== slug);
+	others.push(selected);
+	goals = others;
+	selectedSlug = null;
+
+	await submitMove(slug, others.length);
+}
 
 	// Calculate progress percentage for a goal
 	function getProgress(goal: EnrichedGoal): number {
@@ -290,9 +302,18 @@
 </div>
 
 <div class="p-0">
+	{#if reorderMode && reorderError}
+		<div class="bg-red-100 border-b border-black p-2 text-sm text-red-900">
+			<span class="font-bold">ERROR:</span> {reorderError}
+		</div>
+	{/if}
 	{#if data.goals.length === 0}
 		<p class="text-gray-600 text-xs p-2">
-			No goals yet. Create your first goal to start tracking.
+			{#if filter === 'debt'}
+				No debt goals yet. <a href="/goals/debt/create" class="bracket-link">Track your first debt</a> to see payoff projections.
+			{:else}
+				No goals yet. Create your first goal to start tracking.
+			{/if}
 		</p>
 	{:else}
 		<div class="overflow-x-auto" bind:this={tableRef}>
