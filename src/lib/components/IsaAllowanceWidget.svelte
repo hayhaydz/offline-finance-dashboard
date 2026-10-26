@@ -24,14 +24,14 @@
 
 	const pacing = $derived(data.pacing);
 
-	const pacingStatusClass = $derived(() => {
+	const pacingStatusClass = $derived.by(() => {
 		if (!pacing) return '';
 		if (pacing.status === 'full' || pacing.status === 'on-track') return 'text-green-700';
 		if (pacing.status === 'behind') return 'text-amber-700';
 		return 'text-gray-400';
 	});
 
-	const pacingLabel = $derived(() => {
+	const pacingLabel = $derived.by(() => {
 		if (!pacing) return '';
 		if (pacing.status === 'full') return 'FULL';
 		if (pacing.status === 'on-track') return 'ON TRACK';
@@ -71,7 +71,7 @@
 		<div class="mt-2 pt-2 border-t border-gray-200">
 			<div class="flex justify-between items-center text-xs">
 				<span class="text-gray-500 uppercase">Pacing</span>
-				<span class="font-bold {pacingStatusClass()}">{pacingLabel()}</span>
+				<span class="font-bold {pacingStatusClass}">{pacingLabel}</span>
 			</div>
 			{#if pacing.status !== 'no-data'}
 				<div class="flex justify-between text-xs mt-0.5 tabular-nums">

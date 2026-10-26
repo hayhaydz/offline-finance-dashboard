@@ -143,14 +143,13 @@ export function checkRegistrationRateLimit(
 	now = Date.now(),
 ): boolean {
 	pruneRegistrationWindow(ip, now);
-	return (registrationAttempts.get(ip)?.length ?? 0) < REGISTRATION_MAX_ATTEMPTS;
+	return (
+		(registrationAttempts.get(ip)?.length ?? 0) < REGISTRATION_MAX_ATTEMPTS
+	);
 }
 
 /** Count a registration attempt against the IP's hourly window. */
-export function recordRegistrationAttempt(
-	ip: string,
-	now = Date.now(),
-): void {
+export function recordRegistrationAttempt(ip: string, now = Date.now()): void {
 	pruneRegistrationWindow(ip, now);
 	const stamps = registrationAttempts.get(ip) ?? [];
 	stamps.push(now);

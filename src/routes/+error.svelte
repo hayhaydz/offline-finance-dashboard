@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import { onMount } from 'svelte';
 
-	let error = $state($page.error);
+	let error = $derived(page.error);
 	let errorDetails = $state<{
 		message: string;
 		stack?: string;
@@ -11,7 +11,7 @@
 	}>({
 		message: 'An unknown error occurred',
 		timestamp: new Date().toISOString(),
-		url: $page.url.href
+		url: page.url.href
 	});
 
 	onMount(() => {
@@ -23,7 +23,7 @@
 			message: error instanceof Error ? error.message : String(error),
 			stack: error instanceof Error ? error.stack : undefined,
 			timestamp: new Date().toISOString(),
-			url: $page.url.href
+			url: page.url.href
 		};
 	});
 

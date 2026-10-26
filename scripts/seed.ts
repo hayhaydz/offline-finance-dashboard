@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { sealKeyring } from "../src/lib/server/crypto/keyring.js";
 /**
  * Database Seeding Script for Development
  *
@@ -10,7 +11,6 @@
  */
 import { setupDb } from "./seed/lib/db.js";
 import { ensureAdminUser } from "./seed/lib/user.js";
-import { sealKeyring } from "../src/lib/server/crypto/keyring.js";
 import { seedEdge } from "./seed/modes/edge.js";
 import { seedStandard } from "./seed/modes/standard.js";
 import { seedStress } from "./seed/modes/stress.js";
@@ -33,9 +33,7 @@ try {
 			await seedStress(db, userId);
 			break;
 		default:
-			console.error(
-				`❌ Unknown mode: "${mode}". Use standard | edge | stress`,
-			);
+			console.error(`❌ Unknown mode: "${mode}". Use standard | edge | stress`);
 			process.exit(1);
 	}
 } finally {

@@ -34,7 +34,7 @@
 	);
 
 	// Build a date-keyed map of existing transactions
-	let overlapMap = $derived(() => {
+	let overlapMap = $derived.by(() => {
 		const map = new Map<string, ExistingTransaction[]>();
 		for (const txn of overlapData.existing) {
 			const key = txn.transactionDate;
@@ -48,20 +48,20 @@
 
 	// Check if a parsed row has overlaps on the same date
 	function hasOverlap(row: ParsedRow): boolean {
-		const map = overlapMap();
+		const map = overlapMap;
 		const existing = map.get(row.date);
 		return !!existing && existing.length > 0;
 	}
 
-	let overlapRows = $derived(() => {
+	let overlapRows = $derived.by(() => {
 		return parsedData.valid.filter((row) => hasOverlap(row));
 	});
 
-	let nonOverlapRows = $derived(() => {
+	let nonOverlapRows = $derived.by(() => {
 		return parsedData.valid.filter((row) => !hasOverlap(row));
 	});
 
-	let overlapCount = $derived(overlapRows().length);
+	let overlapCount = $derived(overlapRows.length);
 	let existingCount = $derived(overlapData.existing.length);
 	let newCount = $derived(parsedData.valid.length);
 
@@ -86,7 +86,7 @@
 
 	function getFilteredRows(): ParsedRow[] {
 		if (selectedMode === "skip") {
-			return nonOverlapRows();
+			return nonOverlapRows;
 		}
 		if (selectedMode === "keep") {
 			return parsedData.valid;
@@ -186,7 +186,7 @@
 							</tr>
 						</thead>
 						<tbody>
-							{#each overlapRows() as row, i}
+							{#each overlapRows as row, i}
 								{@const status = getRowImportStatus(row, parsedData.valid.indexOf(row))}
 								<tr
 									class="border-b border-black {selectedMode === 'choose'

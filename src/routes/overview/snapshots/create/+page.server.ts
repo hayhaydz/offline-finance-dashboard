@@ -13,7 +13,11 @@ import {
 	getSnapshotByDate,
 	getTodayUTC,
 } from "$lib/server/snapshot-utils";
-import { getAuthUser, requireAuth, userDto } from "$lib/server/utils/auth-guard";
+import {
+	getAuthUser,
+	requireAuth,
+	userDto,
+} from "$lib/server/utils/auth-guard";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals }) => {

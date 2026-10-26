@@ -36,7 +36,7 @@
 	{/if}
 
 	<!-- CLOSE (reversible state change, history preserved) -->
-	<div class="bg-red-50 border-l-4 border-l-red-700 border border-black p-4 mb-4">
+	<div class="bg-red-50 border-l-4 border-l-red-700 border border-black p-2 mb-4">
 		<h2 class="font-bold text-red-900 mb-2">CLOSE — hide this account, keep its history</h2>
 		<p class="text-sm mb-2">
 			Closing hides the account behind the <span class="font-mono text-xs">[Show N closed]</span> toggle on the
@@ -49,7 +49,7 @@
 		</p>
 	</div>
 
-	<div class="border border-black p-4 mb-4 bg-gray-50">
+	<div class="border border-black p-2 mb-4 bg-gray-50">
 		<h3 class="font-bold mb-2">Account Summary</h3>
 		<div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
 			<div>Name:</div>
@@ -88,7 +88,7 @@
 			<div class="bg-black text-white p-2 font-bold text-sm">
 				DELETE — PERMANENTLY REMOVE THIS EMPTY ACCOUNT
 			</div>
-			<div class="p-4">
+			<div class="p-2">
 				<p class="text-sm mb-2">
 					This account was created by mistake and has <strong>zero transactions</strong>. Deleting removes
 					it permanently — it will no longer appear anywhere in the app.

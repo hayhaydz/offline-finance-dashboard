@@ -21,29 +21,29 @@
 
 	let { goal, showArchive = false }: Props = $props();
 
-	const progressColor = $derived(() => {
-		const p = progress();
+	const progressColor = $derived.by(() => {
+		const p = progress;
 		if (p >= 70) return 'green';
 		if (p >= 30) return 'amber';
 		return 'red';
 	});
 
-	const progress = $derived(() => {
-		if (debtValues()) return debtValues()!.progress;
+	const progress = $derived.by(() => {
+		if (debtValues) return debtValues.progress;
 		return goal.targetAmountInCents > 0
 			? Math.min(100, Math.round((goal.currentAllocation / goal.targetAmountInCents) * 100))
 			: 0;
 	});
 
 	const progressTextColor = $derived(
-		progressColor() === 'green' ? 'text-green-700' : progressColor() === 'amber' ? 'text-amber-600' : 'text-red-600'
+		progressColor === 'green' ? 'text-green-700' : progressColor === 'amber' ? 'text-amber-600' : 'text-red-600'
 	);
 
 	const progressBgColor = $derived(
-		progressColor() === 'green' ? 'bg-green-700' : progressColor() === 'amber' ? 'bg-amber-600' : 'bg-red-600'
+		progressColor === 'green' ? 'bg-green-700' : progressColor === 'amber' ? 'bg-amber-600' : 'bg-red-600'
 	);
 
-	const emergencyFundMilestones = $derived(() => {
+	const emergencyFundMilestones = $derived.by(() => {
 		if (!goal.isEmergencyFund) return null;
 
 		const monthlyExpenses = goal.targetAmountInCents / 12;
@@ -60,7 +60,7 @@
 	const remaining = $derived(Math.max(0, goal.targetAmountInCents - goal.currentAllocation));
 
 	// Debt-specific calculations
-	const debtValues = $derived(() => {
+	const debtValues = $derived.by(() => {
 		if (goal.goalType === 'debt' && goal.startingBalanceInCents) {
 			const starting = Math.abs(goal.startingBalanceInCents);
 			const paid = Math.abs(goal.currentAllocation);
@@ -72,10 +72,11 @@
 	});
 
 	// Over-target amount (allocation past the target — intended, savings past a goal is valid)
-	const overAmount = $derived(() => {
-		if (debtValues()) {
-			const d = debtValues()!;
-			return d.paid > d.starting ? d.paid - d.starting : null;
+	const overAmount = $derived.by(() => {
+		if (debtValues) {
+			return debtValues.paid > debtValues.starting
+				? debtValues.paid - debtValues.starting
+				: null;
 		}
 		return goal.currentAllocation > goal.targetAmountInCents
 			? goal.currentAllocation - goal.targetAmountInCents
@@ -85,7 +86,7 @@
 
 <div class="p-2 bg-gray-50">
 <!-- Progress Bar -->
-<div class="flex items-center gap-2 text-sm leading-none font-bold {overAmount() !== null ? 'text-green-700' : progressTextColor} mb-2">
+<div class="flex items-center gap-2 text-sm leading-none font-bold {overAmount !== null ? 'text-green-700' : progressTextColor} mb-2">
 	<span>[</span>
 	<div class="flex-1 h-6 relative border-y border-gray-100">
 		<div class="absolute inset-0 flex justify-between opacity-20">
@@ -94,15 +95,15 @@
 			{/each}
 		</div>
 		<div
-			class="h-full {overAmount() !== null ? 'bg-green-700' : progressBgColor} transition-all duration-300 mix-blend-multiply"
-			style="width: {Math.min(100, progress())}%"
+			class="h-full {overAmount !== null ? 'bg-green-700' : progressBgColor} transition-all duration-300 mix-blend-multiply"
+			style="width: {Math.min(100, progress)}%"
 		></div>
 	</div>
 	<span>]</span>
-	{#if overAmount() !== null}
-		<span class="text-sm text-right font-bold whitespace-nowrap">REACHED — {formatCurrencyShorthand(overAmount()!)} over target</span>
+	{#if overAmount !== null}
+		<span class="text-sm text-right font-bold whitespace-nowrap">REACHED — {formatCurrencyShorthand(overAmount!)} over target</span>
 	{:else}
-		<span class="text-sm min-w-9 text-right font-bold">{progress()}%</span>
+		<span class="text-sm min-w-9 text-right font-bold">{progress}%</span>
 	{/if}
 </div>
 
@@ -110,9 +111,9 @@
 	<div class="grid grid-cols-3 border border-black divide-x divide-black mb-2">
 		<div class="p-2 overflow-hidden">
 			<div class="text-xs tracking-widest text-gray-500 mb-1">{goal.goalType === 'debt' ? 'PAID' : 'SAVED'}</div>
-			{#if debtValues()}
-				<div class="font-bold text-sm text-green-700 truncate">{formatCurrencyShorthand(debtValues()!.paid)}</div>
-				<div class="text-xs text-gray-500 truncate">{formatCurrency(debtValues()!.paid)}</div>
+			{#if debtValues}
+				<div class="font-bold text-sm text-green-700 truncate">{formatCurrencyShorthand(debtValues!.paid)}</div>
+				<div class="text-xs text-gray-500 truncate">{formatCurrency(debtValues!.paid)}</div>
 			{:else}
 				<div class="font-bold text-sm text-green-700 truncate">{formatCurrencyShorthand(goal.currentAllocation)}</div>
 				<div class="text-xs text-gray-500 truncate">{formatCurrency(goal.currentAllocation)}</div>
@@ -120,9 +121,9 @@
 		</div>
 		<div class="p-2 overflow-hidden">
 			<div class="text-xs tracking-widest text-gray-500 mb-1">{goal.goalType === 'debt' ? 'STARTING' : 'TARGET'}</div>
-			{#if debtValues()}
-				<div class="font-bold text-sm truncate">{formatCurrencyShorthand(debtValues()!.starting)}</div>
-				<div class="text-xs text-gray-500 truncate">{formatCurrency(debtValues()!.starting)}</div>
+			{#if debtValues}
+				<div class="font-bold text-sm truncate">{formatCurrencyShorthand(debtValues!.starting)}</div>
+				<div class="text-xs text-gray-500 truncate">{formatCurrency(debtValues!.starting)}</div>
 			{:else}
 				<div class="font-bold text-sm truncate">{formatCurrencyShorthand(goal.targetAmountInCents)}</div>
 				<div class="text-xs text-gray-500 truncate">{formatCurrency(goal.targetAmountInCents)}</div>
@@ -130,9 +131,9 @@
 		</div>
 		<div class="p-2 overflow-hidden">
 			<div class="text-xs tracking-widest text-gray-500 mb-1">REMAINING</div>
-			{#if debtValues()}
-				<div class="font-bold text-sm {progressTextColor} truncate">{formatCurrencyShorthand(debtValues()!.remaining)}</div>
-				<div class="text-xs text-gray-500 truncate">{formatCurrency(debtValues()!.remaining)}</div>
+			{#if debtValues}
+				<div class="font-bold text-sm {progressTextColor} truncate">{formatCurrencyShorthand(debtValues!.remaining)}</div>
+				<div class="text-xs text-gray-500 truncate">{formatCurrency(debtValues!.remaining)}</div>
 			{:else}
 				<div class="font-bold text-sm {progressTextColor} truncate">{formatCurrencyShorthand(remaining)}</div>
 				<div class="text-xs text-gray-500 truncate">{formatCurrency(remaining)}</div>
@@ -148,11 +149,11 @@
 	{/if}
 
 	<!-- Emergency Fund Milestones -->
-	{#if emergencyFundMilestones()}
+	{#if emergencyFundMilestones}
 		<div class="border border-black p-2 mb-2 bg-white">
 			<div class="text-xs tracking-widest text-gray-500 mb-1">EMERGENCY FUND MILESTONES</div>
 			<div class="flex gap-3">
-				{#each emergencyFundMilestones() as milestone}
+				{#each emergencyFundMilestones as milestone}
 					<div class="flex items-center gap-1 text-xs">
 						<span class={milestone.achieved ? 'text-green-700' : 'text-gray-400'}>
 							{milestone.achieved ? '✓' : '○'}

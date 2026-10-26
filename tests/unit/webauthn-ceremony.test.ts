@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "$lib/db/client";
 import { credentialSlots, users } from "$lib/db/schema";
 import { enrollPasswordSlot } from "$lib/server/crypto/enroll";
+import { EnvelopeError } from "$lib/server/crypto/envelope";
 import {
 	keyringStatus,
 	sealKeyring,
@@ -21,7 +22,6 @@ import {
 	stageDeviceEnrollment,
 	WebAuthnCeremonyError,
 } from "$lib/server/crypto/webauthn";
-import { EnvelopeError } from "$lib/server/crypto/envelope";
 
 /**
  * L2 WebAuthn PRF ceremony (tasks 6.1–6.3) with @simplewebauthn/server
@@ -615,7 +615,9 @@ describe("enrollment hardening (crypto-rotation-safety)", () => {
 			id: user.id,
 			username: user.username,
 		});
-		verifyRegistrationResponse.mockResolvedValue(registrationInfo(credentialId));
+		verifyRegistrationResponse.mockResolvedValue(
+			registrationInfo(credentialId),
+		);
 		await completeDeviceEnrollment(db, {
 			userId: user.id,
 			token: start.token,
@@ -745,7 +747,8 @@ describe("expectedOrigins (crypto-rotation-safety 3.4)", () => {
 	afterEach(() => {
 		if (savedEnv.appEnv === undefined) delete process.env.APP_ENV;
 		else process.env.APP_ENV = savedEnv.appEnv;
-		if (savedEnv.origins === undefined) delete process.env.WEBAUTHN_EXPECTED_ORIGINS;
+		if (savedEnv.origins === undefined)
+			delete process.env.WEBAUTHN_EXPECTED_ORIGINS;
 		else process.env.WEBAUTHN_EXPECTED_ORIGINS = savedEnv.origins;
 	});
 

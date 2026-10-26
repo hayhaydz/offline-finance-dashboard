@@ -1,14 +1,14 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { verifyPassword } from "$lib/auth/password";
-import { issueRecoveryEnrollment } from "$lib/server/auth/recovery-enroll-token";
+import { db } from "$lib/db/client";
+import { users } from "$lib/db/schema";
 import {
 	checkRateLimit,
 	recordFailedAttempt,
 	recordSuccessfulAttempt,
 } from "$lib/security/rate-limiter";
-import { db } from "$lib/db/client";
-import { users } from "$lib/db/schema";
+import { issueRecoveryEnrollment } from "$lib/server/auth/recovery-enroll-token";
 import { hasEnvelope, unwrapPasswordSlot } from "$lib/server/crypto/enroll";
 import { unlockKeyring } from "$lib/server/crypto/keyring";
 import { migrateUserEnvelope } from "$lib/server/crypto/migrate-envelope";

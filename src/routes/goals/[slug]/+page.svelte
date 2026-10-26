@@ -44,7 +44,7 @@
   });
 
   // Client-side payoff projection (inline formula, no server imports)
-  const projection = $derived(() => {
+  const projection = $derived.by(() => {
     if (!data.debtData) return null;
     const balance = Math.abs(data.debtData.linkedAccount.currentBalance);
     const apr = data.debtData.linkedAccount.apr ?? 0;
@@ -354,14 +354,14 @@
             bind:value={monthlyPayment}
             class="w-full"
           />
-          {#if projection()}
+          {#if projection}
             <div class="flex justify-between">
               <span class="text-gray-600">Months:</span>
-              <span>{projection()?.months ?? "-"}</span>
+              <span>{projection?.months ?? "-"}</span>
             </div>
             <div class="flex justify-between">
               <span class="text-gray-600">Target:</span>
-              <span>{projection()?.payoffDate ? formatDateShorthand(projection()!.payoffDate!) : "-"}</span>
+              <span>{projection?.payoffDate ? formatDateShorthand(projection!.payoffDate!) : "-"}</span>
             </div>
           {:else}
             <div class="text-amber-600 text-xs mt-1">

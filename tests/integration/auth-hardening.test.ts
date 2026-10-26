@@ -88,14 +88,12 @@ afterEach(async () => {
 			.from(accounts)
 			.where(inArray(accounts.userId, ids));
 		if (userAccounts.length > 0) {
-			await db
-				.delete(accountTransactions)
-				.where(
-					inArray(
-						accountTransactions.accountId,
-						userAccounts.map((a) => a.id),
-					),
-				);
+			await db.delete(accountTransactions).where(
+				inArray(
+					accountTransactions.accountId,
+					userAccounts.map((a) => a.id),
+				),
+			);
 		}
 		await db
 			.delete(credentialSlots)
@@ -153,18 +151,18 @@ describe("credential-verification endpoints lock after threshold (3.4)", () => {
 		});
 		unlockKeyring(user.id, crypto.randomBytes(32));
 		const call = (currentPassword: string) =>
-			(changePasswordActions.changePassword as any)(
-				{
-					request: postForm({
-						currentPassword,
-						newPassword: "Fresh-Staple-Cabbage-77!",
-						confirmPassword: "Fresh-Staple-Cabbage-77!",
-					}),
-					locals: { user: { id: user.id, username: user.username } },
-				} as never,
-			);
+			(changePasswordActions.changePassword as any)({
+				request: postForm({
+					currentPassword,
+					newPassword: "Fresh-Staple-Cabbage-77!",
+					confirmPassword: "Fresh-Staple-Cabbage-77!",
+				}),
+				locals: { user: { id: user.id, username: user.username } },
+			} as never);
 		for (let i = 0; i < 3; i++) {
-			const result = await attemptOutsideBackoff(() => call("wrong-current-1!"));
+			const result = await attemptOutsideBackoff(() =>
+				call("wrong-current-1!"),
+			);
 			expect(result.status).toBe(400); // wrong current password
 		}
 		// Correct password now → success clears the failure count
@@ -174,7 +172,9 @@ describe("credential-verification endpoints lock after threshold (3.4)", () => {
 		expect(okResult.success).toBe(true);
 
 		// Failures start over — one wrong attempt is NOT locked
-		const afterReset = await attemptOutsideBackoff(() => call("wrong-again-1!"));
+		const afterReset = await attemptOutsideBackoff(() =>
+			call("wrong-again-1!"),
+		);
 		expect(afterReset.status).toBe(400);
 	});
 
@@ -224,10 +224,8 @@ describe("credential-verification endpoints lock after threshold (3.4)", () => {
 
 describe("registration IP rate limit (3.3)", () => {
 	it("sliding window: 10 per hour, then refuse; window expiry restores", async () => {
-		const {
-			checkRegistrationRateLimit,
-			recordRegistrationAttempt,
-		} = await import("$lib/security/rate-limiter");
+		const { checkRegistrationRateLimit, recordRegistrationAttempt } =
+			await import("$lib/security/rate-limiter");
 		const t0 = 1_000_000;
 		for (let i = 0; i < 10; i++) {
 			expect(checkRegistrationRateLimit("1.2.3.4", t0 + i)).toBe(true);
@@ -312,14 +310,18 @@ describe("transaction input validation (4.1 / 4.2)", () => {
 		);
 		unlockKeyring(user.id, crypto.randomBytes(32));
 		const call = (amount: string) =>
-			(addTransactionActions.addTransaction as any)(
-				{
-					request: postForm(txFields(amount)),
-					locals: { user: { id: user.id, username: user.username } },
-					params: { slug: account.slug },
-				} as never,
-			);
-		for (const bad of ["1e308", "Infinity", "-Infinity", "abc", "10000000.01"]) {
+			(addTransactionActions.addTransaction as any)({
+				request: postForm(txFields(amount)),
+				locals: { user: { id: user.id, username: user.username } },
+				params: { slug: account.slug },
+			} as never);
+		for (const bad of [
+			"1e308",
+			"Infinity",
+			"-Infinity",
+			"abc",
+			"10000000.01",
+		]) {
 			const result = await call(bad);
 			expect(result.status, `amount=${bad}`).toBe(400);
 		}
@@ -444,9 +446,7 @@ describe("recovery cookie is a capability token (5.2)", () => {
 				locals: {},
 				cookies: {
 					get: (name: string) =>
-						name === "recovery-enroll-user"
-							? cookieJar.value
-							: undefined,
+						name === "recovery-enroll-user" ? cookieJar.value : undefined,
 				},
 				url: new URL("http://localhost/recovery-enroll?mode=register"),
 			} as never);

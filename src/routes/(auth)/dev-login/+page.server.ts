@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
-import { hashSessionToken } from "$lib/auth/session-token";
 import { error, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
+import { hashSessionToken } from "$lib/auth/session-token";
 import { HOME_ROUTE } from "$lib/constants/routes";
 import { db } from "$lib/db/client";
 import { sessions, users } from "$lib/db/schema";

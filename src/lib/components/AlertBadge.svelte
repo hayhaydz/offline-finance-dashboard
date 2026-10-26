@@ -16,7 +16,7 @@
 	const prefix         = $derived(alert.severity === 'red' ? '[!!]' : alert.severity === 'amber' ? '[!]' : '[i]');
 
 	// Human-readable account type label for collapsed context
-	const typeLabel = $derived(() => {
+	const typeLabel = $derived.by(() => {
 		if (!alert.accountType) return null;
 		const labels: Record<string, string> = {
 			'savings':     'SAVINGS',
@@ -45,8 +45,8 @@
 				{/if}
 				{alert.title}
 			</span>
-			{#if typeLabel()}
-				<span class="text-xs border border-current px-1 shrink-0 {alert.accountCategory === 'liability' ? 'text-red-600 border-red-300' : 'text-zinc-500 border-zinc-300'}">{typeLabel()}</span>
+			{#if typeLabel}
+				<span class="text-xs border border-current px-1 shrink-0 {alert.accountCategory === 'liability' ? 'text-red-600 border-red-300' : 'text-zinc-500 border-zinc-300'}">{typeLabel}</span>
 			{/if}
 			{#if alert.accountName}
 				<span class="text-zinc-400 text-xs truncate">— {alert.accountName}</span>

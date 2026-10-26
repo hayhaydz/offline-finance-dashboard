@@ -1,13 +1,13 @@
 import { fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { hashPassword, verifyPassword } from "$lib/auth/password";
+import { db } from "$lib/db/client";
+import { sessions, users } from "$lib/db/schema";
 import {
 	checkRateLimit,
 	recordFailedAttempt,
 	recordSuccessfulAttempt,
 } from "$lib/security/rate-limiter";
-import { db } from "$lib/db/client";
-import { sessions, users } from "$lib/db/schema";
 import {
 	clearRecoveryEnrollment,
 	resolveRecoveryEnrollment,

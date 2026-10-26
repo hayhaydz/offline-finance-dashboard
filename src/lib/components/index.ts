@@ -10,8 +10,6 @@ export { default as MonthlyBalancesSection } from "./account/MonthlyBalancesSect
 export { default as NotesSection } from "./account/NotesSection.svelte";
 export { default as TransactionsSection } from "./account/TransactionsSection.svelte";
 export { default as BreakdownPanel } from "./BreakdownPanel.svelte";
-export { default as ConfirmationModal } from "./ConfirmationModal.svelte";
-export { default as CreateSnapshotModal } from "./CreateSnapshotModal.svelte";
 export { default as DebtCard } from "./DebtCard.svelte";
 export { default as DebtStrategyPanel } from "./DebtStrategyPanel.svelte";
 export { default as ExclusionsModal } from "./ExclusionsModal.svelte";
@@ -25,7 +23,6 @@ export { default as KpiCard } from "./KpiCard.svelte";
 export { default as Navigation } from "./Navigation.svelte";
 export { default as NetWorthDisplay } from "./NetWorthDisplay.svelte";
 export { default as PaginationClient } from "./PaginationClient.svelte";
-export { default as ProgressBarVariants } from "./ProgressBarVariants.svelte";
 export { default as SectionHeader } from "./SectionHeader.svelte";
 export { default as StatGrid } from "./StatGrid.svelte";
 export { default as SubmitFeedback } from "./SubmitFeedback.svelte";

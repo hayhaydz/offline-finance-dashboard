@@ -1,5 +1,5 @@
-import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
 import crypto from "node:crypto";
+import type { AuthenticationResponseJSON } from "@simplewebauthn/server";
 import { fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { db } from "$lib/db/client";

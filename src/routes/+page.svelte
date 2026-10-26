@@ -9,7 +9,6 @@
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import { formatCurrency, formatCurrencyShorthand, formatAccountType, formatDateShorthand } from '$lib/utils/currency';
-	import { goto } from '$app/navigation';
 	import { page as pageState } from '$app/state';
 	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
 
@@ -98,7 +97,7 @@
 	const cappedLiabilityGroups = $derived(liabilityGroups.slice(0, Math.max(0, ACCOUNTS_CAP - assetGroups.length)));
 	const hiddenAccountGroupsCount = $derived(Math.max(0, (assetGroups.length + liabilityGroups.length) - ACCOUNTS_CAP));
 
-	const filteredGoals = $derived(() => {
+	const filteredGoals = $derived.by(() => {
 		if (goalsFilter === 'all') return goals;
 		if (goalsFilter === 'savings') return goals.filter((g) => g.goalType !== 'debt');
 		return goals.filter((g) => g.goalType === 'debt');
@@ -294,7 +293,7 @@
 	<div bind:this={goalsSectionRef}>
 		<div class="font-bold flex justify-between bg-gray-100 border-y border-black p-2">
 			<div class="flex items-center gap-2">
-				<span>GOALS ({goalsFilter === 'all' ? goals.length : filteredGoals().length})</span>
+				<span>GOALS ({goalsFilter === 'all' ? goals.length : filteredGoals.length})</span>
 				<span class="text-xs font-bold text-gray-500">{data.staleness?.label ?? ''}</span>
 				<div class="flex gap-1">
 					<button
@@ -320,12 +319,12 @@
 			<a href="/goals" class="bracket-link text-xs">View All</a>
 		</div>
 		<div>
-			{#if filteredGoals().length === 0}
+			{#if filteredGoals.length === 0}
 				<p class="text-gray-600 text-xs p-2">
 					No {goalsFilter} goals.
 				</p>
 			{:else}
-				{#each filteredGoals() as goal}
+				{#each filteredGoals as goal}
 					<div class="p-2 border-b border-black last:border-0 mb-2 last:mb-0">
 						{#if goal.goalType === 'debt' && goal.progress}
 							<DebtCard

@@ -145,7 +145,7 @@
 			<!-- Header -->
 			<div class="bg-black text-white px-3 py-2 flex justify-between items-center font-bold">
 				<span id="filter-modal-title" class="tracking-tighter">FILTER_SYSTEM // SELECT_CRITERIA</span>
-				<button type="button" class="bracket-link text-red-700" onclick={onClose}>X</button>
+				<button type="button" class="bracket-link" onclick={onClose} aria-label="Close modal">X</button>
 			</div>
 
 			<!-- Scrollable Accordion List -->

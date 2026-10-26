@@ -11,7 +11,7 @@
 		<h2 class="text-base font-bold m-0">
 			{data.account.name}
 		</h2>
-		<a href="/accounts/{data.account.slug}" class="bracket-link text-xs">
+		<a href="/accounts/{data.account.slug}/notes" class="bracket-link text-xs">
 			[Notes]
 		</a>
 	</div>

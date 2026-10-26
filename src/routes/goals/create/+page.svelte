@@ -12,7 +12,7 @@
 	let isEmergencyFund = $state(false);
 
 	// Form validation state
-	const isValid = $derived(() => {
+	const isValid = $derived.by(() => {
 		const nameValid = name.trim().length >= 3 && name.trim().length <= 100;
 		const amountValid = targetAmount.match(/^(\d+)\.?(\d{0,2})?$/) !== null;
 		return nameValid && amountValid;
@@ -108,7 +108,7 @@
 		<button
 			type="submit"
 			class="bracket-link"
-			disabled={!isValid()}
+			disabled={!isValid}
 		>
 			Create Goal
 		</button>

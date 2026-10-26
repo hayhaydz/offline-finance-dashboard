@@ -9,12 +9,7 @@ import {
 } from "$lib/db/schema";
 import { logInfo } from "$lib/server/logger";
 import { getActiveSlots, type KeyringDb } from "./enroll";
-import {
-	generateDataKey,
-	generateSlotId,
-	wrapSlot,
-	zeroize,
-} from "./envelope";
+import { generateDataKey, generateSlotId, wrapSlot, zeroize } from "./envelope";
 import { requireDataKey, unlockKeyring } from "./keyring";
 import {
 	derivePasswordSlotKey,
@@ -323,7 +318,11 @@ export async function rotateUserEnvelope(
 	const now = new Date();
 	db.transaction((tx) => {
 		for (const staged of stagedRows) {
-			staged.table.updateOne(tx as unknown as KeyringDb, staged.slug, staged.encrypted);
+			staged.table.updateOne(
+				tx as unknown as KeyringDb,
+				staged.slug,
+				staged.encrypted,
+			);
 		}
 		if (passwordRewrap) {
 			tx.update(credentialSlots)

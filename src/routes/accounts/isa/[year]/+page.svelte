@@ -114,7 +114,7 @@
 	const statusColor = $derived(
 		data.meta.overAllowance ? 'text-red-700'
 			: data.meta.utilizationPercent >= 90 ? 'text-amber-700'
-				: data.meta.utilizationPercent >= 75 ? 'text-yellow-700'
+				: data.meta.utilizationPercent >= 75 ? 'text-amber-700'
 					: 'text-green-700'
 	);
 

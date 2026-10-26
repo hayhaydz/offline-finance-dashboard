@@ -79,14 +79,12 @@ afterEach(async () => {
 			.from(accounts)
 			.where(inArray(accounts.userId, cleanupUserIds));
 		if (userAccounts.length > 0) {
-			await db
-				.delete(accountTransactions)
-				.where(
-					inArray(
-						accountTransactions.accountId,
-						userAccounts.map((a) => a.id),
-					),
-				);
+			await db.delete(accountTransactions).where(
+				inArray(
+					accountTransactions.accountId,
+					userAccounts.map((a) => a.id),
+				),
+			);
 		}
 		await db
 			.delete(credentialSlots)
@@ -128,16 +126,14 @@ describe("/migrate action (task 2.1)", () => {
 		const formData = new FormData();
 		formData.append("password", PASSWORD);
 
-		const result = await migrateActions.migrate(
-			{
-				request: new Request("http://localhost/migrate", {
-					method: "POST",
-					body: formData,
-				}),
-				locals: { user: { id: user.id, username: user.username } },
-				cookies: cookiesStub(),
-			} as never,
-		);
+		const result = await migrateActions.migrate({
+			request: new Request("http://localhost/migrate", {
+				method: "POST",
+				body: formData,
+			}),
+			locals: { user: { id: user.id, username: user.username } },
+			cookies: cookiesStub(),
+		} as never);
 
 		// The old flow 500'd here (unwrap before slot creation); now the
 		// migration completes and unlocks with the DataKey it produced.
@@ -172,16 +168,14 @@ describe("/migrate action (task 2.1)", () => {
 
 		let redirected: string | null = null;
 		try {
-			await migrateActions.migrate(
-				{
-					request: new Request("http://localhost/migrate", {
-						method: "POST",
-						body: formData,
-					}),
-					locals: { user: { id: user.id, username: user.username } },
-					cookies: cookiesStub(),
-				} as never,
-			);
+			await migrateActions.migrate({
+				request: new Request("http://localhost/migrate", {
+					method: "POST",
+					body: formData,
+				}),
+				locals: { user: { id: user.id, username: user.username } },
+				cookies: cookiesStub(),
+			} as never);
 			expect.fail("expected redirect");
 		} catch (e) {
 			if (e && typeof e === "object" && "status" in e && e.status === 302) {

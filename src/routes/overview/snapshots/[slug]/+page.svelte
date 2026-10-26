@@ -26,7 +26,7 @@
 	);
 
 	// Group accounts by type for display
-	const accountsByType = $derived(() => {
+	const accountsByType = $derived.by(() => {
 		const groups: Record<string, typeof accountsBreakdown.accounts> = {};
 		accountsBreakdown.accounts.forEach((account) => {
 			if (!groups[account.type]) {
@@ -90,7 +90,7 @@
 		ACCOUNTS ({accountsBreakdown.accounts.length})
 	</div>
 	<div class="p-2">
-		{#each Object.entries(accountsByType()) as [type, accounts]}
+		{#each Object.entries(accountsByType) as [type, accounts]}
 			<div class="font-bold text-xs mb-1 mt-1 first:mt-0">{capitalizeType(type)} ({accounts.length})</div>
 			{#each accounts as account}
 				<div class="text-xs flex justify-between py-1 border-b border-gray-200 last:border-0">

@@ -31,14 +31,14 @@
 	);
 
 	// Get progress bar color class based on percentage
-	const progressColor = $derived(() => {
+	const progressColor = $derived.by(() => {
 		if (progress >= 70) return 'green';
 		if (progress >= 30) return 'amber';
 		return 'red';
 	});
 
 	// Emergency Fund milestones (1mo = 8.33%, 3mo = 25%, 6mo = 50%, 12mo = 100%)
-	const emergencyFundMilestones = $derived(() => {
+	const emergencyFundMilestones = $derived.by(() => {
 		if (!goal.isEmergencyFund) return null;
 
 		const monthlyExpenses = goal.targetAmountInCents / 12;
@@ -54,12 +54,12 @@
 
 	// Progress bar text color based on progress
 	const progressTextColor = $derived(
-		progressColor() === 'green' ? 'text-green-700' : progressColor() === 'amber' ? 'text-amber-600' : 'text-red-600'
+		progressColor === 'green' ? 'text-green-700' : progressColor === 'amber' ? 'text-amber-600' : 'text-red-600'
 	);
 
 	// Progress bar background color
 	const progressBgColor = $derived(
-		progressColor() === 'green' ? 'bg-green-700' : progressColor() === 'amber' ? 'bg-amber-600' : 'bg-red-600'
+		progressColor === 'green' ? 'bg-green-700' : progressColor === 'amber' ? 'bg-amber-600' : 'bg-red-600'
 	);
 
 	const staleness = $derived(getStaleness(goal.updatedAt));
@@ -76,12 +76,12 @@
 				{/if}
 			<span class="font-bold text-sm min-w-0 overflow-hidden">
 				<a href="/goals/{goal.slug}" class="bracket-link block truncate">{goal.name}</a>
-				{#if emergencyFundMilestones()}
+				{#if emergencyFundMilestones}
 					<span class="text-xs text-gray-500 font-normal">
 						[
-						{#each emergencyFundMilestones() as milestone, index}
+						{#each emergencyFundMilestones as milestone, index}
 							<span class={milestone.achieved ? 'text-green-700' : 'text-gray-400'}>{milestone.label}</span
-							><span class="text-gray-400">{index < emergencyFundMilestones()!.length - 1 ? ' ' : ''}</span>
+							><span class="text-gray-400">{index < emergencyFundMilestones!.length - 1 ? ' ' : ''}</span>
 						{/each}
 						]
 					</span>

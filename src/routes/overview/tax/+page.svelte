@@ -17,11 +17,9 @@
 
 	// Close-row form state
 	let closeRowId = $state<number | null>(null);
-	let closeToYear = $state('');
 
 	function startClose(id: number) {
 		closeRowId = closeRowId === id ? null : id;
-		closeToYear = '';
 	}
 
 	function bandPsa(band: string): string {
@@ -228,12 +226,14 @@
 										use:enhance={historyFeedback.createEnhanceHandler('Band closed.', { onSuccess: () => { closeRowId = null; } })}
 										class="mt-1 flex gap-1 justify-end items-center"
 									>
-										<input type="hidden" name="id" value={row.id} />
-										<input
-											name="toTaxYear"
-											placeholder="2025/26"
-											class="border border-black px-1 py-0.5 text-xs font-mono w-20"
-										/>
+									<input type="hidden" name="id" value={row.id} />
+									<label for="close-band-{row.id}" class="sr-only">Close band at tax year</label>
+									<input
+										id="close-band-{row.id}"
+										name="toTaxYear"
+										placeholder="2025/26"
+										class="border border-black px-1 py-0.5 text-xs font-mono w-20"
+									/>
 										<button type="submit" class="bracket-link text-xs">Save</button>
 										<button type="button" onclick={() => startClose(row.id)} class="bracket-link text-xs">Cancel</button>
 									</form>

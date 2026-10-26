@@ -4,6 +4,11 @@ import { hashPassword, verifyPassword } from "$lib/auth/password";
 import { db } from "$lib/db/client";
 import { users } from "$lib/db/schema";
 import {
+	checkRateLimit,
+	recordFailedAttempt,
+	recordSuccessfulAttempt,
+} from "$lib/security/rate-limiter";
+import {
 	enrollRecoverySlot,
 	getActiveSlots,
 	revokeSlot,
@@ -17,11 +22,6 @@ import {
 	isDeviceEnrollmentEnabled,
 	isDeviceEnrollmentEnabledForUser,
 } from "$lib/server/crypto/webauthn";
-import {
-	checkRateLimit,
-	recordFailedAttempt,
-	recordSuccessfulAttempt,
-} from "$lib/security/rate-limiter";
 import {
 	devLog,
 	isVerboseDebug,
@@ -348,13 +348,10 @@ export const actions: Actions = {
 		}
 
 		try {
-			const { passphrase, deviceSlotsRevoked } = await rotateUserEnvelope(
-				db,
-				{
-					userId: user.id,
-					password,
-				},
-			);
+			const { passphrase, deviceSlotsRevoked } = await rotateUserEnvelope(db, {
+				userId: user.id,
+				password,
+			});
 			await recordSuccessfulAttempt(user.username);
 			return {
 				success: true,

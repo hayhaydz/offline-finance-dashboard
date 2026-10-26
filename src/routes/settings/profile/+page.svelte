@@ -60,15 +60,15 @@
 			<ol class="leading-relaxed mb-4">
 				<li>
 					<strong>Session validation:</strong> Every request validates the session token and
-					populates <code class="bg-gray-100 p-1 px-2 rounded font-mono">data.user</code> with the user's ID.
+					populates <code class="bg-gray-100 p-1 px-2 font-mono">data.user</code> with the user's ID.
 				</li>
 				<li>
 					<strong>Query filtering:</strong> All database queries include a
-					<code class="bg-gray-100 p-1 px-2 rounded font-mono">where: eq(table.userId, data.user.id)</code> clause.
+					<code class="bg-gray-100 p-1 px-2 font-mono">where: eq(table.userId, data.user.id)</code> clause.
 				</li>
 				<li>
 					<strong>Access validation:</strong> After retrieving data, we verify
-					<code class="bg-gray-100 p-1 px-2 rounded font-mono">resource.userId === data.user.id</code> before allowing access.
+					<code class="bg-gray-100 p-1 px-2 font-mono">resource.userId === data.user.id</code> before allowing access.
 				</li>
 				<li>
 					<strong>Generic errors:</strong> Access attempts return generic "not found" errors
@@ -79,13 +79,13 @@
 			<h2 class="mt-4 mb-2">Testing Multi-User Isolation</h2>
 			<p>To test row-level security:</p>
 			<ol class="leading-relaxed">
-				<li>Register a second user (<a href="/register" class="text-blue-600 underline">/register</a>)</li>
+				<li>Register a second user (<a href="/register" class="bracket-link">/register</a>)</li>
 				<li>Log in as the second user</li>
 				<li>Notice you only see the second user's data</li>
 				<li>Log out and log back in as the first user</li>
 				<li>Notice you still only see the first user's data</li>
 			</ol>
-			<div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 my-4">
+			<div class="bg-amber-50 border-l-4 border-amber-500 p-4 my-4">
 				Users cannot access each other's data even if they guess URLs or IDs. Row-level
 				security is enforced at the database query layer.
 			</div>

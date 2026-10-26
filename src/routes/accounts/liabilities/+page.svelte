@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { PageData } from './$types';
-  export let data: PageData;
+  let { data }: { data: PageData } = $props();
 
   function getDebtStatusLabel(ttz: { months: number | null; years: number | null }): string {
     if (ttz.months === null) return '[CRITICAL]';
@@ -63,7 +63,7 @@
 
 <!-- Installment Section -->
 {#if data.installment.length > 0}
-  <div class="border- border-black bg-gray-100 p-2 font-bold">INSTALLMENT DEBT</div>
+  <div class="border-b border-black bg-gray-100 p-2 font-bold">INSTALLMENT DEBT</div>
   <div class="divide-y divide-gray-200">
     {#each data.installment as liability}
       <div class="border-b border-black p-3">

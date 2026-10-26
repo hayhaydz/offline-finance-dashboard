@@ -82,7 +82,7 @@
 	}
 </script>
 
-<div class="p-4">
+<div class="p-3">
 	<h2 class="font-bold text-lg mb-4">Step 1 of 4: Select Account & Upload</h2>
 
 	<!-- Account selector -->

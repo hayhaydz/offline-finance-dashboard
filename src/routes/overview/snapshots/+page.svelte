@@ -69,7 +69,7 @@
 					<tr class="border-b border-gray-200 last:border-b-0">
 						<td class="text-center border-r border-gray-200 text-sm py-2">
 							{#if snapshot.trends}
-								<span class="text-xl {getTrendColor(snapshot.trends.netWorthChange)}" style="text-shadow: 0 0 1px currentColor;">
+								<span class="text-xl {getTrendColor(snapshot.trends.netWorthChange)}">
 									{getTrendArrow(snapshot.trends.netWorthChange)}
 								</span>
 							{:else}

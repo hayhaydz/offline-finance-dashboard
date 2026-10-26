@@ -117,7 +117,6 @@
 			{accounts}
 			accountId={selectedAccountId!}
 			onBack={() => (currentStep = 3)}
-			onReset={handleReset}
 		/>
 	{:else if currentStep === 5 && importResult}
 		<div class="p-4">

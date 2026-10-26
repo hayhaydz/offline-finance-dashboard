@@ -14,7 +14,6 @@
 		accounts: Array<Account>;
 		accountId: number;
 		onBack: () => void;
-		onReset: () => void;
 	}
 
 	let { filteredRows, accounts, accountId, onBack }: Props = $props();

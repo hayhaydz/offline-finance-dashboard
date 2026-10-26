@@ -423,7 +423,9 @@ describe("rotation safety (crypto-rotation-safety)", () => {
 		"one two three four five six seven eight nine ten eleven twelve";
 
 	async function rotationSetup(withDeviceSlot: boolean) {
-		const user = await insertLegacyUser(`env-safe-${Date.now()}-${crypto.randomBytes(2).toString("hex")}`);
+		const user = await insertLegacyUser(
+			`env-safe-${Date.now()}-${crypto.randomBytes(2).toString("hex")}`,
+		);
 		const { dataKey } = await enrollPasswordSlot(db, {
 			userId: user.id,
 			password: PASSWORD,
@@ -601,9 +603,9 @@ describe("rotation safety (crypto-rotation-safety)", () => {
 			),
 		).toBe(true);
 		expect(await getActiveSlots(db, user.id, "webauthn-prf")).toHaveLength(1);
-		expect(await getActiveSlots(db, user.id, "recovery-passphrase")).toHaveLength(
-			1,
-		);
+		expect(
+			await getActiveSlots(db, user.id, "recovery-passphrase"),
+		).toHaveLength(1);
 
 		// The OLD DataKey buffer is NOT zeroized on the rollback path — the
 		// pre-rotation state must remain fully usable (only a successful

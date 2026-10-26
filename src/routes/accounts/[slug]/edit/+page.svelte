@@ -170,7 +170,7 @@
 
 	<div class="mb-1">
 		<span class="font-bold text-xs block mb-1">Account Type</span>
-		<div class="flex flex-col">
+		<div class="flex flex-col" role="radiogroup" aria-label="Account type">
 			{#each accountTypes as option}
 				<TerminalRadio value={option.value} selectedValue={type} onChange={(v) => type = v}>
 					<span class="text-sm">{option.label}</span>
@@ -181,7 +181,7 @@
 
 	<div class="mb-1">
 		<span class="font-bold text-xs block mb-1">Tax Wrapper</span>
-		<div class="flex flex-col">
+		<div class="flex flex-col" role="radiogroup" aria-label="Tax wrapper">
 			{#each taxWrappers as option}
 				<TerminalRadio
 					value={option.value}

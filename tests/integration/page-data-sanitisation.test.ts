@@ -5,16 +5,14 @@ import { db } from "$lib/db/client";
 import { goals, snapshots, users } from "$lib/db/schema";
 import { sealKeyring } from "$lib/server/crypto/keyring";
 import { load as layoutLoad } from "../../src/routes/+layout.server";
-import { load as profileLoad } from "../../src/routes/settings/profile/+page.server";
-import { load as dataLoad } from "../../src/routes/settings/data/+page.server";
-import { load as snapshotsLoad } from "../../src/routes/overview/snapshots/+page.server";
-import { load as snapshotCreateLoad } from "../../src/routes/overview/snapshots/create/+page.server";
-import { load as snapshotDetailLoad } from "../../src/routes/overview/snapshots/[slug]/+page.server";
-import { load as debtCreateLoad } from "../../src/routes/goals/debt/create/+page.server";
+import { load as archiveConfirmLoad } from "../../src/routes/goals/[slug]/confirm-archive/+page.server";
 import { load as goalCreateLoad } from "../../src/routes/goals/create/+page.server";
-import {
-	load as archiveConfirmLoad,
-} from "../../src/routes/goals/[slug]/confirm-archive/+page.server";
+import { load as debtCreateLoad } from "../../src/routes/goals/debt/create/+page.server";
+import { load as snapshotsLoad } from "../../src/routes/overview/snapshots/+page.server";
+import { load as snapshotDetailLoad } from "../../src/routes/overview/snapshots/[slug]/+page.server";
+import { load as snapshotCreateLoad } from "../../src/routes/overview/snapshots/create/+page.server";
+import { load as dataLoad } from "../../src/routes/settings/data/+page.server";
+import { load as profileLoad } from "../../src/routes/settings/profile/+page.server";
 
 /**
  * auth-session-hardening 1.1–1.3: no browser-visible load payload contains
@@ -121,9 +119,8 @@ describe("page-data DTO sanitization (auth-session-hardening 1.1–1.3)", () => 
 			locals: { user, session: { ...fullSession, userId: user.id } },
 		} as never);
 		expectSanitized("settings/profile", payload);
-		const session = (
-			payload as { session: Record<string, unknown> | null }
-		).session;
+		const session = (payload as { session: Record<string, unknown> | null })
+			.session;
 		expect(Object.keys(session ?? {}).sort()).toEqual([
 			"createdAt",
 			"lastActivity",

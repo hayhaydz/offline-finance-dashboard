@@ -2,20 +2,20 @@ import crypto from "node:crypto";
 import { fail, redirect } from "@sveltejs/kit";
 import { eq } from "drizzle-orm";
 import { hashPassword } from "$lib/auth/password";
-import { issueRecoveryEnrollment } from "$lib/server/auth/recovery-enroll-token";
 import { db } from "$lib/db/client";
 import { credentialSlots, users } from "$lib/db/schema";
-import { unlockKeyring } from "$lib/server/crypto/keyring";
+import {
+	checkRegistrationRateLimit,
+	recordRegistrationAttempt,
+} from "$lib/security/rate-limiter";
+import { issueRecoveryEnrollment } from "$lib/server/auth/recovery-enroll-token";
 import {
 	generateDataKey,
 	generateSlotId,
 	wrapSlot,
 } from "$lib/server/crypto/envelope";
+import { unlockKeyring } from "$lib/server/crypto/keyring";
 import { derivePasswordSlotKey } from "$lib/server/crypto/slot-keys";
-import {
-	checkRegistrationRateLimit,
-	recordRegistrationAttempt,
-} from "$lib/security/rate-limiter";
 import {
 	devLog,
 	isVerboseDebug,
