@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 import type { User, Session } from "$lib/db/schema";
 
 declare global {

@@ -6,10 +6,10 @@ import { credentialSlots, users } from "$lib/db/schema";
 import { enrollPasswordSlot } from "$lib/server/crypto/enroll";
 import { sealKeyring, unlockKeyring } from "$lib/server/crypto/keyring";
 import {
+	_pendingShowsForTest,
+	_sweepPendingShows,
 	actions,
 	load,
-	pendingShowsForTest,
-	sweepPendingShows,
 } from "../../src/routes/(auth)/recovery-enroll/+page.server";
 
 /**
@@ -46,12 +46,12 @@ function expiredEntry(userId: number) {
 
 beforeEach(() => {
 	sealKeyring("test-setup");
-	pendingShowsForTest.clear();
+	_pendingShowsForTest.clear();
 });
 
 afterEach(async () => {
 	sealKeyring("test-teardown");
-	pendingShowsForTest.clear();
+	_pendingShowsForTest.clear();
 	if (cleanupIds.length > 0) {
 		await db
 			.delete(credentialSlots)
@@ -63,22 +63,22 @@ afterEach(async () => {
 
 describe("pendingShows sweep (key hygiene 4.4)", () => {
 	it("sweepPendingShows deletes expired entries and keeps live ones", () => {
-		pendingShowsForTest.set("expired", expiredEntry(1));
-		pendingShowsForTest.set("live", {
+		_pendingShowsForTest.set("expired", expiredEntry(1));
+		_pendingShowsForTest.set("live", {
 			userId: 1,
 			passphrase: "still valid",
 			expiresAt: Date.now() + 60_000,
 		});
 
-		sweepPendingShows();
+		_sweepPendingShows();
 
-		expect(pendingShowsForTest.has("expired")).toBe(false);
-		expect(pendingShowsForTest.has("live")).toBe(true);
+		expect(_pendingShowsForTest.has("expired")).toBe(false);
+		expect(_pendingShowsForTest.has("live")).toBe(true);
 	});
 
 	it("read path: an expired disclosure is swept when load runs", async () => {
 		const user = await insertUser();
-		pendingShowsForTest.set("tok", expiredEntry(user.id));
+		_pendingShowsForTest.set("tok", expiredEntry(user.id));
 
 		// Expired token → load must not reveal the passphrase; the entry is
 		// deleted from memory (swept on read), then the normal guards apply
@@ -98,7 +98,7 @@ describe("pendingShows sweep (key hygiene 4.4)", () => {
 			}
 		}
 		expect(redirected).toBe(302);
-		expect(pendingShowsForTest.has("tok")).toBe(false);
+		expect(_pendingShowsForTest.has("tok")).toBe(false);
 	});
 
 	it("insert path: enrolling a fresh disclosure sweeps expired ones", async () => {
@@ -110,7 +110,7 @@ describe("pendingShows sweep (key hygiene 4.4)", () => {
 		});
 		unlockKeyring(user.id, dataKey);
 
-		pendingShowsForTest.set("stale", expiredEntry(user.id));
+		_pendingShowsForTest.set("stale", expiredEntry(user.id));
 
 		let showUrl: string | null = null;
 		try {
@@ -137,8 +137,8 @@ describe("pendingShows sweep (key hygiene 4.4)", () => {
 			"show",
 		);
 		expect(token).toBeTruthy();
-		expect(pendingShowsForTest.has(token as string)).toBe(true);
+		expect(_pendingShowsForTest.has(token as string)).toBe(true);
 		// ...and the expired one no longer lingers in memory
-		expect(pendingShowsForTest.has("stale")).toBe(false);
+		expect(_pendingShowsForTest.has("stale")).toBe(false);
 	});
 });

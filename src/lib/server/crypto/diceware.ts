@@ -1,7 +1,5 @@
 import crypto from "node:crypto";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import wordlistRaw from "./eff-large-wordlist.txt?raw";
 
 /**
  * Recovery passphrase generator (spec recovery-credentials).
@@ -12,12 +10,7 @@ import { fileURLToPath } from "node:url";
  * offline paper copy holds it.
  */
 
-const WORDLIST_FILE = join(
-	dirname(fileURLToPath(import.meta.url)),
-	"eff-large-wordlist.txt",
-);
-
-const WORDS = readFileSync(WORDLIST_FILE, "utf8")
+const WORDS = wordlistRaw
 	.split("\n")
 	.map((w) => w.trim())
 	.filter((w) => w.length > 0);
