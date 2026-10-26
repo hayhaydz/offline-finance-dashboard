@@ -44,7 +44,7 @@
 		</div>
 	</div>
 {:else}
-	<form method="POST" use:enhance class="border-b border-black p-2">
+	<form method="POST" action="?/migrate" use:enhance class="border-b border-black p-2">
 		<p class="text-gray-600 my-1 text-xs">
 			Confirm your password to generate the envelope. Nothing changes on disk
 			that could unseal your data without it.
