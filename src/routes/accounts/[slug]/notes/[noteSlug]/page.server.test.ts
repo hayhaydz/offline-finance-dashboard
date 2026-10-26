@@ -21,8 +21,6 @@ describe("Note Detail Page Load", () => {
 			.values({
 				username: `test-note-detail-${timestamp}`,
 				passwordHash: "hash",
-				totpSecret: "secret",
-				totpSecretIV: "iv",
 				passwordSalt: "salt",
 				taxBand: "basic",
 			})
@@ -110,8 +108,6 @@ describe("Note Detail Page Load", () => {
 			.values({
 				username: `other-user-${Date.now()}`,
 				passwordHash: "hash",
-				totpSecret: "secret",
-				totpSecretIV: "iv",
 				passwordSalt: "salt",
 				taxBand: "basic",
 			})

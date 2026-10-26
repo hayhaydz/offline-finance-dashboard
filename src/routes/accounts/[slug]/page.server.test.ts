@@ -23,8 +23,6 @@ describe("Account page load - liability projections", () => {
 			.values({
 				username: `account-page-user-${Date.now()}-${nanoid(6)}`,
 				passwordHash: "hash",
-				totpSecret: "secret",
-				totpSecretIV: "iv",
 				passwordSalt: "salt",
 			})
 			.returning({ id: users.id });

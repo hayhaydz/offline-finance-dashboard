@@ -25,9 +25,6 @@ import { load as profileLoad } from "../../src/routes/settings/profile/+page.ser
 const FORBIDDEN_KEYS = [
 	"passwordHash",
 	"passwordSalt",
-	"totpSecret",
-	"totpSecretIV",
-	"mfaSetupToken",
 	"token",
 	"wrappedKey",
 ];
@@ -74,8 +71,6 @@ async function insertUser() {
 			username: `dto-user-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`,
 			passwordHash: "SECRET-HASH",
 			passwordSalt: "SECRET-SALT",
-			totpSecret: "REMOVED",
-			totpSecretIV: "REMOVED",
 			inactivityTimeout: 5,
 		})
 		.returning();

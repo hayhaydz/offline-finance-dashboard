@@ -312,8 +312,6 @@ describe("Band finder report (DB integration)", () => {
 			.values({
 				username: `test-finder-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
 				passwordHash: "hash",
-				totpSecret: "secret",
-				totpSecretIV: "iv",
 				passwordSalt: "salt",
 				taxBand: "basic",
 			})

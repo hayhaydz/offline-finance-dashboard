@@ -386,10 +386,7 @@ export const TABLE_RULES: Record<string, TableRule> = {
 			id: "skip",
 			username: "username",
 			passwordHash: "secret",
-			totpSecret: "secret",
-			totpSecretIV: "secret",
 			passwordSalt: "secret",
-			mfaSetupToken: "secret",
 			taxBand: "skip",
 			inactivityTimeout: "skip",
 			// Per-account L2 switch — structural boolean, not identity data
@@ -406,16 +403,6 @@ export const TABLE_RULES: Record<string, TableRule> = {
 			userId: "skip",
 			createdAt: "ts",
 			lastActivity: "ts",
-		},
-	},
-	backupCodes: {
-		pk: "id",
-		columns: {
-			id: "skip",
-			userId: "skip",
-			code: "secret",
-			used: "skip",
-			createdAt: "ts",
 		},
 	},
 	// Envelope keyring (task 5.2): wrapped slots contain no PII — just an
@@ -821,7 +808,6 @@ function walkJson(value: unknown, ctx: WalkCtx, trail: string): unknown {
 // Secrets — deterministic placeholders (output DB stays loginable)
 // ---------------------------------------------------------------------------
 
-export const DUMMY_TOTP_SECRET = "JBSWY3DPEHPK3PXP"; // well-known test base32
 const FIXED_ARGON_SALT = Buffer.from("anonymise-fixed1"); // 16 bytes
 
 async function placeholderPasswordHash(): Promise<string> {
@@ -1024,14 +1010,9 @@ export async function runAnonymise(
 								break;
 							case "secret": {
 								if (col === "password_hash") next = passwordHash;
-								else if (col === "totp_secret")
-									next = `PLAIN:${DUMMY_TOTP_SECRET}`;
-								else if (col === "totp_secret_iv") next = "PLAIN";
 								else if (col === "password_salt") {
 									next = seededToken(seed, "salt");
-								} else if (col === "mfa_setup_token") next = null;
-								else if (col === "code") next = "ANONYMISED";
-								else if (col === "wrapped_key" || col === "iv")
+								} else if (col === "wrapped_key" || col === "iv")
 									next = seededToken(seed, String(value ?? ""));
 								break;
 							}
@@ -1243,9 +1224,7 @@ async function main() {
 	console.log(`   seed: ${result.seed}`);
 	console.log(`   date offset: ${result.monthOffset} whole month(s) forward`);
 	console.log(`   login username (fake): ${result.loginUsername ?? "—"}`);
-	console.log(
-		`   password (all users): "password" · TOTP secret: ${DUMMY_TOTP_SECRET}`,
-	);
+	console.log(`   password (all users): "password"`);
 
 	const check = selfCheck(args.out);
 	console.log(`\n🩺 Self-check (${check.ok ? "PASS" : "FAIL"})`);

@@ -57,6 +57,13 @@
       "when": 1792613158921,
       "tag": "0007_cool_george_stacy",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1793050766010,
+      "tag": "0008_overconfident_valkyrie",
+      "breakpoints": true
     }
   ]
 }

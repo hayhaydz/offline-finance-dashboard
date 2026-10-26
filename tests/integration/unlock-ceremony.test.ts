@@ -59,8 +59,6 @@ async function setupUser(withDeviceSlot: boolean) {
 		.values({
 			username: `unlock-user-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`,
 			passwordHash,
-			totpSecret: "REMOVED",
-			totpSecretIV: "REMOVED",
 			passwordSalt,
 		})
 		.returning();

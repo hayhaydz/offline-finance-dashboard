@@ -21,8 +21,6 @@ describe("Savings goal archive — typed confirmation enforced server-side", () 
 			.values({
 				username: `sav-arch-${Date.now()}-${nanoid(6)}`,
 				passwordHash: "hash",
-				totpSecret: "secret",
-				totpSecretIV: "iv",
 				passwordSalt: "salt",
 			})
 			.returning({ id: users.id });

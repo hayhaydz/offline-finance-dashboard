@@ -33,8 +33,6 @@ describe("Expenses history", () => {
 			.values({
 				username: `test-expenses-${suffix}`,
 				passwordHash: "hash",
-				totpSecret: "secret",
-				totpSecretIV: "iv",
 				passwordSalt: "salt",
 				taxBand: "basic",
 			})
@@ -45,8 +43,6 @@ describe("Expenses history", () => {
 			.values({
 				username: `test-expenses-other-${suffix}`,
 				passwordHash: "hash",
-				totpSecret: "secret",
-				totpSecretIV: "iv",
 				passwordSalt: "salt",
 				taxBand: "basic",
 			})

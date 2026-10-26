@@ -21,8 +21,6 @@ export {
 // Inferred types
 export type { CredentialSlot, User } from "./auth";
 export {
-	backupCodes,
-	backupCodesRelations,
 	credentialSlots,
 	credentialSlotsRelations,
 	loginAttempts,

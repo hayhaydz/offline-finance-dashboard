@@ -49,7 +49,6 @@ describe("Database Integration & Migrations", () => {
 		const expectedTables = [
 			"users",
 			"sessions",
-			"backup_codes",
 			"login_attempts",
 			"accounts",
 			"account_transactions",
@@ -131,8 +130,6 @@ describe("Database Integration & Migrations", () => {
 			.values({
 				username: `testuser_${Date.now()}`,
 				passwordHash: "hash",
-				totpSecret: "secret",
-				totpSecretIV: "iv",
 				passwordSalt: "salt",
 			})
 			.returning();

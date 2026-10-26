@@ -27,8 +27,6 @@ async function insertUser() {
 		.values({
 			username: `shows-user-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`,
 			passwordHash: "hash",
-			totpSecret: "REMOVED",
-			totpSecretIV: "REMOVED",
 			passwordSalt: crypto.randomBytes(16).toString("hex"),
 		})
 		.returning();

@@ -52,8 +52,6 @@ async function insertLegacyUser(username: string) {
 		.values({
 			username,
 			passwordHash,
-			totpSecret: "REMOVED",
-			totpSecretIV: "REMOVED",
 			passwordSalt,
 		})
 		.returning();

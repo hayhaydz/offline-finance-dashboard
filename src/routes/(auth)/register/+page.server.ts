@@ -124,10 +124,6 @@ export const actions = {
 						username,
 						passwordHash,
 						passwordSalt,
-						// Legacy TOTP columns (dropped in the 5.3 release step): inert
-						// placeholder values satisfy NOT NULL for fresh accounts.
-						totpSecret: "REMOVED",
-						totpSecretIV: "REMOVED",
 						createdAt: new Date(),
 					})
 					.returning()

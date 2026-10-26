@@ -23,8 +23,6 @@ describe("Interest Rates CRUD", () => {
 			.values({
 				username: `test-user-rates-${Date.now()}`,
 				passwordHash: "hash",
-				totpSecret: "secret",
-				totpSecretIV: "iv",
 				passwordSalt: "salt",
 				taxBand: "basic",
 			})

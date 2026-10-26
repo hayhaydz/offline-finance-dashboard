@@ -96,14 +96,13 @@ const INSERT_ONLY_ROUTES = new Set([
 ]);
 
 // ---------------------------------------------------------------------------
-// Auth route files — these query users/sessions/backupCodes tables which are
+// Auth route files — these query users/sessions tables which are
 // NOT user-scoped. They never query accounts, goals, etc.
 // ---------------------------------------------------------------------------
 
 const AUTH_ROUTES = new Set([
 	"src/routes/(auth)/login/+page.server.ts",
 	"src/routes/(auth)/register/+page.server.ts",
-	"src/routes/(auth)/mfa-setup/+page.server.ts",
 	"src/routes/(auth)/dev-login/+page.server.ts",
 	"src/routes/(auth)/unlock/+page.server.ts",
 	"src/routes/(auth)/recovery-enroll/+page.server.ts",

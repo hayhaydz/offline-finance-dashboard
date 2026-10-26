@@ -6,7 +6,6 @@ vi.mock("$lib/db/client", () => {
 		query: {
 			users: { findFirst: vi.fn() },
 			loginAttempts: { findFirst: vi.fn() },
-			backupCodes: { findMany: vi.fn() },
 			sessions: { findFirst: vi.fn() },
 		},
 		insert: vi.fn().mockReturnValue({
@@ -27,27 +26,6 @@ vi.mock("$lib/db/client", () => {
 // Mock migrations — hooks.server.ts calls runMigrations() at module-level
 vi.mock("$lib/db/migrate", () => ({
 	runMigrations: vi.fn().mockResolvedValue(undefined),
-}));
-
-// Mock MFA utilities
-vi.mock("$lib/auth/mfa", () => ({
-	decryptTOTPSecret: vi.fn(() => "plaintext-secret"),
-	generateBackupCodes: vi.fn(() => [
-		"A1B2C3D4",
-		"E5F6G7H8",
-		"I9J0K1L2",
-		"M3N4O5P6",
-		"Q7R8S9T0",
-		"U1V2W3X4",
-		"Y5Z6A7B8",
-		"C9D0E1F2",
-		"G3H4I5J6",
-		"K7L8M9N0",
-	]),
-	generateOTPAuthURL: vi.fn(() => "otpauth://totp/Test"),
-	generateQRCode: vi.fn(() => Promise.resolve("data:image/png;base64,test")),
-	verifyTOTP: vi.fn(() => Promise.resolve(true)),
-	verifyBackupCode: vi.fn(() => Promise.resolve(null)),
 }));
 
 // Mock password utilities
@@ -101,7 +79,6 @@ import { unwrapPasswordSlot as unwrapPasswordSlotMock } from "$lib/server/crypto
 import { EnvelopeError } from "$lib/server/crypto/envelope";
 import { handle } from "../../src/hooks.server";
 import { actions as loginActions } from "../../src/routes/(auth)/login/+page.server";
-import { actions as mfaSetupActions } from "../../src/routes/(auth)/mfa-setup/+page.server";
 
 describe("Authentication Bypass Prevention", () => {
 	beforeEach(() => {
@@ -110,95 +87,7 @@ describe("Authentication Bypass Prevention", () => {
 		process.env.APP_ENV = "test";
 	});
 
-	// ─── Scenario 1: MFA setup finalize without setup completion flag ───
-
-	describe("MFA Setup Bypass Prevention", () => {
-		it("should reject MFA finalize without setup initiation flag", async () => {
-			const formData = new FormData();
-			formData.append("totpCode", "123456");
-
-			// Simulate bypass: has setup token but skipped the QR code page
-			const cookies = {
-				get: vi.fn((name: string) => {
-					if (name === "mfa-setup-token") return "some-token";
-					return undefined; // mfa-setup-initiated NOT set
-				}),
-				set: vi.fn(),
-				delete: vi.fn(),
-				serialize: vi.fn(),
-				getAll: vi.fn(),
-			};
-
-			const request = new Request("http://localhost/mfa-setup", {
-				method: "POST",
-				body: formData,
-			});
-
-			const result = await (mfaSetupActions.default as any)({
-				request,
-				cookies,
-			});
-
-			expect(result.status).toBe(403);
-			expect(result.data.error).toContain("MFA setup not initiated");
-		});
-
-		it("should allow MFA finalize when setup was properly completed", async () => {
-			(db.query.users.findFirst as any).mockResolvedValue({
-				id: 1,
-				username: "testuser",
-				totpSecret: "PLAIN:testsecret",
-				totpSecretIV: "00000000000000000000000000000000",
-			});
-
-			const formData = new FormData();
-			formData.append("totpCode", "123456");
-
-			// Simulate proper flow: user saw QR code, has both cookies
-			const cookies = {
-				get: vi.fn((name: string) => {
-					if (name === "mfa-setup-initiated") return "true";
-					if (name === "mfa-setup-token") return "valid-setup-token";
-					return undefined;
-				}),
-				set: vi.fn(),
-				delete: vi.fn(),
-				serialize: vi.fn(),
-				getAll: vi.fn(),
-			};
-
-			const request = new Request("http://localhost/mfa-setup", {
-				method: "POST",
-				body: formData,
-			});
-
-			const result = await (mfaSetupActions.default as any)({
-				request,
-				cookies,
-			});
-
-			expect(result.success).toBe(true);
-			expect(result.backupCodes).toBeDefined();
-			expect(result.backupCodes).toHaveLength(10);
-			// Verify auto-login session was created
-			expect(cookies.set).toHaveBeenCalledWith(
-				"session",
-				expect.any(String),
-				expect.objectContaining({ httpOnly: true }),
-			);
-			// Verify setup cookies were cleaned up
-			expect(cookies.delete).toHaveBeenCalledWith("mfa-setup-token", {
-				path: "/",
-			});
-			expect(cookies.delete).toHaveBeenCalledWith("mfa-setup-initiated", {
-				path: "/mfa-setup",
-			});
-		});
-	});
-
-	// ─── Scenario 3: MFA verification rate limiting ───
-
-	describe("MFA Verification Rate Limiting", () => {
+	describe("Login Rate Limiting", () => {
 		it("should block login when account is locked from too many failures", async () => {
 			(checkRateLimit as any).mockResolvedValue({
 				allowed: false,
@@ -268,7 +157,6 @@ describe("Authentication Bypass Prevention", () => {
 		});
 
 		it("counts a failed slot unwrap as a rate-limited failed attempt (GCM not an oracle)", async () => {
-			// The TOTP dual-boundary is gone with 2FA; the L1 equivalent is
 			// the unwrap boundary: auth hash passes but the slot will not
 			// open — the attempt MUST land in rate-limit accounting.
 			(checkRateLimit as any).mockResolvedValue({

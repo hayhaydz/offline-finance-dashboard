@@ -53,23 +53,6 @@ describe("validation rules", () => {
 		});
 	});
 
-	describe("totpOrBackupCode", () => {
-		const rule = rules.totpOrBackupCode();
-		it("should pass on 6-digit TOTP", () => {
-			expect(rule.validate("123456")).toBe(true);
-		});
-		it("should pass on 8-character backup code (hex)", () => {
-			expect(rule.validate("ABC1234F")).toBe(true);
-			expect(rule.validate("abc1234f")).toBe(true);
-		});
-		it("should fail on other formats", () => {
-			expect(rule.validate("12345")).toBe(false); // 5 digits
-			expect(rule.validate("1234567")).toBe(false); // 7 digits
-			expect(rule.validate("ABC1234G")).toBe(false); // Non-hex character G
-			expect(rule.validate("short")).toBe(false);
-		});
-	});
-
 	describe("strongPassword", () => {
 		const subRules = rules.strongPassword(12);
 		const validateAll = (val: string) => subRules.every((r) => r.validate(val));

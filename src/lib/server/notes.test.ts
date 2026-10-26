@@ -27,8 +27,6 @@ describe("Account Notes CRUD", () => {
 			.values({
 				username: `test-user-notes-${Date.now()}`,
 				passwordHash: "hash",
-				totpSecret: "secret",
-				totpSecretIV: "iv",
 				passwordSalt: "salt",
 				taxBand: "basic",
 			})

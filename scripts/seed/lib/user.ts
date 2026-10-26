@@ -51,10 +51,6 @@ export async function ensureAdminUser(db: DB): Promise<number> {
 		.values({
 			username: "admin",
 			passwordHash,
-			// Legacy TOTP columns (dropped in the 5.3 release step): inert
-			// placeholders satisfy NOT NULL until then.
-			totpSecret: "REMOVED",
-			totpSecretIV: "REMOVED",
 			passwordSalt,
 			taxBand: "basic",
 			inactivityTimeout: 5,

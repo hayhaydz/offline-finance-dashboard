@@ -55,8 +55,6 @@ describe("session tokens hashed at rest", () => {
 				username: `sesshash-${Date.now()}-${crypto.randomBytes(2).toString("hex")}`,
 				passwordHash: await hashPassword(PASSWORD),
 				passwordSalt: crypto.randomBytes(16).toString("hex"),
-				totpSecret: "REMOVED",
-				totpSecretIV: "REMOVED",
 			})
 			.returning();
 		cleanupIds.push(user.id);

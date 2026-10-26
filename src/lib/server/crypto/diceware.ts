@@ -1,5 +1,19 @@
 import crypto from "node:crypto";
-import wordlistRaw from "./eff-large-wordlist.txt?raw";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+let wordlistRaw: string;
+try {
+	// Vite (dev/vitest/build): ?raw inlines the file as a string module.
+	wordlistRaw = (await import("./eff-large-wordlist.txt?raw")).default;
+} catch {
+	// tsx (scripts): no ?raw transform — read the file next to this module.
+	wordlistRaw = readFileSync(
+		join(dirname(fileURLToPath(import.meta.url)), "eff-large-wordlist.txt"),
+		"utf8",
+	);
+}
 
 /**
  * Recovery passphrase generator (spec recovery-credentials).

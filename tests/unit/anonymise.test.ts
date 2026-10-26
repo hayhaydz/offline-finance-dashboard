@@ -44,12 +44,10 @@ function buildFixtureDb(filePath: string): void {
 	}
 
 	db.prepare(
-		"INSERT INTO users (username, password_hash, totp_secret, totp_secret_iv, password_salt, tax_band, inactivity_timeout, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)",
+		"INSERT INTO users (username, password_hash, password_salt, tax_band, inactivity_timeout, created_at, updated_at) VALUES (?,?,?,?,?,?,?)",
 	).run(
 		"someone",
 		"realhash",
-		"PLAIN:realsecret",
-		"PLAIN",
 		"realsalt",
 		"basic",
 		5,
@@ -354,14 +352,14 @@ describe("anonymise — identity transforms", () => {
 		expect(account.institution).not.toBe("HSBC");
 
 		const user = db
-			.prepare("SELECT username, totp_secret, password_hash FROM users")
+			.prepare("SELECT username, password_salt, password_hash FROM users")
 			.get() as {
 			username: string;
-			totp_secret: string;
 			password_hash: string;
+			password_salt: string;
 		};
 		expect(user.username).not.toBe("someone");
-		expect(user.totp_secret).toBe("PLAIN:JBSWY3DPEHPK3PXP");
+		expect(user.password_salt).not.toBe("realsalt");
 		expect(user.password_hash).not.toBe("realhash");
 
 		const snapshot = db
@@ -552,12 +550,10 @@ describe("anonymise — value-layer AAD safety (data-layer-integrity 2.1/2.2)", 
 		}
 
 		db.prepare(
-			"INSERT INTO users (username, password_hash, totp_secret, totp_secret_iv, password_salt, tax_band, inactivity_timeout, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?)",
+			"INSERT INTO users (username, password_hash, password_salt, tax_band, inactivity_timeout, created_at, updated_at) VALUES (?,?,?,?,?,?,?)",
 		).run(
 			"encuser",
 			"realhash",
-			"PLAIN:realsecret",
-			"PLAIN",
 			"realsalt",
 			"basic",
 			5,

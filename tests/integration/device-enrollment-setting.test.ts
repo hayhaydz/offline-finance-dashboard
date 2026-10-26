@@ -24,8 +24,6 @@ async function setupUser(enabled: boolean) {
 		.values({
 			username: `devsw-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`,
 			passwordHash: "hash",
-			totpSecret: "REMOVED",
-			totpSecretIV: "REMOVED",
 			passwordSalt,
 			deviceEnrollmentEnabled: enabled,
 		})

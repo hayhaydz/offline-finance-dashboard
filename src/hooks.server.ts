@@ -56,7 +56,6 @@ const SEALED_ALLOWED_PREFIXES = [
 	"/logout",
 	"/api/logout",
 	"/api/session-ping",
-	"/mfa-setup", // legacy route — removed with the 5.3 release step
 	"/recovery-enroll",
 	"/migrate",
 ];
@@ -112,8 +111,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	// Define route types
 	const isAuthRoute =
 		pathname.startsWith("/login") ||
-		pathname.startsWith("/register") ||
-		pathname.startsWith("/mfa-setup");
+		pathname.startsWith("/register");
 
 	// Get session token from HTTP-only cookie
 	const sessionToken = event.cookies.get("session");
@@ -184,7 +182,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	// If logged in and trying to access auth routes — send sealed users to
 	// the unlock ceremony instead of the (data-bearing) home route.
-	if (isAuthRoute && !pathname.startsWith("/mfa-setup")) {
+	if (isAuthRoute) {
 		if (!isUnlockedFor(session.user.id)) {
 			unlockRedirect("sealed", event.url);
 		}

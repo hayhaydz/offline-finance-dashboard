@@ -24,8 +24,6 @@ describe("Tax band resolver", () => {
 			.values({
 				username: `test-tax-bands-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
 				passwordHash: "hash",
-				totpSecret: "secret",
-				totpSecretIV: "iv",
 				passwordSalt: "salt",
 				taxBand: "basic",
 			})
@@ -257,8 +255,6 @@ describe("Tax band resolver", () => {
 			.values({
 				username: `other-${Date.now()}`,
 				passwordHash: "hash",
-				totpSecret: "secret",
-				totpSecretIV: "iv",
 				passwordSalt: "salt",
 				taxBand: "basic",
 			})
@@ -323,8 +319,6 @@ describe("Snapshot tax position resolves per-year band (audit #7 regression)", (
 			.values({
 				username: `test-snapshot-band-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
 				passwordHash: "hash",
-				totpSecret: "secret",
-				totpSecretIV: "iv",
 				passwordSalt: "salt",
 				taxBand: "basic",
 			})

@@ -28,8 +28,6 @@ describe("Account delete/close page — empty-accounts-only destructive delete",
 			.values({
 				username: `del-page-${Date.now()}-${nanoid(6)}`,
 				passwordHash: "hash",
-				totpSecret: "secret",
-				totpSecretIV: "iv",
 				passwordSalt: "salt",
 			})
 			.returning({ id: users.id });

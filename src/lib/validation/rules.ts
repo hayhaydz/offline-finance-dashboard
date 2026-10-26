@@ -129,31 +129,6 @@ export function exactLength(length: number, message?: string): ValidationRule {
 }
 
 /**
- * Creates a rule for TOTP or backup code validation
- *
- * Accepts either:
- * - Exactly 6 numeric characters (TOTP code), OR
- * - Exactly 8 alphanumeric characters (backup code)
- *
- * @param message - Custom error message (default: explanation of both formats)
- * @returns Validation rule
- */
-export function totpOrBackupCode(message?: string): ValidationRule {
-	return {
-		validate: (value: string) => {
-			// TOTP: exactly 6 digits
-			const isTOTP = /^\d{6}$/.test(value);
-			// Backup code: exactly 8 alphanumeric characters (A-F, 0-9)
-			const isBackupCode = /^[0-9A-Fa-f]{8}$/.test(value);
-			return isTOTP || isBackupCode;
-		},
-		message:
-			message ||
-			"Enter a 6-digit authenticator code OR an 8-character backup code",
-	};
-}
-
-/**
  * Creates a rule that requires at least one uppercase letter
  *
  * @param message - Custom error message (default: "Must contain at least one uppercase letter")

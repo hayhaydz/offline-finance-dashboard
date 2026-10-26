@@ -103,33 +103,17 @@ export function createDb(customPath?: string) {
 					)
 					.get();
 
-				if (tableExists) {
-					const encryptionStatus = sqlite
-						.prepare("SELECT value FROM system_metadata WHERE key = ?")
-						.get("encryption_status") as { value: string } | undefined;
+			if (tableExists) {
+				const encryptionStatus = sqlite
+					.prepare("SELECT value FROM system_metadata WHERE key = ?")
+					.get("encryption_status") as { value: string } | undefined;
 
-					if (encryptionStatus && encryptionStatus.value === "none") {
-						sqlite.close();
-						throw new Error("CRITICAL: Production database has no encryption!");
-					}
-
-					// Production refuses any plaintext/PLAIN: path (task 2.4).
-					// Legacy TOTP columns (until the 5.3 release step drops them)
-					// must never hold PLAIN: secrets.
-					const plainDataCheck = sqlite
-						.prepare(
-							"SELECT COUNT(*) as count FROM users WHERE totp_secret LIKE 'PLAIN:%'",
-						)
-						.get() as { count: number };
-
-					if (plainDataCheck.count > 0) {
-						sqlite.close();
-						throw new Error(
-							`CRITICAL: Found ${plainDataCheck.count} user(s) with unencrypted secrets`,
-						);
-					}
+				if (encryptionStatus && encryptionStatus.value === "none") {
+					sqlite.close();
+					throw new Error("CRITICAL: Production database has no encryption!");
 				}
-			} catch (error) {
+			}
+		} catch (error) {
 				if (error instanceof Error && error.message.includes("CRITICAL:"))
 					throw error;
 				if (!isTest) {

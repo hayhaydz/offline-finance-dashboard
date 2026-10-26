@@ -21,8 +21,6 @@ describe("Interest Summaries", () => {
 			.values({
 				username: "interest-test-user",
 				passwordHash: "hash",
-				totpSecret: "secret",
-				totpSecretIV: "iv",
 				passwordSalt: "salt",
 				taxBand: "basic",
 				createdAt: new Date(),

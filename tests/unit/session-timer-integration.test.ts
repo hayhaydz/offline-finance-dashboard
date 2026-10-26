@@ -330,7 +330,6 @@ describe("sanitizeRedirectTo", () => {
 		expect(sanitizeRedirectTo("/login")).toBeNull();
 		expect(sanitizeRedirectTo("/login?reason=expired")).toBeNull();
 		expect(sanitizeRedirectTo("/register")).toBeNull();
-		expect(sanitizeRedirectTo("/mfa-setup")).toBeNull();
 	});
 
 	it("rejects ceremony/bounce routes (no chained ceremonies)", () => {

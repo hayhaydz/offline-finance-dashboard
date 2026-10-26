@@ -57,8 +57,6 @@ async function insertUser(username: string) {
 			username,
 			passwordHash: "mock-hash",
 			passwordSalt: crypto.randomBytes(16).toString("hex"),
-			totpSecret: "REMOVED",
-			totpSecretIV: "REMOVED",
 		})
 		.returning();
 	cleanupUserIds.push(user.id);

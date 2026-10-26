@@ -19,8 +19,6 @@ describe("Interest year page — per-year band resolution", () => {
 			.values({
 				username: `test-interest-year-${timestamp}-${Math.random().toString(36).slice(2, 6)}`,
 				passwordHash: "hash",
-				totpSecret: "secret",
-				totpSecretIV: "iv",
 				passwordSalt: "salt",
 				taxBand: "basic",
 			})

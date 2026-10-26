@@ -42,8 +42,6 @@ beforeAll(async () => {
 		.values({
 			username: `reclass-user-${Date.now()}-${nanoid(6)}`,
 			passwordHash: "hash",
-			totpSecret: "secret",
-			totpSecretIV: "iv",
 			passwordSalt: "salt",
 		})
 		.returning({ id: users.id });
