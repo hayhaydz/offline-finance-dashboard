@@ -86,6 +86,8 @@ describe("Goals page server load — alerts", () => {
 		vi.mocked(calculateReadyToAssign).mockResolvedValue({
 			readyToAssign: 0,
 			totalAssets: 0,
+			liquidAssets: 0,
+			totalUnallocatedAssets: 0,
 			totalSavingsAllocated: 0,
 			totalDebtTracked: 0,
 			totalDebtUntracked: 0,

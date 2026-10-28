@@ -170,10 +170,14 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		}
 	}
 
-	// Calculate Ready to Assign (unallocated assets)
+	// Calculate Ready to Assign (liquid-only — P1-9: instant-access assets
+	// minus allocations; fixed bonds/investments are not realistically
+	// assignable and now appear only in the context line)
 	const {
 		readyToAssign,
 		totalAssets,
+		liquidAssets,
+		totalUnallocatedAssets,
 		totalSavingsAllocated,
 		totalDebtTracked,
 		totalDebtUntracked,
@@ -211,6 +215,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		totalPages,
 		readyToAssign,
 		totalAssets,
+		liquidAssets,
+		totalUnallocatedAssets,
 		totalSavingsAllocated,
 		totalDebtTracked,
 		totalDebtUntracked,

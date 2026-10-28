@@ -175,13 +175,17 @@
 	// interest/ISA/tax-year history — placement only changes listing order)
 	const groupedSections = $derived(groupAccountsByType(sortedAccounts));
 
-	// Calculate summary stats
-	const totalAccounts = $derived(data.accounts.length);
+	// Calculate summary stats — P1-7 policy (2026-10-27 audit): OPEN
+	// accounts only, consistent with Home's ACCOUNTS (N) and the
+	// Liabilities page count; closed accounts get their own context row.
+	const openAccounts = $derived(data.accounts.filter((a) => !a.closedAt));
+	const closedAccountCount = $derived(data.accounts.length - openAccounts.length);
+	const totalAccounts = $derived(openAccounts.length);
 	const assetAccounts = $derived(
-		data.accounts.filter((a) => a.category === 'asset' && (a.currentBalance ?? 0) >= 0).length
+		openAccounts.filter((a) => a.category === 'asset' && (a.currentBalance ?? 0) >= 0).length
 	);
 	const liabilityAccounts = $derived(
-		data.accounts.filter((a) => a.category === 'liability' || (a.category === 'asset' && (a.currentBalance ?? 0) < 0)).length
+		openAccounts.filter((a) => a.category === 'liability' || (a.category === 'asset' && (a.currentBalance ?? 0) < 0)).length
 	);
 	const maturingSoonAccounts = $derived(
 		data.accounts.filter((a) => !a.closedAt && a.daysToMaturity !== null && a.daysToMaturity >= 0 && a.daysToMaturity <= 90)
@@ -224,6 +228,12 @@
 		<span>Maturing Soon (90d)</span>
 		<span class={maturingSoonAccounts.length > 0 ? 'text-amber-700 font-bold' : ''}>{maturingSoonAccounts.length}</span>
 	</div>
+	{#if closedAccountCount > 0}
+		<div class="flex justify-between my-1 text-gray-500">
+			<span>Closed Accounts (not counted above)</span>
+			<span>{closedAccountCount}</span>
+		</div>
+	{/if}
 </div>
 
 {#if sortedAccounts.length > 0}
@@ -322,7 +332,7 @@
 							{/if}
 						</td>
 						<td class="text-right pr-3 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>
-							{#if account.currentRate !== null}
+							{#if account.currentRate !== null && (account.currentBalance ?? 0) !== 0}
 								<span class="tabular-nums">{(account.currentRate / 100).toFixed(2)}%</span>
 							{:else}
 								<span class="text-gray-600">-</span>

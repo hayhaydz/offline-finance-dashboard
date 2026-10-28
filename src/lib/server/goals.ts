@@ -164,6 +164,10 @@ export async function calculateReadyToAssign(params: {
 }): Promise<{
 	readyToAssign: number;
 	totalAssets: number;
+	/** Instant-access asset balances only (P1-9: the assignable figure). */
+	liquidAssets: number;
+	/** All assets minus allocations — includes delayed/locked money. */
+	totalUnallocatedAssets: number;
 	totalSavingsAllocated: number;
 	totalDebtTracked: number;
 	totalDebtUntracked: number;
@@ -175,6 +179,17 @@ export async function calculateReadyToAssign(params: {
 
 	// Calculate total assets
 	const totalAssets = openAccounts.reduce((sum, account) => {
+		return sum + (account.balances[0]?.balanceInCents || 0);
+	}, 0);
+
+	// Liquid assets: instant-access only (P1-9, 2026-10-27 audit — the old
+	// figure included fixed bonds and investments that are not realistically
+	// assignable). Null liquidity on an asset account counts as instant,
+	// matching calculateLiquidityBreakdown's convention.
+	const liquidAssets = openAccounts.reduce((sum, account) => {
+		if (account.liquidity === "delayed" || account.liquidity === "locked") {
+			return sum;
+		}
 		return sum + (account.balances[0]?.balanceInCents || 0);
 	}, 0);
 
@@ -190,8 +205,11 @@ export async function calculateReadyToAssign(params: {
 		0,
 	);
 
-	// Ready to Assign = Total Assets - Savings Allocated
-	const readyToAssign = totalAssets - totalSavingsAllocated;
+	// Ready to Assign (liquid) = instant-access assets - savings allocated.
+	// The full-assets figure is still returned as totalUnallocatedAssets for
+	// the context line under the header number.
+	const readyToAssign = liquidAssets - totalSavingsAllocated;
+	const totalUnallocatedAssets = totalAssets - totalSavingsAllocated;
 
 	// --- Debt tracking breakdown ---
 
@@ -239,6 +257,8 @@ export async function calculateReadyToAssign(params: {
 	return {
 		readyToAssign,
 		totalAssets,
+		liquidAssets,
+		totalUnallocatedAssets,
 		totalSavingsAllocated,
 		totalDebtTracked,
 		totalDebtUntracked,
