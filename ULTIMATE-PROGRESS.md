@@ -6,6 +6,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 |---|---|---|---|
 | 2026-10-28T19:29 | 2026-10-28T19:35 | 0h06m | Phase 0 bootstrap: branch, progress file, baseline green, live login OK |
 | 2026-10-28T19:35 | 2026-10-28T19:41 | 0h06m | P0-1 GoalDetailCard TDZ fix + 5 SSR smoke tests + live verify |
+| 2026-10-28T19:41 | 2026-10-28T19:47 | 0h06m | P0-2 ciphertext leak: ledger decrypt + resilient protected-fields + 7 tests + live verify |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -16,7 +17,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 
 ### Phase 1 — P0 fixes (each with regression test)
 - [x] P0-1: GoalDetailCard TDZ — reorder deriveds + SSR smoke test — ev: reordered to `debtValues → progress → progressColor` (Svelte SSR evaluates deriveds eagerly; forward refs throw TDZ — verified by stashing fix: 5/5 tests fail with exact audit error `Cannot access 'progress' before initialization`, restored → 5/5 pass); new tests/integration/goal-detail-card-ssr.test.ts (savings 40%, debt 60% from starting balance, zero-target safe); check 0/0; suite 745/745; live `/goals/vh_G4FhSzFz8Kj8D` (Emergency Fund) renders with progress, 0 console errors
-- [ ] P0-2: ciphertext leak — passthrough renders `[encrypted]`; root-cause seed keyring
+- [x] P0-2: ciphertext leak — passthrough renders `[encrypted]`; root-cause seed keyring — ev: real root cause ≠ audit guess: month-ledger query in accounts/[slug]/+page.server.ts returned raw rows (no decrypt call); seed keyring was CORRECT (recurring-patterns path decrypted fine). Fix = decrypt ledger rows + hardened decryptResilient in protected-fields.ts (EnvelopeError → `[encrypted]`, SealedError propagates; covers tx/note/review). 7 new tests (round-trip, foreign-key blob → [encrypted], transposed AAD → [encrypted], legacy plaintext passthrough, null, malformed v1, error class). check 0/0; suite 752/752. LIVE: /accounts/uomFW8Wer1SELjGX ledger now shows readable text (Salary, Utilities, Supermarket refund — overcharge) where `v1|66d907…` rendered before; 0 v1| leaks across 2 more accounts + goal detail; console clean
 - [ ] P0-3: `[object Object]` error page — normalise thrown values
 - [ ] Live-verify goal money flow end-to-end (create → add → detail → withdraw → detail) + vision
 
@@ -74,6 +75,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 |---|---|---|
 | 2026-10-28 | Plan file not committed to git (progress file is) | `.docs/` is in `.git/info/exclude` — deliberately local-only (private notes). `git add` of it fails "beyond a symbolic link". Progress tracker at repo root IS committed as the branch's first commit (45eb59c). |
 | 2026-10-28 | DevTools login flow: fill_form sets values but FormField only sets `touched` on blur → use click+type+Tab per field | Live finding while bootstrapping; also confirms proposal #6's value (Phase 2 will mark touched on input). Rate-limiter note: wrong-password attempts from half-filled fields triggered exponential backoff — cleared itself after ~30s. |
+| 2026-10-28 | P0-2 real root cause: missing decrypt call in month-ledger query, NOT a seed-keyring mismatch | Audit's passthrough theory was imprecise: decryptValue throws on failure (no passthrough for v1| blobs), and the recurring-patterns path decrypted the same rows fine — keyring healthy. The 2026-10-18 month-paginated ledger rewrite dropped the decrypt step. Fixed at source + defense-in-depth resilient decrypt anyway. |
 
 ## Deferrals
 | Item | Reason |

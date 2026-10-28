@@ -1,4 +1,5 @@
 import { decryptField, encryptField } from "./keyring";
+import { EnvelopeError } from "./envelope";
 import type { ValueAAD } from "./value-codec";
 
 /**
@@ -18,6 +19,31 @@ import type { ValueAAD } from "./value-codec";
 const TX_TABLE = "account_transactions";
 const NOTE_TABLE = "account_notes";
 const REVIEW_TABLE = "monthly_reviews";
+
+/**
+ * Placeholder for protected values that cannot be decrypted (tampered,
+ * transposed, or written under a different DataKey — e.g. a stale seed).
+ * Raw `v1|…` ciphertext must never reach the DOM: it leaks nothing useful,
+ * reads as a visual bug, and shattered the transaction ledger (P0-2,
+ * 2026-10-27 audit). Only EnvelopeError is masked; SealedError propagates
+ * so the unlock ceremony still intercepts sealed sessions.
+ */
+const UNDECRYPTABLE = "[encrypted]";
+
+function decryptResilient(
+	userId: number,
+	aad: ValueAAD,
+	stored: string | null,
+): string | null {
+	if (stored === null) return null;
+	try {
+		// Legacy pre-migration plaintext passes through unchanged
+		return decryptField(userId, aad, stored);
+	} catch (err) {
+		if (err instanceof EnvelopeError) return UNDECRYPTABLE;
+		throw err;
+	}
+}
 
 // --- account_transactions.description -------------------------------------
 
@@ -40,12 +66,11 @@ export function decryptTxDescription(
 	stored: string | null,
 ): string | null {
 	if (stored === null) return null;
-	// Non-null for non-null input (legacy passthrough forwards the value)
-	return decryptField(
+	return decryptResilient(
 		userId,
 		{ table: TX_TABLE, rowId: slug, column: "description" },
 		stored,
-	) as string;
+	);
 }
 
 // --- account_notes.content --------------------------------------------------
@@ -68,13 +93,11 @@ export function decryptNoteContent(
 	stored: string | null,
 ): string | null {
 	if (stored === null) return null;
-	// decryptField returns non-null for non-null stored input (legacy
-	// passthrough forwards the same value; GCM decrypt returns a string)
-	return decryptField(
+	return decryptResilient(
 		userId,
 		{ table: NOTE_TABLE, rowId: slug, column: "content" },
 		stored,
-	) as string;
+	);
 }
 
 // --- monthly_reviews.notes ---------------------------------------------------
@@ -97,12 +120,11 @@ export function decryptReviewNotes(
 	stored: string | null,
 ): string | null {
 	if (stored === null) return null;
-	// Non-null for non-null input (legacy passthrough forwards the value)
-	return decryptField(
+	return decryptResilient(
 		userId,
 		{ table: REVIEW_TABLE, rowId: slug, column: "notes" },
 		stored,
-	) as string;
+	);
 }
 
 /** Tables + columns under value-layer encryption (migrator consumes this). */

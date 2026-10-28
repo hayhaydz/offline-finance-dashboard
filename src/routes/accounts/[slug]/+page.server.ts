@@ -109,17 +109,25 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	// Full month of transactions — no offset/limit, so a month can never be
 	// split across pages and totals always see the complete range.
 	const transactions = monthRange
-		? await db.query.accountTransactions.findMany({
-				where: and(
-					eq(accountTransactions.accountId, account.id),
-					gte(accountTransactions.transactionDate, monthRange.start),
-					lt(accountTransactions.transactionDate, monthRange.end),
-				),
-				orderBy: desc(accountTransactions.transactionDate),
-				with: {
-					category: true,
-				},
-			})
+		? (
+				await db.query.accountTransactions.findMany({
+					where: and(
+						eq(accountTransactions.accountId, account.id),
+						gte(accountTransactions.transactionDate, monthRange.start),
+						lt(accountTransactions.transactionDate, monthRange.end),
+					),
+					orderBy: desc(accountTransactions.transactionDate),
+					with: {
+						category: true,
+					},
+				})
+			).map((tx) => ({
+				...tx,
+				// Value layer: descriptions are envelope-encrypted at rest —
+				// decrypt for display (P0-2: this ledger path previously
+				// returned raw `v1|…` ciphertext to the page)
+				description: decryptTxDescription(user.id, tx.slug, tx.description),
+			}))
 		: [];
 
 	const ledgerMonth =
