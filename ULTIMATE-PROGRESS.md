@@ -36,6 +36,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-28T23:39 | 2026-10-28T23:44 | 0h05m | Phase 9 cycle 2: FOUR P2 polish fixes — PSA segment legend, proportional waterfall truncation, net-worth last-point value tag, goal tick legend + pct rounding (each SSR-tested + live-verified + vision CLEAN); check 0/0 · 947/947 |
 | 2026-10-28T23:45 | 2026-10-28T23:53 | 0h08m | Phase 9 cycle 3: type auto-suggest (pure util + 6 tests + live-verified) · duplicate-name hint (live-verified + vision claim arbitrated to clip artifact) · zero-month label visual check CLEAN; NEW P2 harvested (category select blank on auto-match — #14 hydration quirk, state provably set); check 0/0 · 953/953; browser workaround = redirectTo login + single in-page script |
 | 2026-10-28T23:53 | 2026-10-28T23:57 | 0h04m | Continuation: ASCII toggle live-verified at last (workaround = redirectTo login + single in-page script; vision CLEAN); investigated category-select blank-on-auto-match 3 attempts (bind:value, selected attr — neither moved the DOM; state provably set via hint condition) → deferred w/ diagnostics, speculative changes reverted clean |
+| 2026-10-28T23:57 | 2026-10-28T23:58 | 0h01m | Palette drift fix: /accounts/balances added to ⌘K + route-coverage drift-guard tests (2); live-verified filter-to-entry; check 0/0 · 955/955 |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -105,6 +106,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 - [x] P2 fix: duplicate-name hint in inline category panel — ev: duplicateCategory derived (case-insensitive trim match) → amber "[!] \"X\" already exists — pick it from the Category list instead" + Create disabled while clashing; LIVE browser: warn text in DOM + createDisabled:true at screenshot moment; flash vision P1 "warning missing" ARBITRATED to viewport-clip artifact via zai-vision (image bottom sliced mid-element, panel below cut) — recurring capture pattern, disproven not dismissed
 - [x] P2 fix: zero-month label visual check (Phase 5 leftover) — ev: P9c-budget-burndown.png vision CLEAN ("labels cleanly separated" — £0/month labels below-axis gray placement from Phase 5 confirmed non-colliding)
 - [x] ASCII chart mode live-verified in browser (Phase 7 leftover, blocked 3x by session killer in earlier turns) — ev: new workaround (login via ?redirectTo=account + ONE in-page evaluate_script driving real DOM events): click [ASCII] on /overview/reports → pre.ascii-chart 0→3, svg[role=img] 5→3, localStorage charts-ascii=1 persisted, 0 console errors; vision P9c-ascii-on.png CLEAN (1× 1305 retry)
+- [x] P2 fix: command palette drift — /accounts/balances missing from ⌘K registry + drift guard — ev: added accounts-balances entry (Bulk Balance Update); NEW route-coverage test (every key app route incl. dynamic month routes must be palette-reachable; duplicate id/href guard) — 2 tests; LIVE browser: palette opens via ⌘K, 21 commands, "Bulk Balance Update" present, typing "bulk" filters to exactly it, 0 console errors; check 0/0 · 955/955
 - [ ] Ledger ≥ 6h verified
 
 ## Decisions

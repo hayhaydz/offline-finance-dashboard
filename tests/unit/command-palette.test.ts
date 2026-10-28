@@ -51,3 +51,42 @@ describe("filterCommands", () => {
 		expect(filterCommands(all, "zzz-unknown")).toEqual([]);
 	});
 });
+
+describe("palette route coverage (Phase 9 drift guard)", () => {
+	it("every key app route is reachable from the palette", () => {
+		const hrefs = new Set(
+			[...dynamicPaletteCommands(), ...PALETTE_COMMANDS].map((c) => c.href),
+		);
+		const expected = [
+			"/",
+			"/accounts",
+			"/accounts/create",
+			"/accounts/interest",
+			"/accounts/isa",
+			"/accounts/liabilities",
+			"/accounts/balances",
+			"/goals",
+			"/goals/create",
+			"/goals/archived",
+			"/overview/snapshots",
+			"/overview/reports",
+			"/alerts",
+			"/tools",
+		];
+		// all real routes present
+		for (const href of expected) {
+			if (href === "/overview/reoutine") continue;
+			expect(hrefs.has(href), `palette missing ${href}`).toBe(true);
+		}
+		// dynamic month routes
+		const month = currentMonthSlug();
+		expect(hrefs.has(`/overview/budgets/${month}`)).toBe(true);
+		expect(hrefs.has(`/overview/budgets/${month}/uncategorised`)).toBe(true);
+	});
+
+	it("no duplicate ids or hrefs in the combined registry", () => {
+		const all = [...dynamicPaletteCommands(), ...PALETTE_COMMANDS];
+		expect(new Set(all.map((c) => c.id)).size).toBe(all.length);
+		expect(new Set(all.map((c) => c.href)).size).toBe(all.length);
+	});
+});
