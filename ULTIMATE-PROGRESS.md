@@ -30,7 +30,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-28T22:44 | 2026-10-28T22:47 | 0h03m | Phase 7 line 1: j/k+Enter list nav on accounts+goals (real-keydown verified in browser), `?` help overlay + [?] button, goals SSR fix (0→10 rows); 12 tests; check 0/0 · 906/906 |
 | 2026-10-28T22:47 | 2026-10-28T22:51 | 0h04m | Phase 7 line 3: ASCII chart mode (3 pure renderers + 12 tests, [ASCII] toggle on Reports w/ localStorage persistence, SSR-verified; browser interaction blocked 3× by session killer — recorded); check 0/0 · 918/918 |
 | 2026-10-28T22:52 | 2026-10-28T23:07 | 0h15m | Phase 7 line 2 COMPLETE: rate heatmap on /accounts + allocation bar on /goals (both live w/ real data) + cashflow calendar on home (loader live; empty on seed — txns have no descriptions, honest empty state); surface-views.ts + 16 unit + 8 SSR tests; check 0/0 · 942/942. PHASE 7 COMPLETE |
-| 2026-10-28T23:07 | 2026-10-28T23:09 | 0h02m | Phase 8 line 1: audit folder + README (53 routes / 5 passes / protocol) + Pass A curl smoke — 11 routes 200, defect scan clean, bad-slug 404 ✓ |
+| 2026-10-28T23:07 | 2026-10-28T23:08 | 0h01m | Phase 8 line 1: audit folder + README (53 routes / 5 passes / protocol) + Pass A curl smoke — 11 routes 200, defect scan clean, bad-slug 404 ✓ |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
