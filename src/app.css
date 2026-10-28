@@ -98,6 +98,53 @@ td {
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 
+/* ── Chart theme tokens (Phase 4, Variant B) ─────────────────────────────
+   Single source of truth for every chart surface (hand-rolled SVG and
+   layerchart alike). Monochrome ink + dashed grid, square markers,
+   green/amber/red reserved for semantic direction (gain/warn/loss) —
+   never decoration. */
+:root {
+	--chart-ink: #000;          /* series strokes, axes, markers */
+	--chart-ink-soft: #6b7280;  /* secondary series, axis labels */
+	--chart-grid: #d1d5db;      /* dashed gridlines */
+	--chart-fill: rgba(0, 0, 0, 0.08); /* area fills under lines */
+	--chart-pos: #15803d;       /* semantic gain (green-700) */
+	--chart-warn: #b45309;      /* semantic warning (amber-700) */
+	--chart-neg: #b91c1c;       /* semantic loss (red-700) */
+	--chart-marker: 4px;        /* square marker size */
+	--chart-axis-font: 10px;    /* monospace axis label size */
+}
+
+/* Bordered chart panel (Phase 4) — wraps every chart surface */
+.chart-panel {
+	border: 1px solid var(--chart-ink);
+	background: #fff;
+	font-family: var(--font-mono, ui-monospace, monospace);
+}
+.chart-panel-title {
+	border-bottom: 1px solid var(--chart-ink);
+	background: #f3f4f6;
+	font-weight: 700;
+	font-size: 12px;
+	text-transform: uppercase;
+	padding: 4px 8px;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 8px;
+}
+.chart-panel-summary {
+	border-top: 1px solid var(--chart-ink);
+	background: #f9fafb;
+	font-size: 11px;
+	color: #4b5563;
+	padding: 4px 8px;
+}
+/* Dashed projection/pace lines inside charts */
+.chart-dashed {
+	stroke-dasharray: 4 3;
+}
+
 /* ── Print / PDF stylesheet (proposal #20) ─────────────────────────────
    Turns any page into a clean paper report: chrome (nav, actions, forms)
    hidden, data tables flow across pages, collapsed accordions forced open
