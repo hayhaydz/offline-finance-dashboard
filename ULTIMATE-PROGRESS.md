@@ -35,6 +35,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-28T23:27 | 2026-10-28T23:38 | 0h11m | Phase 9 cycle 1: performance pass (bundle audit — layerchart lazy-chunked, SSR 10–27ms) · a11y pass (global :focus-visible ring live-verified, gray-400→500 across 32 files for AA contrast) · hygiene sweep (console/TODO/dead-code clean) · docs (docs/dev/ultimate-2.0-release.md changelog+runbook) · vision-sweep 9 remaining pages ALL CLEAN (1 vision misread disproven via 4× crop); check 0/0 · 942/942 |
 | 2026-10-28T23:39 | 2026-10-28T23:44 | 0h05m | Phase 9 cycle 2: FOUR P2 polish fixes — PSA segment legend, proportional waterfall truncation, net-worth last-point value tag, goal tick legend + pct rounding (each SSR-tested + live-verified + vision CLEAN); check 0/0 · 947/947 |
 | 2026-10-28T23:45 | 2026-10-28T23:53 | 0h08m | Phase 9 cycle 3: type auto-suggest (pure util + 6 tests + live-verified) · duplicate-name hint (live-verified + vision claim arbitrated to clip artifact) · zero-month label visual check CLEAN; NEW P2 harvested (category select blank on auto-match — #14 hydration quirk, state provably set); check 0/0 · 953/953; browser workaround = redirectTo login + single in-page script |
+| 2026-10-28T23:53 | 2026-10-28T23:57 | 0h04m | Continuation: ASCII toggle live-verified at last (workaround = redirectTo login + single in-page script; vision CLEAN); investigated category-select blank-on-auto-match 3 attempts (bind:value, selected attr — neither moved the DOM; state provably set via hint condition) → deferred w/ diagnostics, speculative changes reverted clean |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -103,6 +104,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 - [x] P2 fix: type auto-suggest for spending-like descriptions — ev: new pure `type-suggest.ts` (suggestSpendingType: description matches #14 keyword rule → first budget-visible spending type among creatable, withdrawal preferred over charge; null when no rule/account offers none — never guesses) + 6 unit tests; wired in TransactionsSection w/ typeTouched guard + "auto-set to Withdrawal from description — change if wrong" hint + reset on submit; LIVE browser (account OfqAbB0JUox230vH, real input event): type select = withdrawal (was deposit default), hint renders; zai-vision on P9c-txn-form.png independently confirms dropdown "Withdrawal" + hint visible; check 0/0 · 953/953
 - [x] P2 fix: duplicate-name hint in inline category panel — ev: duplicateCategory derived (case-insensitive trim match) → amber "[!] \"X\" already exists — pick it from the Category list instead" + Create disabled while clashing; LIVE browser: warn text in DOM + createDisabled:true at screenshot moment; flash vision P1 "warning missing" ARBITRATED to viewport-clip artifact via zai-vision (image bottom sliced mid-element, panel below cut) — recurring capture pattern, disproven not dismissed
 - [x] P2 fix: zero-month label visual check (Phase 5 leftover) — ev: P9c-budget-burndown.png vision CLEAN ("labels cleanly separated" — £0/month labels below-axis gray placement from Phase 5 confirmed non-colliding)
+- [x] ASCII chart mode live-verified in browser (Phase 7 leftover, blocked 3x by session killer in earlier turns) — ev: new workaround (login via ?redirectTo=account + ONE in-page evaluate_script driving real DOM events): click [ASCII] on /overview/reports → pre.ascii-chart 0→3, svg[role=img] 5→3, localStorage charts-ascii=1 persisted, 0 console errors; vision P9c-ascii-on.png CLEAN (1× 1305 retry)
 - [ ] Ledger ≥ 6h verified
 
 ## Decisions
@@ -143,6 +145,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 ## Deferrals
 | Item | Reason |
 |---|---|
+| Category select stays visually blank on auto-match (P2, functional nit) | 3 attempts this run (value={} baseline, bind:value, option selected attr) — component state provably correct (auto-matched hint renders, condition requires selectedCategoryId === String(id)) but the DOM select refuses the programmatic selection (selIdx -1, el.value ''), so the submitted categoryId may be empty unless the user picks manually. Options exist (Groceries=11 verified), second input event doesn't help → suspect option-list re-render clobbering selection post-assignment. NEXT: instrument with a DOM mutation observer on the select. Cosmetic-adjacent: hint + manual select work; speculative changes reverted (tree = e9677e5) |
 
 ## Vision review log
 | Date | Screenshot | Verdict |
