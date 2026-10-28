@@ -153,6 +153,15 @@ td {
 	background: #f3f4f6;
 }
 
+/* Variant A ASCII chart mode (Phase 7) */
+.ascii-chart {
+	font-family: var(--font-mono, ui-monospace, monospace);
+	font-size: 11px;
+	line-height: 1.15;
+	margin: 0;
+	overflow-x: auto;
+}
+
 /* ── Print / PDF stylesheet (proposal #20) ─────────────────────────────
    Turns any page into a clean paper report: chrome (nav, actions, forms)
    hidden, data tables flow across pages, collapsed accordions forced open
