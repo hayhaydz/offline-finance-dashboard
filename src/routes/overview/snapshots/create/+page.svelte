@@ -123,10 +123,15 @@
 		<div class="p-2">
 			{#each data.preview.goalsBreakdown.goals as goal}
 				<div class="text-xs flex justify-between py-1 border-b border-gray-200 last:border-0">
-					<span>{truncateDisplay(goal.name, DISPLAY_LIMITS.GOAL_NAME)}</span>
+					<span>{truncateDisplay(goal.name, DISPLAY_LIMITS.GOAL_NAME)}{goal.goalType === 'debt' ? ' [DEBT]' : ''}</span>
 					<span>
-						{formatCurrencyShorthand(goal.currentAllocation)} /
-						{formatCurrencyShorthand(goal.targetAmountInCents)}
+						{#if goal.progressView}
+							{formatCurrencyShorthand(goal.progressView.amountInCents)} /
+							{formatCurrencyShorthand(goal.progressView.targetInCents)}
+						{:else}
+							{formatCurrencyShorthand(goal.currentAllocation)} /
+							{formatCurrencyShorthand(goal.targetAmountInCents)}
+						{/if}
 					</span>
 				</div>
 			{/each}

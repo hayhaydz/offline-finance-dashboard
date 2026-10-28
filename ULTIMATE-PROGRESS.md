@@ -2,15 +2,12 @@
 Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 
 ## Time ledger
+(Corrected 19:58 against real git commit timestamps — earlier end-times had drifted ahead of the wall clock.)
 | Session start | Session end | Elapsed | Work done |
 |---|---|---|---|
-| 2026-10-28T19:29 | 2026-10-28T19:35 | 0h06m | Phase 0 bootstrap: branch, progress file, baseline green, live login OK |
-| 2026-10-28T19:35 | 2026-10-28T19:41 | 0h06m | P0-1 GoalDetailCard TDZ fix + 5 SSR smoke tests + live verify |
-| 2026-10-28T19:41 | 2026-10-28T19:47 | 0h06m | P0-2 ciphertext leak: ledger decrypt + resilient protected-fields + 7 tests + live verify |
-| 2026-10-28T19:47 | 2026-10-28T19:52 | 0h05m | P0-3 error page: errorDisplayMessage helper, reactive SSR render, hooks developerMessage, 9 tests + live verify |
-| 2026-10-28T19:52 | 2026-10-28T20:01 | 0h09m | Phase 1 E2E goal money flow live (create→add→withdraw→archive) + 3 vision reviews — PHASE 1 COMPLETE |
-| 2026-10-28T20:01 | 2026-10-28T20:10 | 0h09m | P1-1 PSA <br> + P1-2 liabilities currency + P1-3 snapshot breadcrumb off-by-one, all live-verified |
-| 2026-10-28T20:10 | 2026-10-28T20:26 | 0h16m | P1-4 debt milestones: two-way syncMilestones + honest seed (positive thresholds, Visa payments) + re-seed + live verify |
+| 2026-10-28T19:29 | 2026-10-28T19:35 | 0h06m | Phase 0 bootstrap + P0-1 (commit 2bb5d5f @19:35) |
+| 2026-10-28T19:36 | 2026-10-28T19:57 | 0h21m | P0-2 (19:40), P0-3 (19:42), Phase-1 E2E (19:49), P1-1/2/3 (19:52), P1-4 (19:57) |
+| 2026-10-28T19:58 | 2026-10-28T20:09 | 0h11m | P1-5 shared computeGoalProgress (7 tests, routine+snapshot wired) + P1-6 ledger default newest-first — Phase 2 line 2 complete |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -27,7 +24,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 
 ### Phase 2 — P1/P2 bugs + quick wins (#2–#10)
 - [x] P1-1 `<br>` PSA bars · P1-2 liabilities formatCurrency · P1-3 breadcrumb slugs/labels — ev: P1-1: KpiCard gained `detailLines` prop (stacked divs); interest/2026-27 page LIVE shows `[##########] 100%` / `OF £500.00` on two lines, zero literal `<br>`. P1-2: 4 currency spots routed through formatCurrency; LIVE liabilities shows `-£253,790.00` total + `-£2,315.00` balance (separators + sign convention). P1-3: snapshot loads were off-by-one (overriding segment 1 = 'snapshots', not the slug at 2) — detail now `Overview > Snapshots > 2026-02-01`, delete `… > Delete`; goal/account routes confirmed already correct. check 0/0; suite 761/761
-- [ ] P1-4 debt milestone inversion + payment history · P1-5 shared goal-progress fn (tests) · P1-6 Newest-First toggle semantics — P1-4 DONE (2026-10-28): root cause = seed fiction (pre-ticked milestones contradicting math, negative thresholds vs checker's positive convention, zero payment-type txns for Visa). Fix: new two-way `syncMilestones` in goal-calculations.ts (reaches AND un-reaches vs current balance; 5 unit tests in sync-milestones.test.ts) wired into debt/[slug] load; seed converted to positive thresholds + honest reached flags (all 7 goals recomputed); Visa fixture got 2 payment txns (+£100/+£85, net unchanged −£2,315); re-seeded. LIVE: Visa 7% paid → 0 ticks + PAYMENT HISTORY (2) (−£85 23 Oct, −£100 8 Oct); Mastercard 44% → exactly 1 tick (25%). check 0/0; suite 766/766. REMAINING: P1-5 shared progress fn, P1-6 toggle semantics
+- [x] P1-4 debt milestone inversion + payment history · P1-5 shared goal-progress fn (tests) · P1-6 Newest-First toggle semantics — P1-4 (commit 2b02b42): two-way syncMilestones + honest seed (positive thresholds, Visa payment txns) + re-seed; LIVE Visa 7%→0 ticks + PAYMENT HISTORY (2), Mastercard 44%→1 tick. P1-5: new shared `computeGoalProgress`/`enrichGoalsWithProgress` in goals.ts (7 unit tests compute-goal-progress.test.ts); wired into routine GOAL PROGRESS + snapshot goalsBreakdown (schema type extended, progressView stored per snapshot; old snapshots fall back gracefully, debt rows tagged [DEBT]); LIVE: routine Visa row = Target £2,500/Saved £185/7% (was £0/£0·0%), snapshot create shows all 7 debt goals with real paid figures. P1-6: TransactionFilterBar default sort flipped to newest-first (label already action-correct); 1 SSR label test (locks default); LIVE: /accounts/isa/2026-27 record opens 2026-07-29→2026-04-30 with [Oldest First] action label (was newest-first-labelled + oldest-first rows). check 0/0; suite 774/774
 - [ ] P1-7 account-count consistency (closed-account policy) · P1-8 PaginationClient console.logs · P1-9 Ready-to-Assign semantics
 - [ ] P2-1 breadcrumb capitalisation map · P2-2 styled delete-confirm modal · P2-4 ISA over-subscription warning · P2-5 copy nits
 - [ ] #2 severity legend · #5 bar % labels + pace colours · #6 touched-on-input forms

@@ -7,6 +7,7 @@ import {
 	uniqueIndex,
 } from "drizzle-orm/sqlite-core";
 import { users } from "./auth";
+import type { SnapshotGoalEntry } from "$lib/types/snapshots";
 
 export const monthlyReviews = sqliteTable(
 	"monthly_reviews",
@@ -124,14 +125,19 @@ export const snapshots = sqliteTable(
 			}>;
 		}>(),
 		goalsBreakdown: text("goals_breakdown", { mode: "json" }).$type<{
-			goals: Array<{
-				goalId: number;
-				goalSlug: string;
-				name: string;
-				targetAmountInCents: number;
-				currentAllocation: number;
-				isEmergencyFund: boolean;
-			}>;
+			goals: Array<
+				// Fields beyond the legacy five are optional: snapshots written
+				// before 2026-10-28 (P1-5) lack goalType/progressView
+				SnapshotGoalEntry & {
+					goalType?: "savings" | "debt";
+					startingBalanceInCents?: number | null;
+					progressView?: {
+						amountInCents: number;
+						targetInCents: number;
+						percent: number;
+					};
+				}
+			>;
 			totalAllocated: number;
 		}>(),
 		// ISA allowance tracking (separated from interest for clarity)

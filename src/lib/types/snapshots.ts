@@ -32,9 +32,21 @@ export interface SnapshotGoalEntry {
 	goalId: number;
 	goalSlug: string;
 	name: string;
+	goalType?: "savings" | "debt";
 	targetAmountInCents: number;
 	currentAllocation: number;
 	isEmergencyFund: boolean;
+	startingBalanceInCents?: number | null;
+	/**
+	 * Unified progress (P1-5): debt = paid-vs-starting, savings =
+	 * allocation-vs-target. Absent on snapshots written before 2026-10-28 —
+	 * consumers must fall back to the legacy fields for those rows.
+	 */
+	progressView?: {
+		amountInCents: number;
+		targetInCents: number;
+		percent: number;
+	};
 }
 
 /**

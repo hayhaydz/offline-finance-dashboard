@@ -14,6 +14,7 @@ import {
 	updateReviewNotes,
 } from "$lib/server/reviews";
 import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
+import { enrichGoalsWithProgress } from "$lib/server/goals";
 import type { Actions, PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -56,25 +57,26 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		}
 	}
 
-	// Build goal progress rows
-	const goalProgress = userGoals.map((g) => {
+	// Build goal progress rows — shared progress math (P1-5): debt goals
+	// progress from starting balance vs current account balance, not the
+	// allocation fields they never populate
+	const enrichedGoals = await enrichGoalsWithProgress(userGoals);
+	const goalProgress = enrichedGoals.map((g) => {
 		const prior = priorGoalAllocation.get(g.id) ?? null;
 		const momDelta = prior !== null ? g.currentAllocation - prior : null;
-		const percent =
-			g.targetAmountInCents > 0
-				? Math.min(
-						100,
-						Math.round((g.currentAllocation / g.targetAmountInCents) * 100),
-					)
-				: 0;
 
 		return {
 			id: g.id,
 			slug: g.slug,
 			name: g.name,
+			goalType: g.goalType,
 			targetAmountInCents: g.targetAmountInCents,
 			currentAllocation: g.currentAllocation,
-			percent,
+			percent: g.progressView.percent,
+			/** Savings: allocation saved. Debt: pence paid off. */
+			progressAmountInCents: g.progressView.progressAmountInCents,
+			progressTargetInCents: g.progressView.progressTargetInCents,
+			debtGrewBeyondStarting: g.progressView.debtGrewBeyondStarting,
 			momDelta,
 		};
 	});

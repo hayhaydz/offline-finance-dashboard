@@ -151,16 +151,17 @@
 							<a href="/goals/{goal.slug}" class="bracket-link text-xs">{goal.name}</a>
 						</td>
 						<td class="text-right pr-1 tabular-nums py-1 text-xs">
-							{formatCurrencyShorthand(goal.targetAmountInCents)}
+							{formatCurrencyShorthand(goal.progressTargetInCents)}
 						</td>
 						<td class="text-right pr-1 tabular-nums py-1 text-xs">
-							{formatCurrency(goal.currentAllocation)}
+							{formatCurrency(goal.progressAmountInCents)}
 						</td>
 						<td class="text-center tabular-nums py-1 text-xs"
 							class:text-green-700={goal.percent >= 100}
 							class:text-amber-700={goal.percent >= 50 && goal.percent < 100}
+							class:text-red-700={goal.debtGrewBeyondStarting}
 						>
-							{goal.percent}%
+							{goal.percent}%{goal.debtGrewBeyondStarting ? '↑' : ''}
 						</td>
 						<td class="text-center tabular-nums py-1 text-xs {momClass(goal.momDelta)}">
 							{momLabel(goal.momDelta)}

@@ -36,7 +36,10 @@
 	} = $props();
 
 	// Internal state
-	let transactionsSortDesc = $state(false);
+	// Default: newest first (P1-6, 2026-10-27 audit — the ledger opened
+	// oldest-first while the toggle offered "[Newest First]"). Button label
+	// always names the action clicking will perform.
+	let transactionsSortDesc = $state(true);
 	let sectionRef: HTMLElement | null = $state(null);
 	const txPagination = useUrlPagination('txPage');
 

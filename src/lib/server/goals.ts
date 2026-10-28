@@ -4,6 +4,106 @@ import { db } from "$lib/db/client";
 import { accounts, goalAllocations, goals } from "$lib/db/schema";
 import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
 import { devLog, isVerboseDebug } from "$lib/server/logger";
+import { getDebtGoalProgress } from "./goal-calculations";
+
+/**
+ * Shared goal-progress enrichment (P1-5, 2026-10-27 audit).
+ *
+ * Savings goals progress from allocation ÷ target; DEBT goals progress from
+ * starting balance vs the linked account's CURRENT balance. Views that
+ * naively used allocation math rendered debt goals as "£0 / £0 · 0%"
+ * (snapshot create/detail, routine GOAL PROGRESS). Every view now funnels
+ * through here so the math can never drift apart again.
+ */
+export interface GoalWithProgress {
+	goalType?: "savings" | "debt" | null;
+	linkedAccountId?: number | null;
+	startingBalanceInCents?: number | null;
+	targetAmountInCents: number;
+	currentAllocation: number;
+}
+
+export interface GoalProgressView {
+	/** Savings: currentAllocation. Debt: pence paid off. */
+	progressAmountInCents: number;
+	/** Savings: targetAmount. Debt: |starting balance|. */
+	progressTargetInCents: number;
+	/** 0-100, single convention for both goal types. */
+	percent: number;
+	/** Debt only: true when the balance now exceeds the starting figure. */
+	debtGrewBeyondStarting: boolean;
+	/** Current linked-account balance for debt goals (null for savings). */
+	debtCurrentBalanceInCents: number | null;
+}
+
+export function computeGoalProgress<T extends GoalWithProgress>(
+	goal: T,
+	currentBalanceByAccountId?: Map<number, number>,
+): T & { progressView: GoalProgressView } {
+	if (goal.goalType === "debt") {
+		const currentBalance =
+			goal.linkedAccountId != null
+				? (currentBalanceByAccountId?.get(goal.linkedAccountId) ?? 0)
+				: 0;
+		const p = getDebtGoalProgress({
+			startingBalanceInCents: goal.startingBalanceInCents ?? 0,
+			currentBalanceInCents: currentBalance,
+		});
+		return {
+			...goal,
+			progressView: {
+				progressAmountInCents: p.paidInCents,
+				progressTargetInCents: p.totalInCents,
+				// Raw progress can be fractional (7.3999…%) — views render
+				// integers, so normalise once here
+				percent: Math.round(p.percent),
+				debtGrewBeyondStarting: p.debtGrewBeyondStarting,
+				debtCurrentBalanceInCents: currentBalance,
+			},
+		};
+	}
+
+	// Savings goal: allocation ÷ target
+	const percent =
+		goal.targetAmountInCents > 0
+			? Math.min(
+					100,
+					Math.round(
+						(goal.currentAllocation / goal.targetAmountInCents) * 100,
+					),
+				)
+			: 0;
+	return {
+		...goal,
+		progressView: {
+			progressAmountInCents: goal.currentAllocation,
+			progressTargetInCents: goal.targetAmountInCents,
+			percent,
+			debtGrewBeyondStarting: false,
+			debtCurrentBalanceInCents: null,
+		},
+	};
+}
+
+/** Bulk variant: resolves debt balances once, then enriches every goal. */
+export async function enrichGoalsWithProgress<T extends GoalWithProgress>(
+	userGoals: T[],
+): Promise<(T & { progressView: GoalProgressView })[]> {
+	const debtAccountIds = [
+		...new Set(
+			userGoals
+				.filter(
+					(g) => g.goalType === "debt" && g.linkedAccountId != null,
+				)
+				.map((g) => g.linkedAccountId!),
+		),
+	];
+	const balanceMap =
+		debtAccountIds.length > 0
+			? await getCurrentBalancesForAccounts(debtAccountIds)
+			: new Map<number, number>();
+	return userGoals.map((g) => computeGoalProgress(g, balanceMap));
+}
 
 export type {
 	AccountAllocationWithLiquidity,

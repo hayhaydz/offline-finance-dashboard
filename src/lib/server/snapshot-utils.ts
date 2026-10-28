@@ -3,6 +3,7 @@ import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, goals, snapshots } from "$lib/db/schema";
 import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
+import { enrichGoalsWithProgress } from "$lib/server/goals";
 import { calculateAssetsAndLiabilities } from "$lib/server/finance";
 import { devLog } from "$lib/server/logger";
 import {
@@ -83,15 +84,25 @@ export async function calculateSnapshotData(
 		),
 	};
 
-	// Build goals breakdown JSON
+	// Build goals breakdown JSON — each goal carries a progressView
+	// (P1-5): debt goals report paid-vs-starting (allocation is always £0
+	// for them), savings goals report allocation-vs-target
+	const enrichedSnapshotGoals = await enrichGoalsWithProgress(allGoals);
 	const goalsBreakdown = {
-		goals: allGoals.map((g) => ({
+		goals: enrichedSnapshotGoals.map((g) => ({
 			goalId: g.id,
 			goalSlug: g.slug,
 			name: g.name,
+			goalType: (g.goalType ?? "savings") as "savings" | "debt",
 			targetAmountInCents: g.targetAmountInCents,
 			currentAllocation: g.currentAllocation,
 			isEmergencyFund: g.isEmergencyFund,
+			startingBalanceInCents: g.startingBalanceInCents ?? null,
+			progressView: {
+				amountInCents: g.progressView.progressAmountInCents,
+				targetInCents: g.progressView.progressTargetInCents,
+				percent: g.progressView.percent,
+			},
 		})),
 		totalAllocated,
 	};
