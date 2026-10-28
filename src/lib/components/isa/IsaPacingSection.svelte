@@ -29,7 +29,7 @@
 				<div class="text-[10px] text-gray-500">actual so far</div>
 			</div>
 			<div class="border-r border-black p-2">
-				<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">{pacing.isLastMonth ? 'Required Total' : 'Required / Month'}</div>
+				<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">{pacing.isLastMonth ? 'Required Total' : 'Needed / Month'}</div>
 				<div
 					class="text-lg font-bold"
 					class:text-amber-700={pacing.status === 'behind'}
@@ -37,7 +37,7 @@
 				>
 					{formatCurrency(pacing.requiredMonthlyInCents)}
 				</div>
-				<div class="text-[10px] text-gray-500">to reach £20k</div>
+				<div class="text-[10px] text-gray-500">to use full allowance</div>
 			</div>
 			<div class="border-r border-black p-2">
 				<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Months Elapsed</div>

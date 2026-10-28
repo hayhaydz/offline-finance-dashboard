@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { tick } from 'svelte';
+	import ConfirmModal from '$lib/components/ConfirmModal.svelte';
 	import { formatCurrency, formatDateShorthand, formatDateTime } from '$lib/utils/currency';
 	import { truncateDisplay, DISPLAY_LIMITS } from '$lib/utils/fieldLimits';
 	import { getTransactionTypeLabel, getTransactionTypeBadgeClass } from '$lib/utils/formatting';
@@ -74,6 +75,19 @@
 	const creatableTypes: readonly TransactionType[] = $derived(
 		getTransactionTypesForAccountType(accountType),
 	);
+
+	// Styled delete confirmation (P2-2) — replaces native confirm(). The
+	// pending transaction gates the modal; confirming submits its form.
+	let pendingDelete: Transaction | null = $state(null);
+	function confirmDelete() {
+		const slug = pendingDelete?.slug;
+		pendingDelete = null;
+		if (slug) {
+			document
+				.querySelector<HTMLFormElement>(`form[data-delete-tx="${slug}"]`)
+				?.requestSubmit();
+		}
+	}
 	// Track the user's choice; fall back to the first offered type when unset
 	// or no longer offered (keeps the select valid if the list ever changes).
 	let selectedType = $state<TransactionType | null>(null);
@@ -301,13 +315,14 @@
 												method="POST"
 												action="?/deleteTransaction"
 												class="inline"
+												data-delete-tx={transaction.slug}
 												use:enhance={feedback.createEnhanceHandler('Transaction deleted')}
 												>
 												<input type="hidden" name="transactionSlug" value={transaction.slug} />
 												<button
-													type="submit"
+													type="button"
 													class="bracket-link text-xs text-red-700"
-													onclick={(e) => { if (!confirm('Delete this transaction?')) e.preventDefault(); }}
+													onclick={() => { pendingDelete = transaction; }}
 												>
 													[Delete]
 												</button>
@@ -380,3 +395,17 @@
 		{/if}
 	{/if}
 </div>
+
+<ConfirmModal
+	open={pendingDelete !== null}
+	title="DELETE TRANSACTION"
+	message="Delete this transaction?"
+	details={pendingDelete ? [
+		`Date: ${formatDateShorthand(pendingDelete.transactionDate)}`,
+		`Amount: ${formatCurrency(pendingDelete.amount)}`,
+		pendingDelete.description ? `Description: ${truncateDisplay(pendingDelete.description, DISPLAY_LIMITS.BALANCE_NOTES)}` : null
+	].filter((d): d is string => d !== null) : undefined}
+	confirmLabel="[Delete]"
+	onConfirm={confirmDelete}
+	onCancel={() => (pendingDelete = null)}
+/>

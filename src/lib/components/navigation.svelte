@@ -81,7 +81,7 @@
       authRequired: true,
       children: [
         { href: '/settings/general', label: 'General' },
-        { href: '/settings/profile', label: 'Profile' },
+        { href: '/settings/profile', label: 'Session & Security' },
         { href: '/settings/security', label: 'Security' },
         { href: '/settings/data', label: 'Data' }
       ]
@@ -157,7 +157,7 @@
         income: 'Income',
         settings: 'Settings',
         tools: 'Tools',
-        profile: 'Profile',
+        profile: 'Session & Security',
         create: 'Create',
         isa: 'ISA',
         interest: 'Interest',
@@ -165,7 +165,24 @@
         balances: 'Balances',
         edit: 'Edit',
         delete: 'Close',
-        all: 'All'
+        all: 'All',
+        // P2-1 (2026-10-27 audit): title-case every crumb consistently
+        expenses: 'Expenses',
+        alerts: 'Alerts',
+        general: 'General',
+        security: 'Security',
+        data: 'Data',
+        login: 'Login',
+        register: 'Register',
+        unlock: 'Unlock',
+        recovery: 'Recovery',
+        review: 'Review',
+        notes: 'Notes',
+        archived: 'Archived',
+        confirm: 'Confirm',
+        payoffs: 'Payoffs',
+        breakdown: 'Breakdown',
+        csv: 'CSV'
       };
 
       // Use override if provided, otherwise use labelMap or segment

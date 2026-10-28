@@ -139,10 +139,16 @@
 		<div class="text-xs text-gray-600 mb-2">
 			Tax Year: {isaBreakdown.taxYear.start} to {isaBreakdown.taxYear.end}
 		</div>
+		{#if isaBreakdown.allowance.usedThisTaxYear > isaBreakdown.allowance.limit}
+			<div class="border-2 border-red-700 text-red-700 p-1 mb-2 text-xs font-bold">
+				[!] OVER-SUBSCRIBED BY {formatCurrencyShorthand(isaBreakdown.allowance.usedThisTaxYear - isaBreakdown.allowance.limit)} —
+				exceeds the £20,000 annual ISA limit. Fix the underlying records.
+			</div>
+		{/if}
 		<div class="text-sm">
 			<div class="flex justify-between py-1 border-b border-gray-200 last:border-0">
 				<span class="text-gray-600">Used This Tax Year:</span>
-				<span class="font-bold">{formatCurrencyShorthand(isaBreakdown.allowance.usedThisTaxYear)}</span>
+				<span class="font-bold {isaBreakdown.allowance.usedThisTaxYear > isaBreakdown.allowance.limit ? 'text-red-700' : ''}">{formatCurrencyShorthand(isaBreakdown.allowance.usedThisTaxYear)}</span>
 			</div>
 			<div class="flex justify-between py-1 border-b border-gray-200 last:border-0">
 				<span class="text-gray-600">ISA Allowance:</span>

@@ -65,8 +65,7 @@
 <div class="border-b border-black p-2">
 	<h1 class="text-lg font-bold mb-2 mt-0">LOG IN / UNLOCK</h1>
 	<p class="text-gray-600 my-1">
-		Your password assembles the data key in memory — the disk alone can never
-		unseal your data.
+		Your password unlocks your data on this device — nothing leaves your machine.
 	</p>
 </div>
 

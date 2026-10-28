@@ -289,11 +289,16 @@
 					class="border border-gray-300 px-1 py-0.5 w-52 font-terminal text-xs"
 				/>
 			</label>
-			<label class="flex items-center gap-1 text-xs text-gray-600 cursor-pointer">
-				<input type="checkbox" bind:checked={applyForward} class="cursor-pointer" />
-				<span>[x] apply from this month onward</span>
-			</label>
-			<span class="text-[10px] text-gray-400">{applyForward ? 'this + future months, each trailed' : 'this month only'}</span>
+			<div class="flex items-center gap-3 text-xs text-gray-600">
+				<label class="flex items-center gap-1 cursor-pointer">
+					<input type="radio" name="applyScope" value="month" checked={!applyForward} onchange={() => (applyForward = false)} class="cursor-pointer" />
+					<span>this month only</span>
+				</label>
+				<label class="flex items-center gap-1 cursor-pointer">
+					<input type="radio" name="applyScope" value="forward" checked={applyForward} onchange={() => (applyForward = true)} class="cursor-pointer" />
+					<span>this + future months (each trailed in history)</span>
+				</label>
+			</div>
 		</div>
 	{/if}
 
@@ -303,16 +308,17 @@
 		onclick={() => (targetOpen = !targetOpen)}
 	>
 		<span class="flex items-center gap-2">
-			MONTHLY TARGET
+			TARGET / MO
 			{#if data.budget}
 				<span class="{remaining >= 0 ? 'text-green-700' : 'text-red-700'} font-bold text-xs">
 					{remaining >= 0 ? formatCurrency(remaining) + ' remaining' : formatCurrency(Math.abs(remaining)) + ' over'}
 				</span>
+				<span class="text-gray-400 text-[10px]">· sum of category targets</span>
 			{:else}
 				<span class="text-gray-400 text-xs">not set</span>
 			{/if}
 		</span>
-		<span class="text-xs text-gray-400">{targetOpen ? '[-]' : '[+]'}</span>
+		<span class="text-xs text-gray-400">details {targetOpen ? '[-]' : '[+]'}</span>
 	</button>
 
 	{#if targetOpen}
