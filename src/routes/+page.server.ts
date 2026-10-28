@@ -4,6 +4,7 @@ import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions, goals, snapshots } from "$lib/db/schema";
 import { getAlerts } from "$lib/server/alerts";
+import { decryptTxDescription } from "$lib/server/crypto/protected-fields";
 import { detectRecurringPatterns } from "$lib/server/recurring-patterns";
 import { projectObligations } from "$lib/utils/surface-views";
 import {
@@ -297,8 +298,12 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 
 	// Phase 7 line 2: cashflow calendar — detect recurring patterns from
 	// the last 365d of transactions and project this month's dues.
-	const patternRows = await db
+	// NOTE: descriptions are encrypted at rest — decrypt BEFORE grouping
+	// (raw ciphertext never matches across rows, so detection on the
+	// sealed column would always be empty). Phase 8 re-audit fix.
+	const patternRowsRaw = await db
 		.select({
+			slug: accountTransactions.slug,
 			description: accountTransactions.description,
 			amount: accountTransactions.amount,
 			transactionDate: accountTransactions.transactionDate,
@@ -312,6 +317,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			),
 		)
 		.orderBy(asc(accountTransactions.transactionDate));
+	const patternRows = patternRowsRaw.map((r) => ({
+		description: decryptTxDescription(user.id, r.slug, r.description),
+		amount: r.amount,
+		transactionDate: r.transactionDate,
+	}));
 	const patterns = detectRecurringPatterns(patternRows);
 	const now = new Date();
 	const cashflowYear = now.getUTCFullYear();
