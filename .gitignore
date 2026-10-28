@@ -40,5 +40,6 @@ build/
 .worktrees/
 
 logs/
+.opencode/opencode-loop/
 
 *.DS_STORE

@@ -1,5 +1,8 @@
 ## 🛠️ OPS & GIT
-- **GIT:** MANUAL ONLY. No `git add/commit/push`. (Enforced by settings.json).
+- **GIT:** Auto — `git add`/`git commit` freely. NEVER `git push` (manual only).
+- **COMMITS:** 1 line, short, plain English. Format `type: what changed` (feat/fix/docs/release). Say WHAT it did, not how — no file lists, no jargon, no parenthetical tails.
+  - Good: `release: v1.1.0` · `fix: migrate form 404` · `feat: remove TOTP two-factor login`
+  - Bad: `feat: drop-totp-2fa — purge TOTP/backup-code factor (route+mfa.ts deleted, cols/table dropped via migration 0008, otplib/qrcode deps removed...)` → should be `feat: remove TOTP two-factor login`
 - **WORKTREES:** DO NOT use git worktrees by default. Only if explicitly asked. Prefer subagent-driven step-by-step implementation on main branch.
 - **SAVE POINTS:** Update `.docs/VERSION_HISTORY.md` (newest first, **1 line MAX per entry, ≤120 chars** — see ABSOLUTE RULE 6) instead of committing.
 - **VERIFICATION:** Grep/Read files to verify changes BEFORE claiming completion. Keep to 1 line commits messages
@@ -42,7 +45,7 @@
 2. NEVER assume execution, verification, or correctness.
 3. NEVER describe outcomes of commands you did not personally run.
 4. When execution or validation is required, STOP and ask for instructions.
-5. NEVER run `git add`, `git commit`, or `git push` — these are manual operations.
+5. `git add` and `git commit` are allowed autonomously — messages short and plain English (see COMMIT STYLE above). NEVER `git push`; pushing stays manual.
 6. **AT SAVE POINTS, UPDATE `.docs/VERSION_HISTORY.md`** — add EXACTLY ONE line, **MAX 120 characters**: `## YYYY-MM-DD — <short summary>`. This is a changelog index, NOT a detail dump. NO multi-clause essays, NO file inventories, NO test counts, NO "verified" narratives. If it wraps or exceeds 120 chars, shorten it. Details belong in commit messages, `docs/`, or `.docs/` notes — NEVER in VERSION_HISTORY.
 7. **GENERAL DOCUMENTATION goes in `docs/` folder** — organize by topic/category.
 8. **🔒 PACKAGE.JSON LOCKED** — User has manually configured dependencies. DO NOT modify `package.json` without explicit permission. Additions to other files are okay, but changing existing setup requires approval first.
