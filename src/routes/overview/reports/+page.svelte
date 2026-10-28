@@ -3,6 +3,8 @@
 	import StackedAreaChart from "$lib/components/charts/StackedAreaChart.svelte";
 	import MonthlySpendChart from "$lib/components/charts/MonthlySpendChart.svelte";
 	import CategoryBars from "$lib/components/charts/CategoryBars.svelte";
+	import PsaBulletChart from "$lib/components/charts/PsaBulletChart.svelte";
+	import DebtWaterfallChart from "$lib/components/charts/DebtWaterfallChart.svelte";
 	import { formatCurrency } from "$lib/utils/currency";
 	import {
 		HISTORY_RANGES,
@@ -59,11 +61,29 @@
 		/>
 	</div>
 
-	<div class="border border-black mt-3 max-w-6xl">
-		<div class="font-bold text-xs px-2 py-1 bg-gray-50 border-b border-black">COMING IN THIS RELEASE</div>
-		<div class="text-xs text-gray-600 px-2 py-2 leading-relaxed">
-			Interest report (actual vs projected + PSA) · debt report (waterfall + payoff projections) —
-			each with export and print support.
+	<!-- Phase 5 line 2: interest report (PSA bullet, current tax year) -->
+	{#if data.interestReport}
+		<div class="max-w-6xl mt-3">
+			<PsaBulletChart
+				taxYearLabel={data.interestReport.taxYearLabel}
+				band={data.interestReport.band}
+				allowancePence={data.interestReport.psaAllowanceInCents}
+				actualPence={data.interestReport.actualTaxableInCents}
+				projectedPence={data.interestReport.projectedTaxableInCents}
+				formatPence={(p) => formatCurrency(p)}
+			/>
 		</div>
-	</div>
+	{/if}
+
+	<!-- Phase 5 line 2: debt report (waterfall + payoff projections) -->
+	{#if data.debtReport && data.debtReport.goals.length > 0}
+		<div class="max-w-6xl mt-3">
+			<DebtWaterfallChart
+				goals={data.debtReport.goals}
+				totalDebtInCents={data.debtReport.totalDebtInCents}
+				projectedDebtFreeDate={data.debtReport.projectedDebtFreeDate}
+				formatPence={(p) => formatCurrency(p)}
+			/>
+		</div>
+	{/if}
 </div>

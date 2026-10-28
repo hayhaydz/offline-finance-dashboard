@@ -67,6 +67,22 @@ describe("Reports page (Phase 5 line 1)", () => {
 					environment: { mode: "loose", isProduction: false, hasEncryption: false },
 					netWorthHistory: history,
 					monthlySpend: [],
+					interestReport: {
+						taxYearLabel: "2026/27",
+						band: "basic",
+						psaAllowanceInCents: 100000,
+						actualTaxableInCents: 0,
+						projectedTaxableInCents: 0,
+						forecastTaxableInCents: 0,
+						actualTaxFreeInCents: 0,
+						projectedTaxFreeInCents: 0,
+					},
+					debtReport: {
+						totalDebtInCents: 0,
+						totalMonthlyMinimumInCents: 0,
+						projectedDebtFreeDate: null,
+						goals: [],
+					},
 				},
 			},
 		});
