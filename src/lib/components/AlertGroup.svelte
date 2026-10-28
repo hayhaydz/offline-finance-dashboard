@@ -1,8 +1,20 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
+	import { invalidateAll } from '$app/navigation';
 	import type { AlertGroup } from '$lib/types/alerts';
 	import AlertBadge from './AlertBadge.svelte';
 
-	const { group }: { group: AlertGroup } = $props();
+	let {
+		group,
+		ackAction,
+		restoreAction
+	}: {
+		group: AlertGroup;
+		/** Form action for acknowledge (e.g. '?/ack'); absent = no ack UI (proposal #10) */
+		ackAction?: string;
+		/** Form action for restore (e.g. '?/restore') */
+		restoreAction?: string;
+	} = $props();
 
 	let expanded = $state(false);
 
@@ -15,11 +27,15 @@
 	const severityText   = $derived(group.severity === 'red' ? 'text-red-700' : group.severity === 'amber' ? 'text-amber-700' : 'text-zinc-500');
 	const severityBorder = $derived(group.severity === 'red' ? 'border-red-200' : group.severity === 'amber' ? 'border-amber-200' : 'border-black/10');
 	const prefix         = $derived(group.severity === 'red' ? '[!!]' : group.severity === 'amber' ? '[!]' : '[i]');
+
+	const invalidate = () => async () => {
+		await invalidateAll();
+	};
 </script>
 
 {#if group.alerts.length === 1}
 	<!-- Single alert — delegate to AlertBadge -->
-	<AlertBadge alert={group.alerts[0]} />
+	<AlertBadge alert={group.alerts[0]} {ackAction} {restoreAction} />
 {:else}
 	<!-- Multiple accounts with the same alert title — grouped row -->
 	<div class="border-b border-black font-mono text-sm {severityBg}">
@@ -57,13 +73,29 @@
 							{/if}
 							<span class="text-zinc-600 text-xs">{alert.message}</span>
 						</div>
-					{#if alert.href || alert.secondaryHref}
+					{#if alert.href || alert.secondaryHref || ackAction || restoreAction}
 						<div class="flex gap-2 shrink-0 ml-4">
 							{#if alert.href}
 								<a href={alert.href} class="bracket-link text-xs">[View]</a>
 							{/if}
 							{#if alert.secondaryHref}
 								<a href={alert.secondaryHref} class="bracket-link text-xs" title="Counterpart account">[{alert.secondaryLabel ?? 'View'}]</a>
+							{/if}
+							{#if ackAction && alert.acknowledgedUntil === undefined}
+								<form method="POST" action={ackAction} use:enhance={invalidate} class="inline">
+									<input type="hidden" name="alertId" value={alert.id} />
+									<button type="submit" name="mode" value="done" class="bracket-link text-xs">[Done]</button>
+								</form>
+								<form method="POST" action={ackAction} use:enhance={invalidate} class="inline">
+									<input type="hidden" name="alertId" value={alert.id} />
+									<button type="submit" name="mode" value="snooze30" class="bracket-link text-xs">[Snooze 30d]</button>
+								</form>
+							{/if}
+							{#if restoreAction && alert.acknowledgedUntil !== undefined}
+								<form method="POST" action={restoreAction} use:enhance={invalidate} class="inline">
+									<input type="hidden" name="alertId" value={alert.id} />
+									<button type="submit" class="bracket-link text-xs">[Restore]</button>
+								</form>
 							{/if}
 						</div>
 					{/if}

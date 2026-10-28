@@ -590,6 +590,18 @@ export const TABLE_RULES: Record<string, TableRule> = {
 			updatedAt: "ts",
 		},
 	},
+	alertAcknowledgements: {
+		pk: "id",
+		columns: {
+			id: "skip",
+			userId: "skip",
+			// `${type}:${slug}` embeds real account slugs — token scramble
+			// keeps ack fixtures opaque + deterministic
+			alertId: "token",
+			acknowledgedUntil: "ts",
+			createdAt: "ts",
+		},
+	},
 	budgetMonths: {
 		pk: "id",
 		orderDesc: "month",

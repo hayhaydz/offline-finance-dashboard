@@ -46,6 +46,7 @@ export {
 	goalsRelations,
 } from "./goals";
 export type {
+	AlertAcknowledgement,
 	BudgetConfigAmendment,
 	BudgetMonth,
 	MonthlyReview,
@@ -56,6 +57,7 @@ export type {
 } from "./system";
 // System domain
 export {
+	alertAcknowledgements,
 	budgetConfigAmendments,
 	budgetConfigAmendmentsRelations,
 	budgetMonths,

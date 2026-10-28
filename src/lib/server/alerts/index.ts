@@ -1,4 +1,5 @@
 import { devLog, logError, logInfo } from "$lib/server/logger";
+import { filterAcknowledgedAlerts } from "$lib/server/alert-acks";
 import type { Alert } from "$lib/types/alerts";
 import {
 	checkBoERateAlerts,
@@ -60,7 +61,10 @@ async function safeCheck(
  * Full alert set for the homepage and /alerts page.
  * Includes user-level alerts (ISA, PSA, goals, snapshots) + all account-level.
  */
-export async function getAlerts(userId: number): Promise<Alert[]> {
+export async function getAlerts(
+	userId: number,
+	opts?: { includeAcknowledged?: boolean },
+): Promise<Alert[]> {
 	const {
 		allAccounts,
 		openAccounts,
@@ -154,6 +158,12 @@ export async function getAlerts(userId: number): Promise<Alert[]> {
 	];
 
 	logInfo("getAlerts", `Computed ${all.length} alert(s) for user ${userId}`);
+
+	// Proposal #10: acked alerts are hidden by default on every surface.
+	// The /alerts page passes includeAcknowledged and partitions itself.
+	if (!opts?.includeAcknowledged) {
+		return filterAcknowledgedAlerts(userId, all);
+	}
 	return all;
 }
 
@@ -264,7 +274,11 @@ export async function getAlertsForAccount(
 		const targetAccount = allAccounts.find((a) => a.id === accountId);
 		if (!targetAccount) return [];
 
-		return allAlerts.filter((a) => a.accountSlug === targetAccount.slug);
+		// Proposal #10: account pages respect acks too
+		return filterAcknowledgedAlerts(
+			userId,
+			allAlerts.filter((a) => a.accountSlug === targetAccount.slug),
+		);
 	} catch (err) {
 		logError(
 			"getAlertsForAccount",
@@ -285,7 +299,11 @@ export async function getGoalListAlerts(userId: number): Promise<Alert[]> {
 			checkGoalAlerts(userId),
 			checkGoalAutoReduceAlerts(userId),
 		]);
-		return [...goalAlerts, ...autoReduceAlerts];
+		// Proposal #10: goal list respects acks too
+		return filterAcknowledgedAlerts(userId, [
+			...goalAlerts,
+			...autoReduceAlerts,
+		]);
 	} catch (err) {
 		logError(
 			"getGoalListAlerts",

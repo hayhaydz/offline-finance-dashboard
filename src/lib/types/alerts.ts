@@ -64,6 +64,12 @@ export interface Alert {
 	secondaryHref?: string; // optional second deep link (e.g. transfer counterpart)
 	secondaryLabel?: string; // bracket-link label rendered for secondaryHref
 	triggeredAt: number; // Unix ms timestamp — Date objects don't survive SvelteKit load serialization
+	/**
+	 * Present when this alert has an ACTIVE acknowledgement (proposal #10).
+	 * Unix ms. Only set by partitionAcknowledged — raw getAlerts output is
+	 * always unacked.
+	 */
+	acknowledgedUntil?: number;
 }
 
 export interface AlertGroup {

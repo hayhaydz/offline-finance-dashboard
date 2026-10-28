@@ -366,6 +366,33 @@ export const spendingCategoriesRelations = relations(
 	}),
 );
 
+export const alertAcknowledgements = sqliteTable(
+	"alert_acknowledgements",
+	{
+		id: integer("id").primaryKey({ autoIncrement: true }),
+		userId: integer("user_id")
+			.notNull()
+			.references(() => users.id),
+		// Deterministic alert id: `${type}:${accountSlug ?? 'global'}` — stable
+		// across recomputation because alerts are derived, not stored
+		alertId: text("alert_id").notNull(),
+		// Active until this instant; "Done" acks use the far-future sentinel
+		acknowledgedUntil: integer("acknowledged_until", {
+			mode: "timestamp",
+		}).notNull(),
+		createdAt: integer("created_at", { mode: "timestamp" })
+			.notNull()
+			.default(sql`CURRENT_TIMESTAMP`),
+	},
+	(table) => ({
+		// One ack row per user per alert — re-acking updates the timestamp
+		userAlertIdx: uniqueIndex("idx_alert_acks_user_alert").on(
+			table.userId,
+			table.alertId,
+		),
+	}),
+);
+
 export const budgetMonthsRelations = relations(
 	budgetMonths,
 	({ one, many }) => ({
@@ -394,3 +421,4 @@ export type MonthlyReview = typeof monthlyReviews.$inferSelect;
 export type SpendingCategory = typeof spendingCategories.$inferSelect;
 export type BudgetMonth = typeof budgetMonths.$inferSelect;
 export type BudgetConfigAmendment = typeof budgetConfigAmendments.$inferSelect;
+export type AlertAcknowledgement = typeof alertAcknowledgements.$inferSelect;

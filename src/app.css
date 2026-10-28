@@ -66,6 +66,18 @@ td {
   @apply py-4;
 }
 
+/* Overspend hatch (proposal #7) — diagonal red hatching for the over-target
+   portion of budget bars; solid fill stays capped, hatch carries the overflow */
+.hatch-overflow {
+	background-image: repeating-linear-gradient(
+		45deg,
+		transparent 0,
+		transparent 2px,
+		#b91c1c 2px,
+		#b91c1c 4px
+	);
+}
+
 /* Bar chart character spacing */
 .bar-chart {
 	letter-spacing: -1px;

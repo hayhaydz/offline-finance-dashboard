@@ -4,9 +4,12 @@
 
 	let { data } = $props();
 
-	const redGroups   = $derived(groupAlertsByTitle(data.redAlerts));
-	const amberGroups = $derived(groupAlertsByTitle(data.amberAlerts));
-	const infoGroups  = $derived(groupAlertsByTitle(data.infoAlerts));
+	const redGroups     = $derived(groupAlertsByTitle(data.redAlerts));
+	const amberGroups   = $derived(groupAlertsByTitle(data.amberAlerts));
+	const infoGroups    = $derived(groupAlertsByTitle(data.infoAlerts));
+	const ackedGroups   = $derived(groupAlertsByTitle(data.acknowledged));
+
+	let showAcked = $state(false);
 </script>
 
 <div class="">
@@ -15,8 +18,10 @@
 		<a href="/" class="bracket-link text-xs">Homepage</a>
 	</div>
 
-	{#if data.total === 0}
+	{#if data.total === 0 && data.acknowledged.length === 0}
 		<div class="p-4 text-sm text-zinc-500 font-mono">[i] No alerts — all clear</div>
+	{:else if data.total === 0}
+		<div class="p-4 text-sm text-zinc-500 font-mono">[i] No active alerts — {data.acknowledged.length} acknowledged</div>
 	{:else}
 
 		{#if redGroups.length > 0}
@@ -24,7 +29,7 @@
 				[!!] CRITICAL ({data.redAlerts.length})
 			</div>
 			{#each redGroups as group (group.title)}
-				<AlertGroup {group} />
+				<AlertGroup {group} ackAction="?/ack" />
 			{/each}
 		{/if}
 
@@ -33,7 +38,7 @@
 				[!] WARNINGS ({data.amberAlerts.length})
 			</div>
 			{#each amberGroups as group (group.title)}
-				<AlertGroup {group} />
+				<AlertGroup {group} ackAction="?/ack" />
 			{/each}
 		{/if}
 
@@ -42,10 +47,25 @@
 				[i] INFORMATION ({data.infoAlerts.length})
 			</div>
 			{#each infoGroups as group (group.title)}
-				<AlertGroup {group} />
+				<AlertGroup {group} ackAction="?/ack" />
 			{/each}
 		{/if}
 
 	{/if}
-</div>
 
+	{#if data.acknowledged.length > 0}
+		<button
+			type="button"
+			class="w-full border-b border-black px-2 py-1 bg-gray-50 text-xs font-bold font-mono text-zinc-400 flex justify-between items-center cursor-pointer"
+			onclick={() => (showAcked = !showAcked)}
+		>
+			<span>[x] ACKNOWLEDGED ({data.acknowledged.length}) — hidden from all pages</span>
+			<span>{showAcked ? '[-]' : '[+]'}</span>
+		</button>
+		{#if showAcked}
+			{#each ackedGroups as group (group.title)}
+				<AlertGroup {group} restoreAction="?/restore" />
+			{/each}
+		{/if}
+	{/if}
+</div>

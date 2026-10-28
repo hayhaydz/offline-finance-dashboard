@@ -41,6 +41,11 @@ export async function wipeUserData(db: DB, userId: number): Promise<void> {
 		.delete(schema.monthlyReviews)
 		.where(eq(schema.monthlyReviews.userId, userId));
 
+	// Alert acks are per-user (proposal #10) — clear with the rest
+	await db
+		.delete(schema.alertAcknowledgements)
+		.where(eq(schema.alertAcknowledgements.userId, userId));
+
 	const goals = await db.query.goals.findMany({
 		where: eq(schema.goals.userId, userId),
 		columns: { id: true },
@@ -79,6 +84,6 @@ export async function wipeUserData(db: DB, userId: number): Promise<void> {
 		.where(eq(schema.spendingCategories.userId, userId));
 
 	console.log(
-		"  ✓ Wiped budgets, amendments, snapshots, tax bands, income history, expenses history, monthly reviews, goals, allocations, milestones, accounts, transactions, notes, rates, spending categories",
+		"  ✓ Wiped budgets, amendments, snapshots, tax bands, income history, expenses history, monthly reviews, alert acks, goals, allocations, milestones, accounts, transactions, notes, rates, spending categories",
 	);
 }

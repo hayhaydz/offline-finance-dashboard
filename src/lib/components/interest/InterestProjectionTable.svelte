@@ -1,6 +1,7 @@
 <script lang="ts">
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
+	import TechnicalNote from '$lib/components/TechnicalNote.svelte';
 	import { formatCurrency, formatDateShorthand } from '$lib/utils/currency';
 	import { formatRate, getExclusionReason } from '$lib/utils/formatting';
 	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
@@ -137,7 +138,7 @@
 		</table>
 	</div>
 	<PaginationClient page={pagination.page} totalPages={totalPages} onPageChange={pagination.updatePage} scrollTarget={sectionRef} />
-	<div class="p-2 text-[10px] text-gray-600 border-t border-black uppercase font-mono">
-		[TECHNICAL NOTE] Basis: balance * rate * (days / 365). fixed-term accounts project only to maturity date. non-matured fixed-term interest is excluded from taxable totals until maturity.
-	</div>
+	<TechnicalNote
+		note="Basis: balance * rate * (days / 365). Fixed-term accounts project only to maturity date. Non-matured fixed-term interest is excluded from taxable totals until maturity."
+	/>
 </div>

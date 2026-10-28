@@ -3,6 +3,7 @@
 	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
+	import TechnicalNote from '$lib/components/TechnicalNote.svelte';
 	import type { Snippet } from 'svelte';
 
 	let {
@@ -125,7 +126,5 @@
 			<PaginationClient page={txPagination.page} totalPages={totalTransactionPages} onPageChange={txPagination.updatePage} scrollTarget={sectionRef} />
 		</div>
 	{/if}
-	<div class="p-2 text-[10px] text-gray-600 border-t border-black uppercase font-mono">
-		[TECHNICAL NOTE] {technicalNote}
-	</div>
+	<TechnicalNote note={technicalNote} />
 </div>

@@ -177,10 +177,20 @@
 		return { label: `UNDER -${100 - pct}%`, class: "text-green-700 font-bold" };
 	}
 
-	function getCatProgress(spent: number, target: number): { width: number; color: string } {
-		const pct = target > 0 ? Math.min(Math.round((spent / target) * 100), 100) : 0;
-		const color = pct > 100 ? "bg-red-700" : pct > 75 ? "bg-amber-600" : "bg-green-700";
-		return { width: pct, color };
+	function getCatProgress(spent: number, target: number): {
+		width: number;
+		color: string;
+		overBy: number | null;
+	} {
+		// #7: return the UNCAPPED pct so over-target rows read red, and expose
+		// the overage so the row can hatch its overflow + label "£X over £Y"
+		const rawPct = target > 0 ? Math.round((spent / target) * 100) : 0;
+		const color = rawPct > 100 ? "bg-red-700" : rawPct > 75 ? "bg-amber-600" : "bg-green-700";
+		return {
+			width: Math.min(rawPct, 100),
+			color,
+			overBy: rawPct > 100 ? spent - target : null,
+		};
 	}
 
 	function startEdit(categoryId: number, currentTarget: number | null) {
@@ -378,11 +388,22 @@
 			<div class="flex items-center gap-1 text-xs leading-none mb-1">
 				<span>[</span>
 				<div class="flex-1 h-3 relative border-y border-gray-100">
-					<div class="h-full {progressColor}" style="width: {Math.min(spentPercent, 100)}%"></div>
+					{#if spentPercent > 100}
+						<!-- #7: solid = target's share of spend, hatch = overflow -->
+						<div class="h-full {progressColor}" style="width: {(100 / spentPercent) * 100}%"></div>
+						<div class="h-full hatch-overflow absolute top-0" style="left: {(100 / spentPercent) * 100}%; right: 0"></div>
+					{:else}
+						<div class="h-full {progressColor}" style="width: {Math.min(spentPercent, 100)}%"></div>
+					{/if}
 				</div>
 				<span>]</span>
 				<span class="min-w-8 font-bold {progressTextColor}">{spentPercent}%</span>
 			</div>
+			{#if spentPercent > 100}
+				<div class="text-xs text-red-700 font-bold">
+					[!] {formatCurrency(data.status.totalSpent - data.budget.totalTargetInCents)} over {formatCurrency(data.budget.totalTargetInCents)} target
+				</div>
+			{/if}
 			<div class="flex justify-between text-xs">
 				<span class="text-gray-500">Spent so far</span>
 				<span>{formatCurrency(data.status.totalSpent)} <span class="text-gray-400">of</span> {formatCurrency(data.budget.totalTargetInCents)}</span>
@@ -536,7 +557,13 @@
 						<div class="flex items-center gap-0.5 text-xs min-w-[120px]">
 							<span>[</span>
 							<div class="flex-1 h-2 relative border-y border-gray-100">
-								<div class="h-full {prog.color}" style="width: {prog.width}%"></div>
+								{#if prog.overBy !== null && (cat.target ?? 0) > 0}
+									<!-- #7: solid = target's share, hatch = overflow -->
+									<div class="h-full {prog.color}" style="width: {(100 / pct) * 100}%"></div>
+									<div class="h-full hatch-overflow absolute top-0" style="left: {(100 / pct) * 100}%; right: 0"></div>
+								{:else}
+									<div class="h-full {prog.color}" style="width: {prog.width}%"></div>
+								{/if}
 							</div>
 							<span>]</span>
 							<span class="min-w-6 font-bold {pct > 100 ? 'text-red-700' : pct > 75 ? 'text-amber-600' : 'text-green-700'}">{pct}%</span>
@@ -544,6 +571,11 @@
 						<span class="text-xs min-w-[70px] text-right">
 							{formatCurrency(cat.spent)} <span class="text-gray-400">/</span> {formatCurrency(cat.target ?? 0)}
 						</span>
+						{#if prog.overBy !== null}
+							<span class="text-[10px] text-red-700 font-bold whitespace-nowrap">
+								{formatCurrency(prog.overBy)} over {formatCurrency(cat.target ?? 0)} target
+							</span>
+						{/if}
 						<button class="bracket-link text-xs" onclick={() => startEdit(cat.id, cat.target)}>Edit</button>
 					</div>
 					{#if catMarker}
