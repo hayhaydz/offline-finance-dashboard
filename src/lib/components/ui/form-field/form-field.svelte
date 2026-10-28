@@ -84,11 +84,11 @@
 
 		value = newValue;
 		dirty = true;  // Mark as dirty when user types
-
-		// Validate on change if already touched
-		if (touched) {
-			validate();
-		}
+		// Proposal #6 (2026-10-27 audit): consider the field touched as soon
+		// as the user types — submit buttons enable mid-typing instead of
+		// requiring a blur first (DevTools/browser autofill friendly too)
+		touched = true;
+		validate();
 	}
 
 	// Touch function to manually mark field as touched

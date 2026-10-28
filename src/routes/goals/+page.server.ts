@@ -9,6 +9,7 @@ import { getCurrentBalancesForAccounts } from "$lib/server/derivedBalances";
 import { updateTypeExclusions } from "$lib/server/exclusions";
 import { getNetWorthSummary } from "$lib/server/finance";
 import { calculateReadyToAssign, getDebtGoalProgress } from "$lib/server/goals";
+import { calculatePaceMetrics } from "$lib/server/goal-calculations";
 import {
 	devLog,
 	isVerboseDebug,
@@ -111,8 +112,21 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			};
 		}
 
-		// Savings goal: use existing allocation data
-		return goal;
+		// Savings goal: use existing allocation data. Colour is pace-aware
+		// when a deadline exists (proposal #5): a 20%-funded goal due next
+		// month is red, one due in 3 years with steady contributions is
+		// green — raw percentage alone made every young goal look failing.
+		let color: string | undefined;
+		if (goal.targetDate) {
+			const pace = calculatePaceMetrics({
+				targetAmountInCents: goal.targetAmountInCents,
+				currentAllocationInCents: goal.currentAllocation,
+				targetDate: goal.targetDate,
+			});
+			if (pace.onTrack === true) color = "green";
+			else if (pace.onTrack === false) color = "amber";
+		}
+		return { ...goal, color };
 	});
 
 	if (isVerboseDebug()) {

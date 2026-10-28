@@ -2,6 +2,7 @@
 	import type { Alert } from '$lib/types/alerts';
 	import { sortAlerts, groupAlertsByTitle } from '$lib/types/alerts';
 	import AlertGroup from './AlertGroup.svelte';
+	import SeverityLegend from './SeverityLegend.svelte';
 
 	const {
 		alerts,
@@ -52,6 +53,7 @@
 					<a href={viewAllHref} class="bracket-link">View All</a>
 				</div>
 			{/if}
+			<SeverityLegend />
 		{/if}
 	</div>
 {/if}
