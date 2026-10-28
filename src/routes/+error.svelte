@@ -1,15 +1,17 @@
 <script lang="ts">
 	import { page } from '$app/state';
 	import { onMount } from 'svelte';
+	import { errorDisplayMessage } from '$lib/utils/error-display';
 
 	let error = $derived(page.error);
+	// Reactive so SSR shows the real message on first paint, not just
+	// post-hydration (page.error is a plain { message } object — P0-3)
+	let displayMessage = $derived(errorDisplayMessage(error));
 	let errorDetails = $state<{
-		message: string;
 		stack?: string;
 		timestamp: string;
 		url: string;
 	}>({
-		message: 'An unknown error occurred',
 		timestamp: new Date().toISOString(),
 		url: page.url.href
 	});
@@ -20,7 +22,6 @@
 
 		// Store error details for display
 		errorDetails = {
-			message: error instanceof Error ? error.message : String(error),
 			stack: error instanceof Error ? error.stack : undefined,
 			timestamp: new Date().toISOString(),
 			url: page.url.href
@@ -46,7 +47,7 @@
 	<h2 class="text-red-700 font-bold mb-2">An Unexpected Error Occurred</h2>
 
 	<div class="mb-4">
-		<p class="mb-2"><strong>Message:</strong> {errorDetails.message}</p>
+		<p class="mb-2"><strong>Message:</strong> {displayMessage}</p>
 		<p class="mb-2"><strong>Time:</strong> {new Date(errorDetails.timestamp).toLocaleString()}</p>
 		<p class="mb-2"><strong>URL:</strong> {errorDetails.url}</p>
 	</div>

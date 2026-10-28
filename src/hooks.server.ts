@@ -6,6 +6,7 @@ import { HOME_ROUTE, LOGIN_ROUTE } from "$lib/constants/routes";
 import { db } from "$lib/db/client";
 import { runMigrations } from "$lib/db/migrate";
 import { sessions } from "$lib/db/schema";
+import { errorDisplayMessage } from "$lib/utils/error-display";
 import { countActiveSlots, hasEnvelope } from "$lib/server/crypto/enroll";
 import {
 	isUnlockedFor,
@@ -280,9 +281,11 @@ export const handleError: HandleServerError = async ({ error, event }) => {
 	// Return user-friendly error message
 	return {
 		message: "An unexpected error occurred. Please try again later.",
-		// In development, include the error details for debugging
+		// In development, include the error details for debugging.
+		// Non-Error throws (plain objects, strings) must not stringify to
+		// "[object Object]" — normalise them (P0-3, 2026-10-27 audit).
 		...(process.env.APP_ENV === "development" && {
-			developerMessage: error instanceof Error ? error.message : String(error),
+			developerMessage: errorDisplayMessage(error),
 			stack: error instanceof Error ? error.stack : undefined,
 		}),
 	};

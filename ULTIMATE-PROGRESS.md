@@ -7,6 +7,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-28T19:29 | 2026-10-28T19:35 | 0h06m | Phase 0 bootstrap: branch, progress file, baseline green, live login OK |
 | 2026-10-28T19:35 | 2026-10-28T19:41 | 0h06m | P0-1 GoalDetailCard TDZ fix + 5 SSR smoke tests + live verify |
 | 2026-10-28T19:41 | 2026-10-28T19:47 | 0h06m | P0-2 ciphertext leak: ledger decrypt + resilient protected-fields + 7 tests + live verify |
+| 2026-10-28T19:47 | 2026-10-28T19:52 | 0h05m | P0-3 error page: errorDisplayMessage helper, reactive SSR render, hooks developerMessage, 9 tests + live verify |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -18,7 +19,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 ### Phase 1 — P0 fixes (each with regression test)
 - [x] P0-1: GoalDetailCard TDZ — reorder deriveds + SSR smoke test — ev: reordered to `debtValues → progress → progressColor` (Svelte SSR evaluates deriveds eagerly; forward refs throw TDZ — verified by stashing fix: 5/5 tests fail with exact audit error `Cannot access 'progress' before initialization`, restored → 5/5 pass); new tests/integration/goal-detail-card-ssr.test.ts (savings 40%, debt 60% from starting balance, zero-target safe); check 0/0; suite 745/745; live `/goals/vh_G4FhSzFz8Kj8D` (Emergency Fund) renders with progress, 0 console errors
 - [x] P0-2: ciphertext leak — passthrough renders `[encrypted]`; root-cause seed keyring — ev: real root cause ≠ audit guess: month-ledger query in accounts/[slug]/+page.server.ts returned raw rows (no decrypt call); seed keyring was CORRECT (recurring-patterns path decrypted fine). Fix = decrypt ledger rows + hardened decryptResilient in protected-fields.ts (EnvelopeError → `[encrypted]`, SealedError propagates; covers tx/note/review). 7 new tests (round-trip, foreign-key blob → [encrypted], transposed AAD → [encrypted], legacy plaintext passthrough, null, malformed v1, error class). check 0/0; suite 752/752. LIVE: /accounts/uomFW8Wer1SELjGX ledger now shows readable text (Salary, Utilities, Supermarket refund — overcharge) where `v1|66d907…` rendered before; 0 v1| leaks across 2 more accounts + goal detail; console clean
-- [ ] P0-3: `[object Object]` error page — normalise thrown values
+- [x] P0-3: `[object Object]` error page — normalise thrown values — ev: real root cause: `page.error` is a plain `{message}` object (kit HttpError), never an Error, so `String(error)` → `[object Object]` on EVERY error page. New `errorDisplayMessage()` helper (src/lib/utils/error-display.ts) used in +error.svelte (reactive — SSR first paint too) + hooks.server.ts developerMessage; 9 unit tests incl. "never returns [object Object]" invariant. check 0/0; suite 761/761. LIVE: /goals/does-not-exist-slug showed `[object Object]` pre-fix → `Message: Goal not found` post-fix
 - [ ] Live-verify goal money flow end-to-end (create → add → detail → withdraw → detail) + vision
 
 ### Phase 2 — P1/P2 bugs + quick wins (#2–#10)
