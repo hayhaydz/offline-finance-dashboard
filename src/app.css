@@ -145,6 +145,14 @@ td {
 	stroke-dasharray: 4 3;
 }
 
+/* j/k list-nav selection (Phase 7) — outline, not shadow, so the row
+   layout never shifts */
+.nav-selected {
+	outline: 2px solid #000;
+	outline-offset: -2px;
+	background: #f3f4f6;
+}
+
 /* ── Print / PDF stylesheet (proposal #20) ─────────────────────────────
    Turns any page into a clean paper report: chrome (nav, actions, forms)
    hidden, data tables flow across pages, collapsed accordions forced open

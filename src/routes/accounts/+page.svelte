@@ -1,5 +1,6 @@
 <script lang="ts">
 	import AlertsSection from '$lib/components/AlertsSection.svelte';
+	import { listnav } from '$lib/utils/list-nav';
 	import { page } from '$app/state';
 	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
 	import { formatCurrency, formatAccountType as commonFormatAccountType, formatDateShorthand as commonFormatDateShorthand } from '$lib/utils/currency';
@@ -337,9 +338,9 @@
 					<th class="text-right pr-3 whitespace-nowrap min-w-[90px] sticky top-0 bg-white border-b border-black z-10">Last Updated</th>
 				</tr>
 			</thead>
-			<tbody>
+			<tbody use:listnav>
 				{#snippet accountRow(account: (typeof data.accounts)[number])}
-					<tr class="border-b border-gray-200 last:border-b-0">
+					<tr class="border-b border-gray-200 last:border-b-0" data-nav-row>
 						<td class="pl-3 text-sm py-2 whitespace-nowrap">
 							<a href="/accounts/{account.slug}" class="bracket-link" class:line-through={account.closedAt}>{truncateDisplay(account.name, DISPLAY_LIMITS.ACCOUNT_NAME)}</a>
 							{#if account.closedAt}

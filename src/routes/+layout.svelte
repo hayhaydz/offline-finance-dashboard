@@ -2,6 +2,7 @@
 	import Navigation from '$lib/components/Navigation.svelte';
 	import SessionBanner from '$lib/components/SessionBanner.svelte';
 	import CommandPalette from '$lib/components/CommandPalette.svelte';
+	import HelpOverlay from '$lib/components/HelpOverlay.svelte';
 	import { sessionTimer } from '$lib/utils/session-timer.svelte';
 	import { page } from '$app/state';
 	import { afterNavigate } from '$app/navigation';
@@ -27,6 +28,7 @@
 
 	// ⌘K command palette (#19) — authed users only
 	let paletteOpen = $state(false);
+	let helpOpen = $state(false);
 
 	// Start/stop the session inactivity timer based on auth state.
 	// IMPORTANT: the timer reads the LAYOUT's own `data` prop, NOT
@@ -66,10 +68,19 @@
 			>
 				[⌘K]
 			</button>
+			<button
+				type="button"
+				class="bracket-link text-xs text-white"
+				onclick={() => (helpOpen = !helpOpen)}
+				title="Keyboard shortcuts (?)"
+			>
+				[?]
+			</button>
 		</div>
 
 		<SessionBanner />
 		<CommandPalette bind:open={paletteOpen} />
+		<HelpOverlay bind:open={helpOpen} />
 	{/if}
 
 	<Navigation {user} {environment} breadcrumbOverrides={breadcrumbOverrides} />

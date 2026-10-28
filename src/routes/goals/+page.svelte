@@ -6,6 +6,7 @@
 	import { getProgressColor as getProgressColorFromPercent } from '$lib/utils/formatting';
 	import { getStaleness } from '$lib/utils/staleness';
 	import GoalRow from '$lib/components/GoalRow.svelte';
+	import { listnav } from '$lib/utils/list-nav';
 	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import AlertsSection from '$lib/components/AlertsSection.svelte';
@@ -58,7 +59,11 @@
 	}
 
 	// Reactive goals array for client-side reordering
-	let goals = $state<EnrichedGoal[]>([]);
+	// Initialise from server data so the list SSR-renders (Phase 7: the
+	// $effect below never runs server-side, leaving SSR with an empty
+	// table); the effect keeps it in sync across navigations.
+	// svelte-ignore state_referenced_locally
+	let goals = $state<EnrichedGoal[]>([...data.goals]);
 	let selectedSlug = $state<string | null>(null);
 
 	// Sync goals with server data
@@ -332,7 +337,7 @@ async function placeAtEnd() {
 					</th>
 				</tr>
 			</thead>
-			<tbody>
+			<tbody use:listnav>
 				{#each goals as goal, index}
 					{@const progress = getProgress(goal)}
 					{@const progressColor = getProgressColor(goal)}

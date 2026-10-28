@@ -92,7 +92,7 @@
 	});
 </script>
 
-<tr class="goal-row border-b border-gray-200 last:border-b-0 {isArchived ? 'bg-gray-50' : ''} {isSelected ? 'bg-amber-50' : ''}">
+<tr class="goal-row border-b border-gray-200 last:border-b-0 {isArchived ? 'bg-gray-50' : ''} {isSelected ? 'bg-amber-50' : ''}" data-nav-row>
 	<td class="pl-2 text-sm py-2">
 		<!-- Goal name -->
 		<div class="font-bold {isArchived ? 'text-gray-600' : ''}">
