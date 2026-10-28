@@ -33,7 +33,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-28T23:07 | 2026-10-28T23:08 | 0h01m | Phase 8 line 1: audit folder + README (53 routes / 5 passes / protocol) + Pass A curl smoke — 11 routes 200, defect scan clean, bad-slug 404 ✓ |
 | 2026-10-28T23:09 | 2026-10-28T23:26 | 0h17m | Phase 8 COMPLETE: 28 screenshots across passes A–E, ALL vision-CLEAN; ASCII toggle + `?` overlay live-verified; test-then-revert cashflow exercise FOUND+FIXED P1 (sealed-description bug in home loader) w/ live before/after + full revert; findings.md + before/after table; check 0/0 · 942/942 |
 | 2026-10-28T23:27 | 2026-10-28T23:38 | 0h11m | Phase 9 cycle 1: performance pass (bundle audit — layerchart lazy-chunked, SSR 10–27ms) · a11y pass (global :focus-visible ring live-verified, gray-400→500 across 32 files for AA contrast) · hygiene sweep (console/TODO/dead-code clean) · docs (docs/dev/ultimate-2.0-release.md changelog+runbook) · vision-sweep 9 remaining pages ALL CLEAN (1 vision misread disproven via 4× crop); check 0/0 · 942/942 |
-| 2026-10-28T23:39 | 2026-10-28T23:46 | 0h07m | Phase 9 cycle 2: FOUR P2 polish fixes — PSA segment legend, proportional waterfall truncation, net-worth last-point value tag, goal tick legend + pct rounding (each SSR-tested + live-verified + vision CLEAN); check 0/0 · 947/947 |
+| 2026-10-28T23:39 | 2026-10-28T23:44 | 0h05m | Phase 9 cycle 2: FOUR P2 polish fixes — PSA segment legend, proportional waterfall truncation, net-worth last-point value tag, goal tick legend + pct rounding (each SSR-tested + live-verified + vision CLEAN); check 0/0 · 947/947 |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
