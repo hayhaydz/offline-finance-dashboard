@@ -173,7 +173,10 @@
 				? `OVER BY ${formatCurrency(data.forecast.psaStatusNow.taxableAmount)}`
 				: `${formatCurrency(data.forecast.psaStatusNow.remaining)} LEFT`}
 			color={data.forecast.psaStatusNow.overAllowance ? 'text-red-700' : 'text-green-700'}
-			detail="{renderProgressBar(data.forecast.psaStatusNow.used, data.forecast.psaStatusNow.allowance)}<br>OF {formatCurrency(data.forecast.psaStatusNow.allowance)}"
+			detailLines={[
+				renderProgressBar(data.forecast.psaStatusNow.used, data.forecast.psaStatusNow.allowance),
+				`OF ${formatCurrency(data.forecast.psaStatusNow.allowance)}`
+			]}
 		/>
 		<KpiCard
 			label="PSA Status Forecast"
@@ -181,7 +184,10 @@
 				? `OVER BY ${formatCurrency(data.forecast.psaStatusForecast.taxableAmount)}`
 				: `${formatCurrency(data.forecast.psaStatusForecast.remaining)} LEFT`}
 			color={data.forecast.psaStatusForecast.overAllowance ? 'text-red-700' : 'text-green-700'}
-			detail="{renderProgressBar(data.forecast.psaStatusForecast.used, data.forecast.psaStatusForecast.allowance)}<br>AT TAX YEAR END"
+			detailLines={[
+				renderProgressBar(data.forecast.psaStatusForecast.used, data.forecast.psaStatusForecast.allowance),
+				'AT TAX YEAR END'
+			]}
 		/>
 	</StatGrid>
 </div>

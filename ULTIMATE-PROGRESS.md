@@ -9,6 +9,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-28T19:41 | 2026-10-28T19:47 | 0h06m | P0-2 ciphertext leak: ledger decrypt + resilient protected-fields + 7 tests + live verify |
 | 2026-10-28T19:47 | 2026-10-28T19:52 | 0h05m | P0-3 error page: errorDisplayMessage helper, reactive SSR render, hooks developerMessage, 9 tests + live verify |
 | 2026-10-28T19:52 | 2026-10-28T20:01 | 0h09m | Phase 1 E2E goal money flow live (create→add→withdraw→archive) + 3 vision reviews — PHASE 1 COMPLETE |
+| 2026-10-28T20:01 | 2026-10-28T20:10 | 0h09m | P1-1 PSA <br> + P1-2 liabilities currency + P1-3 snapshot breadcrumb off-by-one, all live-verified |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -24,7 +25,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 - [x] Live-verify goal money flow end-to-end (create → add → detail → withdraw → detail) + vision — ev: LIVE full flow as admin: create "Loop Test Goal" £1k → detail 0% → Add £250 (slider form) → redirect detail SAVED £250/25% → Withdraw £100 → redirect detail SAVED £150/15% + ALLOCATION HISTORY (+ADD £250, -WITHDRAW -£100, Main Current links) → confirm-archive typed confirmation → moved to /goals/archived, £150 returned to Ready-to-Assign. 0 console errors, 0 5xx across flow. Vision: detail-before CLEAN (zai), after-add CLEAN (flash), after-withdraw CLEAN no P0/P1 (zai, 5 P2 polish nits noted for Phase 2+). Shots: /tmp/opencode/p01-goal-{detail-before,after-add,after-withdraw}.png
 
 ### Phase 2 — P1/P2 bugs + quick wins (#2–#10)
-- [ ] P1-1 `<br>` PSA bars · P1-2 liabilities formatCurrency · P1-3 breadcrumb slugs/labels
+- [x] P1-1 `<br>` PSA bars · P1-2 liabilities formatCurrency · P1-3 breadcrumb slugs/labels — ev: P1-1: KpiCard gained `detailLines` prop (stacked divs); interest/2026-27 page LIVE shows `[##########] 100%` / `OF £500.00` on two lines, zero literal `<br>`. P1-2: 4 currency spots routed through formatCurrency; LIVE liabilities shows `-£253,790.00` total + `-£2,315.00` balance (separators + sign convention). P1-3: snapshot loads were off-by-one (overriding segment 1 = 'snapshots', not the slug at 2) — detail now `Overview > Snapshots > 2026-02-01`, delete `… > Delete`; goal/account routes confirmed already correct. check 0/0; suite 761/761
 - [ ] P1-4 debt milestone inversion + payment history · P1-5 shared goal-progress fn (tests) · P1-6 Newest-First toggle semantics
 - [ ] P1-7 account-count consistency (closed-account policy) · P1-8 PaginationClient console.logs · P1-9 Ready-to-Assign semantics
 - [ ] P2-1 breadcrumb capitalisation map · P2-2 styled delete-confirm modal · P2-4 ISA over-subscription warning · P2-5 copy nits
@@ -95,5 +96,8 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 - Dev server pid 54211 running (127.0.0.1:5173, strictPort). Browser page 1 logged in as admin (session cookie live). Savings goal detail `/goals/vh_G4FhSzFz8Kj8D` verified post-P0-1.
 - Login via DevTools: fill_form alone leaves submit disabled — FormField needs blur (Tab) to mark touched. Type into fields, Tab out, submit. Wrong-password attempts trigger exponential backoff (max 30s).
 - Baseline: check 0/0, tests 740/740 green → now 745/745 after P0-1 (+5 SSR tests).
-- NEXT: P0-2 ciphertext leak — `decryptField` passthrough in src/lib/server/crypto/protected-fields.ts renders `v1|…` blobs raw in TransactionsSection.svelte:340 ledger. Render `[encrypted]` for v1| blobs in passthrough; then root-cause why seed ciphertext doesn't decrypt under live keyring (check scripts/seed.ts keyring usage).
-- Svelte SSR gotcha learned: `$derived` callbacks run EAGERLY on the server — declaration order of deriveds matters. Watch for this pattern in other components (P0-1 class of bug).
+- NEXT: Phase 2 second line — P1-4 debt milestone inversion + PAYMENT HISTORY (0) despite £185 paid (suspects: milestone derived from any-time balance thresholds; history query filtered wrong) · P1-5 shared goal-progress fn + tests · P1-6 Newest-First toggle semantics.
+- Breadcrumb segmentIndex convention: 0-based (goals/[slug] = 0,1; overview/snapshots/[slug] = 0,1,2). Page loads must override the SLUG segment index. labelMap fallback `delete: "Close"` only applies to routes without overrides.
+- Goals are soft-deleted via /confirm-archive (typed-name confirmation), not hard delete. /goals/[slug]/edit route does NOT exist (404s) — edit affordances live elsewhere.
+- Free flash vmodel.sh intermittently 1305-overloaded (2026-10-28 ~19:55); retry ×2 then zai-vision MCP.
+- Svelte SSR gotcha: `$derived` callbacks run EAGERLY on the server — declaration order matters (P0-1 class of bug).

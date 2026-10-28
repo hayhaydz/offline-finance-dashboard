@@ -51,7 +51,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		user: userDto(user),
 		snapshot,
 		breadcrumbOverrides: [
-			{ segmentIndex: 1, label: snapshot.snapshotDate, skipLink: false },
+			// Path /overview/snapshots/[slug] → segments: overview(0),
+			// snapshots(1), slug(2). The date label must replace the SLUG
+			// segment (P1-3: overriding index 1 showed the raw slug).
+			{ segmentIndex: 2, label: snapshot.snapshotDate, skipLink: false },
 		],
 	};
 };

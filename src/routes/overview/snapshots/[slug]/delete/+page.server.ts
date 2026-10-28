@@ -30,8 +30,11 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 	return {
 		snapshot,
 		breadcrumbOverrides: [
-			{ segmentIndex: 1, label: snapshot.snapshotDate, skipLink: false },
-			{ segmentIndex: 2, label: "Delete", skipLink: false },
+			// Path /overview/snapshots/[slug]/delete → segments: overview(0),
+			// snapshots(1), slug(2), delete(3). Date replaces the slug at 2,
+			// "Delete" replaces the action segment at 3 (P1-3 fix).
+			{ segmentIndex: 2, label: snapshot.snapshotDate, skipLink: false },
+			{ segmentIndex: 3, label: "Delete", skipLink: false },
 		],
 	};
 };

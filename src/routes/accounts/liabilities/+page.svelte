@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { PageData } from './$types';
+  import { formatCurrency } from '$lib/utils/currency';
   let { data }: { data: PageData } = $props();
 
   function getDebtStatusLabel(ttz: { months: number | null; years: number | null }): string {
@@ -24,8 +25,8 @@
 <!-- Summary Box -->
 <div class="border-b border-black p-2">
   <div class="flex gap-4 text-sm tabular-nums">
-    <div>Total Debt: <span class="font-bold text-red-700">£{(data.summary.totalDebt / 100).toFixed(2)}</span></div>
-    <div>Monthly Interest: <span class="font-bold text-amber-700">£{(data.summary.totalMonthlyInterest / 100).toFixed(2)}</span></div>
+    <div>Total Debt: <span class="font-bold text-red-700">{formatCurrency(data.summary.totalDebt)}</span></div>
+    <div>Monthly Interest: <span class="font-bold text-amber-700">{formatCurrency(data.summary.totalMonthlyInterest)}</span></div>
     <div>{data.summary.count} accounts</div>
   </div>
 </div>
@@ -41,7 +42,7 @@
           <span class="text-xs font-bold {getDebtStatusClass(liability)}">{getDebtStatusLabel(liability)}</span>
         </div>
         <div class="grid grid-cols-2 gap-2 text-sm tabular-nums">
-          <div>Balance: <span class="text-red-700">£{(liability.balance / 100).toFixed(2)}</span></div>
+          <div>Balance: <span class="text-red-700">{formatCurrency(liability.balance)}</span></div>
           {#if liability.utilization}
             <div>Util: <span class="font-bold">{liability.utilization}%</span></div>
           {/if}
@@ -72,7 +73,7 @@
           <span class="text-xs font-bold {getDebtStatusClass(liability)}">{getDebtStatusLabel(liability)}</span>
         </div>
         <div class="grid grid-cols-2 gap-2 text-sm tabular-nums">
-          <div>Balance: <span class="text-red-700">£{(liability.balance / 100).toFixed(2)}</span></div>
+          <div>Balance: <span class="text-red-700">{formatCurrency(liability.balance)}</span></div>
           {#if liability.progress}
             <div>Progress: <span class="font-bold">{liability.progress}% paid</span></div>
           {/if}
