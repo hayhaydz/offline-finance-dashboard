@@ -3,6 +3,7 @@
 	import { formatCurrency } from "$lib/utils/currency";
 	import PaginationClient from "$lib/components/PaginationClient.svelte";
 	import SubmitFeedback from "$lib/components/SubmitFeedback.svelte";
+	import BurnDownChart from "$lib/components/charts/BurnDownChart.svelte";
 	import { useSubmitFeedback } from "$lib/utils/use-submit-feedback.svelte";
 	import { useUrlPagination } from "$lib/utils/use-url-pagination.svelte";
 	import {
@@ -453,6 +454,19 @@
 					Spending {spentPercent}% | Time {pacePercent}% — <span class="{statusLabel.class}">{statusLabel.text}</span>
 				</div>
 			</div>
+		</div>
+	{/if}
+
+	<!-- Phase 4 V1 #2: burn-down chart (spend curve vs even pace, today marker) -->
+	{#if data.budget && data.budget.totalTargetInCents > 0}
+		<div class="px-2 py-2 border-b border-gray-300">
+			<BurnDownChart
+				points={data.burnDown}
+				totalDays={data.status.totalDays}
+				targetPence={data.budget.totalTargetInCents}
+				todayDay={data.isCurrentMonth ? data.status.daysElapsed : data.status.totalDays}
+				spendLabel={(pence) => formatCurrency(pence)}
+			/>
 		</div>
 	{/if}
 

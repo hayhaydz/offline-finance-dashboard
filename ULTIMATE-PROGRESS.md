@@ -19,6 +19,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-28T21:24 | 2026-10-28T21:30 | 0h06m | #16 bulk balance screen + #17 staleness dots + #19 ⌘K palette + #20 print stylesheet — Phase 3 line 3 items complete. check 0/0 · 807/807 · live GET/POST smoke each (commits ead759a, c31161a) |
 | 2026-10-28T21:31 | 2026-10-28T21:39 | 0h08m | PHASE 3 GATE: check 0/0 + 807/807; DevTools live pass (7 shots, 0 console errors, a11y-verified ⌘K/auto-match/inline-create interactions); vision 6×CLEAN flash + 2×zai; 1 P0 claim investigated + disproven (viewport-crop artifact). PHASE 3 COMPLETE |
 | 2026-10-28T21:39 | 2026-10-28T21:42 | 0h03m | Phase 4 line 1: chart foundation — Variant B theme tokens (app.css), ChartPanel.svelte w/ mandatory a11y summary, 4 SSR tests. check 0/0 · 811/811 |
+| 2026-10-28T21:42 | 2026-10-28T21:52 | 0h10m | Phase 4 line 2 partial: budget burn-down chart shipped — vision caught flat-line data bug (strftime NULL on ts column), fixed via JS day-bucketing, live-verified £6,145.57/28d curve; 4 SSR tests; check 0/0 · 815/815 |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -50,7 +51,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 
 ### Phase 4 — Visualisation V1 (layerchart, Variant B)
 - [x] Chart foundation: shared theme, bordered panels, text-summary a11y line — ev: chart theme tokens in app.css `--chart-{ink,ink-soft,grid,fill,pos,warn,neg,marker,axis-font}` (monochrome ink, green/amber/red semantic-only) + `.chart-panel/-title/-summary` + `.chart-dashed` (Variant B spec from roadmap §29: monochrome SVG, monospace axis labels, square markers, dashed projections); new ChartPanel.svelte (src/lib/components/charts/) — bordered figure, title band + optional controls snippet, body, MANDATORY `summary` prop rendered as visible text under the chart (a11y invariant: no chart without a text summary; 4 SSR tests incl. visible-text check + fixture component); check 0/0 · suite 114 files/811 tests
-- [ ] Net worth line (Home/Reports) · budget burn-down · goal bullet bars
+- [ ] Net worth line (Home/Reports) · budget burn-down · goal bullet bars — PARTIAL (this session): budget burn-down DONE — ev: getCumulativeDailySpend in budgets.ts (same spend definition as all budget queries, JS day-bucketing via getUTCDate — strftime('%d', ts) returned NULL on this column, caught by vision flagging a flat line + confirmed via SSR polyline all-y=180, fixed → live summary "£6,145.57 spent of £1,500.00 target · day 28 of 31" + rising polyline coords); BurnDownChart.svelte (Variant B: solid ink spend polyline w/ square today-marker, gray dashed pace line to target, dashed today vertical, £0/£max/d1/d31 axis labels, viewBox 600×200 print-safe, role=img aria-label) inside ChartPanel (mandatory summary); wired into budgets month page under SPENDING PACE; 4 SSR tests (panel+summary, polyline+dashed+rect, viewBox+a11y, axis labels). VISION: pre-fix zoomed review caught the data bug (flat spend line = P0-class finding, root-caused + fixed same unit — protocol worked); post-fix browser shot blocked by session death after server reload (3-attempt rule) — curl SSR polyline/summary carry evidence. check 0/0 · suite 115 files/815 tests. REMAINING for this line: net worth line chart (Home hero upgrade from sparkline + Reports landing) · goal bullet bars w/ milestone ticks (Goals list + Home)
 - [ ] Charts from typed server loads; print-safe SVG
 - [ ] Phase gate: vision review every chart
 
@@ -101,6 +102,9 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-28 | #14 lazy-seed trigger point = accounts/[slug] load (not hooks) | Fires exactly when the category select first renders; avoids running on every request app-wide. Dev-plain DB was re-seeded this session (10 categories added; one Supermarket txn tagged Groceries during live tag-action verification — legitimately better data, noted for Phase 8 comparability). |
 | 2026-10-28 | #15 tagging = categoryId-only UPDATE action (not DROP+CREATE) | Triage needs to categorise EXISTING rows; amount/date/description stay immutable. Consistent with the audit proposal's "list for tagging" wording; the Matrixify-style DROP/CREATE workflow from hayhaydz notes is a separate future epic, recorded in notes not this item. |
 
+| 2026-10-28 | Burn-down data aggregation buckets days in JS (getUTCDate), never strftime | strftime('%d', transactionDate) returns NULL on this column's stored timestamp format → all cumulative values were 0 (caught by vision: "flat spend line"). UTC day keeps UTC-midnight seed dates on the right day-of-month regardless of local TZ. |
+| 2026-10-28 | Burn-down chart hand-rolled SVG (like sparkline), layerchart deferred to Reports surfaces | 31-point line + two reference lines is trivial SVG with exact Variant B control; layerchart earns its bundle on interactive/axis-heavy Reports charts (Phase 5). Recorded so Phase 5 reuses the decision. |
+
 ## Deferrals
 | Item | Reason |
 |---|---|
@@ -124,6 +128,9 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-28 | p3-category-form.png (flash, 1 retry) | CLEAN |
 | 2026-10-28 | p3-new-category.png (zai-vision) | 1×P0 claim (clipped row) → DISPROVEN via full-page re-shoot + targeted vision pass (viewport-crop artifact); P2 notes harvested |
 | 2026-10-28 | p3-acct-full.png (zai-vision) | Explicit: no clipping mid-glyph anywhere, all rows clean |
+| 2026-10-28 | p4-burndown.png (zai, full-page pre-fix) | CAUGHT DATA BUG: spend line flat/absent, labels tiny — root cause strftime NULL → all-zero cumulatives; panel/pace/marker rendered fine |
+| 2026-10-28 | p4-burndown-zoom.png (zai, element pre-fix) | Confirmed flat black line at y-bottom + pace-to-top (target-scaled axis on zero data) — geometry correct, data empty → fix applied |
+| 2026-10-28 | p4-burndown-fixed.png | NOT SHOT — browser session died after server reload (3-attempt rule); curl SSR evidence: summary £6,145.57/£1,500 · day 28/31 + rising polyline coordinates |
 
 ## ⚠️ LOOP HYGIENE — READ BEFORE DOING ANYTHING (added after the 21:08 loop-break)
 1. **HARD TIME-BOX: 35 minutes per turn.** The loop kills iterations at 45m (`timeoutMs=2700000`) and a killed iteration BREAKS THE LOOP (verified 2026-10-28: run 4 paused at 21:08:26, run 5 never admitted). Run `date "+%H:%M"` at the START of the turn and at EVERY unit boundary. If elapsed ≥ 35m: stop starting new work immediately — update progress, commit, end the turn CLEANLY. A short turn continues the loop; an overrun kills it.
@@ -133,6 +140,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 5. **Full `npm test` wipes the live browser session** (see below) — run browser verification BEFORE the suite, or re-login after.
 
 ## Notes for next iteration
+- **NEXT: finish Phase 4 line 2 = net worth line chart (Home hero upgrade from sparkline + Reports landing placeholder — keep sparkline on Home hero, add the full line chart to /overview/reports as its first real surface, feeding Phase 5) · goal bullet bars w/ milestone ticks (Goals list + Home GOAL PROGRESS section).** Then line 3 (typed server loads audit + print-safe check — largely satisfied by construction: charts take typed props from loads, viewBox SVG, no fixed px) and the Phase 4 gate (vision review of every chart).
 - **NEXT: Phase 4 line 2 = net worth line chart (Home hero + Reports landing) · budget burn-down (spent vs pace vs target + today marker) · goal bullet bars w/ milestone ticks.** Foundation ready: `ChartPanel.svelte` (src/lib/components/charts/) + `--chart-*` tokens in app.css + `.chart-dashed` for pace/projection lines. Decide per chart: layerchart vs hand-rolled SVG (sparkline precedent = hand-rolled for tiny inline; layerchart for axes/interaction-heavy surfaces — check layerchart API version in package.json first). All charts MUST sit in ChartPanel with a text summary + typed server loads (line 3 covers "typed loads + print-safe SVG" — design for it now: viewBox-scaled SVG, no fixed px sizes, currentColor where possible).
 - **NEXT: Phase 3 GATE = live pass of ALL Phase-3 surfaces + vision review** (#11 sparkline home, #12 flat view, #13 filter search, #14 category form incl. inline create + auto-match hint, #15 triage page, #16 /accounts/balances, #17 dots, #19 ⌘K open state, #20 print preview via browser if session allows; else screenshot after login). Then Phase 4 (Visualisation V1: layerchart foundation + net worth line + budget burn-down + goal bullet bars). Batch rule: 5 items max per run — this run did line 2 + line 3 (5 checklist units).
 - **devalue gotcha:** SvelteKit action JSON responses encode repeated values as array indices — `{"success":1,"updated":2}` can mean `[true, 0]` references. ALWAYS verify action outcomes via server logs (logFormData + logInfo lines), never by eyeballing the devalue payload (nearly mis-recorded updated:2 tonight; log proved updated:0).

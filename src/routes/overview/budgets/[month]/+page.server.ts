@@ -7,6 +7,7 @@ import {
 	getBudgetHistory,
 	getBudgetStatus,
 	getCategoryBreakdown,
+	getCumulativeDailySpend,
 	getMonthAmendments,
 	saveBudgetRow,
 	UNCATEGORISED_ID,
@@ -87,6 +88,14 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 
 	const amendments = await getMonthAmendments(user.id, monthStr);
 
+	// Phase 4 V1 #2: cumulative daily spend for the burn-down chart
+	const burnDown = await getCumulativeDailySpend(
+		user.id,
+		year,
+		month,
+		status.budget,
+	);
+
 	return {
 		budget: status.budget,
 		status: {
@@ -103,6 +112,7 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 		selectedMonth: monthStr,
 		isCurrentMonth,
 		amendments,
+		burnDown,
 	};
 };
 

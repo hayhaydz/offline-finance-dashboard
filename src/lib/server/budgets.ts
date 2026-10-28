@@ -355,6 +355,75 @@ export async function getUncategorisedTransactions(
 	}));
 }
 
+export interface DailySpendPoint {
+	/** Day of month, 1-based. */
+	day: number;
+	/** Cumulative net spending in pence through end of that day. */
+	cumulativePence: number;
+}
+
+/**
+ * Cumulative daily spend for the burn-down chart (Phase 4 V1 #2): same
+ * spending definition as every budget query (withdrawals+charges−refunds,
+ * budget type filter, excluded accounts), folded into a running total so
+ * the chart shows the actual spend curve vs the linear pace line.
+ */
+export async function getCumulativeDailySpend(
+	userId: number,
+	year: number,
+	month: number,
+	budget: BudgetConfig | null,
+): Promise<DailySpendPoint[]> {
+	const { start, end } = getMonthRange(year, month);
+
+	const conditions = [
+		withUserFilter(userId, accounts),
+		gte(accountTransactions.transactionDate, start),
+		lte(accountTransactions.transactionDate, end),
+		budgetTypeFilter(budget?.excludedTypes ?? []),
+	];
+
+	if (budget && budget.excludedAccountIds.length > 0) {
+		conditions.push(
+			notInArray(accountTransactions.accountId, budget.excludedAccountIds),
+		);
+	}
+
+	const rows = await db
+		.select({
+			transactionDate: accountTransactions.transactionDate,
+			type: accountTransactions.type,
+			amount: accountTransactions.amount,
+		})
+		.from(accountTransactions)
+		.innerJoin(accounts, eq(accountTransactions.accountId, accounts.id))
+		.where(and(...conditions));
+
+	const totalDays = new Date(year, month, 0).getDate();
+	const daily = new Array<number>(totalDays + 1).fill(0);
+	for (const row of rows) {
+		// UTC day-of-month: dates are stored as UTC-midnight timestamps and
+		// strftime on this column returns NULL (verified live 2026-10-28),
+		// so bucket in JS.
+		const day = new Date(row.transactionDate).getUTCDate();
+		if (!Number.isInteger(day) || day < 1 || day > totalDays) continue;
+		const magnitude = Math.abs(Number(row.amount));
+		if (row.type === "refund") {
+			daily[day] -= magnitude;
+		} else {
+			daily[day] += magnitude;
+		}
+	}
+
+	const out: DailySpendPoint[] = [];
+	let running = 0;
+	for (let day = 1; day <= totalDays; day++) {
+		running += daily[day];
+		out.push({ day, cumulativePence: running });
+	}
+	return out;
+}
+
 export async function getBudgetHistory(
 	userId: number,
 	page: number,
