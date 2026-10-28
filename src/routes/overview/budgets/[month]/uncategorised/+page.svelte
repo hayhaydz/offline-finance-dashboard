@@ -34,7 +34,7 @@
 		<div class="p-2 text-xs border-b border-black bg-gray-50">
 			{data.transactions.length} transaction{data.transactions.length !== 1 ? "s" : ""}
 			· {formatCurrency(data.totalSpent)} spending
-			<span class="text-gray-400"> · tag each row to move it into a category</span>
+			<span class="text-gray-500"> · tag each row to move it into a category</span>
 		</div>
 
 		<SubmitFeedback message={feedback.message} onDismiss={feedback.dismiss} />

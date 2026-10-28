@@ -45,6 +45,13 @@ html {
 	@apply antialiased;
 }
 
+/* Keyboard focus: crisp black ring, terminal style — visible on every
+   interactive element (a11y: no browser-default variance). */
+:focus-visible {
+	outline: 2px solid #000;
+	outline-offset: 2px;
+}
+
 body {
 	@apply font-terminal text-sm leading-tight bg-white text-black m-0 px-4 py-6 md:px-8 md:py-12;
 }

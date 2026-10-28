@@ -44,7 +44,7 @@
 			{#if staleness}
 					<span class="shrink-0 {staleness.cssClass}">●</span>
 				{:else}
-					<span class="shrink-0 text-gray-400">●</span>
+					<span class="shrink-0 text-gray-500">●</span>
 				{/if}
 			<span class="font-bold text-sm min-w-0 overflow-hidden">
 				<a href="/goals/debt/{slug}" class="bracket-link block truncate">{name}</a>

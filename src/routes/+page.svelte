@@ -251,7 +251,7 @@ import CashflowCalendar from '$lib/components/charts/CashflowCalendar.svelte';
 					</tr>
 					{#each cappedAssetGroups as group}
 						<tr class:line-through={group.excluded} class:text-gray-500={group.excluded}>
-							<td class="text-center tabular-nums border-r border-gray-200 text-gray-400 text-xs py-2">
+							<td class="text-center tabular-nums border-r border-gray-200 text-gray-500 text-xs py-2">
 								{group.count}
 							</td>
 							<td class="pl-2 py-2">
@@ -274,7 +274,7 @@ import CashflowCalendar from '$lib/components/charts/CashflowCalendar.svelte';
 					</tr>
 					{#each cappedLiabilityGroups as group}
 						<tr class:line-through={group.excluded} class:text-gray-500={group.excluded}>
-							<td class="text-center tabular-nums border-r border-gray-200 text-gray-400 text-xs py-2">
+							<td class="text-center tabular-nums border-r border-gray-200 text-gray-500 text-xs py-2">
 								{group.count}
 							</td>
 							<td class="pl-2 py-2">

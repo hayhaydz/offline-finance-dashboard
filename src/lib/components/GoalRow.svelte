@@ -97,12 +97,12 @@
 		<!-- Goal name -->
 		<div class="font-bold {isArchived ? 'text-gray-600' : ''}">
 			{#if reorderMode}
-				<span class="text-gray-400 select-none mr-1">⋮⋮</span>
+				<span class="text-gray-500 select-none mr-1">⋮⋮</span>
 			{/if}
 			{#if staleness}
 					<span class={staleness.cssClass}>●</span>
 				{:else}
-					<span class="text-gray-400">●</span>
+					<span class="text-gray-500">●</span>
 				{/if}
 			{#if isArchived}
 				<span>{truncateDisplay(goal.name, DISPLAY_LIMITS.GOAL_NAME)}</span>
@@ -139,7 +139,7 @@
 				[
 					{#each milestoneLabels as milestone, mIndex}
 						{#if mIndex > 0}&nbsp;{/if}
-						<span class="{milestone.achieved ? 'text-green-700' : 'text-gray-400'}">{milestone.label}</span>
+						<span class="{milestone.achieved ? 'text-green-700' : 'text-gray-500'}">{milestone.label}</span>
 					{/each}
 				]
 			</div>
@@ -180,7 +180,7 @@
 		{#if goal.targetDate}
 			<div class="text-xs text-gray-600">{formatDate(new Date(goal.targetDate))}</div>
 		{:else}
-			<span class="text-gray-400 text-xs">No deadline</span>
+			<span class="text-gray-500 text-xs">No deadline</span>
 		{/if}
 	</td>
 	{#if showArchivedDate}
@@ -188,7 +188,7 @@
 		{#if goal.deletedAt}
 			<div class="text-xs text-gray-600">{formatDate(new Date(goal.deletedAt))}</div>
 		{:else}
-			<span class="text-gray-400 text-xs">-</span>
+			<span class="text-gray-500 text-xs">-</span>
 		{/if}
 		</td>
 	{/if}

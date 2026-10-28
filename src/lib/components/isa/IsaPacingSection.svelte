@@ -12,7 +12,7 @@
 			class="font-bold"
 			class:text-green-700={pacing.status === 'full' || pacing.status === 'on-track'}
 			class:text-amber-700={pacing.status === 'behind'}
-			class:text-gray-400={pacing.status === 'no-data'}
+			class:text-gray-500={pacing.status === 'no-data'}
 		>
 			{pacing.status === 'full' ? 'FULL' : pacing.status === 'on-track' ? 'ON TRACK' : pacing.status === 'behind' ? 'BEHIND' : 'NO DATA'}
 		</span>

@@ -80,7 +80,7 @@
 			{#if staleness}
 					<span class="shrink-0 {staleness.cssClass}">●</span>
 				{:else}
-					<span class="shrink-0 text-gray-400">●</span>
+					<span class="shrink-0 text-gray-500">●</span>
 				{/if}
 			<span class="font-bold text-sm min-w-0 overflow-hidden">
 				<a href="/goals/{goal.slug}" class="bracket-link block truncate">{goal.name}</a>
@@ -88,8 +88,8 @@
 					<span class="text-xs text-gray-500 font-normal">
 						[
 						{#each emergencyFundMilestones as milestone, index}
-							<span class={milestone.achieved ? 'text-green-700' : 'text-gray-400'}>{milestone.label}</span
-							><span class="text-gray-400">{index < emergencyFundMilestones!.length - 1 ? ' ' : ''}</span>
+							<span class={milestone.achieved ? 'text-green-700' : 'text-gray-500'}>{milestone.label}</span
+							><span class="text-gray-500">{index < emergencyFundMilestones!.length - 1 ? ' ' : ''}</span>
 						{/each}
 						]
 					</span>

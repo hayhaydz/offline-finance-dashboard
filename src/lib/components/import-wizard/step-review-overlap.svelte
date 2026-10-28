@@ -191,7 +191,7 @@
 								<tr
 									class="border-b border-black {selectedMode === 'choose'
 										? 'cursor-pointer'
-										: ''} {status === 'SKIP' ? 'text-gray-400' : ''}"
+										: ''} {status === 'SKIP' ? 'text-gray-500' : ''}"
 									onclick={() => {
 										if (selectedMode === "choose") {
 											toggleRowSelection(parsedData.valid.indexOf(row));

@@ -37,7 +37,7 @@
 	}
 
 	function momClass(delta: number | null): string {
-		if (delta === null || delta === 0) return 'text-gray-400';
+		if (delta === null || delta === 0) return 'text-gray-500';
 		return delta > 0 ? 'text-green-700' : 'text-red-700';
 	}
 </script>
@@ -69,7 +69,7 @@
 			<span class="text-green-700 font-bold ml-2">[COMPLETE]</span>
 		{/if}
 	</span>
-	<span class="text-xs font-mono bar-chart text-gray-400">
+	<span class="text-xs font-mono bar-chart text-gray-500">
 		{progressBar(Math.round((completedCount / totalItems) * 100), 12)}
 	</span>
 </div>
@@ -118,7 +118,7 @@
 				</button>
 			</form>
 			<div class="flex-1 min-w-0">
-				<div class="text-sm font-bold" class:line-through={checked} class:text-gray-400={checked}>
+				<div class="text-sm font-bold" class:line-through={checked} class:text-gray-500={checked}>
 					{item.label}
 				</div>
 				<div class="text-xs text-gray-500">{item.description}</div>
@@ -166,7 +166,7 @@
 						<td class="text-center tabular-nums py-1 text-xs {momClass(goal.momDelta)}">
 							{momLabel(goal.momDelta)}
 						</td>
-						<td class="pl-1 py-1 font-mono text-xs bar-chart hidden md:table-cell text-gray-400">
+						<td class="pl-1 py-1 font-mono text-xs bar-chart hidden md:table-cell text-gray-500">
 							{progressBar(goal.percent, 16)}
 						</td>
 					</tr>

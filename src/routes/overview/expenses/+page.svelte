@@ -169,7 +169,7 @@
 										onclick={() => selectMonth(cell.month)}
 										class="px-1.5 py-0.5 text-[11px] font-mono min-w-12 border
 											{selectedMonth === cell.month ? 'bg-black text-white border-black' :
-												cell.amountInCents === null ? 'text-gray-400 border-transparent hover:border-black' :
+												cell.amountInCents === null ? 'text-gray-500 border-transparent hover:border-black' :
 												'border-gray-300 hover:border-black'}"
 										title={cell.note ?? cell.month}
 									>

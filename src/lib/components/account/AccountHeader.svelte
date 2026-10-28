@@ -112,9 +112,9 @@
 	{#if rateSpread !== null && currentRate !== null && boeBaseRate !== null}
 		<div class="text-xs mt-1 text-gray-600">
 			Rate: {(currentRate / 100).toFixed(2)}%
-			<span class="text-gray-400 mx-1">·</span>
+			<span class="text-gray-500 mx-1">·</span>
 			BoE base: {(boeBaseRate / 100).toFixed(2)}%
-			<span class="text-gray-400 mx-1">·</span>
+			<span class="text-gray-500 mx-1">·</span>
 			Spread: <span class={spreadColour}>{rateSpread >= 0 ? '+' : ''}{(rateSpread / 100).toFixed(2)}%</span>
 		</div>
 	{/if}
@@ -133,13 +133,13 @@
 				{@const delta12mUp = balanceDelta12m > 0}
 				{@const delta12mGood = isLiability ? !delta12mUp : delta12mUp}
 				{@const delta12mColour = delta12mGood ? 'text-green-700' : 'text-red-700'}
-				<span class="text-gray-400">|</span>
+				<span class="text-gray-500">|</span>
 				<span class={delta12mColour}>
 					{delta12mUp ? '▲' : '▼'} {delta12mAbs} from 12 months ago
 				</span>
 			{:else}
-				<span class="text-gray-400">|</span>
-				<span class="text-gray-400">— from 12 months ago</span>
+				<span class="text-gray-500">|</span>
+				<span class="text-gray-500">— from 12 months ago</span>
 			{/if}
 		</div>
 	{/if}

@@ -105,7 +105,7 @@
 							onpointerenter={() => (activeIndex = i)}
 						>
 							<span>{cmd.label}</span>
-							<span class="text-[10px] {i === activeIndex ? 'text-gray-300' : 'text-gray-400'}">{cmd.section}</span>
+							<span class="text-[10px] {i === activeIndex ? 'text-gray-300' : 'text-gray-500'}">{cmd.section}</span>
 						</button>
 					</li>
 				{/each}

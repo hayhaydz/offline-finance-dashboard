@@ -110,9 +110,9 @@
 								<tr class="bg-gray-100 border-b border-black">
 									<td colspan="4" class="p-1 font-bold">
 										{group.monthLabel} — {group.transactions.length} transaction{group.transactions.length !== 1 ? 's' : ''}
-										<span class="text-gray-400 font-normal"> · Net: </span>
+										<span class="text-gray-500 font-normal"> · Net: </span>
 										<span class="{group.net >= 0 ? 'text-green-700' : 'text-red-700'}">{group.net >= 0 ? '+' : ''}{formatCurrency(group.net)}</span>
-										<span class="text-gray-400 font-normal"> ({formatCurrency(group.inflow)} in, {formatCurrency(group.outflow)} out)</span>
+										<span class="text-gray-500 font-normal"> ({formatCurrency(group.inflow)} in, {formatCurrency(group.outflow)} out)</span>
 									</td>
 								</tr>
 								{#each group.transactions as pr (pr.row.rowIndex)}

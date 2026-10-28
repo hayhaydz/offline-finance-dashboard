@@ -69,7 +69,7 @@
     <div class="text-[10px] font-bold text-gray-500 mb-2 uppercase">Payoff Order</div>
     {#each currentOrder as debt, index}
       <div class="flex items-center gap-2 text-xs py-1 {index < currentOrder.length - 1 ? 'border-b border-gray-100' : ''}">
-        <span class="font-bold text-gray-400 min-w-4">{index + 1}.</span>
+        <span class="font-bold text-gray-500 min-w-4">{index + 1}.</span>
         <a href="/goals/debt/{debt.slug}" class="bracket-link flex-1">{debt.name}</a>
         <span class="tabular-nums">{formatCurrencyShorthand(debt.remainingInCents)}</span>
         <span class="text-gray-500">{formatApr(debt.aprBasisPoints)}</span>

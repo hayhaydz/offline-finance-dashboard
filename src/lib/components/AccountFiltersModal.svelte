@@ -302,7 +302,7 @@
 								<span class="text-[10px] text-gray-500 border border-gray-300 px-1">{institutionCounts[inst] ?? 0}</span>
 							</div>
 						{:else}
-							<div class="p-2 text-xs text-gray-400">no institution matches "{institutionQuery}"</div>
+							<div class="p-2 text-xs text-gray-500">no institution matches "{institutionQuery}"</div>
 						{/each}
 					</div>
 				</div>

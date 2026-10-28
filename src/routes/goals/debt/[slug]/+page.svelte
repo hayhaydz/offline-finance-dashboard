@@ -146,7 +146,7 @@
       <div class="space-y-2">
         {#each (data.goal.milestones || []).toSorted((a, b) => b.thresholdInCents - a.thresholdInCents) as milestone}
           <div class="flex items-center gap-2 text-sm">
-            <span class={milestone.reachedAt ? 'text-green-700' : 'text-gray-400'}>
+            <span class={milestone.reachedAt ? 'text-green-700' : 'text-gray-500'}>
               [{milestone.reachedAt ? '\u2713' : ' '}]</span>
             <span class={milestone.reachedAt ? 'font-bold text-green-700' : 'text-gray-600'}>
               {milestone.label}
@@ -156,7 +156,7 @@
                 {formatDateShorthand(milestone.reachedAt)}
               </span>
             {:else}
-              <span class="text-xs text-gray-400 ml-auto">
+              <span class="text-xs text-gray-500 ml-auto">
                 {formatCurrencyShorthand(milestone.thresholdInCents)} balance target
               </span>
             {/if}

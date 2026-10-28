@@ -130,7 +130,7 @@
 
 			{#if refundCandidates !== null}
 				{#if refundCandidates.length === 0}
-					<p class="text-gray-400">No candidate rows found — nothing recorded as negative
+					<p class="text-gray-500">No candidate rows found — nothing recorded as negative
 						<span class="font-mono">value_change</span> on credit cards.</p>
 				{:else}
 					{@const candidates = refundCandidates}

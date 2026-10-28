@@ -165,11 +165,11 @@
 					<span class="text-red-700">PSA exceeded — {formatCurrency(psaProjection.taxableExcess)} taxable</span>
 				{:else if !psaProjection.onTrack && psaProjection.breachMonth}
 					<span>PSA: {formatCurrency(psaProjection.used)} of {formatCurrency(psaProjection.allowance)} used</span>
-					<span class="text-gray-400"> · </span>
+					<span class="text-gray-500"> · </span>
 					<span class="text-amber-700">At current rates, you'll exceed by {psaProjection.breachMonth}</span>
 				{:else}
 					<span>PSA: {formatCurrency(psaProjection.used)} of {formatCurrency(psaProjection.allowance)} used</span>
-					<span class="text-gray-400"> · </span>
+					<span class="text-gray-500"> · </span>
 					<span class="text-green-700">On track to stay within limit</span>
 				{/if}
 			</div>

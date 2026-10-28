@@ -24,7 +24,7 @@
 			{#if staleCount > 0}
 				<span class="text-amber-700 font-bold"> · {staleCount} stale (35+ days)</span>
 			{/if}
-			<span class="text-gray-400"> · enter a target balance to reconcile — a correcting transaction is appended, balances are never overwritten</span>
+			<span class="text-gray-500"> · enter a target balance to reconcile — a correcting transaction is appended, balances are never overwritten</span>
 		</div>
 
 		<SubmitFeedback message={feedback.message} onDismiss={feedback.dismiss} />
@@ -102,7 +102,7 @@
 				<button type="submit" class="bracket-link text-sm" disabled={feedback.isSubmitting}>
 					{feedback.isSubmitting ? 'Updating…' : '[Update Balances]'}
 				</button>
-				<span class="text-xs text-gray-400">blank rows are skipped</span>
+				<span class="text-xs text-gray-500">blank rows are skipped</span>
 			</div>
 		</form>
 	</div>

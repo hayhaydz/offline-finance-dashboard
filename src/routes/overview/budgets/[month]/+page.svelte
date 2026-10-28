@@ -171,7 +171,7 @@
 	}
 
 	function getHistoryStatus(target: number, actual: number): { label: string; class: string } {
-		if (target === 0) return { label: "—", class: "text-gray-400" };
+		if (target === 0) return { label: "—", class: "text-gray-500" };
 		const pct = Math.round((actual / target) * 100);
 		if (pct > 100) return { label: `OVER +${pct - 100}%`, class: "text-red-700 font-bold" };
 		if (pct >= 95) return { label: `UNDER -${100 - pct}%`, class: "text-amber-600 font-bold" };
@@ -265,7 +265,7 @@
 					&middot; {formatCurrency(data.status.totalSpent)} spent
 				{/if}
 				{#if !data.isCurrentMonth}
-					&middot; <span class="text-gray-400">Historical — config editable, transactions immutable</span>
+					&middot; <span class="text-gray-500">Historical — config editable, transactions immutable</span>
 				{/if}
 			</div>
 		</div>
@@ -282,7 +282,7 @@
 				{#if getNextMonth(data.selectedMonth)}
 					<a href="/overview/budgets/{getNextMonth(data.selectedMonth)}" class="bracket-link text-xs" data-sveltekit-noscroll>[Next]</a>
 				{:else}
-					<span class="text-xs text-gray-400">[Next]</span>
+					<span class="text-xs text-gray-500">[Next]</span>
 				{/if}
 			</div>
 		</div>
@@ -326,12 +326,12 @@
 				<span class="{remaining >= 0 ? 'text-green-700' : 'text-red-700'} font-bold text-xs">
 					{remaining >= 0 ? formatCurrency(remaining) + ' remaining' : formatCurrency(Math.abs(remaining)) + ' over'}
 				</span>
-				<span class="text-gray-400 text-[10px]">· sum of category targets</span>
+				<span class="text-gray-500 text-[10px]">· sum of category targets</span>
 			{:else}
-				<span class="text-gray-400 text-xs">not set</span>
+				<span class="text-gray-500 text-xs">not set</span>
 			{/if}
 		</span>
-		<span class="text-xs text-gray-400">details {targetOpen ? '[-]' : '[+]'}</span>
+		<span class="text-xs text-gray-500">details {targetOpen ? '[-]' : '[+]'}</span>
 	</button>
 
 	{#if targetOpen}
@@ -343,7 +343,7 @@
 						<span class="text-[10px] text-amber-700 ml-1">{amendmentMarker('totalTargetInCents')}</span>
 					{/if}
 				</div>
-				<div class="text-xs text-gray-400">Set individual category targets below to adjust.</div>
+				<div class="text-xs text-gray-500">Set individual category targets below to adjust.</div>
 			{:else if data.isCurrentMonth}
 				<form method="POST" action="?/saveTarget" use:enhance={validatedCreateSubmit}>
 					<div class="flex items-center gap-2 text-sm">
@@ -369,13 +369,13 @@
 									<input type="checkbox" name="accountIds" value={acc.id} bind:group={scopeSelectedIds} class="cursor-pointer" />
 									<span class="font-bold">{scopeSelectedIds.includes(acc.id) ? '[X]' : '[ ]'}</span>
 									<span>{acc.name}</span>
-									<span class="text-gray-400">{acc.type}</span>
+									<span class="text-gray-500">{acc.type}</span>
 								</label>
 							{/each}
-							<div class="text-[10px] text-gray-400 mt-0.5">Unticked accounts are excluded from this budget. Editable later via the account panel.</div>
+							<div class="text-[10px] text-gray-500 mt-0.5">Unticked accounts are excluded from this budget. Editable later via the account panel.</div>
 						{/if}
 					</div>
-					<div class="text-xs text-gray-400 mt-1">Set a monthly spending target to unlock progress tracking.</div>
+					<div class="text-xs text-gray-500 mt-1">Set a monthly spending target to unlock progress tracking.</div>
 				</form>
 			{:else}
 				<div class="text-sm text-gray-500">
@@ -409,9 +409,9 @@
 			{/if}
 			<div class="flex justify-between text-xs">
 				<span class="text-gray-500">Spent so far</span>
-				<span>{formatCurrency(data.status.totalSpent)} <span class="text-gray-400">of</span> {formatCurrency(data.budget.totalTargetInCents)}</span>
+				<span>{formatCurrency(data.status.totalSpent)} <span class="text-gray-500">of</span> {formatCurrency(data.budget.totalTargetInCents)}</span>
 			</div>
-			<div class="flex justify-between text-xs text-gray-400">
+			<div class="flex justify-between text-xs text-gray-500">
 				<span>{data.status.daysElapsed} of {data.status.totalDays} days elapsed</span>
 				<span>{Math.round((data.status.daysElapsed / data.status.totalDays) * 100)}% of month</span>
 			</div>
@@ -425,11 +425,11 @@
 				<span>THIS MONTH</span>
 				<span>{formatCurrency(data.status.totalSpent)}</span>
 			</div>
-			<div class="flex justify-between text-xs text-gray-400">
+			<div class="flex justify-between text-xs text-gray-500">
 				<span>{data.status.daysElapsed} of {data.status.totalDays} days elapsed</span>
 				<span>Avg {formatCurrency(Math.round(data.status.avgPerDay))}/day</span>
 			</div>
-			<div class="text-xs text-gray-400 mt-1">Spending = withdrawals + card charges − refunds. Transfers and debt payments are excluded.</div>
+			<div class="text-xs text-gray-500 mt-1">Spending = withdrawals + card charges − refunds. Transfers and debt payments are excluded.</div>
 		</div>
 	{/if}
 
@@ -450,7 +450,7 @@
 					<div class="h-full bg-black" style="width: {Math.min(spentPercent, 100)}%"></div>
 					<div class="absolute -top-0.5 -bottom-0.5 w-0.5 bg-green-700" style="left: {pacePercent}%"></div>
 				</div>
-				<div class="text-xs text-gray-400 mt-1">
+				<div class="text-xs text-gray-500 mt-1">
 					Spending {spentPercent}% | Time {pacePercent}% — <span class="{statusLabel.class}">{statusLabel.text}</span>
 				</div>
 			</div>
@@ -476,13 +476,13 @@
 			class="w-full font-bold flex justify-between items-center cursor-pointer px-2 py-1 text-xs bg-gray-50 border-t border-black"
 			onclick={() => (filtersOpen = !filtersOpen)}
 		>
-			<span>FILTERS <span class="text-gray-400">{data.budget.excludedCategoryIds.length > 0 ? (data.categories.length - data.budget.excludedCategoryIds.length) + '/' + data.categories.length + ' cats' : 'all cats'} · {data.budget.excludedAccountIds.length > 0 ? (data.accounts.length - data.budget.excludedAccountIds.length) + '/' + data.accounts.length + ' accts' : 'all accts'} · {data.budget.excludedTypes.length > 0 ? (BUDGET_SPENDING_TYPES.length - data.budget.excludedTypes.length) + '/' + BUDGET_SPENDING_TYPES.length + ' types' : 'all types'}</span></span>
-			<span class="text-xs text-gray-400">{filtersOpen ? '[-]' : '[+]'}</span>
+			<span>FILTERS <span class="text-gray-500">{data.budget.excludedCategoryIds.length > 0 ? (data.categories.length - data.budget.excludedCategoryIds.length) + '/' + data.categories.length + ' cats' : 'all cats'} · {data.budget.excludedAccountIds.length > 0 ? (data.accounts.length - data.budget.excludedAccountIds.length) + '/' + data.accounts.length + ' accts' : 'all accts'} · {data.budget.excludedTypes.length > 0 ? (BUDGET_SPENDING_TYPES.length - data.budget.excludedTypes.length) + '/' + BUDGET_SPENDING_TYPES.length + ' types' : 'all types'}</span></span>
+			<span class="text-xs text-gray-500">{filtersOpen ? '[-]' : '[+]'}</span>
 		</button>
 		<SubmitFeedback message={filterFeedback.message} onDismiss={filterFeedback.dismiss} />
 		{#if filtersOpen}
 			<div class="px-2 py-1 border-b border-gray-300">
-				<div class="text-xs text-gray-400 py-1 border-b border-dotted border-gray-200">
+				<div class="text-xs text-gray-500 py-1 border-b border-dotted border-gray-200">
 					Spending = withdrawals + card charges − refunds. Transfers and debt payments are excluded.
 				</div>
 				<div class="text-gray-500 font-bold text-xs py-1">CATEGORIES</div>
@@ -512,7 +512,7 @@
 						<button type="submit" class="flex items-center gap-1.5 py-0.5 cursor-pointer w-full text-left {excluded ? 'opacity-40' : 'hover:bg-gray-50'}">
 							<span class="font-bold text-xs">{excluded ? '[ ]' : '[X]'}</span>
 							<span class="text-xs {excluded ? 'line-through' : ''}">{acc.name}</span>
-							<span class="text-xs text-gray-400">{acc.type}</span>
+							<span class="text-xs text-gray-500">{acc.type}</span>
 						</button>
 					</form>
 				{/each}
@@ -529,7 +529,7 @@
 							<span class="font-bold text-xs">{excluded ? '[ ]' : '[X]'}</span>
 							<span class="text-xs {excluded ? 'line-through' : ''}">{TRANSACTION_TYPE_LABELS[t]}</span>
 							{#if t === 'refund'}
-								<span class="text-[10px] text-gray-400">nets against spending</span>
+								<span class="text-[10px] text-gray-500">nets against spending</span>
 							{/if}
 						</button>
 					</form>
@@ -539,7 +539,7 @@
 	{/if}
 
 	<!-- CATEGORY TARGETS -->
-	<div class="font-bold text-xs px-2 py-1 bg-gray-50 border-t border-black">CATEGORY TARGETS <span class="text-gray-400">{targetedCategories.length} targeted · {untargetedCategories.length} untargeted</span></div>
+	<div class="font-bold text-xs px-2 py-1 bg-gray-50 border-t border-black">CATEGORY TARGETS <span class="text-gray-500">{targetedCategories.length} targeted · {untargetedCategories.length} untargeted</span></div>
 	<SubmitFeedback message={targetFeedback.message} onDismiss={targetFeedback.dismiss} />
 	<div class="px-2 py-1 border-b border-gray-300">
 		{#if targetedCategories.length > 0}
@@ -585,7 +585,7 @@
 							<span class="min-w-6 font-bold {pct > 100 ? 'text-red-700' : pct > 75 ? 'text-amber-600' : 'text-green-700'}">{pct}%</span>
 						</div>
 						<span class="text-xs min-w-[70px] text-right">
-							{formatCurrency(cat.spent)} <span class="text-gray-400">/</span> {formatCurrency(cat.target ?? 0)}
+							{formatCurrency(cat.spent)} <span class="text-gray-500">/</span> {formatCurrency(cat.target ?? 0)}
 						</span>
 						{#if prog.overBy !== null}
 							<span class="text-[10px] text-red-700 font-bold whitespace-nowrap">
@@ -627,7 +627,7 @@
 					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200">
 						<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
 						<span class="text-xs w-32 shrink-0">{cat.name}</span>
-						<span class="text-xs text-gray-400 min-w-[70px] text-right">{formatCurrency(cat.spent)} spent</span>
+						<span class="text-xs text-gray-500 min-w-[70px] text-right">{formatCurrency(cat.spent)} spent</span>
 						<button class="bracket-link text-xs" onclick={() => startEdit(cat.id, null)}>Set Target</button>
 						{#if cat.id < 0 && cat.spent > 0}
 							<a class="bracket-link text-xs" href="./uncategorised">[Triage]</a>
@@ -664,7 +664,7 @@
 				<div class="flex items-center gap-2 py-1 opacity-40">
 					<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
 					<span class="text-xs w-20 shrink-0 line-through">{cat.name}</span>
-					<span class="text-xs text-gray-400">—</span>
+					<span class="text-xs text-gray-500">—</span>
 				</div>
 			{/each}
 		{/if}
@@ -676,24 +676,24 @@
 			class="w-full font-bold flex justify-between items-center cursor-pointer px-2 py-1 text-xs bg-gray-50 border-t border-black"
 			onclick={() => (amendmentsOpen = !amendmentsOpen)}
 		>
-			<span>AMENDMENTS <span class="text-gray-400">{data.amendments.length} change{data.amendments.length === 1 ? '' : 's'}</span></span>
-			<span class="text-xs text-gray-400">{amendmentsOpen ? '[-]' : '[+]'}</span>
+			<span>AMENDMENTS <span class="text-gray-500">{data.amendments.length} change{data.amendments.length === 1 ? '' : 's'}</span></span>
+			<span class="text-xs text-gray-500">{amendmentsOpen ? '[-]' : '[+]'}</span>
 		</button>
 		{#if amendmentsOpen}
 			<div class="px-2 py-1 border-b border-gray-300">
 				{#if data.amendments.length === 0}
-					<div class="text-xs text-gray-400 py-1">No amendments recorded for this month. Config edits are trailed automatically.</div>
+					<div class="text-xs text-gray-500 py-1">No amendments recorded for this month. Config edits are trailed automatically.</div>
 				{:else}
-					<div class="text-[10px] text-gray-400 py-0.5">Transactions are immutable — only config changes appear here, newest first.</div>
+					<div class="text-[10px] text-gray-500 py-0.5">Transactions are immutable — only config changes appear here, newest first.</div>
 					{#each data.amendments as amendment (amendment.id)}
 						<div class="flex flex-wrap items-baseline gap-x-1.5 py-0.5 border-b border-dotted border-gray-100 text-xs">
 							<span class="text-gray-500 w-20 shrink-0">{formatAmendmentDate(amendment.createdAt)}</span>
 							<span class="font-bold">{amendmentFieldLabel(amendment.field)}</span>
 							<span>{formatAmendmentValue(amendment.field, amendment.oldValue)}</span>
-							<span class="text-gray-400">&rarr;</span>
+							<span class="text-gray-500">&rarr;</span>
 							<span class="font-bold">{formatAmendmentValue(amendment.field, amendment.newValue)}</span>
 							{#if amendment.note}
-								<span class="text-gray-400">({amendment.note})</span>
+								<span class="text-gray-500">({amendment.note})</span>
 							{/if}
 						</div>
 					{/each}
@@ -703,7 +703,7 @@
 	{/if}
 
 	<!-- HISTORY -->
-	<div class="font-bold text-xs px-2 py-1 bg-gray-50 border-t border-black">HISTORY <span class="text-gray-400">{data.history.months.length} months</span></div>
+	<div class="font-bold text-xs px-2 py-1 bg-gray-50 border-t border-black">HISTORY <span class="text-gray-500">{data.history.months.length} months</span></div>
 	<div class="px-2 py-1 border-b border-gray-300" bind:this={historyRef}>
 		{#if data.history.months.length > 0}
 			<table class="w-full border-collapse text-xs">
@@ -734,7 +734,7 @@
 			scrollTarget={historyRef}
 		/>
 		{:else}
-			<div class="text-xs text-gray-400 py-1">No history yet.</div>
+			<div class="text-xs text-gray-500 py-1">No history yet.</div>
 		{/if}
 	</div>
 </div>

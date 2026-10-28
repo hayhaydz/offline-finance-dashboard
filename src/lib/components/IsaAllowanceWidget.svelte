@@ -28,7 +28,7 @@
 		if (!pacing) return '';
 		if (pacing.status === 'full' || pacing.status === 'on-track') return 'text-green-700';
 		if (pacing.status === 'behind') return 'text-amber-700';
-		return 'text-gray-400';
+		return 'text-gray-500';
 	});
 
 	const pacingLabel = $derived.by(() => {
@@ -85,9 +85,9 @@
 					</span>
 				</div>
 			{:else}
-				<div class="text-xs text-gray-400 mt-0.5">No ISA deposits this tax year yet</div>
+				<div class="text-xs text-gray-500 mt-0.5">No ISA deposits this tax year yet</div>
 			{/if}
-			<div class="text-xs text-gray-400 mt-0.5">{pacing.daysRemainingInTaxYear}d remaining</div>
+			<div class="text-xs text-gray-500 mt-0.5">{pacing.daysRemainingInTaxYear}d remaining</div>
 		</div>
 	{/if}
 </div>

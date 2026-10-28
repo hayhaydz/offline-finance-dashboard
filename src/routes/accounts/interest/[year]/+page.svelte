@@ -431,7 +431,7 @@
 							</td>
 							<td class="text-sm py-2 whitespace-nowrap">{tx.accountInstitution || '-'}</td>
 							<td class="text-sm py-2 whitespace-nowrap uppercase">{formatTaxWrapper(tx.accountTaxWrapper)}</td>
-							<td class="text-right pr-2 text-sm tabular-nums py-2 whitespace-nowrap" class:text-green-700={tx.amount > 0} class:text-gray-400={tx.amount === 0}>
+							<td class="text-right pr-2 text-sm tabular-nums py-2 whitespace-nowrap" class:text-green-700={tx.amount > 0} class:text-gray-500={tx.amount === 0}>
 								{tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
 							</td>
 							<td class="text-right pr-2 text-sm tabular-nums py-2 whitespace-nowrap font-bold">

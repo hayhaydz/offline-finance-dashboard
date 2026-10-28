@@ -404,9 +404,9 @@
 					<tr class="bg-gray-100 border-b border-gray-300">
 						<td colspan={editMode ? 7 : 6} class="pl-2 py-1 text-xs font-bold">
 							{group.monthLabel} — {group.transactions.length} transaction{group.transactions.length !== 1 ? 's' : ''}{#if typeFilter} shown{/if}
-							<span class="text-gray-400 font-normal"> · Net: </span>
+							<span class="text-gray-500 font-normal"> · Net: </span>
 							<span class="{group.net >= 0 ? 'text-green-700' : 'text-red-700'}">{group.net >= 0 ? '+' : ''}{formatCurrency(group.net)}</span>
-							<span class="text-gray-400 font-normal"> ({formatCurrency(group.inflow)} in, {formatCurrency(group.outflow)} out)</span>
+							<span class="text-gray-500 font-normal"> ({formatCurrency(group.inflow)} in, {formatCurrency(group.outflow)} out)</span>
 						</td>
 					</tr>
 					{#if group.transactions.length === 0}

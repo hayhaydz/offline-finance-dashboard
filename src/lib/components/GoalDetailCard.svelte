@@ -157,10 +157,10 @@
 			<div class="flex gap-3">
 				{#each emergencyFundMilestones as milestone}
 					<div class="flex items-center gap-1 text-xs">
-						<span class={milestone.achieved ? 'text-green-700' : 'text-gray-400'}>
+						<span class={milestone.achieved ? 'text-green-700' : 'text-gray-500'}>
 							{milestone.achieved ? '✓' : '○'}
 						</span>
-						<span class={milestone.achieved ? 'font-bold text-green-700' : 'text-gray-400'}>
+						<span class={milestone.achieved ? 'font-bold text-green-700' : 'text-gray-500'}>
 							{milestone.label}
 						</span>
 					</div>
@@ -176,10 +176,10 @@
 			<div class="flex gap-3">
 				{#each goal.milestones as milestone}
 					<div class="flex items-center gap-1 text-xs">
-						<span class={milestone.reached ? 'text-green-700' : 'text-gray-400'}>
+						<span class={milestone.reached ? 'text-green-700' : 'text-gray-500'}>
 							{milestone.reached ? '✓' : '○'}
 						</span>
-						<span class={milestone.reached ? 'font-bold text-green-700' : 'text-gray-400'}>
+						<span class={milestone.reached ? 'font-bold text-green-700' : 'text-gray-500'}>
 							{milestone.label}
 						</span>
 					</div>

@@ -257,7 +257,7 @@
 				<div class="text-gray-500">Payment breakdown:</div>
 				<div class="text-right tabular-nums text-xs">
 					<span class="text-amber-700">£{(paymentEfficiency.interestAmt / 100).toFixed(2)} interest ({paymentEfficiency.interestPct}%)</span>
-					<span class="text-gray-400"> · </span>
+					<span class="text-gray-500"> · </span>
 					<span class="text-green-700">£{(paymentEfficiency.principalAmt / 100).toFixed(2)} principal</span>
 				</div>
 			{/if}
@@ -303,9 +303,9 @@
 				{#if simulatorResult}
 					<div class="mt-1 text-xs tabular-nums">
 						TTZ: <span class="font-bold">{simulatorResult.months} months</span>
-						<span class="text-gray-400"> · </span>
+						<span class="text-gray-500"> · </span>
 						Interest: <span class="font-bold text-amber-700">£{((simulatorResult.totalInterest ?? 0) / 100).toFixed(2)}</span>
-						<span class="text-gray-400"> · </span>
+						<span class="text-gray-500"> · </span>
 						Debt-free: <span class="font-bold text-green-700">{simulatorResult.debtFreeDate}</span>
 					</div>
 					{#if simulatorDiff}

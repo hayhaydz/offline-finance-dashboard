@@ -180,7 +180,7 @@
 							/>
 							<span
 								class="w-16 text-right shrink-0 font-bold {deltaFor(a.slug) === 0
-									? 'text-gray-400'
+									? 'text-gray-500'
 									: deltaFor(a.slug) > 0
 										? 'text-green-700'
 										: 'text-red-700'}"

@@ -22,7 +22,7 @@
 <!-- Streak banner -->
 <div class="border-b border-black p-2 flex justify-between items-center">
 	<div>
-		<span class="font-bold text-lg" class:text-green-700={streak.currentStreak > 0} class:text-gray-400={streak.currentStreak === 0}>
+		<span class="font-bold text-lg" class:text-green-700={streak.currentStreak > 0} class:text-gray-500={streak.currentStreak === 0}>
 			{streakLabel}
 		</span>
 		{#if streak.longestStreak > 0 && streak.longestStreak !== streak.currentStreak}
@@ -69,7 +69,7 @@
 						<span
 							class:text-green-700={entry.isComplete}
 							class:text-amber-700={entry.completedCount > 0 && !entry.isComplete}
-							class:text-gray-400={entry.completedCount === 0}
+							class:text-gray-500={entry.completedCount === 0}
 						>
 							{entry.completedCount}/{entry.totalItems}
 						</span>
@@ -80,7 +80,7 @@
 						{:else if entry.completedCount > 0}
 							<span class="text-amber-700 font-bold">PARTIAL</span>
 						{:else}
-							<span class="text-gray-400">—</span>
+							<span class="text-gray-500">—</span>
 						{/if}
 					</td>
 					<td class="pl-2 py-1 text-xs text-gray-500 max-w-xs truncate">

@@ -108,7 +108,7 @@
 								<div class="flex items-center justify-end gap-1">
 									<span class="text-amber-700">+{formatCurrency(account.projectedInterest)}</span>
 									<span
-										class="text-[10px] text-gray-400 cursor-help font-bold"
+										class="text-[10px] text-gray-500 cursor-help font-bold"
 										title="{formatCurrency(account.balanceInCents)} * {(account.rateBasisPoints! / 100).toFixed(2)}% * {(account.daysUntilMaturity ?? account.daysUntilTaxYearEnd)} / 365 days"
 									>[?]</span>
 								</div>

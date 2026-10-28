@@ -95,7 +95,7 @@
 			{#each accounts as account}
 				<div class="text-xs flex justify-between py-1 border-b border-gray-200 last:border-0">
 					<span>{truncateDisplay(account.name, DISPLAY_LIMITS.ACCOUNT_NAME)}</span>
-					<span class="{account.includedInTotal ? '' : 'text-gray-400'}">
+					<span class="{account.includedInTotal ? '' : 'text-gray-500'}">
 						{formatCurrencyShorthand(account.balanceInCents)}
 						{!account.includedInTotal ? ' (excluded)' : ''}
 					</span>

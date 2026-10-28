@@ -113,7 +113,7 @@
       {#if staleness}
         <span class="{staleness.cssClass} shrink-0">●</span>
       {:else}
-        <span class="text-gray-400 shrink-0">●</span>
+        <span class="text-gray-500 shrink-0">●</span>
       {/if}
       <span class="truncate">{truncateDisplay(data.goal.name, DISPLAY_LIMITS.GOAL_NAME)}</span>
     </h1>
@@ -248,7 +248,7 @@
               {#if alloc.taxWrapper && alloc.taxWrapper !== 'none'}
                 <span class="text-amber-700">{formatTaxWrapper(alloc.taxWrapper)}</span>
               {:else}
-                <span class="text-gray-400">-</span>
+                <span class="text-gray-500">-</span>
               {/if}
             </td>
             <td class="text-right pr-1 text-sm py-2 text-gray-600">

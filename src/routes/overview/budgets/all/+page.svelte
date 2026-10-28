@@ -24,7 +24,7 @@
 	}
 
 	function getStatusLabel(target: number, actual: number): { label: string; class: string } {
-		if (target === 0) return { label: "—", class: "text-gray-400" };
+		if (target === 0) return { label: "—", class: "text-gray-500" };
 		const pct = Math.round((actual / target) * 100);
 		if (pct > 100) return { label: `OVER +${pct - 100}%`, class: "text-red-700 font-bold" };
 		if (pct >= 95) return { label: `UNDER -${100 - pct}%`, class: "text-amber-600 font-bold" };
@@ -127,13 +127,13 @@
 	class="w-full font-bold flex justify-between items-center cursor-pointer px-2 py-1 text-xs bg-gray-50 border-t border-black"
 	onclick={() => (timelineOpen = !timelineOpen)}
 >
-	<span>AMENDMENT TIMELINE <span class="text-gray-400">{data.amendmentTimeline.length} change{data.amendmentTimeline.length === 1 ? '' : 's'} across {yearGroups.length} year{yearGroups.length === 1 ? '' : 's'}</span></span>
-	<span class="text-xs text-gray-400">{timelineOpen ? '[-]' : '[+]'}</span>
+	<span>AMENDMENT TIMELINE <span class="text-gray-500">{data.amendmentTimeline.length} change{data.amendmentTimeline.length === 1 ? '' : 's'} across {yearGroups.length} year{yearGroups.length === 1 ? '' : 's'}</span></span>
+	<span class="text-xs text-gray-500">{timelineOpen ? '[-]' : '[+]'}</span>
 </button>
 {#if timelineOpen}
 	<div class="px-2 py-1 border-b border-gray-300">
 		{#if data.amendmentTimeline.length === 0}
-			<div class="text-xs text-gray-400 py-1">No amendments recorded yet. Config edits are trailed automatically.</div>
+			<div class="text-xs text-gray-500 py-1">No amendments recorded yet. Config edits are trailed automatically.</div>
 		{:else}
 			{#each yearGroups as group (group.year)}
 				<div class="text-gray-500 font-bold text-xs py-1 {group.year === yearGroups[0].year ? '' : 'mt-2 border-t border-dotted border-gray-200'}">{group.year}</div>
@@ -143,15 +143,15 @@
 						<a href="/overview/budgets/{entry.month}" class="bracket-link">{getMonthLabel(entry.month)}</a>
 						<span class="font-bold">{amendmentFieldLabel(entry.field)}</span>
 						<span>{formatAmendmentValue(entry.field, entry.oldValue)}</span>
-						<span class="text-gray-400">&rarr;</span>
+						<span class="text-gray-500">&rarr;</span>
 						<span class="font-bold">{formatAmendmentValue(entry.field, entry.newValue)}</span>
 						{#if entry.note}
-							<span class="text-gray-400">({entry.note})</span>
+							<span class="text-gray-500">({entry.note})</span>
 						{/if}
 					</div>
 				{/each}
 			{/each}
-			<div class="text-[10px] text-gray-400 py-0.5">Transactions are immutable — only config changes appear here, latest first.</div>
+			<div class="text-[10px] text-gray-500 py-0.5">Transactions are immutable — only config changes appear here, latest first.</div>
 		{/if}
 	</div>
 {/if}
