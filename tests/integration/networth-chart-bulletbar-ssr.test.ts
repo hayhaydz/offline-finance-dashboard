@@ -70,6 +70,15 @@ describe("NetWorthChart (Phase 4 V1 #1)", () => {
 });
 
 describe("GoalBulletBar (Phase 4 V1 #3)", () => {
+	it("tags the last point with a bold value label", () => {
+		const { body } = render(NetWorthChart, {
+			props: { points: nwPoints, formatPence: fmt },
+		});
+		// bold ink tag carrying the latest value (-£7040.75)
+		expect(body).toContain('font-weight="bold"');
+		expect(body.match(/<text[^>]*font-weight="bold"[^>]*>([^<]*)</)?.[1]).toBe("£-7040.75");
+	});
+
 	it("renders the bracketed fill bar with width from percent", () => {
 		const { body } = render(GoalBulletBar, {
 			props: { percent: 62, bgClass: "bg-amber-600" },
@@ -97,6 +106,38 @@ describe("GoalBulletBar (Phase 4 V1 #3)", () => {
 		expect(body).toContain("left: 8.3%");
 		expect(body).toContain("bg-green-700\""); // achieved tick colour (may coincide with fill class)
 		expect(body).toContain("bg-gray-400"); // pending tick colour
+	});
+
+	it("rounds tick percentages to one decimal in tooltips + shows the tick legend", () => {
+		const { body } = render(GoalBulletBar, {
+			props: {
+				percent: 40,
+				bgClass: "bg-green-700",
+				ticks: [
+					{ pct: 33.33333333333333, label: "half-way", achieved: false },
+					{ pct: 66.66666666666667, label: "mostly", achieved: true },
+				],
+			},
+		});
+		expect(body).toContain("(33.3%)");
+		expect(body).toContain("(66.7%)");
+		expect(body).not.toContain("(33.333");
+		expect(body).toContain("milestone reached");
+		expect(body).toContain("pending");
+	});
+
+	it("hides the tick legend when there are no ticks or the bar is archived", () => {
+		const noTicks = render(GoalBulletBar, { props: { percent: 50, bgClass: "bg-green-700" } }).body;
+		expect(noTicks).not.toContain("milestone reached");
+		const archived = render(GoalBulletBar, {
+			props: {
+				percent: 50,
+				bgClass: "bg-green-700",
+				archived: true,
+				ticks: [{ pct: 50, label: "x", achieved: true }],
+			},
+		}).body;
+		expect(archived).not.toContain("milestone reached");
 	});
 
 	it("clamps percent into 0–100", () => {

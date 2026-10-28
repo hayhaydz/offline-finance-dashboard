@@ -82,14 +82,15 @@
 				>
 					<title>{g.name}: {formatPence(g.remainingInCents)} remaining · payoff ~{dateShort(g.projectedPayoffDate)}</title>
 				</rect>
-				<!-- step label: goal name (truncated) + payoff date -->
+				<!-- step label: name truncated to fit step width (full name in tooltip) -->
+				{@const maxChars = Math.max(8, Math.floor(stepW / 6.2))}
 				<text
 					x="{(x(i) + stepW / 2).toFixed(1)}"
 					y="{H - 20}"
 					font-size="9"
 					text-anchor="middle"
 					fill="var(--chart-ink-soft)"
-				>{g.name.length > 12 ? g.name.slice(0, 11) + "…" : g.name}</text>
+				>{g.name.length > maxChars ? g.name.slice(0, maxChars - 1) + "…" : g.name}</text>
 				<text
 					x="{(x(i) + stepW / 2).toFixed(1)}"
 					y="{H - 8}"

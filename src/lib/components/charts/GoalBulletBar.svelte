@@ -22,6 +22,8 @@
 	} = $props();
 
 	const clamped = $derived(Math.min(100, Math.max(0, percent)));
+// one-decimal tick positions (debt ratios are raw floats — 33.333…% reads badly)
+const pctLabel = (pct: number) => `${Math.round(pct * 10) / 10}%`;
 </script>
 
 <span>[</span>
@@ -37,9 +39,16 @@
 		<span
 			class="absolute -top-[3px] -bottom-[3px] w-[2px] {tickClass}"
 			style="left: {tickLeft}%"
-			title="{tick.label} — {status} ({tick.pct}%)"
+			title="{tick.label} — {status} ({pctLabel(tick.pct)})"
 			aria-hidden="true"
 		></span>
 	{/each}
 </div>
 <span>]</span>
+{#if ticks.length > 0 && !archived}
+	<!-- tick legend (Phase 9 polish): explains the milestone marks -->
+	<span class="text-[10px] text-gray-500 whitespace-nowrap">
+		<span class="inline-block w-[2px] h-2.5 bg-green-700 align-middle mr-0.5"></span>milestone reached
+		<span class="inline-block w-[2px] h-2.5 bg-gray-400 align-middle mr-0.5 ml-1.5"></span>pending
+	</span>
+{/if}

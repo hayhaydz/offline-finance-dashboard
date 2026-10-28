@@ -44,6 +44,33 @@ describe("DebtWaterfallChart (Phase 5 line 2)", () => {
 		expect(body).toContain("snowball order");
 	});
 
+	it("scales name truncation to step width (fewer steps fit longer names)", () => {
+		const { body } = render(DebtWaterfallChart, {
+			props: {
+				goals,
+				totalDebtInCents: total,
+				projectedDebtFreeDate: new Date("2034-02-01"),
+				formatPence: fmt,
+			},
+		});
+		// 22-char names survive at this width...
+		expect(body).toContain(">Rewards Card 0% Payoff</text>");
+		// ...and a 30-char name still truncates with an ellipsis
+		const withLong = render(DebtWaterfallChart, {
+			props: {
+				goals: [
+					...goals.slice(0, 3),
+					{ ...goals[3], name: "Extremely Long Car Loan Name" },
+				],
+				totalDebtInCents: total,
+				projectedDebtFreeDate: new Date("2034-02-01"),
+				formatPence: fmt,
+			},
+		}).body;
+		expect(withLong).toContain("…");
+		expect(withLong).toContain("Extremely Long Car Lo…");
+	});
+
 	it("truncates long goal names and draws the dashed horizon", () => {
 		const { body } = render(DebtWaterfallChart, {
 			props: {
@@ -53,9 +80,10 @@ describe("DebtWaterfallChart (Phase 5 line 2)", () => {
 				formatPence: fmt,
 			},
 		});
-		expect(body).toContain("…"); // truncated label
 		expect(body).toContain("chart-dashed");
 		expect(body).toContain("debt-free horizon");
+		// Phase 9: at 4 steps (stepW ~141) a 22-char name fits untruncated
+		expect(body).toContain(">Rewards Card 0% Payoff</text>");
 	});
 
 	it("empty state when no debt goals", () => {

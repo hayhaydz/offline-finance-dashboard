@@ -63,6 +63,9 @@
 
 	const straddlesZero = $derived(yLo < 0 && yHi > 0);
 	const midIndex = $derived(Math.floor((points.length - 1) / 2));
+	// last-point value tag position (flips below the point near the top edge)
+	const lastX = $derived(points.length ? x(points.length - 1) : 0);
+	const lastY = $derived(points.length ? y(points[points.length - 1].netWorthInCents) : 0);
 
 	const first = $derived(points[0]?.netWorthInCents ?? 0);
 	const last = $derived(points[points.length - 1]?.netWorthInCents ?? 0);
@@ -129,6 +132,16 @@
 				<text x="{x(midIndex)}" y="{H - 6}" font-size="10" text-anchor="middle" fill="var(--chart-ink-soft)">{dateLabel(points[midIndex].date)}</text>
 			{/if}
 			<text x="{x(points.length - 1)}" y="{H - 6}" font-size="10" text-anchor="end" fill="var(--chart-ink-soft)">{dateLabel(points[points.length - 1].date)}</text>
+			<!-- last-point value tag: bold ink label at the latest marker
+			     (positioned above, or below when the point sits near the top) -->
+			<text
+				x="{Math.max(lastX - 5, PAD.l + 2)}"
+				y="{lastY > PAD.t + 18 ? lastY - 7 : lastY + 16}"
+				font-size="10"
+				text-anchor="end"
+				font-weight="bold"
+				fill="var(--chart-ink)"
+			>{formatPence(last)}</text>
 		</svg>
 	{:else}
 		<div class="text-xs text-gray-500 p-2 text-center">[no snapshot data]</div>

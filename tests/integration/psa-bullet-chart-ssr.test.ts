@@ -64,4 +64,16 @@ describe("PsaBulletChart (Phase 5 line 2)", () => {
 		expect(body).toMatch(/viewBox="0 0 600 120"/);
 		expect(body).toContain('role="img"');
 	});
+
+	it("renders the segment legend for the four zones", () => {
+		const { body } = renderBullet({
+			allowancePence: 100000,
+			actualPence: 60000,
+			projectedPence: 30000,
+		});
+		expect(body).toContain("allowance zone");
+		expect(body).toContain(">actual</span>");
+		expect(body).toContain(">projected</span>");
+		expect(body).toContain("over allowance");
+	});
 });

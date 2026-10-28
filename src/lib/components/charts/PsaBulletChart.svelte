@@ -109,4 +109,11 @@
 			forecast {formatPence(forecast)}
 		</text>
 	</svg>
+	<!-- segment legend (Phase 9 polish): explains the four zones -->
+	<div class="flex flex-wrap gap-x-3 gap-y-1 px-2 pt-1 text-[10px] text-gray-500">
+		<span class="flex items-center gap-1"><span class="w-3 h-2 border border-gray-300 bg-gray-100"></span>allowance zone</span>
+		<span class="flex items-center gap-1"><span class="w-3 h-2 bg-gray-900"></span>actual</span>
+		<span class="flex items-center gap-1"><span class="w-3 h-2 bg-gray-400"></span>projected</span>
+		<span class="flex items-center gap-1"><span class="w-3 h-2 bg-red-700"></span>over allowance</span>
+	</div>
 </ChartPanel>
