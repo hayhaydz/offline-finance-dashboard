@@ -68,13 +68,24 @@
 				>
 					<title>{p.month}: {formatPence(p.totalPence)}</title>
 				</rect>
-				<text
-					x="{(x(i) + colW / 2).toFixed(1)}"
-					y="{(yTop(p.totalPence) - 4).toFixed(1)}"
-					font-size="10"
-					text-anchor="middle"
-					fill="var(--chart-ink-soft)"
-				>{shortLabel(p.totalPence)}</text>
+				{#if p.totalPence > 0}
+					<text
+						x="{(x(i) + colW / 2).toFixed(1)}"
+						y="{(yTop(p.totalPence) - 4).toFixed(1)}"
+						font-size="10"
+						text-anchor="middle"
+						fill="var(--chart-ink-soft)"
+					>{shortLabel(p.totalPence)}</text>
+				{:else}
+					<!-- zero months: label below the axis to avoid the average line (P5 gate) -->
+					<text
+						x="{(x(i) + colW / 2).toFixed(1)}"
+						y="{H - PAD.b + 10}"
+						font-size="9"
+						text-anchor="middle"
+						fill="var(--chart-grid)"
+					>£0</text>
+				{/if}
 				<text
 					x="{(x(i) + colW / 2).toFixed(1)}"
 					y="{H - 5}"

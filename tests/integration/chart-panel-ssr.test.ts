@@ -29,9 +29,11 @@ describe("ChartPanel (Phase 4 foundation)", () => {
 		expect(body).toContain(">Spending 62% of target, on pace<");
 	});
 
-	it("omits the controls band when no controls snippet is given", () => {
+	it("omits the controls snippet when none is given (export buttons remain — Phase 5 line 3)", () => {
 		const { body } = renderPanel();
-		// no range buttons/links smuggled in
-		expect(body).not.toContain("bracket-link");
+		// no custom controls smuggled in, but [SVG]/[PNG] export buttons ship by default
+		expect(body).not.toContain("range-picker-stub");
+		expect(body).toContain("[SVG]");
+		expect(body).toContain("[PNG]");
 	});
 });
