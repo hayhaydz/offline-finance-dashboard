@@ -249,10 +249,14 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		taxBand,
 	);
 
-	// Get unique institutions for filtering
-	const institutions = Array.from(
-		new Set(userAccounts.map((a) => a.institution).filter(Boolean)),
-	) as string[];
+	// Get unique institutions for filtering (with account counts — #13)
+	const institutionCounts = new Map<string, number>();
+	for (const a of userAccounts) {
+		if (a.institution) {
+			institutionCounts.set(a.institution, (institutionCounts.get(a.institution) ?? 0) + 1);
+		}
+	}
+	const institutions = Array.from(institutionCounts.keys());
 
 	// Calculate net worth summary (shared utility)
 	const netWorthSummary = await getNetWorthSummary(user.id);
@@ -265,6 +269,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			totalPages,
 		},
 		institutions,
+		institutionCounts: Object.fromEntries(institutionCounts),
 		user: {
 			id: user.id,
 			username: user.username,

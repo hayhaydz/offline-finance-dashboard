@@ -21,6 +21,12 @@
 	const CLOSED_TOGGLE_KEY = 'accounts:show-closed:';
 	let closedExpanded = $state<Record<string, boolean>>({});
 
+	// #12: flat view = one ungrouped list under the global sort (persisted)
+	let flatView = $state(false);
+	$effect(() => {
+		flatView = localStorage.getItem('accounts:view') === 'flat';
+	});
+
 	$effect(() => {
 		// Client-only hydration of persisted toggle state ($effect skips SSR)
 		for (const section of groupedSections) {
@@ -253,6 +259,14 @@
 			{/if}
 		</div>
 		<div class="flex gap-2">
+			<!-- #12: flat (ungrouped) view toggle -->
+			<button
+				type="button"
+				class="bracket-link text-xs"
+				onclick={() => { flatView = !flatView; localStorage.setItem('accounts:view', flatView ? 'flat' : 'grouped'); }}
+			>
+				{flatView ? '[Group By Type]' : '[Flat View]'}
+			</button>
 			<button
 				type="button"
 				class="bracket-link text-xs"
@@ -298,15 +312,16 @@
 		<table class="min-w-[900px] w-full">
 			<thead>
 				<tr>
-					<th class="pl-3 text-left whitespace-nowrap min-w-[140px]">Name</th>
-					<th class="pl-3 text-left whitespace-nowrap min-w-[100px]">Type</th>
-					<th class="pl-3 text-left whitespace-nowrap min-w-[120px]">Institution</th>
-					<th class="text-right pr-3 whitespace-nowrap min-w-[110px]">Balance</th>
-					<th class="text-right pr-3 whitespace-nowrap min-w-[70px]">Rate</th>
-					<th class="text-right pr-3 whitespace-nowrap min-w-[90px]">Monthly</th>
-					<th class="text-right pr-3 whitespace-nowrap min-w-[90px]">Yearly</th>
-					<th class="text-right pr-3 whitespace-nowrap min-w-[80px]">Maturity</th>
-					<th class="text-right pr-3 whitespace-nowrap min-w-[90px]">Last Updated</th>
+					<!-- #12: sticky header keeps column labels visible on long lists -->
+					<th class="pl-3 text-left whitespace-nowrap min-w-[140px] sticky top-0 bg-white border-b border-black z-10">Name</th>
+					<th class="pl-3 text-left whitespace-nowrap min-w-[100px] sticky top-0 bg-white border-b border-black z-10">Type</th>
+					<th class="pl-3 text-left whitespace-nowrap min-w-[120px] sticky top-0 bg-white border-b border-black z-10">Institution</th>
+					<th class="text-right pr-3 whitespace-nowrap min-w-[110px] sticky top-0 bg-white border-b border-black z-10">Balance</th>
+					<th class="text-right pr-3 whitespace-nowrap min-w-[70px] sticky top-0 bg-white border-b border-black z-10">Rate</th>
+					<th class="text-right pr-3 whitespace-nowrap min-w-[90px] sticky top-0 bg-white border-b border-black z-10">Monthly</th>
+					<th class="text-right pr-3 whitespace-nowrap min-w-[90px] sticky top-0 bg-white border-b border-black z-10">Yearly</th>
+					<th class="text-right pr-3 whitespace-nowrap min-w-[80px] sticky top-0 bg-white border-b border-black z-10">Maturity</th>
+					<th class="text-right pr-3 whitespace-nowrap min-w-[90px] sticky top-0 bg-white border-b border-black z-10">Last Updated</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -364,6 +379,12 @@
 						<td class="text-right pr-3 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>{formatDate(account.lastUpdated)}</td>
 					</tr>
 				{/snippet}
+				{#if flatView}
+					<!-- #12: flat view — one list, global sort, no type headers -->
+					{#each sortedAccounts as account (account.id)}
+						{@render accountRow(account)}
+					{/each}
+				{:else}
 				{#each groupedSections as section (section.type)}
 					<tr class="border-b border-black">
 						<td colspan="9" class="pl-3 py-1 bg-gray-100 font-bold text-xs uppercase">
@@ -395,6 +416,7 @@
 						{/if}
 					{/if}
 				{/each}
+				{/if}
 			</tbody>
 		</table>
 		</div>
@@ -414,6 +436,7 @@
 		open={filterModalOpen}
 		onClose={() => filterModalOpen = false}
 		institutions={data.institutions}
+		institutionCounts={data.institutionCounts}
 	/>
 {/if}
 

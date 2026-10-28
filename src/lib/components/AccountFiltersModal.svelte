@@ -7,9 +7,21 @@
 		open: boolean;
 		onClose: () => void;
 		institutions: string[];
+		/** Account count per institution (#13 filter counts) */
+		institutionCounts?: Record<string, number>;
 	}
 
-	let { open, onClose, institutions }: Props = $props();
+	let { open, onClose, institutions, institutionCounts = {} }: Props = $props();
+
+	// #13: type-to-search filter for the institution list (long in practice)
+	let institutionQuery = $state('');
+	const filteredInstitutions = $derived(
+		institutionQuery.trim()
+			? institutions.filter(
+					(i) => i && i.toLowerCase().includes(institutionQuery.trim().toLowerCase()),
+				)
+			: institutions.filter(Boolean),
+	);
 
 	// Local state for pending changes
 	let filters = $state({
@@ -266,17 +278,31 @@
 				</button>
 				<div class="grid transition-all duration-200 overflow-hidden" style="grid-template-rows: {openSections.institution ? '1fr' : '0fr'};">
 					<div class="min-h-0 border-b border-black divide-y divide-gray-100">
+						<!-- #13: type-to-search + per-institution counts -->
+						<div class="p-2 border-b border-gray-200 flex items-center gap-2 bg-gray-50">
+							<input
+								type="text"
+								bind:value={institutionQuery}
+								placeholder="type to filter institutions…"
+								class="border border-black px-1 py-0.5 text-xs w-full font-mono"
+								aria-label="Filter institutions"
+							/>
+							{#if institutionQuery.trim()}
+								<span class="text-[10px] text-gray-500 whitespace-nowrap">{filteredInstitutions.length}/{institutions.filter(Boolean).length}</span>
+							{/if}
+						</div>
 						<div class="p-2 flex items-center gap-3 cursor-pointer hover:bg-gray-50" onclick={() => toggleFilter('institution', '')} role="button" tabindex="0" onkeydown={(e) => handleFilterKeydown(e, 'institution', '')}>
 							<span class="font-bold font-mono">{filters.institution.length === 0 ? '[X]' : '[ ]'}</span>
 							<span class={filters.institution.length === 0 ? 'font-bold' : ''}>All Institutions</span>
 						</div>
-						{#each institutions as inst}
-							{#if inst}
-								<div class="p-2 flex items-center gap-3 cursor-pointer hover:bg-gray-50" onclick={() => toggleFilter('institution', inst)} role="button" tabindex="0" onkeydown={(e) => handleFilterKeydown(e, 'institution', inst)}>
-									<span class="font-bold font-mono">{filters.institution.includes(inst) ? '[X]' : '[ ]'}</span>
-									<span class={filters.institution.includes(inst) ? 'font-bold' : ''}>{inst}</span>
-								</div>
-							{/if}
+						{#each filteredInstitutions as inst (inst)}
+							<div class="p-2 flex items-center gap-3 cursor-pointer hover:bg-gray-50" onclick={() => toggleFilter('institution', inst)} role="button" tabindex="0" onkeydown={(e) => handleFilterKeydown(e, 'institution', inst)}>
+								<span class="font-bold font-mono">{filters.institution.includes(inst) ? '[X]' : '[ ]'}</span>
+								<span class="flex-1 {filters.institution.includes(inst) ? 'font-bold' : ''}">{inst}</span>
+								<span class="text-[10px] text-gray-500 border border-gray-300 px-1">{institutionCounts[inst] ?? 0}</span>
+							</div>
+						{:else}
+							<div class="p-2 text-xs text-gray-400">no institution matches "{institutionQuery}"</div>
 						{/each}
 					</div>
 				</div>

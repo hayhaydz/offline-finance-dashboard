@@ -1,8 +1,8 @@
 import { fail } from "@sveltejs/kit";
-import { and, asc, count, eq, isNull, min, sum } from "drizzle-orm";
+import { and, asc, count, desc, eq, isNull, min, sum } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
-import { accounts, accountTransactions, goals } from "$lib/db/schema";
+import { accounts, accountTransactions, goals, snapshots } from "$lib/db/schema";
 import { getAlerts } from "$lib/server/alerts";
 import {
 	getCurrentBalancesForAccounts,
@@ -201,6 +201,24 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Calculate net worth summary (shared utility)
 	const netWorthSummary = await getNetWorthSummary(user.id);
 
+	// #11: last 12 snapshots for the hero sparkline (oldest → newest)
+	const trendRows = await db
+		.select({
+			snapshotDate: snapshots.snapshotDate,
+			netWorthInCents: snapshots.netWorthInCents,
+		})
+		.from(snapshots)
+		.where(withUserFilter(user.id, snapshots))
+		.orderBy(desc(snapshots.snapshotDate))
+		.limit(12);
+	const netWorthTrend = trendRows
+		.slice()
+		.reverse()
+		.map((s) => ({
+			date: s.snapshotDate,
+			netWorthInCents: s.netWorthInCents,
+		}));
+
 	const alerts = await getAlerts(user.id);
 
 	const today = new Date();
@@ -282,6 +300,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			createdAt: user.createdAt,
 		},
 		netWorthSummary,
+		netWorthTrend,
 		accounts: accountsWithDerivedBalances,
 		alerts,
 		isaTracker,

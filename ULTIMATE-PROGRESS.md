@@ -13,6 +13,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-28T20:31 | 2026-10-28T20:41 | 0h10m | #2 SeverityLegend everywhere · #5 pace-aware goal colours · #6 touched-on-input (live-verified, re-login OK) — Phase 2 line 5 complete |
 | 2026-10-28T20:41 | 2026-10-28T20:44 | 0h03m | LEDGER CORRECTION: re-reading notes — line-5 work actually ended 20:22 (commit ce3b08b); ledger row above overstated by ~19m. Corrected cumulative: ~0h53m through Phase 2 line 5 |
 | 2026-10-28T20:23 | 2026-10-28T20:44 | 0h21m | #7 overspend hatch + #8 [i] notes + #10 alert acknowledge (schema+seed+migration 0009) + Phase 2 gate (5× vision CLEAN) — PHASE 2 COMPLETE |
+| 2026-10-28T20:44 | 2026-10-28T21:25 | 0h41m | #11 sparkline (vision CLEAN) + #12 flat view + #13 filter search (SSR tests; live blocked by session bug) — Phase 3 line 1 complete |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -37,7 +38,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 - [x] Phase gate: check+test green; live pass goals/accounts/interest/liabilities/alerts + vision spot-checks — ev: check 0/0 · suite 108 files/779 tests green; LIVE all 5 surfaces 0 console errors + 0 500s; vision (GLM-4.6V-Flash via vmodel.sh, canonical prompt): goals CLEAN · accounts CLEAN · interest CLEAN (breakdown sums verified by model) · liabilities CLEAN · alerts no findings; shots archived .docs/reviews/2026-10-28-2035-p2-gate/screenshots/p2-{goals,accounts,interest,liabilities,alerts}.png — PHASE 2 COMPLETE
 
 ### Phase 3 — Medium proposals (#11–#20)
-- [ ] #11 net-worth hero sparkline · #12 accounts flat-view + sticky header · #13 filter type-to-search + counts
+- [x] #11 net-worth hero sparkline · #12 accounts flat-view + sticky header · #13 filter type-to-search + counts — ev: #11: NetWorthSparkline.svelte (Variant B: black 1.5px polyline, square markers green/red by MoM direction, black last marker, native title tooltips, a11y role=img label); home server loads last-12 snapshots (netWorthTrend); LIVE home shows image label "Net worth trend: -£1,056.11 over 4 snapshots" beside hero; vision verdict CLEAN (line+markers visible, no clipping). #12: [Flat View]/[Group By Type] toggle in accounts header (persisted localStorage accounts:view); sticky top-0 bg-white thead; LIVE: grouped headers CURRENT (2) present → toggle flat → headers gone rows continue → persisted across navigations+re-login (restore re-render = same grouped branch already verified); check 0/0. #13: institution filter section gets type-to-search input + per-institution count chips + N/M counter + empty-match message; server passes institutionCounts; 2 SSR tests account-filters-modal-search.test.ts (search box + a11y label + counts). check 0/0; suite 781/781 (109 files). NOTE: #13 live-click verification blocked by session bug (see Notes) — SSR tests carry the evidence.
 - [ ] #14 category system (seed, inline create, auto-suggest, chip) · #15 uncategorised triage deep-link
 - [ ] #16 bulk balance-update screen · #17 snapshot staleness dots · #19 ⌘K palette · #20 print/PDF monthly report
 - [ ] Phase gate: check+test green; live pass new screens + vision review
@@ -89,6 +90,8 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-28 | #10 ack semantics: "Done" = far-future sentinel (2100-01-01, reversible via [Restore]), "Snooze 30d" = +30d; acks filter alerts at source (getAlerts/getGoalListAlerts/getAlertsForAccount) so every surface respects them | Alerts are derived not stored, so a sentinel is the only stable "forever" that still allows restore; source-level filtering prevents surfaces drifting (P1-5 lesson). |
 | 2026-10-28 | LIVE dev DB is `storage/dev-plain.db`, NOT `storage/dev.db` (drizzle.config default) — server pid 54211 holds dev-plain open (lsof); `dev.db` is a stale empty artifact | All schema pushes must target the live file. `dev.db` left untouched (DB LOCK rule — no file deletions). |
 | 2026-10-28 | drizzle-kit push is unusable on this box (phantom "index already exists" on byte-identical indexes, every run, both DBs) → #10 table applied via the exact DDL `db:generate` produced (0009_eminent_wrecker.sql), executed directly on dev-plain.db | Same SQL the sanctioned path would run; generate-then-apply avoids the interactive prompt bug entirely. Migration 0009 also feeds the anonymise test fixtures, which build from migrations dir. |
+| 2026-10-28 | #11 sparkline hand-rolled SVG (Variant B style) instead of layerchart | Inline 12-point sparkline is 30 lines of pure SVG; layerchart reserved for the real multi-chart surfaces (Phase 4/5). Variant B = "crisp SVG with terminal styling" — this IS variant B. |
+| 2026-10-28 | admin user inactivity_timeout bumped 5→240 (UPDATE on dev-plain.db) while debugging session drops | Attempt to stabilise live verification; did NOT fix the browser-side killer (see Notes). Harmless dev preference; next re-seed resets to 5. |
 
 ## Deferrals
 | Item | Reason |
@@ -100,20 +103,22 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-28 | p01-goal-after-add.png (flash) | CLEAN — aligned, contrast OK, no artifacts |
 | 2026-10-28 | p01-goal-after-withdraw.png (zai-vision) | CLEAN functionally, 0 P0/P1; math verified (£150, 15%, history rows correct); 5 P2 polish nits |
 | 2026-10-28 | p01-goal-detail-before.png (zai-vision) | CLEAN — 0 P0/P1; no ciphertext/[object Object]/<br>; metrics aligned |
-| 2026-10-28 | p2-goals.png (flash) | CLEAN — colour coding, legends, progress bars all verified |
-| 2026-10-28 | p2-accounts.png (flash) | CLEAN |
+| 2026-10-28 | p2-goals.png (flash) | CLEAN — colour coding, legends, progress bars all verified || 2026-10-28 | p2-accounts.png (flash) | CLEAN |
 | 2026-10-28 | p2-interest.png (flash) | CLEAN — model independently verified breakdown sums match totals |
 | 2026-10-28 | p2-liabilities.png (flash) | CLEAN |
 | 2026-10-28 | p2-alerts.png (flash) | No findings (sections, counts, expanders all present) |
+| 2026-10-28 | p3-sparkline.png (flash) | CLEAN — sparkline line+markers visible, no clipping/overlap, hero layout intact |
 
 ## Notes for next iteration
-- Session state: logged in as admin (session dropped mid-run ~20:35 — re-login worked; login button enabled while typing = #6 working). Dev server pid 54211, LIVE DB = **storage/dev-plain.db** (NOT dev.db — see Decisions). Dev DB = canonical re-seed (slugs fresh: Visa detail /accounts/6yzYIIo--PcAB0lT, Main Current /accounts/3WsM4M-tt0wNL6rJ).
-- **PHASE 2 COMPLETE** — next: Phase 3 line 1 = #11 net-worth hero sparkline (12 snapshots, layerchart Variant B) · #12 accounts flat-view toggle + sticky header · #13 filter type-to-search + counts. Read `.docs/reviews/2026-10-27-2008-full-ux-audit/05-visualisation-roadmap.md` + mockups/variant-b* first.
+- **SESSION BUG (NEW, for Phase 8 investigation — P1 candidate):** browser sessions die <60s after login. Server-side is FINE (curl login + subsequent requests keep the session row; sessions table empties only when the browser tab is active). The client (session-timer or a sendBeacon /api/logout path) kills the row — even after localStorage.clear() before login AND inactivity_timeout=240. Suspects: CDP events not counting as trusted activity (by design per session-timer comments) → idle-logout beacon fires fast; OR timer deadline not resetting on fresh login. Does NOT affect normal human use (real pointer/keyboard = trusted activity). Workarounds used: curl for server-side checks; SSR tests for client components; fast single-block live passes right after login.
+- **Tests wipe the live browser session too:** full `npm test` runs reset sessions (test DB writes hit app logger at least; login again after each suite before ANY live work).
+- Login via DevTools: click field → type → **Tab** → type → Tab → Enter. fill_form does NOT trigger Svelte validity (button stays disabled); click+type on the 2nd field races focus and concatenates into the 1st field.
+- Session state at handoff: browser logged-OUT (session killed again). Dev server pid 54211, LIVE DB = **storage/dev-plain.db**. admin inactivity_timeout=240 (see Decisions).
+- **NEXT: Phase 3 line 2 = #14 category system** (seed 6–8 starters, inline [+ New category] in transaction form, description→category auto-suggest rules, ledger category chip) + #15 uncategorised-bucket deep-link triage. Category schema/table EXISTS (P2-3 audit: machinery present, nothing seeded) — check spendingCategories + ensureDefaultCategories (its error appeared in app logs — already tries to seed!). Then line 3 (#16 bulk balances, #17 staleness dots, #19 ⌘K palette, #20 print stylesheet).
 - Schema-change recipe on this box: edit src/lib/db/schema → `npm run db:generate` (creates migration SQL; tests need it) → apply that SQL to **dev-plain.db** directly (drizzle-kit push is broken — phantom index errors) → update scripts/seed/lib/wipe.ts + scripts/anonymise.ts TABLE_RULES same unit (anonymise coverage guard FAILS the suite if a table lacks rules).
 - DevTools screenshots: filePath must be under /private/var/folders/6m/bcwlp3bn5wdd7yy_t8s7xymh0000gn/T/opencode (approved temp) — repo paths denied; copy into .docs/reviews/... after.
 - Ack UI lives in AlertBadge/AlertGroup via optional ackAction/restoreAction props — only /alerts passes them today; other surfaces stay action-free by design.
-- SeverityLegend renders inside AlertsSection automatically — no per-page wiring needed.
-- a11y snapshots SKIP aria-hidden elements — never hide informative text with aria-hidden, it vanishes from the tree used for verification.
+- a11y snapshots SKIP aria-hidden elements — never hide informative text with aria-hidden.
 - NEXT: Phase 2 second line — P1-4 debt milestone inversion + PAYMENT HISTORY (0) despite £185 paid (suspects: milestone derived from any-time balance thresholds; history query filtered wrong) · P1-5 shared goal-progress fn + tests · P1-6 Newest-First toggle semantics.
 - Breadcrumb segmentIndex convention: 0-based (goals/[slug] = 0,1; overview/snapshots/[slug] = 0,1,2). Page loads must override the SLUG segment index. labelMap fallback `delete: "Close"` only applies to routes without overrides.
 - Goals are soft-deleted via /confirm-archive (typed-name confirmation), not hard delete. /goals/[slug]/edit route does NOT exist (404s) — edit affordances live elsewhere.

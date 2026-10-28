@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { formatCurrency, formatDateRange } from '$lib/utils/currency';
 	import ExclusionsModal from '$lib/components/ExclusionsModal.svelte';
+	import NetWorthSparkline from '$lib/components/NetWorthSparkline.svelte';
 	import type { Account } from '$lib/db/schema';
 
 	type ExclusionsAccount = Pick<Account, 'id' | 'name' | 'type' | 'category' | 'excludedFromNetWorth' | 'taxWrapper'>;
@@ -20,9 +21,11 @@
 	interface Props {
 		summary: NetWorthSummary;
 		accounts: ExclusionsAccount[];
+		/** Last ≤12 snapshots (oldest → newest) for the hero sparkline (#11) */
+		trend?: Array<{ date: string; netWorthInCents: number }>;
 	}
 
-	let { summary, accounts }: Props = $props();
+	let { summary, accounts, trend = [] }: Props = $props();
 
 	let modalOpen = $state(false);
 
@@ -67,9 +70,14 @@
 
 <!-- NET WORTH SECTION -->
 <div class="border-b border-black p-2">
-	<div class="flex justify-between my-1">
+	<div class="flex justify-between my-1 items-center">
 		<span class="text-lg font-bold">NET WORTH</span>
-		<span class="text-lg font-bold {netWorthColor}">{formatCurrency(summary.netWorth)}</span>
+		<div class="flex items-center gap-3">
+			{#if trend.length > 1}
+				<NetWorthSparkline points={trend} />
+			{/if}
+			<span class="text-lg font-bold {netWorthColor}">{formatCurrency(summary.netWorth)}</span>
+		</div>
 	</div>
 	<div class="flex justify-between my-1 text-gray-600 text-xs">
 		<button

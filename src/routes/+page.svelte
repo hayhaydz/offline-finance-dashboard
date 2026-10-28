@@ -137,6 +137,7 @@
 	<NetWorthDisplay
 		summary={data.netWorthSummary}
 		accounts={data.accounts}
+		trend={data.netWorthTrend}
 	/>
 
 	<TaxYearProgress data={data.isaTracker} />
