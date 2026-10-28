@@ -21,11 +21,18 @@
 
 	let { goal, showArchive = false }: Props = $props();
 
-	const progressColor = $derived.by(() => {
-		const p = progress;
-		if (p >= 70) return 'green';
-		if (p >= 30) return 'amber';
-		return 'red';
+	// Debt-specific calculations (declared first: `progress` and `overAmount`
+	// reference it inside derived callbacks — keep declaration order stable to
+	// avoid SSR temporal-dead-zone errors, see P0-1 in the 2026-10-27 audit)
+	const debtValues = $derived.by(() => {
+		if (goal.goalType === 'debt' && goal.startingBalanceInCents) {
+			const starting = Math.abs(goal.startingBalanceInCents);
+			const paid = Math.abs(goal.currentAllocation);
+			const debtRemaining = starting - paid;
+			const debtProgress = starting > 0 ? Math.round((paid / starting) * 100) : 0;
+			return { starting, paid, remaining: debtRemaining, progress: debtProgress };
+		}
+		return null;
 	});
 
 	const progress = $derived.by(() => {
@@ -33,6 +40,13 @@
 		return goal.targetAmountInCents > 0
 			? Math.min(100, Math.round((goal.currentAllocation / goal.targetAmountInCents) * 100))
 			: 0;
+	});
+
+	const progressColor = $derived.by(() => {
+		const p = progress;
+		if (p >= 70) return 'green';
+		if (p >= 30) return 'amber';
+		return 'red';
 	});
 
 	const progressTextColor = $derived(
@@ -58,18 +72,6 @@
 	});
 
 	const remaining = $derived(Math.max(0, goal.targetAmountInCents - goal.currentAllocation));
-
-	// Debt-specific calculations
-	const debtValues = $derived.by(() => {
-		if (goal.goalType === 'debt' && goal.startingBalanceInCents) {
-			const starting = Math.abs(goal.startingBalanceInCents);
-			const paid = Math.abs(goal.currentAllocation);
-			const debtRemaining = starting - paid;
-			const debtProgress = starting > 0 ? Math.round((paid / starting) * 100) : 0;
-			return { starting, paid, remaining: debtRemaining, progress: debtProgress };
-		}
-		return null;
-	});
 
 	// Over-target amount (allocation past the target — intended, savings past a goal is valid)
 	const overAmount = $derived.by(() => {
