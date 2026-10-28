@@ -13,6 +13,7 @@
 	} from '$lib/utils/transaction-grouping';
 	import type { useSubmitFeedback } from '$lib/utils/use-submit-feedback.svelte';
 	import { suggestCategoryForDescription } from '$lib/utils/category-suggest';
+	import { suggestSpendingType } from '$lib/utils/type-suggest';
 	import { DEFAULT_CATEGORY_PALETTE } from '$lib/utils/category-colours';
 	import {
 		TRANSACTION_TYPE_HELP,
@@ -93,6 +94,9 @@
 	// Track the user's choice; fall back to the first offered type when unset
 	// or no longer offered (keeps the select valid if the list ever changes).
 	let selectedType = $state<TransactionType | null>(null);
+	// Type auto-suggest (Phase 9): true once the user picks a type themselves —
+	// after that, typing over a description never overrides their choice.
+	let typeTouched = $state(false);
 
 	// ── Category state (#14) ──
 	// '' = None. `categoryTouched` distinguishes an explicit choice from an
@@ -109,6 +113,22 @@
 	const suggestedCategory = $derived(
 		suggestCategoryForDescription(descriptionText, categories),
 	);
+	// Spending-like description → budget-visible spending type (withdrawal
+	// preferred over charge), only while the type select is untouched.
+	const suggestedType = $derived(
+		typeTouched
+			? null
+			: suggestSpendingType(descriptionText, categories, creatableTypes),
+	);
+	// Duplicate-name hint (Phase 9): inline category creation is name-unique —
+	// surface the clash instead of letting the server action reject it.
+	const duplicateCategory = $derived(
+		newCategoryName.trim() === ''
+			? null
+			: (categories.find(
+					(c) => c.name.toLowerCase() === newCategoryName.trim().toLowerCase(),
+				) ?? null),
+	);
 	// Once a freshly created category lands in `categories` (invalidateAll),
 	// make it the selected option and lock it as an explicit choice.
 	$effect(() => {
@@ -124,13 +144,20 @@
 	});
 
 	function onDescriptionInput() {
-		if (categoryTouched) return;
-		selectedCategoryId = suggestedCategory ? String(suggestedCategory.id) : '';
-	}
-	const effectiveType: TransactionType = $derived(
+		if (!categoryTouched) {
+			selectedCategoryId = suggestedCategory ? String(suggestedCategory.id) : '';
+		}
+		// Spending-like description → budget-visible type, until user picks one
+		if (!typeTouched && suggestedType) selectedType = suggestedType;
+	}	const effectiveType: TransactionType = $derived(
 		selectedType !== null && creatableTypes.includes(selectedType)
 			? selectedType
 			: creatableTypes[0],
+	);
+	// Auto-applied when a spending-like description set the type and the
+	// user hasn't chosen one themselves.
+	const typeAutoApplied = $derived(
+		suggestedType !== null && effectiveType === suggestedType,
 	);
 	const selectedTypeHelp = $derived(TRANSACTION_TYPE_HELP[effectiveType]);
 
@@ -198,7 +225,7 @@
 			<form
 				method="POST"
 				action="?/addTransaction"
-				use:enhance={feedback.createEnhanceHandler("Transaction added successfully", { resetForm: true, onSuccess: () => { selectedType = null; selectedCategoryId = ''; categoryTouched = false; descriptionText = ''; pendingSelectName = null; newCategoryOpen = false; addTransactionOpen = false; } })}
+				use:enhance={feedback.createEnhanceHandler("Transaction added successfully", { resetForm: true, onSuccess: () => { selectedType = null; typeTouched = false; selectedCategoryId = ''; categoryTouched = false; descriptionText = ''; pendingSelectName = null; newCategoryOpen = false; addTransactionOpen = false; } })}
 				class="flex flex-col gap-2"
 			>
 				<div class="grid grid-cols-2 gap-4">
@@ -208,7 +235,7 @@
 							id="type"
 							name="type"
 							value={effectiveType}
-							onchange={(e) => { selectedType = e.currentTarget.value as TransactionType; }}
+							onchange={(e) => { selectedType = e.currentTarget.value as TransactionType; typeTouched = true; }}
 							required
 							class="w-full border border-black px-2 py-1 text-sm bg-white"
 						>
@@ -216,7 +243,9 @@
 								<option value={txType}>{TRANSACTION_TYPE_LABELS[txType]}</option>
 							{/each}
 						</select>
-						{#if selectedTypeHelp}
+						{#if typeAutoApplied}
+							<div class="text-xs text-gray-500 mt-1">auto-set to {TRANSACTION_TYPE_LABELS[effectiveType]} from description — change if wrong</div>
+						{:else if selectedTypeHelp}
 							<div class="text-xs text-gray-500 mt-1">{selectedTypeHelp}</div>
 						{/if}
 					</div>
@@ -347,13 +376,16 @@
 						</div>
 						<button
 							type="submit"
-							disabled={feedback.isSubmitting}
+							disabled={feedback.isSubmitting || duplicateCategory !== null}
 							class="bracket-link text-sm"
-							class:opacity-50={feedback.isSubmitting}
+							class:opacity-50={feedback.isSubmitting || duplicateCategory !== null}
 						>
 							{feedback.isSubmitting ? 'Creating...' : 'Create'}
 						</button>
 					</div>
+					{#if duplicateCategory}
+						<div class="text-xs text-amber-700">[!] "{duplicateCategory.name}" already exists — pick it from the Category list instead</div>
+					{/if}
 				</form>
 			{/if}
 		</div>
