@@ -7,6 +7,7 @@
 	import GoalCard from '$lib/components/GoalCard.svelte';
 	import DebtCard from '$lib/components/DebtCard.svelte';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
+import CashflowCalendar from '$lib/components/charts/CashflowCalendar.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import { formatCurrency, formatCurrencyShorthand, formatAccountType, formatDateShorthand } from '$lib/utils/currency';
 	import { page as pageState } from '$app/state';
@@ -143,6 +144,17 @@
 	<TaxYearProgress data={data.isaTracker} />
 
 	<IsaAllowanceWidget data={data.isaTracker} />
+
+	<!-- Phase 7 line 2: cashflow calendar from recurring patterns -->
+	{#if data.cashflow?.obligations.length}
+		<div class="max-w-3xl">
+			<CashflowCalendar
+				year={data.cashflow.year}
+				month={data.cashflow.month}
+				obligations={data.cashflow.obligations}
+			/>
+		</div>
+	{/if}
 
 	<!-- INTEREST SUMMARY SECTION -->
 	{#if data.interestSummary}

@@ -1,9 +1,11 @@
 import { fail } from "@sveltejs/kit";
-import { and, asc, count, desc, eq, isNull, min, sum } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, isNull, min, sum } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions, goals, snapshots } from "$lib/db/schema";
 import { getAlerts } from "$lib/server/alerts";
+import { detectRecurringPatterns } from "$lib/server/recurring-patterns";
+import { projectObligations } from "$lib/utils/surface-views";
 import {
 	getCurrentBalancesForAccounts,
 	getLatestTransactionDateForAccounts,
@@ -293,6 +295,36 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Calculate staleness based on newest balance date
 	const staleness = getStaleness(netWorthSummary.dateRange.newest);
 
+	// Phase 7 line 2: cashflow calendar — detect recurring patterns from
+	// the last 365d of transactions and project this month's dues.
+	const patternRows = await db
+		.select({
+			description: accountTransactions.description,
+			amount: accountTransactions.amount,
+			transactionDate: accountTransactions.transactionDate,
+		})
+		.from(accountTransactions)
+		.innerJoin(accounts, eq(accountTransactions.accountId, accounts.id))
+		.where(
+			and(
+				withUserFilter(user.id, accounts),
+				gte(accountTransactions.transactionDate, new Date(today.getTime() - 365 * 86_400_000)),
+			),
+		)
+		.orderBy(asc(accountTransactions.transactionDate));
+	const patterns = detectRecurringPatterns(patternRows);
+	const now = new Date();
+	const cashflowYear = now.getUTCFullYear();
+	const cashflowMonth = now.getUTCMonth() + 1;
+	const monthPrefix = `${cashflowYear}-${String(cashflowMonth).padStart(2, "0")}`;
+	// project across the WHOLE current month — earlier-in-month dues stay
+	// visible as past obligations, later ones as upcoming
+	const monthStart = new Date(Date.UTC(cashflowYear, cashflowMonth - 1, 1));
+	const monthDays = new Date(Date.UTC(cashflowYear, cashflowMonth, 0)).getUTCDate();
+	const cashflowObligations = projectObligations(patterns, monthStart, monthDays).filter((o) =>
+		o.date.startsWith(monthPrefix),
+	);
+
 	return {
 		user: {
 			id: user.id,
@@ -311,6 +343,11 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			totalPages: totalGoalPages,
 		},
 		staleness,
+		cashflow: {
+			year: cashflowYear,
+			month: cashflowMonth,
+			obligations: cashflowObligations,
+		},
 	};
 };
 

@@ -1,8 +1,8 @@
 import { fail } from "@sveltejs/kit";
-import { and, count, isNull } from "drizzle-orm";
+import { and, count, inArray, isNull } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
-import { accounts } from "$lib/db/schema";
+import { accounts, interestRates } from "$lib/db/schema";
 import { getAccountListAlerts } from "$lib/server/alerts";
 import {
 	getCurrentBalancesForAccounts,
@@ -11,6 +11,7 @@ import {
 import { updateTypeExclusions } from "$lib/server/exclusions";
 import { getNetWorthSummary } from "$lib/server/finance";
 import { getCurrentRate } from "$lib/server/interestRates";
+import { recentMonthStarts } from "$lib/utils/surface-views";
 import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 import { bandForTaxYear } from "$lib/server/tax-bands";
 import {
@@ -261,9 +262,40 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 	// Calculate net worth summary (shared utility)
 	const netWorthSummary = await getNetWorthSummary(user.id);
 
+	// Phase 7 line 2: rate heatmap — savings accounts × last 6 months,
+	// per-account effective-rate series (RLS via owned account ids).
+	const heatmapAccountIds = userAccounts
+		.filter((a) => a.type === "savings" && !a.closedAt)
+		.map((a) => a.id);
+	const rateRows =
+		heatmapAccountIds.length > 0
+			? await db.query.interestRates.findMany({
+					where: and(
+						inArray(interestRates.accountId, heatmapAccountIds),
+					),
+					columns: { accountId: true, rate: true, effectiveFrom: true },
+				})
+			: [];
+	const ratesByAccount = new Map<number, Array<{ rate: number; effectiveFrom: Date }>>();
+	for (const row of rateRows) {
+		const list = ratesByAccount.get(row.accountId) ?? [];
+		list.push({ rate: row.rate, effectiveFrom: row.effectiveFrom });
+		ratesByAccount.set(row.accountId, list);
+	}
+	const rateHeatmap = {
+		months: recentMonthStarts(6),
+		rows: userAccounts
+			.filter((a) => a.type === "savings" && !a.closedAt)
+			.map((a) => ({
+				name: a.name,
+				rates: ratesByAccount.get(a.id) ?? [],
+			})),
+	};
+
 	return {
 		netWorthSummary,
 		accounts: accountsWithInterest,
+		rateHeatmap,
 		accountsPagination: {
 			page: safePage - 1, // PaginationClient expects 0-indexed
 			totalPages,

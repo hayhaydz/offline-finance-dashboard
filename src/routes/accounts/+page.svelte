@@ -1,5 +1,6 @@
 <script lang="ts">
 	import AlertsSection from '$lib/components/AlertsSection.svelte';
+	import RateHeatmap from '$lib/components/charts/RateHeatmap.svelte';
 	import { listnav } from '$lib/utils/list-nav';
 	import { page } from '$app/state';
 	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
@@ -440,6 +441,13 @@
 			onPageChange={pagination.updatePage}
 			scrollTarget={accountsSectionRef}
 		/>
+	{/if}
+
+	<!-- Phase 7 line 2: rate heatmap (savings accounts × months) -->
+	{#if data.rateHeatmap?.rows.length}
+		<div class="max-w-3xl mt-3">
+			<RateHeatmap rows={data.rateHeatmap.rows} months={data.rateHeatmap.months} />
+		</div>
 	{/if}
 	</div>
 </div>

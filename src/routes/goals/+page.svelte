@@ -11,6 +11,7 @@
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import AlertsSection from '$lib/components/AlertsSection.svelte';
 	import DebtStrategyPanel from '$lib/components/DebtStrategyPanel.svelte';
+	import AllocationBar from '$lib/components/charts/AllocationBar.svelte';
 	import type { Goal } from '$lib/db/schema';
 
 	let { data } = $props();
@@ -263,6 +264,16 @@ async function placeAtEnd() {
 		selectedStrategy={debtStrategy}
 		onStrategyChange={(s) => debtStrategy = s}
 	/>
+{/if}
+
+<!-- Phase 7 line 2: allocation view — share of total allocated money per goal -->
+{#if goals.length > 0}
+	<div class="max-w-3xl mt-3">
+		<AllocationBar
+			items={goals.map((g) => ({ name: g.name, value: Math.max(0, g.currentAllocation ?? 0) }))}
+			label="allocated"
+		/>
+	</div>
 {/if}
 
 <!-- GOALS LIST SECTION -->
