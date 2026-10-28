@@ -12,7 +12,9 @@ import {
 import { requireAccountOwnership } from "$lib/server/account-ownership";
 import { buildAvailableTaxYears } from "$lib/server/account-tax-year";
 import { getAlertsForAccount } from "$lib/server/alerts";
-import { getCategories } from "$lib/server/categories";
+import { getCategories, createCategory, ensureDefaultCategories } from "$lib/server/categories";
+import { categoryKeyFromName } from "$lib/utils/category-suggest";
+import { isValidHexColour } from "$lib/utils/category-colours";
 import {
 	decryptNoteContent,
 	decryptTxDescription,
@@ -52,7 +54,7 @@ import {
 	deleteTransaction,
 	getTransactionBySlug,
 } from "$lib/server/transactions";
-import { requireAuth } from "$lib/server/utils/auth-guard";
+import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import {
 	FIELD_LIMITS,
 	requireDateISO,
@@ -478,7 +480,9 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			? currentRate - boeBaseRate
 			: null;
 
-	// Get spending categories for transaction form
+	// Get spending categories for transaction form — lazily seed the
+	// starter set the first time a user opens any account (#14).
+	await ensureDefaultCategories(user.id);
 	const categories = await getCategories(user.id);
 
 	return {
@@ -864,5 +868,34 @@ export const actions: Actions = {
 			});
 			return fail(500, { error: "Failed to delete note" });
 		}
+	},
+
+	/**
+	 * Inline category creation from the transaction form (#14).
+	 * Key is derived from the name; colour comes from the palette picker.
+	 */
+	createCategory: async ({ request, locals }) => {
+		const user = getAuthUser(locals);
+		if (!user) return fail(401, { error: "Authentication required" });
+
+		const formData = await request.formData();
+		const name = (formData.get("name") as string | null)?.trim() ?? "";
+		const colour = (formData.get("colour") as string | null)?.trim() ?? "";
+
+		if (!name) return fail(400, { error: "Category name is required" });
+		if (!isValidHexColour(colour)) {
+			return fail(400, { error: "Valid hex colour is required" });
+		}
+
+		const result = await createCategory({
+			userId: user.id,
+			name,
+			key: categoryKeyFromName(name),
+			colour,
+		});
+
+		if (!result.ok) return fail(400, { error: result.error });
+
+		return { success: true, name };
 	},
 };

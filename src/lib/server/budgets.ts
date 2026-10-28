@@ -22,6 +22,7 @@ import {
 	spendingCategories,
 } from "$lib/db/schema";
 import { devLog } from "$lib/server/logger";
+import { decryptTxDescription } from "$lib/server/crypto/protected-fields";
 import type {
 	AmendmentTimelineEntry,
 	BudgetConfig,
@@ -293,6 +294,65 @@ export async function getCategoryBreakdown(
 	});
 
 	return breakdown;
+}
+
+export interface UncategorisedTransaction {
+	slug: string;
+	transactionDate: Date;
+	type: TransactionType;
+	amount: number;
+	description: string | null;
+	accountName: string;
+	accountSlug: string;
+}
+
+/**
+ * Uncategorised spending rows for a month (#15 triage): the same conditions
+ * as getCategoryBreakdown's uncategorised bucket (month range, budget type
+ * filter, excluded accounts) expanded to individual transactions, with
+ * account context for the tagging list. Descriptions are decrypted.
+ */
+export async function getUncategorisedTransactions(
+	userId: number,
+	year: number,
+	month: number,
+	budget: BudgetConfig | null,
+): Promise<UncategorisedTransaction[]> {
+	const { start, end } = getMonthRange(year, month);
+
+	const conditions = [
+		withUserFilter(userId, accounts),
+		gte(accountTransactions.transactionDate, start),
+		lte(accountTransactions.transactionDate, end),
+		budgetTypeFilter(budget?.excludedTypes ?? []),
+		isNull(accountTransactions.categoryId),
+	];
+
+	if (budget && budget.excludedAccountIds.length > 0) {
+		conditions.push(
+			notInArray(accountTransactions.accountId, budget.excludedAccountIds),
+		);
+	}
+
+	const rows = await db
+		.select({
+			slug: accountTransactions.slug,
+			transactionDate: accountTransactions.transactionDate,
+			type: accountTransactions.type,
+			amount: accountTransactions.amount,
+			description: accountTransactions.description,
+			accountName: accounts.name,
+			accountSlug: accounts.slug,
+		})
+		.from(accountTransactions)
+		.innerJoin(accounts, eq(accountTransactions.accountId, accounts.id))
+		.where(and(...conditions))
+		.orderBy(desc(accountTransactions.transactionDate));
+
+	return rows.map((row) => ({
+		...row,
+		description: decryptTxDescription(userId, row.slug, row.description),
+	}));
 }
 
 export async function getBudgetHistory(

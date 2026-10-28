@@ -12,6 +12,8 @@
 		monthLabelForKey,
 	} from '$lib/utils/transaction-grouping';
 	import type { useSubmitFeedback } from '$lib/utils/use-submit-feedback.svelte';
+	import { suggestCategoryForDescription } from '$lib/utils/category-suggest';
+	import { DEFAULT_CATEGORY_PALETTE } from '$lib/utils/category-colours';
 	import {
 		TRANSACTION_TYPE_HELP,
 		TRANSACTION_TYPE_LABELS,
@@ -91,6 +93,40 @@
 	// Track the user's choice; fall back to the first offered type when unset
 	// or no longer offered (keeps the select valid if the list ever changes).
 	let selectedType = $state<TransactionType | null>(null);
+
+	// ── Category state (#14) ──
+	// '' = None. `categoryTouched` distinguishes an explicit choice from an
+	// auto-suggestion so typing over a description never overrides the user.
+	let selectedCategoryId = $state('');
+	let categoryTouched = $state(false);
+	let descriptionText = $state('');
+	// Inline creation panel + post-create selection (matched by name on refresh)
+	let newCategoryOpen = $state(false);
+	let newCategoryName = $state('');
+	let newCategoryColour = $state<string>(DEFAULT_CATEGORY_PALETTE[0]);
+	let pendingSelectName = $state<string | null>(null);
+
+	const suggestedCategory = $derived(
+		suggestCategoryForDescription(descriptionText, categories),
+	);
+	// Once a freshly created category lands in `categories` (invalidateAll),
+	// make it the selected option and lock it as an explicit choice.
+	$effect(() => {
+		if (!pendingSelectName) return;
+		const created = categories.find(
+			(c) => c.name.toLowerCase() === pendingSelectName!.toLowerCase(),
+		);
+		if (created) {
+			selectedCategoryId = String(created.id);
+			categoryTouched = true;
+			pendingSelectName = null;
+		}
+	});
+
+	function onDescriptionInput() {
+		if (categoryTouched) return;
+		selectedCategoryId = suggestedCategory ? String(suggestedCategory.id) : '';
+	}
 	const effectiveType: TransactionType = $derived(
 		selectedType !== null && creatableTypes.includes(selectedType)
 			? selectedType
@@ -162,7 +198,7 @@
 			<form
 				method="POST"
 				action="?/addTransaction"
-				use:enhance={feedback.createEnhanceHandler("Transaction added successfully", { resetForm: true, onSuccess: () => { selectedType = null; addTransactionOpen = false; } })}
+				use:enhance={feedback.createEnhanceHandler("Transaction added successfully", { resetForm: true, onSuccess: () => { selectedType = null; selectedCategoryId = ''; categoryTouched = false; descriptionText = ''; pendingSelectName = null; newCategoryOpen = false; addTransactionOpen = false; } })}
 				class="flex flex-col gap-2"
 			>
 				<div class="grid grid-cols-2 gap-4">
@@ -210,10 +246,24 @@
 						/>
 					</div>
 					<div>
-						<label for="categoryId" class="block text-sm font-bold mb-1">Category</label>
+						<label for="categoryId" class="block text-sm font-bold mb-1">
+							Category
+							<button
+								type="button"
+								class="bracket-link text-xs ml-1"
+								onclick={() => (newCategoryOpen = !newCategoryOpen)}
+							>
+								{newCategoryOpen ? '[Close]' : '[+ New category]'}
+							</button>
+						</label>
 						<select
 							id="categoryId"
 							name="categoryId"
+							value={selectedCategoryId}
+							onchange={(e) => {
+								selectedCategoryId = e.currentTarget.value;
+								categoryTouched = true;
+							}}
 							class="w-full border border-black px-2 py-1 text-sm font-mono bg-white"
 						>
 							<option value="">None</option>
@@ -223,6 +273,11 @@
 								</option>
 							{/each}
 						</select>
+						{#if !categoryTouched && suggestedCategory && selectedCategoryId === String(suggestedCategory.id)}
+							<div class="text-xs text-gray-500 mt-1">
+								auto-matched from description — change if wrong
+							</div>
+						{/if}
 					</div>
 				</div>
 				<div>
@@ -232,6 +287,8 @@
 						id="description"
 						name="description"
 						placeholder="Transaction details..."
+						bind:value={descriptionText}
+						oninput={onDescriptionInput}
 						class="w-full border border-black px-2 py-1 text-sm font-mono"
 					/>
 				</div>
@@ -246,6 +303,59 @@
 					</button>
 				</div>
 			</form>
+
+			<!-- Inline category creation (#14) — sibling form, never nested -->
+			{#if newCategoryOpen}
+				<form
+					method="POST"
+					action="?/createCategory"
+					use:enhance={feedback.createEnhanceHandler("Category created", {
+						resetForm: true,
+						onSuccess: () => {
+							pendingSelectName = newCategoryName.trim();
+							newCategoryName = '';
+							newCategoryOpen = false;
+						},
+					})}
+					class="border border-dashed border-gray-400 p-2 mt-2 bg-white flex flex-col gap-2"
+				>
+					<div class="text-xs font-bold">NEW CATEGORY</div>
+					<div class="flex items-center gap-2 flex-wrap">
+						<input
+							type="text"
+							name="name"
+							placeholder="e.g. Pets"
+							required
+							aria-label="New category name"
+							bind:value={newCategoryName}
+							class="border border-black px-2 py-1 text-sm font-mono w-44"
+						/>
+						<input type="hidden" name="colour" value={newCategoryColour} />
+						<div class="flex items-center gap-1" role="radiogroup" aria-label="New category colour">
+							{#each DEFAULT_CATEGORY_PALETTE as colour (colour)}
+								<button
+									type="button"
+									role="radio"
+									aria-checked={newCategoryColour === colour}
+									aria-label="Colour {colour}"
+									title={colour}
+									class="w-4 h-4 border {newCategoryColour === colour ? 'border-black border-2' : 'border-gray-300'}"
+									style="background-color: {colour}"
+									onclick={() => (newCategoryColour = colour)}
+								></button>
+							{/each}
+						</div>
+						<button
+							type="submit"
+							disabled={feedback.isSubmitting}
+							class="bracket-link text-sm"
+							class:opacity-50={feedback.isSubmitting}
+						>
+							{feedback.isSubmitting ? 'Creating...' : 'Create'}
+						</button>
+					</div>
+				</form>
+			{/if}
 		</div>
 	{/if}
 

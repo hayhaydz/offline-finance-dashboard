@@ -576,6 +576,9 @@
 								{formatCurrency(prog.overBy)} over {formatCurrency(cat.target ?? 0)} target
 							</span>
 						{/if}
+						{#if cat.id < 0 && cat.spent > 0}
+							<a class="bracket-link text-xs" href="./uncategorised">[Triage]</a>
+						{/if}
 						<button class="bracket-link text-xs" onclick={() => startEdit(cat.id, cat.target)}>Edit</button>
 					</div>
 					{#if catMarker}
@@ -610,6 +613,9 @@
 						<span class="text-xs w-32 shrink-0">{cat.name}</span>
 						<span class="text-xs text-gray-400 min-w-[70px] text-right">{formatCurrency(cat.spent)} spent</span>
 						<button class="bracket-link text-xs" onclick={() => startEdit(cat.id, null)}>Set Target</button>
+						{#if cat.id < 0 && cat.spent > 0}
+							<a class="bracket-link text-xs" href="./uncategorised">[Triage]</a>
+						{/if}
 					</div>
 				{/if}
 			{/each}

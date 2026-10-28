@@ -7,6 +7,7 @@ import {
 	accounts,
 	accountTransactions,
 	interestRates,
+	spendingCategories,
 	users,
 } from "$lib/db/schema";
 import { load } from "./+page.server";
@@ -63,6 +64,8 @@ describe("Account page load - liability projections", () => {
 	});
 
 	afterEach(async () => {
+		// Account page load lazily seeds default spending categories (#14) —
+		// clear them before the user delete or the FK trips.
 		await db
 			.delete(accountTransactions)
 			.where(eq(accountTransactions.accountId, testAccountId));
@@ -70,6 +73,9 @@ describe("Account page load - liability projections", () => {
 			.delete(interestRates)
 			.where(eq(interestRates.accountId, testAccountId));
 		await db.delete(accounts).where(eq(accounts.id, testAccountId));
+		await db
+			.delete(spendingCategories)
+			.where(eq(spendingCategories.userId, testUserId));
 		await db.delete(users).where(eq(users.id, testUserId));
 	});
 

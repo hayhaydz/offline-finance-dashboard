@@ -182,6 +182,7 @@
         confirm: 'Confirm',
         payoffs: 'Payoffs',
         breakdown: 'Breakdown',
+        uncategorised: 'Uncategorised',
         csv: 'CSV'
       };
 
