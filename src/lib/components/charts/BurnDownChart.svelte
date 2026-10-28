@@ -97,12 +97,13 @@
 				fill="var(--chart-ink)"
 			/>
 		{/if}
-		<!-- axis labels: min/max spend, day 1 / today / month end -->
-		<text x="{PAD.l}" y="{H - 6}" font-size="10" fill="var(--chart-ink-soft)">£0</text>
-		<text x="{W - PAD.r}" y="{H - 6}" font-size="10" text-anchor="end" fill="var(--chart-ink-soft)">
+		<!-- axis labels: £ values sit ABOVE the baseline, dates BELOW it —
+		     sharing the bottom row made £0/d1 and £max/d31 collide (P1, gate) -->
+		<text x="{PAD.l}" y="{H - PAD.b - 4}" font-size="10" fill="var(--chart-ink-soft)">£0</text>
+		<text x="{W - PAD.r}" y="{H - PAD.b - 4}" font-size="10" text-anchor="end" fill="var(--chart-ink-soft)">
 			{spendLabel(yMax)}
 		</text>
-		<text x="{x(1)}" y="{H - 6}" font-size="10" text-anchor="start" fill="var(--chart-ink-soft)">d1</text>
-		<text x="{x(totalDays)}" y="{H - 6}" font-size="10" text-anchor="end" fill="var(--chart-ink-soft)">d{totalDays}</text>
+		<text x="{x(1) + 2}" y="{H - 6}" font-size="10" text-anchor="start" fill="var(--chart-ink-soft)">d1</text>
+		<text x="{x(totalDays) - 2}" y="{H - 6}" font-size="10" text-anchor="end" fill="var(--chart-ink-soft)">d{totalDays}</text>
 	</svg>
 </ChartPanel>

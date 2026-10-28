@@ -2,9 +2,17 @@
 	import { formatCurrencyShorthand, formatDate } from '$lib/utils/currency';
 	import { getStaleness } from '$lib/utils/staleness';
 	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
+	import GoalBulletBar from '$lib/components/charts/GoalBulletBar.svelte';
+	import { debtTicks, emergencyFundTicks, type GoalTick } from '$lib/utils/goal-milestone-ticks';
 	import type { Goal } from '$lib/db/schema';
 
-	type Milestone = { label: string; achieved: boolean };
+	/** Legacy emergency-fund labels OR debt DB rows (threshold + reachedAt). */
+	type Milestone = {
+		label: string;
+		achieved?: boolean;
+		thresholdInCents?: number | null;
+		reachedAt?: Date | string | null;
+	};
 
 	interface Props {
 		goal: Goal;
@@ -46,6 +54,42 @@
 		? Math.max(0, Math.round((Math.max(0, paidInCents) / (Math.max(0, paidInCents) + remainingInCents)) * 100))
 		: null
 	);
+
+	// Normalised label list (label row under the name keeps working for
+	// both the derived emergency-fund shape and debt DB rows)
+	const milestoneLabels = $derived(
+		(milestones ?? []).map((m) => ({
+			label: m.label,
+			achieved: m.achieved ?? m.reachedAt != null,
+		})),
+	);
+
+	// Phase 4 V1 #3: bullet-bar tick positions
+	const ticks = $derived.by(() => {
+		if (goal.isEmergencyFund) {
+			return emergencyFundTicks(goal.targetAmountInCents, goal.currentAllocation);
+		}
+		if (
+			isDebtGoal &&
+			startingBalanceInCents !== null &&
+			startingBalanceInCents !== undefined &&
+			currentBalanceInCents !== undefined &&
+			(milestones ?? []).some((m) => m.thresholdInCents !== undefined)
+		) {
+			return debtTicks(
+				startingBalanceInCents,
+				currentBalanceInCents,
+				(milestones ?? [])
+					.filter((m) => m.thresholdInCents !== undefined)
+					.map((m) => ({
+						label: m.label,
+						thresholdInCents: m.thresholdInCents ?? 0,
+						reachedAt: m.reachedAt ?? null,
+					})),
+			);
+		}
+		return [] as GoalTick[];
+	});
 </script>
 
 <tr class="goal-row border-b border-gray-200 last:border-b-0 {isArchived ? 'bg-gray-50' : ''} {isSelected ? 'bg-amber-50' : ''}">
@@ -90,10 +134,10 @@
 			</div>
 		{/if}
 		<!-- Emergency fund milestones below name -->
-		{#if goal.isEmergencyFund && milestones}
+		{#if goal.isEmergencyFund && milestoneLabels.length > 0}
 			<div class="text-xs font-normal mt-2">
 				[
-					{#each milestones as milestone, mIndex}
+					{#each milestoneLabels as milestone, mIndex}
 						{#if mIndex > 0}&nbsp;{/if}
 						<span class="{milestone.achieved ? 'text-green-700' : 'text-gray-400'}">{milestone.label}</span>
 					{/each}
@@ -111,16 +155,9 @@
 					{formatCurrencyShorthand(goal.currentAllocation)} / {formatCurrencyShorthand(goal.targetAmountInCents)}
 				{/if}
 			</div>
-		<!-- Progress bar -->
+		<!-- Progress bar (Phase 4 V1 #3: bullet bar with milestone ticks) -->
 		<div class="flex items-center gap-1 text-xs leading-none mt-1">
-			<span>[</span>
-			<div class="flex-1 h-3 relative border-y border-gray-100">
-				<div
-					class="h-full {isArchived ? 'bg-gray-400' : progressColor.bg}"
-					style="width: {Math.min(100, progress)}%"
-				></div>
-			</div>
-			<span>]</span>
+			<GoalBulletBar percent={debtProgress ?? progress} bgClass={progressColor.bg} {ticks} archived={isArchived} />
 			{#if savingsOver !== null}
 				<span class="font-bold text-green-700 whitespace-nowrap">REACHED — {formatCurrencyShorthand(savingsOver)} over target</span>
 			{:else}
@@ -132,16 +169,9 @@
 			<div class="font-bold {isArchived ? 'text-gray-600' : progressColor.text}">
 				{formatCurrencyShorthand(goal.currentAllocation)} / {formatCurrencyShorthand(goal.targetAmountInCents)}
 			</div>
-			<!-- Progress bar -->
+			<!-- Progress bar (Phase 4 V1 #3: bullet bar with milestone ticks) -->
 			<div class="flex items-center gap-1 text-xs leading-none mt-1">
-				<span>[</span>
-				<div class="flex-1 h-3 relative border-y border-gray-100">
-					<div
-						class="h-full {isArchived ? 'bg-gray-400' : progressColor.bg}"
-						style="width: {progress}%"
-					></div>
-				</div>
-				<span>]</span>
+				<GoalBulletBar percent={progress} bgClass={progressColor.bg} {ticks} archived={isArchived} />
 				<span class="min-w-5 font-bold">{progress}%</span>
 			</div>
 		{/if}

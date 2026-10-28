@@ -336,8 +336,16 @@ async function placeAtEnd() {
 				{#each goals as goal, index}
 					{@const progress = getProgress(goal)}
 					{@const progressColor = getProgressColor(goal)}
-					{@const milestones = getEmergencyFundMilestones(goal)}
 					{@const isDebtGoal = goal.goalType === 'debt'}
+					<!-- Phase 4 V1 #3: debt rows carry DB milestones (thresholds → bar ticks);
+					     emergency funds keep their derived month labels -->
+					{@const milestones = isDebtGoal
+						? ((goal as any).milestones ?? []).map((m: any) => ({
+								label: m.label as string,
+								thresholdInCents: m.thresholdInCents as number,
+								reachedAt: m.reachedAt ?? null
+							}))
+						: getEmergencyFundMilestones(goal)}
 					<GoalRow
 						{goal}
 						{progress}
