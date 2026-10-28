@@ -97,3 +97,52 @@ td {
 /* Hide scrollbar for breadcrumb trail */
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ── Print / PDF stylesheet (proposal #20) ─────────────────────────────
+   Turns any page into a clean paper report: chrome (nav, actions, forms)
+   hidden, data tables flow across pages, collapsed accordions forced open
+   (stylesheet !important beats the inline grid-template-rows collapse). */
+@media print {
+	@page {
+		margin: 12mm;
+	}
+
+	nav,
+	aside,
+	button,
+	form,
+	.bracket-link,
+	.no-print {
+		display: none !important;
+	}
+
+	/* Let long content flow across paper instead of the on-screen scroll area */
+	.scrollable-content {
+		max-height: none !important;
+		overflow: visible !important;
+	}
+
+	/* Force collapsed accordions open: their collapse is an inline
+	   grid-template-rows: 0fr — match it in the style attribute and
+	   override (!important beats inline styles) */
+	[style*="grid-template-rows: 0fr"] {
+		grid-template-rows: 1fr !important;
+	}
+
+	body {
+		font-size: 11px;
+		-webkit-print-color-adjust: exact;
+		print-color-adjust: exact;
+	}
+
+	/* Avoid a table row splitting across two pages */
+	tr,
+	.page-break-inside-avoid {
+		break-inside: avoid;
+	}
+
+	/* Borders print hairline-thin but stay visible — terminal aesthetic */
+	* {
+		box-shadow: none !important;
+	}
+}

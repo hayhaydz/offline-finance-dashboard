@@ -176,6 +176,17 @@
 
 	const sortedAccounts = $derived(sortAccounts(filteredAccounts));
 
+	// #17: staleness dot — open accounts with no transaction activity in
+	// 35+ days (or ever). Matches the filter modal's stale concept, but at
+	// the roadmap's 35-day threshold; amber square, tooltip explains.
+	const STALE_DAYS = 35;
+	function isStaleAccount(account: (typeof data.accounts)[number]): boolean {
+		if (account.closedAt) return false;
+		if (!account.lastUpdated) return true;
+		const cutoff = Date.now() - STALE_DAYS * 24 * 60 * 60 * 1000;
+		return new Date(account.lastUpdated).getTime() < cutoff;
+	}
+
 	// Placement: per type section, open accounts first, closed behind the
 	// collapsed [Show N closed] toggle (closed accounts still count in
 	// interest/ISA/tax-year history — placement only changes listing order)
@@ -267,6 +278,8 @@
 			>
 				{flatView ? '[Group By Type]' : '[Flat View]'}
 			</button>
+			<!-- #16: bulk balance update screen -->
+			<a href="/accounts/balances" class="bracket-link text-xs">[Update Balances]</a>
 			<button
 				type="button"
 				class="bracket-link text-xs"
@@ -376,7 +389,7 @@
 								{formatMaturity(account.daysToMaturity, account.maturityDate)}
 							</span>
 						</td>
-						<td class="text-right pr-3 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>{formatDate(account.lastUpdated)}</td>
+						<td class="text-right pr-3 text-sm py-2 whitespace-nowrap" class:line-through={account.closedAt}>{formatDate(account.lastUpdated)}{#if isStaleAccount(account)}<span class="inline-block w-2 h-2 bg-amber-500 align-middle ml-1" title="stale: no activity for 35+ days"></span>{/if}</td>
 					</tr>
 				{/snippet}
 				{#if flatView}

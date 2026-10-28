@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Navigation from '$lib/components/Navigation.svelte';
 	import SessionBanner from '$lib/components/SessionBanner.svelte';
+	import CommandPalette from '$lib/components/CommandPalette.svelte';
 	import { sessionTimer } from '$lib/utils/session-timer.svelte';
 	import { page } from '$app/state';
 	import { afterNavigate } from '$app/navigation';
@@ -23,6 +24,9 @@
 	let { children, data }: { children: Snippet; data: LayoutData } = $props();
 
 	let scrollContainer = $state<HTMLElement | null>(null);
+
+	// ⌘K command palette (#19) — authed users only
+	let paletteOpen = $state(false);
 
 	// Start/stop the session inactivity timer based on auth state.
 	// IMPORTANT: the timer reads the LAYOUT's own `data` prop, NOT
@@ -54,9 +58,18 @@
 			{#if !environment.isProduction}
 				<span class="text-amber-400">[!] DEV DATA [!]</span>
 			{/if}
+			<button
+				type="button"
+				class="bracket-link text-xs text-white"
+				onclick={() => (paletteOpen = true)}
+				title="Open command palette (⌘K)"
+			>
+				[⌘K]
+			</button>
 		</div>
 
 		<SessionBanner />
+		<CommandPalette bind:open={paletteOpen} />
 	{/if}
 
 	<Navigation {user} {environment} breadcrumbOverrides={breadcrumbOverrides} />

@@ -271,6 +271,8 @@
 		<div class="flex flex-col items-end gap-2">
 			<div class="flex gap-2 mb-1">
 				<a href="/overview/budgets/all" class="bracket-link text-xs">[All Months]</a>
+				<!-- #20: print/PDF affordance — global print CSS strips nav/forms/actions -->
+				<button type="button" class="bracket-link text-xs" onclick={() => window.print()}>[Print / PDF]</button>
 			</div>
 			<div class="text-[10px] uppercase font-bold text-gray-600">Month</div>
 			<div class="flex gap-1 items-center">
