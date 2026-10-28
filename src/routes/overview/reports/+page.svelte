@@ -1,6 +1,8 @@
 <script lang="ts">
 	import NetWorthChart from "$lib/components/charts/NetWorthChart.svelte";
 	import StackedAreaChart from "$lib/components/charts/StackedAreaChart.svelte";
+	import MonthlySpendChart from "$lib/components/charts/MonthlySpendChart.svelte";
+	import CategoryBars from "$lib/components/charts/CategoryBars.svelte";
 	import { formatCurrency } from "$lib/utils/currency";
 	import {
 		HISTORY_RANGES,
@@ -48,11 +50,20 @@
 		<StackedAreaChart points={ranged} formatPence={(p) => formatCurrency(p)} />
 	</div>
 
+	<!-- Phase 5 line 2: spending by month + top categories (latest month) -->
+	<div class="grid gap-3 lg:grid-cols-2 max-w-6xl mt-3">
+		<MonthlySpendChart points={data.monthlySpend} formatPence={(p) => formatCurrency(p)} />
+		<CategoryBars
+			month={data.monthlySpend[data.monthlySpend.length - 1]?.month ?? ""}
+			categories={data.monthlySpend[data.monthlySpend.length - 1]?.categories ?? []}
+		/>
+	</div>
+
 	<div class="border border-black mt-3 max-w-6xl">
 		<div class="font-bold text-xs px-2 py-1 bg-gray-50 border-b border-black">COMING IN THIS RELEASE</div>
 		<div class="text-xs text-gray-600 px-2 py-2 leading-relaxed">
-			Spending by category · interest report (actual vs projected + PSA) · debt report
-			(waterfall + payoff projections) — each with export and print support.
+			Interest report (actual vs projected + PSA) · debt report (waterfall + payoff projections) —
+			each with export and print support.
 		</div>
 	</div>
 </div>

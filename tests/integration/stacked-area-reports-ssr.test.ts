@@ -66,6 +66,7 @@ describe("Reports page (Phase 5 line 1)", () => {
 					user: null,
 					environment: { mode: "loose", isProduction: false, hasEncryption: false },
 					netWorthHistory: history,
+					monthlySpend: [],
 				},
 			},
 		});
