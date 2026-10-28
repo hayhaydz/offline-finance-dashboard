@@ -343,7 +343,7 @@
         "type": "refund",
         "amount": 6000,
         "daysAgo": 17,
-        "description": "Supermarket refund — overcharge",
+        "description": "Supermarket refund \u2014 overcharge",
         "categoryKey": "groceries"
       },
       {
@@ -433,10 +433,24 @@
       },
       {
         "type": "charge",
-        "amount": -30000,
+        "amount": -48500,
         "daysAgo": 0,
-        "description": "Current balance",
+        "description": "Winter spending spree",
         "categoryKey": "shopping"
+      },
+      {
+        "type": "payment",
+        "amount": 10000,
+        "daysAgo": 20,
+        "description": "Card payment - thank you",
+        "categoryKey": null
+      },
+      {
+        "type": "payment",
+        "amount": 8500,
+        "daysAgo": 5,
+        "description": "Card payment - thank you",
+        "categoryKey": null
       }
     ]
   },
@@ -660,7 +674,7 @@
         "type": "mortgage_disbursement",
         "amount": -23800000,
         "daysAgo": 365,
-        "description": "Initial mortgage - £250,000"
+        "description": "Initial mortgage - \u00a3250,000"
       },
       {
         "type": "payment",
@@ -715,7 +729,7 @@
         "type": "payment",
         "amount": 1000,
         "daysAgo": 0,
-        "description": "Current balance - maxed out at 98% (£1,000 limit)"
+        "description": "Current balance - maxed out at 98% (\u00a31,000 limit)"
       }
     ]
   },

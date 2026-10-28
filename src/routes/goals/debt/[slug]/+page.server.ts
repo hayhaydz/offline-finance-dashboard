@@ -9,7 +9,7 @@ import {
 	interestRates,
 } from "$lib/db/schema";
 import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
-import { checkMilestones, getDebtGoalProgress } from "$lib/server/goals";
+import { getDebtGoalProgress, syncMilestones } from "$lib/server/goals";
 import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
 import { MS_PER_MONTH } from "$lib/utils/time-constants";
@@ -50,7 +50,10 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	if (progress.percent >= 70) color = "green";
 	else if (progress.percent >= 30) color = "amber";
 
-	const newlyReachedIds = checkMilestones({
+	// Two-way sync: reach milestones the balance has fallen below, AND
+	// un-reach ones it has risen back above (P1-4: seed fiction / regrown
+	// debt used to leave wrongly-ticked milestones forever)
+	const { newlyReachedIds, noLongerReachedIds } = syncMilestones({
 		currentBalanceInCents: currentBalance,
 		milestones: goal.milestones.map((m) => ({
 			id: m.id,
@@ -59,12 +62,18 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		})),
 	});
 
-	if (newlyReachedIds.length > 0) {
+	if (newlyReachedIds.length > 0 || noLongerReachedIds.length > 0) {
 		const now = new Date();
 		for (const milestoneId of newlyReachedIds) {
 			await db
 				.update(goalMilestones)
 				.set({ reachedAt: now })
+				.where(eq(goalMilestones.id, milestoneId));
+		}
+		for (const milestoneId of noLongerReachedIds) {
+			await db
+				.update(goalMilestones)
+				.set({ reachedAt: null })
 				.where(eq(goalMilestones.id, milestoneId));
 		}
 		const updated = await db.query.goals.findFirst({

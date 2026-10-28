@@ -374,6 +374,36 @@ export function checkMilestones(params: {
 }
 
 /**
+ * Two-way milestone sync against the CURRENT balance.
+ *
+ * checkMilestones only ever adds reaches — a milestone wrongly marked
+ * reached (e.g. seed fiction, or debt that grew back above the threshold)
+ * stayed "achieved" forever (P1-4, 2026-10-27 audit: goal 7% paid yet
+ * "Halfway there" ticked). This variant also returns milestones to
+ * un-reach when the balance has risen back above their threshold.
+ */
+export function syncMilestones(params: {
+	currentBalanceInCents: number;
+	milestones: MilestoneWithReached[];
+}): { newlyReachedIds: number[]; noLongerReachedIds: number[] } {
+	const { currentBalanceInCents, milestones } = params;
+	const absCurrent = Math.abs(currentBalanceInCents);
+
+	const newlyReachedIds: number[] = [];
+	const noLongerReachedIds: number[] = [];
+	for (const milestone of milestones) {
+		const reachedNow = absCurrent <= milestone.thresholdInCents;
+		if (reachedNow && milestone.reachedAt === null) {
+			newlyReachedIds.push(milestone.id);
+		} else if (!reachedNow && milestone.reachedAt !== null) {
+			noLongerReachedIds.push(milestone.id);
+		}
+	}
+
+	return { newlyReachedIds, noLongerReachedIds };
+}
+
+/**
  * Distribute a withdrawal amount proportionally across contributing accounts.
  * Pure calculation — no DB access.
  */

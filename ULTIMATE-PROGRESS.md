@@ -10,6 +10,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-28T19:47 | 2026-10-28T19:52 | 0h05m | P0-3 error page: errorDisplayMessage helper, reactive SSR render, hooks developerMessage, 9 tests + live verify |
 | 2026-10-28T19:52 | 2026-10-28T20:01 | 0h09m | Phase 1 E2E goal money flow live (create→add→withdraw→archive) + 3 vision reviews — PHASE 1 COMPLETE |
 | 2026-10-28T20:01 | 2026-10-28T20:10 | 0h09m | P1-1 PSA <br> + P1-2 liabilities currency + P1-3 snapshot breadcrumb off-by-one, all live-verified |
+| 2026-10-28T20:10 | 2026-10-28T20:26 | 0h16m | P1-4 debt milestones: two-way syncMilestones + honest seed (positive thresholds, Visa payments) + re-seed + live verify |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -26,7 +27,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 
 ### Phase 2 — P1/P2 bugs + quick wins (#2–#10)
 - [x] P1-1 `<br>` PSA bars · P1-2 liabilities formatCurrency · P1-3 breadcrumb slugs/labels — ev: P1-1: KpiCard gained `detailLines` prop (stacked divs); interest/2026-27 page LIVE shows `[##########] 100%` / `OF £500.00` on two lines, zero literal `<br>`. P1-2: 4 currency spots routed through formatCurrency; LIVE liabilities shows `-£253,790.00` total + `-£2,315.00` balance (separators + sign convention). P1-3: snapshot loads were off-by-one (overriding segment 1 = 'snapshots', not the slug at 2) — detail now `Overview > Snapshots > 2026-02-01`, delete `… > Delete`; goal/account routes confirmed already correct. check 0/0; suite 761/761
-- [ ] P1-4 debt milestone inversion + payment history · P1-5 shared goal-progress fn (tests) · P1-6 Newest-First toggle semantics
+- [ ] P1-4 debt milestone inversion + payment history · P1-5 shared goal-progress fn (tests) · P1-6 Newest-First toggle semantics — P1-4 DONE (2026-10-28): root cause = seed fiction (pre-ticked milestones contradicting math, negative thresholds vs checker's positive convention, zero payment-type txns for Visa). Fix: new two-way `syncMilestones` in goal-calculations.ts (reaches AND un-reaches vs current balance; 5 unit tests in sync-milestones.test.ts) wired into debt/[slug] load; seed converted to positive thresholds + honest reached flags (all 7 goals recomputed); Visa fixture got 2 payment txns (+£100/+£85, net unchanged −£2,315); re-seeded. LIVE: Visa 7% paid → 0 ticks + PAYMENT HISTORY (2) (−£85 23 Oct, −£100 8 Oct); Mastercard 44% → exactly 1 tick (25%). check 0/0; suite 766/766. REMAINING: P1-5 shared progress fn, P1-6 toggle semantics
 - [ ] P1-7 account-count consistency (closed-account policy) · P1-8 PaginationClient console.logs · P1-9 Ready-to-Assign semantics
 - [ ] P2-1 breadcrumb capitalisation map · P2-2 styled delete-confirm modal · P2-4 ISA over-subscription warning · P2-5 copy nits
 - [ ] #2 severity legend · #5 bar % labels + pace colours · #6 touched-on-input forms
@@ -79,6 +80,8 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-28 | Plan file not committed to git (progress file is) | `.docs/` is in `.git/info/exclude` — deliberately local-only (private notes). `git add` of it fails "beyond a symbolic link". Progress tracker at repo root IS committed as the branch's first commit (45eb59c). |
 | 2026-10-28 | DevTools login flow: fill_form sets values but FormField only sets `touched` on blur → use click+type+Tab per field | Live finding while bootstrapping; also confirms proposal #6's value (Phase 2 will mark touched on input). Rate-limiter note: wrong-password attempts from half-filled fields triggered exponential backoff — cleared itself after ~30s. |
 | 2026-10-28 | P0-2 real root cause: missing decrypt call in month-ledger query, NOT a seed-keyring mismatch | Audit's passthrough theory was imprecise: decryptValue throws on failure (no passthrough for v1| blobs), and the recurring-patterns path decrypted the same rows fine — keyring healthy. The 2026-10-18 month-paginated ledger rewrite dropped the decrypt step. Fixed at source + defense-in-depth resilient decrypt anyway. |
+| 2026-10-28 | P1-4 root cause: seed fiction, not live-logic inversion | checkMilestones math was correct; the seed pre-ticked milestones contradicting balances, used negative thresholds (checker expects positive), and gave Visa Gold zero `payment`-type transactions (history always 0). Fixed seed + added two-way syncMilestones so any future fiction/regrowth self-heals on page load. |
+| 2026-10-28 | Re-seeded dev DB (npm run seed) after P1-4 fixes | Resets dev DB to canonical fixtures with honest milestone state + Visa payment history; also clears audit-day drift (Emergency Fund −£1,500 etc.) and my archived Loop Test Goal. Fresh state improves Phase 8 re-audit comparability. Session survived (admin user re-created with same id). |
 
 ## Deferrals
 | Item | Reason |
@@ -92,10 +95,9 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-28 | p01-goal-detail-before.png (zai-vision) | CLEAN — 0 P0/P1; no ciphertext/[object Object]/<br>; metrics aligned |
 
 ## Notes for next iteration
-- Created branch from main @ 8a67f0d. Working tree was clean. Audit dir + plan file already committed on main.
-- Dev server pid 54211 running (127.0.0.1:5173, strictPort). Browser page 1 logged in as admin (session cookie live). Savings goal detail `/goals/vh_G4FhSzFz8Kj8D` verified post-P0-1.
-- Login via DevTools: fill_form alone leaves submit disabled — FormField needs blur (Tab) to mark touched. Type into fields, Tab out, submit. Wrong-password attempts trigger exponential backoff (max 30s).
-- Baseline: check 0/0, tests 740/740 green → now 745/745 after P0-1 (+5 SSR tests).
+- Dev DB RE-SEEDED 20:2x (canonical + honest milestones + Visa payments). Dev server still pid 54211; browser logged in as admin. Account slugs CHANGED (fresh nanoids): Visa detail now /accounts/6yzYIIo--PcAB0lT etc. — don't reuse old slugs.
+- Milestone convention: thresholds are POSITIVE balance pence (absStarting fractions); reached ⇔ absCurrent ≤ threshold. `syncMilestones` (two-way) is wired into debt detail load; `checkMilestones` kept for compat.
+- NEXT: finish Phase 2 line 2 — P1-5 shared goal-progress fn (extract duplicated progress math from GoalDetailCard/goal rows into goal-calculations + unit tests) · P1-6 "Newest First" toggle semantics (audit: toggle state inverts expectation — verify in transactions ledger UI).
 - NEXT: Phase 2 second line — P1-4 debt milestone inversion + PAYMENT HISTORY (0) despite £185 paid (suspects: milestone derived from any-time balance thresholds; history query filtered wrong) · P1-5 shared goal-progress fn + tests · P1-6 Newest-First toggle semantics.
 - Breadcrumb segmentIndex convention: 0-based (goals/[slug] = 0,1; overview/snapshots/[slug] = 0,1,2). Page loads must override the SLUG segment index. labelMap fallback `delete: "Close"` only applies to routes without overrides.
 - Goals are soft-deleted via /confirm-archive (typed-name confirmation), not hard delete. /goals/[slug]/edit route does NOT exist (404s) — edit affordances live elsewhere.

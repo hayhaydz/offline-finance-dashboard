@@ -25,6 +25,7 @@ export {
 	generateDefaultMilestones,
 	getDebtGoalProgress,
 	projectPayoffDate,
+	syncMilestones,
 } from "./goal-calculations";
 
 async function getOpenAssetAccountsWithLatestBalances(userId: number) {

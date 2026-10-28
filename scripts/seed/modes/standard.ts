@@ -691,9 +691,13 @@ async function seedDebtGoals(db: DB, _userId: number): Promise<void> {
 		-250000, // Started at -£2,500
 		1,
 		[
-			{ label: "25% paid off", threshold: -187500, reached: true },
-			{ label: "Halfway there", threshold: -125000, reached: true },
-			{ label: "75% paid off", threshold: -62500, reached: false },
+			// Positive-balance-threshold convention (matches
+			// generateDefaultMilestones + checkMilestones). Balance is
+			// -£2,315 → 7% paid → NO milestone reached yet (P1-4 fix:
+			// seed previously ticked 25%/Halfway despite 7% paid).
+			{ label: "25% paid off", threshold: 187500, reached: false },
+			{ label: "Halfway there", threshold: 125000, reached: false },
+			{ label: "75% paid off", threshold: 62500, reached: false },
 			{ label: "Debt-free!", threshold: 0, reached: false },
 		],
 	);
@@ -705,9 +709,10 @@ async function seedDebtGoals(db: DB, _userId: number): Promise<void> {
 		-80000, // Started at -£800
 		2,
 		[
-			{ label: "25% paid off", threshold: -60000, reached: true },
-			{ label: "Halfway there", threshold: -40000, reached: false },
-			{ label: "75% paid off", threshold: -20000, reached: false },
+			// Balance -£450 → 43.75% paid: only the 25% milestone is reached
+			{ label: "25% paid off", threshold: 60000, reached: true },
+			{ label: "Halfway there", threshold: 40000, reached: false },
+			{ label: "75% paid off", threshold: 20000, reached: false },
 			{ label: "Debt-free!", threshold: 0, reached: false },
 		],
 	);
@@ -719,10 +724,11 @@ async function seedDebtGoals(db: DB, _userId: number): Promise<void> {
 		-100000, // Started at -£1,000
 		3,
 		[
-			{ label: "First £100", threshold: -90000, reached: false },
-			{ label: "25% paid off", threshold: -75000, reached: false },
-			{ label: "Halfway there", threshold: -50000, reached: false },
-			{ label: "75% paid off", threshold: -25000, reached: false },
+			// Balance -£975 → 2.5% paid → none reached
+			{ label: "First £100", threshold: 90000, reached: false },
+			{ label: "25% paid off", threshold: 75000, reached: false },
+			{ label: "Halfway there", threshold: 50000, reached: false },
+			{ label: "75% paid off", threshold: 25000, reached: false },
 			{ label: "Debt-free!", threshold: 0, reached: false },
 		],
 	);
@@ -734,9 +740,9 @@ async function seedDebtGoals(db: DB, _userId: number): Promise<void> {
 		-1200000, // Started at -£12,000
 		4,
 		[
-			{ label: "25% paid off", threshold: -900000, reached: true },
-			{ label: "Halfway there", threshold: -600000, reached: false },
-			{ label: "75% paid off", threshold: -300000, reached: false },
+			{ label: "25% paid off", threshold: 900000, reached: false },
+			{ label: "Halfway there", threshold: 600000, reached: false },
+			{ label: "75% paid off", threshold: 300000, reached: false },
 			{ label: "Loan cleared!", threshold: 0, reached: false },
 		],
 		twelveMonthsFromNow,
@@ -749,9 +755,10 @@ async function seedDebtGoals(db: DB, _userId: number): Promise<void> {
 		-120000, // Started at -£1,200
 		5,
 		[
-			{ label: "25% paid off", threshold: -90000, reached: true },
-			{ label: "Halfway there", threshold: -60000, reached: false },
-			{ label: "3/4 done", threshold: -30000, reached: false },
+			// Balance -£850 → 29% paid: only the 25% milestone reached
+			{ label: "25% paid off", threshold: 90000, reached: true },
+			{ label: "Halfway there", threshold: 60000, reached: false },
+			{ label: "3/4 done", threshold: 30000, reached: false },
 			{ label: "Paid before promo ends!", threshold: 0, reached: false },
 		],
 		threeMonthsFromNow,
@@ -765,10 +772,12 @@ async function seedDebtGoals(db: DB, _userId: number): Promise<void> {
 		-150000, // Started at -£1,500
 		6,
 		[
-			{ label: "25% paid off", threshold: -112500, reached: true },
-			{ label: "Halfway there", threshold: -75000, reached: true },
-			{ label: "75% paid off", threshold: -37500, reached: true },
-			{ label: "Final £100!", threshold: -10000, reached: true },
+			// Linked Car Loan balance exceeds the starting figure (debt grew
+			// beyond starting) → honest state: none reached
+			{ label: "25% paid off", threshold: 112500, reached: false },
+			{ label: "Halfway there", threshold: 75000, reached: false },
+			{ label: "75% paid off", threshold: 37500, reached: false },
+			{ label: "Final £100!", threshold: 10000, reached: false },
 			{ label: "Debt-free!", threshold: 0, reached: false },
 		],
 		oneMonthFromNow,
@@ -782,10 +791,12 @@ async function seedDebtGoals(db: DB, _userId: number): Promise<void> {
 		-50000, // Started at -£500
 		7,
 		[
-			{ label: "25% paid off", threshold: -37500, reached: true },
-			{ label: "Halfway there", threshold: -25000, reached: true },
-			{ label: "75% paid off", threshold: -12500, reached: true },
-			{ label: "Debt-free!", threshold: 0, reached: true },
+			// Shares the High-APR account (balance -£975 > starting): honest
+			// state is debt-grew-beyond-starting, none reached
+			{ label: "25% paid off", threshold: 37500, reached: false },
+			{ label: "Halfway there", threshold: 25000, reached: false },
+			{ label: "75% paid off", threshold: 12500, reached: false },
+			{ label: "Debt-free!", threshold: 0, reached: false },
 		],
 	);
 
