@@ -106,4 +106,12 @@
 		<text x="{x(1) + 2}" y="{H - 6}" font-size="10" text-anchor="start" fill="var(--chart-ink-soft)">d1</text>
 		<text x="{x(totalDays) - 2}" y="{H - 6}" font-size="10" text-anchor="end" fill="var(--chart-ink-soft)">d{totalDays}</text>
 	</svg>
+	<!-- line legend (Phase 9 polish): the two lines + markers are otherwise
+	     indistinguishable to first-time readers (final-audit P1) -->
+	<div class="flex flex-wrap gap-x-3 gap-y-1 px-2 pt-1 text-[10px] text-gray-500">
+		<span class="flex items-center gap-1"><span class="w-3 border-t border-gray-900"></span>actual spend</span>
+		<span class="flex items-center gap-1"><span class="w-3 border-t border-dashed border-gray-400"></span>even pace</span>
+		<span class="flex items-center gap-1"><span class="w-2 h-2 bg-gray-900"></span>today</span>
+		<span class="flex items-center gap-1"><span class="w-2 border-t-2 border-gray-600"></span>target</span>
+	</div>
 </ChartPanel>

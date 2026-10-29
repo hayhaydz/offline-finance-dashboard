@@ -46,6 +46,14 @@ describe("BurnDownChart (Phase 4 V1 #2)", () => {
 		expect(body).toContain("aria-label");
 	});
 
+	it("renders the line legend (final-audit P1: lines indistinguishable)", () => {
+		const { body } = renderChart();
+		expect(body).toContain("actual spend");
+		expect(body).toContain("even pace");
+		expect(body).toContain("today");
+		expect(body).toContain("target");
+	});
+
 	it("axis labels show zero, the y-max, and day range", () => {
 		const { body } = renderChart();
 		expect(body).toContain(">£0<");
