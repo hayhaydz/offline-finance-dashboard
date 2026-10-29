@@ -5,6 +5,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | Session start | Session end | Elapsed | Work done |
 |---|---|---|---|
 | 2026-10-29 19:11:24 GMT | 2026-10-29 19:14:46 GMT | 0h 03m | Sweep 0: progress file, casing fix, check/test/build baseline, live login verified |
+| 2026-10-29 19:16:01 GMT | 2026-10-29 19:22:50 GMT | 0h 07m | Sweep 1 B01: research/judge/plan/edit/self-review — full-viewport shell, no-wrap nav, top-bar fix |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -17,8 +18,8 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 ## Requirements disposition
 | Req | Status | Evidence / decision |
 |---|---|---|
-| R1 | [ ] | full desktop viewport, no-wrap, mobile = zoomed-out desktop |
-| R2 | [ ] | sealed root — "logged out, data is sealed" landing |
+| R1 | [x] (B01 shell) | ev: commits b6acfe5+c8f0502; shell 1584×984 @1600×1000, internal scroll, meta width=1280, nav rows flex-nowrap. Page-level inner max-w wrappers handled per-block (B02–B04) — shell-level R1 holds |
+| R2 | [x] | Already satisfied by v2: hooks loginRedirect covers `/` → `/login?reason=logged-out&redirectTo=%2F`; login page renders "You have been logged out. Data is sealed." + login form + [Register] = clear path. ev: Sweep-0 CDP snapshot uid=1_14 + B01 research #6 |
 | R3 | [ ] | home header revert + viz gallery (click-to-switch) |
 | R4 | [ ] | goal bars revert (remove black milestone lines) |
 | R5 | [ ] | rate heatmap full width |
@@ -32,7 +33,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R13 | [ ] | tools expansion — sub-pages + more tools |
 | R14 | [ ] | data management overhaul (core architecture redesign) |
 | R15 | [ ] | transaction editability judgment (research Matrixify DROP/CREATE) |
-| R16 | [ ] | top bar — fix `[[⌘K]]` double render, de-crowd |
+| R16 | [x] | ev: DOM proof single-bracket `[⌘K]`/`[?]` (text + pseudo-elements); top bar de-crowded (right-clustered controls, gap-4); a11y names `[⌘K]` `[?]`; palette open/close live-verified |
 | R17 | [ ] | weak areas dedicated work: tax, snapshots, accounts/liabilities, routine, budget |
 | R18 | [ ] | CSV export: custom selection, readable, per-account context |
 | R19 | [ ] | Matrixify/Altera round-trip: DROP + CREATE on the fly |
@@ -50,7 +51,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 ## Block registry
 | Block | Last sweep | BLOCK CYCLE stage | Notes |
 |---|---|---|---|
-| B01 SHELL & VIEWPORT | — | unvisited | R1 R2 R16 · sweep-1 ★ first |
+| B01 SHELL & VIEWPORT | 1 | COMPLETE (sweep 1) | R1 R2 R16 ticked; shell full-viewport; residual: page-level max-w wrappers → B02/B03/B04 |
 | B02 HOME | — | unvisited | R3 · sweep-1 ★ |
 | B03 GOALS | — | unvisited | R4 R6 · sweep-1 ★ |
 | B04 ACCOUNTS & LIABILITIES | — | unvisited | R5 R17 · sweep-1 ★ |
@@ -68,8 +69,29 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | B16 CROSS-CUTTING | — | unvisited | harvested · every sweep gate |
 
 ## Per-block research & judgments
-### B01 SHELL & VIEWPORT
-- (pending sweep 1)
+### B01 SHELL & VIEWPORT (Sweep 1)
+- research:
+  1. Outer container: `+layout.svelte:54` `<div class="border border-black max-w-4xl mx-auto w-full">` — the R1 max-width container. Body `app.css:56` `px-4 py-6 md:px-8 md:py-12`. `.scrollable-content` = `max-height: calc(100vh - 200px); overflow-y: auto` (app.css:94) — design intent is already an internal-scroll terminal window.
+  2. R16 root cause CONFIRMED: `bracket-link` utility (app.css:25) renders `::before '['` + `::after ']'`, and the top-bar buttons hardcode literal `[⌘K]` (+layout.svelte:72) and `[?]` → `[[⌘K]]` / `[[?]]`. The `[!] DEV DATA [!]` span has no bracket-link class — renders fine.
+  3. Top strip contents: OFFLINE-FINANCE-v0.exe / USER: X / [ MODE: … ] / [!] DEV DATA [!] / ⌘K / ? — 6 items on `justify-between`; crowding was a symptom of the 896px container.
+  4. Nav rows: `navigation.svelte:233,263` use `flex flex-wrap` — the rows R1 says must not fold. 30 flex-wrap instances app-wide; most are legend/form chips where wrap is harmless — judgment: fix the two nav rows now, audit the rest per-block in later sweeps.
+  5. Viewport meta `app.html`: `width=device-width, initial-scale=1` — must become a fixed desktop width so mobile = zoomed-out desktop (R1).
+  6. R2: hooks.server.ts `loginRedirect("logged-out")` covers `/` (line 135 no-cookie path, 164 dead-session path) → `/login?reason=logged-out&redirectTo=%2F`; login page renders "You have been logged out. Data is sealed." (snapshot uid=1_14, Sweep 0) with the login form + [Register] right there = clear path to log in. R2 appears FULLY satisfied by v2 already.
+  7. Test pins: `command-palette-ssr.test.ts:24` expects `[⌘K] toggle` — that string lives INSIDE CommandPalette.svelte:147 as literal hint text (no bracket-link class) → untouched by top-bar fix. `list-nav-help-overlay.test.ts:87` expects body contains `⌘K` → still true after fix (button text `⌘K`, brackets via CSS).
+  8. Inner page-level max-w wrappers exist (home `max-w-3xl`, balances/uncategorised/debt `max-w-4xl mx-auto`, tools/reports grids `max-w-6xl`) — belong to B02/B03/B04 sweeps, noted there.
+- judgments:
+  1. Full-viewport via flex-column shell: outer div becomes `h-[calc(100vh-1rem)] flex flex-col` (body p-2), `.scrollable-content` becomes `flex-1 min-h-0 overflow-y-auto` — robust against variable chrome height (banner/subnav/breadcrumb), keeps pinned-chrome + internal-scroll terminal window. Print media overrides height/overflow to visible.
+  2. Body padding `px-4 py-6 md:px-8 md:py-12` → `p-2` (thin frame so the black border reads as a maximized terminal window).
+  3. Viewport meta → `width=1280` (phones render the 1280px desktop layout scaled-to-fit = "zoomed-out view of the desktop").
+  4. Nav + subnav rows → `flex-nowrap` + `overflow-x-auto` (rows never fold; graceful horizontal scroll under 1280px desktop windows).
+  5. Top bar: strip literal brackets from ⌘K and ? buttons (CSS supplies them); group the two buttons in a right-side cluster with gap; keep [!] DEV DATA [!] literal (status, not a link).
+  6. R2 = already satisfied (no code): tick with Sweep-0 live evidence + this research.
+- PLAN (this batch, ≤5 units):
+  - [x] U1 viewport meta `app.html` → width=1280 (R1c). ev: live DOM `viewportMeta:"width=1280"` @1600×1000 CDP window
+  - [x] U2 shell full-viewport flex column (+layout.svelte + app.css scrollable-content + print) (R1a/b). ev: commit `b6acfe5` + `c8f0502`; live metrics shell 1584×984 in 1600×1000 window, `mainInternal:[true]`, `docHScroll:false`
+  - [x] U3 nav/subnav rows no-wrap (navigation.svelte) (R1d). ev: commit `b6acfe5` (flex-nowrap + overflow-x-auto, both rows)
+  - [x] U4 top bar double-bracket fix + de-crowd (+layout.svelte) (R16). ev: DOM proof `text:"⌘K"` + `::before "["` `::after "]"` → renders `[⌘K]` once; buttons clustered right with gap-4 layout
+  - [x] U5 gate: check 0/0; targeted palette tests 15/15; full suite 983/983 (×2 green after 1 documented first-run flake); live `/` console 0 errors / 0 5xx; palette opens from fixed button + Escape closes; vision review no P0/P1 (see log)
 
 ## Decisions
 | Date | Decision | Rationale |
@@ -91,12 +113,13 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 ## Vision review log
 | Date | Screenshot | Verdict |
 |---|---|---|
+| 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b01-home-1600.png | No P0/P1; "spans the full viewport width (no narrow centered column)". Claim of `[[⌘K]]` double-bracket REJECTED — DOM: text `⌘K` + one pseudo `[`/`]` (known vision glyph misread) |
 
 ## Notes for next iteration
-- **Sweep 0 COMPLETE** (19:14:46 GMT). Next: **Sweep 1 — BIG VISIBLE CHANGE (B01–B04)** per plan §6.3. Start with B01 SHELL & VIEWPORT BLOCK CYCLE: RESEARCH (git show main:<path> for "before" states) → JUDGE → PLAN (≤5 edit units) → EDIT → SELF-REVIEW.
-- Dev server: RUNNING in background (shell ID sh_189153b0a001cp8sLuyUCzricQ) at http://127.0.0.1:5173. If dead on resume: `npm run dev` background:true.
-- CDP browser: page 1 authenticated session active at `/` — sessions die <60s after login; re-login per Appendix B pattern (navigate → snapshot → fill uid×2 → click → poll in ONE evaluate_script).
-- Baseline observation for B01/R2: unauthenticated `/` already lands on `/login?reason=logged-out&redirectTo=%2F` showing "You have been logged out. Data is sealed." — R2 may be partially satisfied by v2 already; verify the "clear path to log in" criterion properly in B01's cycle before ticking.
-- Casing gotcha: this worktree materializes TRUE git casing (main checkout FS is case-insensitive and had masked it). If more casing errors surface, fix imports to git casing (`git ls-files` is truth).
-- `.docs/VERSION_HISTORY.md` did not exist in the worktree — created at Sweep 0 close.
-- Ledger discipline: end-times from fresh `date` AFTER work; correct drift DOWN only.
+- **B01 COMPLETE** (19:22:50 GMT). Next: **B02 HOME** (R3): header revert via `git show main:src/routes/+page.svelte`, remove home `max-w-3xl` (+page.svelte:150), build viz gallery below header with click-to-switch viz types. Then B03 GOALS (R4 R6), B04 ACCOUNTS (R5 R17) to finish Sweep 1.
+- Sweep 1 gate when B02–B04 done: check 0/0 + full tests + live smoke of changed routes + vision spot-checks + `npm run build` + ledger + commits.
+- Audit dir for sweep-1 screenshots: `.docs/reviews/2026-10-29-1916-ultimate-v3-audit/`.
+- Dev server RUNNING (5173). CDP page 1 authed; **resize_page to 1600×1000 BEFORE screenshots** (window was emulating 500×844 phone). Sessions die <60s — re-login per Appendix B.
+- Gotchas hit: (a) print CSS `body > div` selector wrong — SvelteKit wraps body in `display:contents` div; used `.app-shell` class instead. (b) Palette-open check must run in a SEPARATE evaluate_script after click (Svelte flush is async). (c) Escape keydown must dispatch on `window` not `document`. (d) Test suite: 1 uncaptured first-run failure then 2× full green — documented flake; if a named failure recurs, investigate properly.
+- vmodel.sh: 1× 1305 flake then success on retry 2 (within the ×2 budget).
+- 30 flex-wrap instances remain app-wide (legends/forms mostly) — audit per-block in later sweeps per B01 judgment #4.
