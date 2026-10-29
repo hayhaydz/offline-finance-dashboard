@@ -37,7 +37,7 @@
 	}
 </script>
 
-<figure class="chart-panel m-0" bind:this={panelEl}>
+<figure class="chart-panel m-0 h-full flex flex-col" bind:this={panelEl}>
 	<figcaption class="chart-panel-title">
 		<span>{title}</span>
 		<span class="flex items-center gap-1">
@@ -60,6 +60,8 @@
 			</span>
 		</span>
 	</figcaption>
-	<div class="p-2">{#if children}{@render children()}{/if}</div>
-	<div class="chart-panel-summary">{summary}</div>
+	<!-- v3 R30: flex-1 so the panel fills a stretched bento cell —
+	     neighbouring panels keep aligned bottom borders -->
+	<div class="p-2 flex-1">{#if children}{@render children()}{/if}</div>
+	<div class="chart-panel-summary mt-auto">{summary}</div>
 </figure>

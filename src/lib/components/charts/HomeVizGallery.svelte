@@ -81,7 +81,7 @@
 							{#snippet controls()}{@render expandControl()}{/snippet}
 						</CashflowCalendar>
 					{:else if cell.id === 'allocation'}
-						<AllocationBar items={assetGroups} label="held">
+						<AllocationBar items={assetGroups} label="held" noun="asset classes">
 							{#snippet controls()}{@render expandControl()}{/snippet}
 						</AllocationBar>
 					{/if}

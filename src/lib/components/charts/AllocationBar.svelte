@@ -12,10 +12,13 @@
 	let {
 		items,
 		label = "allocated",
+		noun = "goals",
 		controls,
 	}: {
 		items: Array<{ name: string; value: number }>;
 		label?: string;
+		/** what the shares are (goals, asset classes, …) — used in the summary */
+		noun?: string;
 		/** optional controls forwarded into the ChartPanel title band */
 		controls?: import('svelte').Snippet;
 	} = $props();
@@ -28,7 +31,7 @@
 	const summary = $derived(
 		shares.length === 0
 			? `No ${label} money yet`
-			: `${formatCurrency(total)} ${label} across ${shares.length} goals — largest: ${shares[0].name} (${shares[0].percent}%)`,
+			: `${formatCurrency(total)} ${label} across ${shares.length} ${noun} — largest: ${shares[0].name} (${shares[0].percent}%)`,
 	);
 </script>
 
