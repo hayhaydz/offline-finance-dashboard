@@ -297,7 +297,11 @@
 						>
 							<option value="">None</option>
 							{#each categories as cat}
-								<option value={cat.id}>
+								<!-- String(cat.id): Svelte 5's select matcher compares the
+								     option's typed __value against the value expression — a
+								     number option never matches the string selectedCategoryId
+								     (11 !== "11") and the select renders blank -->
+								<option value={String(cat.id)}>
 									{cat.name}
 								</option>
 							{/each}

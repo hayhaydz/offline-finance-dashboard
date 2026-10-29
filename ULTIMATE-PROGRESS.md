@@ -38,6 +38,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-28T23:53 | 2026-10-28T23:57 | 0h04m | Continuation: ASCII toggle live-verified at last (workaround = redirectTo login + single in-page script; vision CLEAN); investigated category-select blank-on-auto-match 3 attempts (bind:value, selected attr — neither moved the DOM; state provably set via hint condition) → deferred w/ diagnostics, speculative changes reverted clean |
 | 2026-10-28T23:57 | 2026-10-28T23:58 | 0h01m | Palette drift fix: /accounts/balances added to ⌘K + route-coverage drift-guard tests (2); live-verified filter-to-entry; check 0/0 · 955/955 |
 | 2026-10-28T23:59 | 2026-10-29T00:03 | 0h04m | Phase 9 cycle 5: perf re-audit (no regression) · print-chrome strips .no-print · overlay focus capture/restore (3 overlays, util + 3 tests, live-verified) · maintainer quirks docs; check 0/0 · 958/958 |
+| 2026-10-29T00:03 | 2026-10-29T00:04 | 0h01m | Deferral RESOLVED: category-select auto-match — MutationObserver (zero events) + compiled-runtime read pinpointed Svelte select matcher type mismatch (number option __value vs string value expr); String(cat.id) fix live-verified (Groceries preselected); check 0/0 · 958/958 |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -112,6 +113,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 - [x] P2 fix: print/PDF chrome strips — ev: built CSS carries the full @media print block (@page 12mm, nav/aside/button/form/.bracket-link/.no-print hidden, .scrollable-content unclipped, accordions forced open, break-inside avoid); status strip + breadcrumb bar were plain divs that would print as black bars (print-color-adjust:exact forces the ink) → both tagged .no-print; live classList verified ×2; 0 chart panels inside button/form (print-safe)
 - [x] a11y fix: overlay focus management (palette + help + confirm modal) — ev: new overlay-focus.ts (captureFocus: snapshot activeElement at open, restore on close, no-op if disconnected) + 3 jsdom unit tests; all three overlays capture/restore + move initial focus INTO the dialog; LIVE: Escape from palette → focus on [⌘K] trigger; [Close] from help → focus on [?] trigger; input/[Close] focused on open; console 0 errors
 - [x] Docs: known-quirks maintainer section — ev: docs/dev/ultimate-2.0-release.md now documents category-select quirk, CDP session killer + workaround, screenshot clip artifact, devalue gotcha, {@const} rule, edit-tool haunt; deferred list refreshed (8/8 P2 nits fixed)
+- [x] FIX (deferral resolved): category select auto-match now applies — ev: fresh-context revisit: MutationObserver showed ZERO select mutations (no clobbering) → read Svelte's compiled select runtime (BDkFxreM.js): matcher M() compares option __value against the value expression WITHOUT coercion — number cat.id never equals string selectedCategoryId → selectedIndex=-1; fix = option value={String(cat.id)}; LIVE: catVal "11", selIdx 7, selText "Groceries", console 0 errors — the #14 auto-match feature now actually preselects + submits correctly; SSR test impossible (SSR coerces value attrs to strings — only client-mount could catch it; recorded in test notes); check 0/0 · 958/958
 - [ ] Ledger ≥ 6h verified
 
 ## Decisions
@@ -152,7 +154,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 ## Deferrals
 | Item | Reason |
 |---|---|
-| Category select stays visually blank on auto-match (P2, functional nit) | 3 attempts this run (value={} baseline, bind:value, option selected attr) — component state provably correct (auto-matched hint renders, condition requires selectedCategoryId === String(id)) but the DOM select refuses the programmatic selection (selIdx -1, el.value ''), so the submitted categoryId may be empty unless the user picks manually. Options exist (Groceries=11 verified), second input event doesn't help → suspect option-list re-render clobbering selection post-assignment. NEXT: instrument with a DOM mutation observer on the select. Cosmetic-adjacent: hint + manual select work; speculative changes reverted (tree = e9677e5) |
+| ~~Category select stays visually blank on auto-match~~ **RESOLVED 2026-10-29** | Fixed in Phase 9 cycle 6 — see checklist. Root cause was a type mismatch in Svelte 5's select matcher, not DOM clobbering (MutationObserver showed ZERO events; reading the compiled runtime found M() comparing option __value (number cat.id) against the string value expression — 11 !== "11" → selectedIndex=-1). Fix: option value={String(cat.id)}. Live-verified: selText "Groceries", catVal "11" |
 
 ## Vision review log
 | Date | Screenshot | Verdict |
