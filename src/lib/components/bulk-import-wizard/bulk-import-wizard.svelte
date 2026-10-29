@@ -351,6 +351,6 @@
 				<p>The IMPORT JOBS panel below reports progress and counts.</p>
 			{/if}
 		</div>
-		<button type="button" class="bracket-link" onclick={reset}>[Done]</button>
+		<button type="button" class="bracket-link" onclick={reset}>Done</button>
 	{/if}
 </div>

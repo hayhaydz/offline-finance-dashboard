@@ -120,7 +120,7 @@
 					aria-label="Command palette search"
 					class="w-full text-sm outline-none bg-transparent"
 				/>
-				<button type="button" class="bracket-link text-xs" onclick={close}>[Esc]</button>
+				<button type="button" class="bracket-link text-xs" onclick={close}>Esc</button>
 			</div>
 			<ul role="listbox" aria-label="Commands" class="max-h-80 overflow-y-auto">
 				{#each results as cmd, i (cmd.id)}

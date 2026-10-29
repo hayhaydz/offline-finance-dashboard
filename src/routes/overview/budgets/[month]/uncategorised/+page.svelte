@@ -28,7 +28,7 @@
 	<div class="border border-black">
 		<div class="border-b border-black bg-gray-100 p-2 font-bold flex justify-between items-center">
 			<span>UNCATEGORISED — {monthLabel.toUpperCase()}</span>
-			<a class="bracket-link text-xs" href="../">[Back to budget]</a>
+			<a class="bracket-link text-xs" href="../">Back to budget</a>
 		</div>
 
 		<div class="p-2 text-xs border-b border-black bg-gray-50">
@@ -93,7 +93,7 @@
 												<option value={cat.id}>{cat.name}</option>
 											{/each}
 										</select>
-										<button type="submit" class="bracket-link text-xs">[Tag]</button>
+										<button type="submit" class="bracket-link text-xs">Tag</button>
 									</form>
 								</td>
 							</tr>

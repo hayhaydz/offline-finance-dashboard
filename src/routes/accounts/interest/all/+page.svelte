@@ -45,7 +45,7 @@
 
 <div class="bg-gray-100 p-2 font-bold border-b border-black flex justify-between items-center">
     <span>INTEREST HISTORY</span>
-    <a href="/accounts" class="bracket-link text-xs">[Back to Accounts]</a>
+    <a href="/accounts" class="bracket-link text-xs">Back to Accounts</a>
 </div>
 
 {#if data.taxYears.length === 0}

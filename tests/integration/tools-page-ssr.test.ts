@@ -41,7 +41,7 @@ describe("Tools index (R13)", () => {
 			expect(body).toContain(tool.name);
 			expect(body).toContain(`href="/tools/${tool.slug}"`);
 		}
-		expect(body).toContain("[Open Tool]");
+		expect(body).toContain("Open Tool");
 		expect(body).toContain("2026/27 · higher band");
 	});
 });
@@ -63,8 +63,8 @@ describe("Tool sub-pages (R13)", () => {
 	it("renders the tool shell with [All Tools] and the selected component", () => {
 		const { body } = renderSub("rate-what-if");
 		expect(body).toContain("Rate-change what-if");
-		expect(body).toContain("[All Tools]");
-		expect(body).toContain("[Print / PDF]");
+		expect(body).toContain("All Tools");
+		expect(body).toContain("Print / PDF");
 		expect(body).toContain("Monzo Instant"); // component rendered
 	});
 

@@ -51,7 +51,7 @@
           {:else if liability.months !== null && liability.years !== null}
             <div>TTZ: <span class="font-bold">{Math.floor(liability.years)}y {Math.round((liability.years % 1) * 12)}m</span></div>
           {:else if liability.projectionNullReason === 'no_minimum_payment'}
-            <div class="text-amber-700">No minimum payment set <a href="/accounts/{liability.slug}/edit" class="bracket-link">[Set rule →]</a></div>
+            <div class="text-amber-700">No minimum payment set <a href="/accounts/{liability.slug}/edit" class="bracket-link">Set rule →</a></div>
           {:else}
             <div class="text-red-700 font-bold">Payment below interest — CRITICAL</div>
           {/if}
@@ -82,7 +82,7 @@
           {:else if liability.months !== null && liability.years !== null}
             <div>TTZ: <span class="font-bold">{Math.floor(liability.years)}y {Math.round((liability.years % 1) * 12)}m</span></div>
           {:else if liability.projectionNullReason === 'no_minimum_payment'}
-            <div class="text-amber-700">No minimum payment set <a href="/accounts/{liability.slug}/edit" class="bracket-link">[Set rule →]</a></div>
+            <div class="text-amber-700">No minimum payment set <a href="/accounts/{liability.slug}/edit" class="bracket-link">Set rule →</a></div>
           {:else}
             <div class="text-red-700 font-bold">Payment below interest — CRITICAL</div>
           {/if}

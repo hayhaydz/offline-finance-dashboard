@@ -34,7 +34,7 @@
 			>
 				<span class="font-bold">{tool.name}</span>
 				<span class="text-xs text-gray-600 flex-1">{tool.blurb}</span>
-				<span class="bracket-link text-xs">[Open Tool]</span>
+				<span class="bracket-link text-xs">Open Tool</span>
 			</a>
 		{/each}
 	</div>

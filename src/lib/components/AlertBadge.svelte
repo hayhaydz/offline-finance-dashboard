@@ -112,17 +112,17 @@
 				{#if ackAction && !isAcked}
 					<form method="POST" action={ackAction} use:enhance={invalidate} class="inline">
 						<input type="hidden" name="alertId" value={alert.id} />
-						<button type="submit" name="mode" value="done" class="bracket-link text-xs">[Done]</button>
+						<button type="submit" name="mode" value="done" class="bracket-link text-xs">Done</button>
 					</form>
 					<form method="POST" action={ackAction} use:enhance={invalidate} class="inline">
 						<input type="hidden" name="alertId" value={alert.id} />
-						<button type="submit" name="mode" value="snooze30" class="bracket-link text-xs">[Snooze 30d]</button>
+						<button type="submit" name="mode" value="snooze30" class="bracket-link text-xs">Snooze 30d</button>
 					</form>
 				{/if}
 				{#if restoreAction && isAcked}
 					<form method="POST" action={restoreAction} use:enhance={invalidate} class="inline">
 						<input type="hidden" name="alertId" value={alert.id} />
-						<button type="submit" class="bracket-link text-xs">[Restore]</button>
+						<button type="submit" class="bracket-link text-xs">Restore</button>
 					</form>
 				{/if}
 			</div>

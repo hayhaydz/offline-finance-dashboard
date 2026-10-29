@@ -141,7 +141,7 @@
 	</div>
 	<div class="flex flex-col items-end gap-2">
 		<div class="flex gap-2 mb-1">
-			<a href="/accounts/interest/all" class="bracket-link text-xs">[All Years]</a>
+			<a href="/accounts/interest/all" class="bracket-link text-xs">All Years</a>
 		</div>
 		<TaxYearNav availableYears={data.availableTaxYears} currentSlug={currentYearSlug} basePath="/accounts/interest" />
 	</div>

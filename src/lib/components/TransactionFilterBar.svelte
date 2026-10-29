@@ -109,7 +109,7 @@
 				{#if activeFilterLabel}
 					<div class="flex items-center gap-2">
 						<span class="text-[10px] bg-black text-white px-1 font-bold">FILTERED BY {activeFilterLabel.toUpperCase()}</span>
-						<button type="button" class="bracket-link text-[10px] font-bold" onclick={clearFilters}>[Clear Filter]</button>
+						<button type="button" class="bracket-link text-[10px] font-bold" onclick={clearFilters}>Clear Filter</button>
 					</div>
 				{/if}
 				<button type="button" class="bracket-link text-xs" onclick={() => transactionsSortDesc = !transactionsSortDesc}>

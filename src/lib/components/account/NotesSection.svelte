@@ -29,7 +29,7 @@
 	<div class="border-b border-black bg-gray-100 p-2 font-bold flex justify-between items-center">
 		<span>NOTES ({notes.length})</span>
 		<div class="flex gap-2">
-			<a href="/accounts/{accountSlug}/notes" class="bracket-link text-xs">[All Notes]</a>
+			<a href="/accounts/{accountSlug}/notes" class="bracket-link text-xs">All Notes</a>
 			{#if !closedAt}
 				<button
 					type="button"

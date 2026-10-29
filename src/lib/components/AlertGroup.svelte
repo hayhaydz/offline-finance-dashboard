@@ -76,25 +76,25 @@
 					{#if alert.href || alert.secondaryHref || ackAction || restoreAction}
 						<div class="flex gap-2 shrink-0 ml-4">
 							{#if alert.href}
-								<a href={alert.href} class="bracket-link text-xs">[View]</a>
+								<a href={alert.href} class="bracket-link text-xs">View</a>
 							{/if}
 							{#if alert.secondaryHref}
-								<a href={alert.secondaryHref} class="bracket-link text-xs" title="Counterpart account">[{alert.secondaryLabel ?? 'View'}]</a>
+								<a href={alert.secondaryHref} class="bracket-link text-xs" title="Counterpart account">{alert.secondaryLabel ?? 'View'}</a>
 							{/if}
 							{#if ackAction && alert.acknowledgedUntil === undefined}
 								<form method="POST" action={ackAction} use:enhance={invalidate} class="inline">
 									<input type="hidden" name="alertId" value={alert.id} />
-									<button type="submit" name="mode" value="done" class="bracket-link text-xs">[Done]</button>
+									<button type="submit" name="mode" value="done" class="bracket-link text-xs">Done</button>
 								</form>
 								<form method="POST" action={ackAction} use:enhance={invalidate} class="inline">
 									<input type="hidden" name="alertId" value={alert.id} />
-									<button type="submit" name="mode" value="snooze30" class="bracket-link text-xs">[Snooze 30d]</button>
+									<button type="submit" name="mode" value="snooze30" class="bracket-link text-xs">Snooze 30d</button>
 								</form>
 							{/if}
 							{#if restoreAction && alert.acknowledgedUntil !== undefined}
 								<form method="POST" action={restoreAction} use:enhance={invalidate} class="inline">
 									<input type="hidden" name="alertId" value={alert.id} />
-									<button type="submit" class="bracket-link text-xs">[Restore]</button>
+									<button type="submit" class="bracket-link text-xs">Restore</button>
 								</form>
 							{/if}
 						</div>

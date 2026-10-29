@@ -294,7 +294,7 @@
 				{flatView ? '[Group By Type]' : '[Flat View]'}
 			</button>
 			<!-- #16: bulk balance update screen -->
-			<a href="/accounts/balances" class="bracket-link text-xs">[Update Balances]</a>
+			<a href="/accounts/balances" class="bracket-link text-xs">Update Balances</a>
 			<button
 				type="button"
 				class="bracket-link text-xs"

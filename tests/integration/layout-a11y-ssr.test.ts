@@ -18,7 +18,7 @@ const renderLayout = () => render(LayoutFixture);
 describe("layout a11y (skip link + main landmark)", () => {
 	it("renders a skip link targeting #main-content as the first focusable element", () => {
 		const { body } = renderLayout();
-		const skipIdx = body.indexOf('[Skip to content]');
+		const skipIdx = body.indexOf('Skip to content');
 		expect(skipIdx).toBeGreaterThan(-1);
 		expect(body).toContain('href="#main-content"');
 		// target exists: the main landmark carries the id

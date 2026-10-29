@@ -271,16 +271,16 @@
 		</div>
 		<div class="flex flex-col items-end gap-2">
 			<div class="flex gap-2 mb-1">
-				<a href="/overview/budgets/all" class="bracket-link text-xs">[All Months]</a>
+				<a href="/overview/budgets/all" class="bracket-link text-xs">All Months</a>
 				<!-- #20: print/PDF affordance — global print CSS strips nav/forms/actions -->
-				<button type="button" class="bracket-link text-xs" onclick={() => window.print()}>[Print / PDF]</button>
+				<button type="button" class="bracket-link text-xs" onclick={() => window.print()}>Print / PDF</button>
 			</div>
 			<div class="text-[10px] uppercase font-bold text-gray-600">Month</div>
 			<div class="flex gap-1 items-center">
-				<a href="/overview/budgets/{getPrevMonth(data.selectedMonth)}" class="bracket-link text-xs" data-sveltekit-noscroll>[Prev]</a>
+				<a href="/overview/budgets/{getPrevMonth(data.selectedMonth)}" class="bracket-link text-xs" data-sveltekit-noscroll>Prev</a>
 				<span class="bracket-link bg-black text-white text-xs px-1">{getMonthLabel(data.selectedMonth)}</span>
 				{#if getNextMonth(data.selectedMonth)}
-					<a href="/overview/budgets/{getNextMonth(data.selectedMonth)}" class="bracket-link text-xs" data-sveltekit-noscroll>[Next]</a>
+					<a href="/overview/budgets/{getNextMonth(data.selectedMonth)}" class="bracket-link text-xs" data-sveltekit-noscroll>Next</a>
 				{:else}
 					<span class="text-xs text-gray-500">[Next]</span>
 				{/if}
@@ -288,10 +288,47 @@
 		</div>
 </div>
 
+	<!-- SUMMARY STRIP (R9): the four numbers that answer the month, at a glance -->
+	{#if data.budget && data.budget.totalTargetInCents > 0}
+		<div class="border-b border-black grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-300">
+			<div class="px-2 py-1.5">
+				<div class="text-[10px] uppercase font-bold text-gray-600">Status</div>
+				<div class="text-sm font-bold {statusLabel.class}">{statusLabel.text}</div>
+				<div class="text-[10px] text-gray-500">{spentPercent}% of target spent</div>
+			</div>
+			<div class="px-2 py-1.5">
+				<div class="text-[10px] uppercase font-bold text-gray-600">Spent / target</div>
+				<div class="text-sm font-bold">{formatCurrency(data.status.totalSpent)}</div>
+				<div class="text-[10px] text-gray-500">of {formatCurrency(data.budget.totalTargetInCents)}</div>
+			</div>
+			<div class="px-2 py-1.5">
+				<div class="text-[10px] uppercase font-bold text-gray-600">Pace</div>
+				<div class="text-sm font-bold {spentPercent > pacePercent ? 'text-amber-600' : 'text-green-700'}">
+					{spentPercent > pacePercent ? "over pace" : "on pace"}
+				</div>
+				<div class="text-[10px] text-gray-500">spend {spentPercent}% · time {pacePercent}%</div>
+			</div>
+			<div class="px-2 py-1.5">
+				<div class="text-[10px] uppercase font-bold text-gray-600">{remaining >= 0 ? "Remaining" : "Over"}</div>
+				<div class="text-sm font-bold {remaining >= 0 ? 'text-green-700' : 'text-red-700'}">
+					{formatCurrency(Math.abs(remaining))}
+				</div>
+				<div class="text-[10px] text-gray-500">
+					{#if remaining > 0 && data.status.totalDays > data.status.daysElapsed}
+						{formatCurrency(Math.round(remaining / (data.status.totalDays - data.status.daysElapsed)))}/day for {data.status.totalDays - data.status.daysElapsed} days
+					{:else}
+						projected {formatCurrency(Math.round(data.status.projectedTotal))}
+					{/if}
+				</div>
+			</div>
+		</div>
+	{/if}
+
 	<!-- AMENDMENT OPTIONS (shared by every config form below) -->
 	{#if data.budget}
 		<div class="border-b border-black px-2 py-1 bg-gray-50 flex flex-wrap items-center gap-x-4 gap-y-1">
 			<span class="text-[10px] uppercase font-bold text-gray-600">Amendment options</span>
+			<span class="text-[10px] text-gray-400">— attach to your next config edit (target / filters) below</span>
 			<label class="flex items-center gap-1 text-xs text-gray-600">
 				<span>Note</span>
 				<input
@@ -299,7 +336,7 @@
 					bind:value={amendNote}
 					maxlength="200"
 					placeholder="optional — why is this changing?"
-					class="border border-gray-300 px-1 py-0.5 w-52 font-terminal text-xs"
+					class="border border-gray-300 px-1 py-0.5 w-64 font-terminal text-xs"
 				/>
 			</label>
 			<div class="flex items-center gap-3 text-xs text-gray-600">
@@ -315,6 +352,191 @@
 		</div>
 	{/if}
 
+	<!-- R9/R29: two-column body — the month at a glance, config out of the way -->
+	<div class="grid lg:grid-cols-3">
+		<div class="lg:col-span-2 lg:border-r border-black">
+	<!-- PROGRESS BAR (always visible if budget set) -->
+	{#if data.budget && data.budget.totalTargetInCents > 0}
+		<div class="border-b border-black px-2 py-2">
+			<div class="flex items-center gap-1 text-xs leading-none mb-1">
+				<span>[</span>
+				<div class="flex-1 h-3 relative border-y border-gray-100">
+					{#if spentPercent > 100}
+						<!-- #7: solid = target's share of spend, hatch = overflow -->
+						<div class="h-full {progressColor}" style="width: {(100 / spentPercent) * 100}%"></div>
+						<div class="h-full hatch-overflow absolute top-0" style="left: {(100 / spentPercent) * 100}%; right: 0"></div>
+					{:else}
+						<div class="h-full {progressColor}" style="width: {Math.min(spentPercent, 100)}%"></div>
+					{/if}
+				</div>
+				<span>]</span>
+				<span class="min-w-8 font-bold {progressTextColor}">{spentPercent}%</span>
+			</div>
+			{#if spentPercent > 100}
+				<div class="text-xs text-red-700 font-bold">
+					[!] {formatCurrency(data.status.totalSpent - data.budget.totalTargetInCents)} over {formatCurrency(data.budget.totalTargetInCents)} target
+				</div>
+			{/if}
+			<div class="flex justify-between text-xs">
+				<span class="text-gray-500">Spent so far</span>
+				<span>{formatCurrency(data.status.totalSpent)} <span class="text-gray-500">of</span> {formatCurrency(data.budget.totalTargetInCents)}</span>
+			</div>
+			<div class="flex justify-between text-xs text-gray-500">
+				<span>{data.status.daysElapsed} of {data.status.totalDays} days elapsed</span>
+				<span>{Math.round((data.status.daysElapsed / data.status.totalDays) * 100)}% of month</span>
+			</div>
+		</div>
+	{/if}
+
+	<!-- SPENDING SUMMARY (when no budget) -->
+	{#if !data.budget}
+		<div class="border-b border-black px-2 py-2">
+			<div class="flex justify-between font-bold">
+				<span>THIS MONTH</span>
+				<span>{formatCurrency(data.status.totalSpent)}</span>
+			</div>
+			<div class="flex justify-between text-xs text-gray-500">
+				<span>{data.status.daysElapsed} of {data.status.totalDays} days elapsed</span>
+				<span>Avg {formatCurrency(Math.round(data.status.avgPerDay))}/day</span>
+			</div>
+			<div class="text-xs text-gray-500 mt-1">Spending = withdrawals + card charges − refunds. Transfers and debt payments are excluded.</div>
+		</div>
+	{/if}
+
+	<!-- CATEGORY TARGETS -->
+	<div class="font-bold text-xs px-2 py-1 bg-gray-50 border-t border-black">CATEGORY TARGETS <span class="text-gray-500">{targetedCategories.length} targeted · {untargetedCategories.length} untargeted</span></div>
+	<SubmitFeedback message={targetFeedback.message} onDismiss={targetFeedback.dismiss} />
+	<div class="px-2 py-1 border-b border-gray-300">
+		{#if targetedCategories.length > 0}
+			<div class="text-gray-500 font-bold text-xs py-1">WITH TARGETS</div>
+			{#each targetedCategories as cat (cat.id)}
+				{@const prog = getCatProgress(cat.spent, cat.target ?? 0)}
+				{@const pct = cat.target && cat.target > 0 ? Math.round((cat.spent / cat.target) * 100) : 0}
+				{@const catMarker = amendmentMarker(`categoryTarget:${cat.id}`)}
+
+				{#if editingCategoryId === cat.id}
+					<!-- Inline edit mode -->
+					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200 bg-amber-50 px-1">
+						<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
+						<span class="text-xs w-32 shrink-0">{cat.name}</span>
+						<form method="POST" action="?/saveCategoryTarget" use:enhance={validatedAmountSubmit(targetFeedback, 'Saved')}>
+							<input type="hidden" name="categoryId" value={cat.id} />
+							<input type="hidden" name="note" value={amendNote} />
+							<input type="hidden" name="applyForward" value={applyForward ? 'true' : 'false'} />
+							<div class="flex items-center gap-1">
+								<span class="text-xs">£</span>
+								<input name="amount" type="text" value={editAmount} class="border border-black p-0.5 w-20 font-terminal text-xs" />
+								<button type="submit" class="bracket-link text-xs text-green-700">Save</button>
+								<button type="button" class="bracket-link text-xs" onclick={cancelEdit}>Cancel</button>
+							</div>
+						</form>
+					</div>
+				{:else}
+					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200">
+						<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
+						<span class="text-xs w-32 shrink-0">{cat.name}</span>
+						<div class="flex items-center gap-0.5 text-xs min-w-[120px]">
+							<span>[</span>
+							<div class="flex-1 h-2 relative border-y border-gray-100">
+								{#if prog.overBy !== null && (cat.target ?? 0) > 0}
+									<!-- #7: solid = target's share, hatch = overflow -->
+									<div class="h-full {prog.color}" style="width: {(100 / pct) * 100}%"></div>
+									<div class="h-full hatch-overflow absolute top-0" style="left: {(100 / pct) * 100}%; right: 0"></div>
+								{:else}
+									<div class="h-full {prog.color}" style="width: {prog.width}%"></div>
+								{/if}
+							</div>
+							<span>]</span>
+							<span class="min-w-6 font-bold {pct > 100 ? 'text-red-700' : pct > 75 ? 'text-amber-600' : 'text-green-700'}">{pct}%</span>
+						</div>
+						<span class="text-xs min-w-[70px] text-right">
+							{formatCurrency(cat.spent)} <span class="text-gray-500">/</span> {formatCurrency(cat.target ?? 0)}
+						</span>
+						{#if prog.overBy !== null}
+							<span class="text-[10px] text-red-700 font-bold whitespace-nowrap">
+								{formatCurrency(prog.overBy)} over {formatCurrency(cat.target ?? 0)} target
+							</span>
+						{/if}
+						{#if cat.id < 0 && cat.spent > 0}
+							<a class="bracket-link text-xs" href="./uncategorised">Triage</a>
+						{/if}
+						<button class="bracket-link text-xs" onclick={() => startEdit(cat.id, cat.target)}>Edit</button>
+					</div>
+					{#if catMarker}
+						<div class="text-[10px] text-amber-700 pl-[144px] -mt-1 pb-0.5">{catMarker}</div>
+					{/if}
+				{/if}
+			{/each}
+		{/if}
+
+		{#if untargetedCategories.length > 0}
+			<div class="text-gray-500 font-bold text-xs py-1 {targetedCategories.length > 0 ? 'mt-1' : ''}">WITHOUT TARGETS</div>
+			{#each untargetedCategories as cat (cat.id)}
+				{#if editingCategoryId === cat.id}
+					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200 bg-amber-50 px-1">
+						<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
+						<span class="text-xs w-32 shrink-0">{cat.name}</span>
+						<form method="POST" action="?/saveCategoryTarget" use:enhance={validatedAmountSubmit(targetFeedback, 'Saved')}>
+							<input type="hidden" name="categoryId" value={cat.id} />
+							<input type="hidden" name="note" value={amendNote} />
+							<input type="hidden" name="applyForward" value={applyForward ? 'true' : 'false'} />
+							<div class="flex items-center gap-1">
+								<span class="text-xs">£</span>
+								<input name="amount" type="text" value={editAmount} class="border border-black p-0.5 w-20 font-terminal text-xs" placeholder="0.00" />
+								<button type="submit" class="bracket-link text-xs text-green-700">Save</button>
+								<button type="button" class="bracket-link text-xs" onclick={cancelEdit}>Cancel</button>
+							</div>
+						</form>
+					</div>
+				{:else}
+					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200">
+						<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
+						<span class="text-xs w-32 shrink-0">{cat.name}</span>
+						<span class="text-xs text-gray-500 min-w-[70px] text-right">{formatCurrency(cat.spent)} spent</span>
+						<button class="bracket-link text-xs" onclick={() => startEdit(cat.id, null)}>Set Target</button>
+						{#if cat.id < 0 && cat.spent > 0}
+							<a class="bracket-link text-xs" href="./uncategorised">Triage</a>
+						{/if}
+					</div>
+				{/if}
+			{/each}
+		{/if}
+
+		{#if editingCategoryId && !targetedCategories.find(c => c.id === editingCategoryId) && !untargetedCategories.find(c => c.id === editingCategoryId)}
+			{@const cat = data.categories.find(c => c.id === editingCategoryId)}
+			{#if cat}
+				<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200 bg-amber-50 px-1">
+					<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
+					<span class="text-xs w-32 shrink-0">{cat.name}</span>
+					<form method="POST" action="?/saveCategoryTarget" use:enhance={validatedAmountSubmit(targetFeedback, 'Saved')}>
+						<input type="hidden" name="categoryId" value={cat.id} />
+						<input type="hidden" name="note" value={amendNote} />
+						<input type="hidden" name="applyForward" value={applyForward ? 'true' : 'false'} />
+						<div class="flex items-center gap-1">
+							<span class="text-xs">£</span>
+							<input name="amount" type="text" value={editAmount} class="border border-black p-0.5 w-20 font-terminal text-xs" placeholder="0.00" />
+							<button type="submit" class="bracket-link text-xs text-green-700">Save</button>
+							<button type="button" class="bracket-link text-xs" onclick={cancelEdit}>Cancel</button>
+						</div>
+					</form>
+				</div>
+			{/if}
+		{/if}
+
+		{#if excludedCategories.length > 0}
+			<div class="text-gray-500 font-bold text-xs py-1 mt-1 opacity-40">EXCLUDED</div>
+			{#each excludedCategories as cat (cat.id)}
+				<div class="flex items-center gap-2 py-1 opacity-40">
+					<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
+					<span class="text-xs w-20 shrink-0 line-through">{cat.name}</span>
+					<span class="text-xs text-gray-500">—</span>
+				</div>
+			{/each}
+		{/if}
+	</div>
+
+		</div>
+		<div>
 	<!-- TARGET ACCORDION -->
 	<button
 		class="w-full font-bold flex justify-between items-center cursor-pointer px-2 py-1.5 text-sm bg-white border-b border-black"
@@ -385,52 +607,36 @@
 		</div>
 	{/if}
 
-	<!-- PROGRESS BAR (always visible if budget set) -->
-	{#if data.budget && data.budget.totalTargetInCents > 0}
-		<div class="border-b border-black px-2 py-2">
-			<div class="flex items-center gap-1 text-xs leading-none mb-1">
-				<span>[</span>
-				<div class="flex-1 h-3 relative border-y border-gray-100">
-					{#if spentPercent > 100}
-						<!-- #7: solid = target's share of spend, hatch = overflow -->
-						<div class="h-full {progressColor}" style="width: {(100 / spentPercent) * 100}%"></div>
-						<div class="h-full hatch-overflow absolute top-0" style="left: {(100 / spentPercent) * 100}%; right: 0"></div>
-					{:else}
-						<div class="h-full {progressColor}" style="width: {Math.min(spentPercent, 100)}%"></div>
-					{/if}
-				</div>
-				<span>]</span>
-				<span class="min-w-8 font-bold {progressTextColor}">{spentPercent}%</span>
+	<!-- AMENDMENTS (task 4.4) -->
+	{#if data.budget}
+		<button
+			class="w-full font-bold flex justify-between items-center cursor-pointer px-2 py-1 text-xs bg-gray-50 border-t border-black"
+			onclick={() => (amendmentsOpen = !amendmentsOpen)}
+		>
+			<span>AMENDMENTS <span class="text-gray-500">{data.amendments.length} change{data.amendments.length === 1 ? '' : 's'}</span></span>
+			<span class="text-xs text-gray-500">{amendmentsOpen ? '[-]' : '[+]'}</span>
+		</button>
+		{#if amendmentsOpen}
+			<div class="px-2 py-1 border-b border-gray-300">
+				{#if data.amendments.length === 0}
+					<div class="text-xs text-gray-500 py-1">No amendments recorded for this month. Config edits are trailed automatically.</div>
+				{:else}
+					<div class="text-[10px] text-gray-500 py-0.5">Transactions are immutable — only config changes appear here, newest first.</div>
+					{#each data.amendments as amendment (amendment.id)}
+						<div class="flex flex-wrap items-baseline gap-x-1.5 py-0.5 border-b border-dotted border-gray-100 text-xs">
+							<span class="text-gray-500 w-20 shrink-0">{formatAmendmentDate(amendment.createdAt)}</span>
+							<span class="font-bold">{amendmentFieldLabel(amendment.field)}</span>
+							<span>{formatAmendmentValue(amendment.field, amendment.oldValue)}</span>
+							<span class="text-gray-500">&rarr;</span>
+							<span class="font-bold">{formatAmendmentValue(amendment.field, amendment.newValue)}</span>
+							{#if amendment.note}
+								<span class="text-gray-500">({amendment.note})</span>
+							{/if}
+						</div>
+					{/each}
+				{/if}
 			</div>
-			{#if spentPercent > 100}
-				<div class="text-xs text-red-700 font-bold">
-					[!] {formatCurrency(data.status.totalSpent - data.budget.totalTargetInCents)} over {formatCurrency(data.budget.totalTargetInCents)} target
-				</div>
-			{/if}
-			<div class="flex justify-between text-xs">
-				<span class="text-gray-500">Spent so far</span>
-				<span>{formatCurrency(data.status.totalSpent)} <span class="text-gray-500">of</span> {formatCurrency(data.budget.totalTargetInCents)}</span>
-			</div>
-			<div class="flex justify-between text-xs text-gray-500">
-				<span>{data.status.daysElapsed} of {data.status.totalDays} days elapsed</span>
-				<span>{Math.round((data.status.daysElapsed / data.status.totalDays) * 100)}% of month</span>
-			</div>
-		</div>
-	{/if}
-
-	<!-- SPENDING SUMMARY (when no budget) -->
-	{#if !data.budget}
-		<div class="border-b border-black px-2 py-2">
-			<div class="flex justify-between font-bold">
-				<span>THIS MONTH</span>
-				<span>{formatCurrency(data.status.totalSpent)}</span>
-			</div>
-			<div class="flex justify-between text-xs text-gray-500">
-				<span>{data.status.daysElapsed} of {data.status.totalDays} days elapsed</span>
-				<span>Avg {formatCurrency(Math.round(data.status.avgPerDay))}/day</span>
-			</div>
-			<div class="text-xs text-gray-500 mt-1">Spending = withdrawals + card charges − refunds. Transfers and debt payments are excluded.</div>
-		</div>
+		{/if}
 	{/if}
 
 	<!-- SPENDING PACE -->
@@ -538,170 +744,6 @@
 		{/if}
 	{/if}
 
-	<!-- CATEGORY TARGETS -->
-	<div class="font-bold text-xs px-2 py-1 bg-gray-50 border-t border-black">CATEGORY TARGETS <span class="text-gray-500">{targetedCategories.length} targeted · {untargetedCategories.length} untargeted</span></div>
-	<SubmitFeedback message={targetFeedback.message} onDismiss={targetFeedback.dismiss} />
-	<div class="px-2 py-1 border-b border-gray-300">
-		{#if targetedCategories.length > 0}
-			<div class="text-gray-500 font-bold text-xs py-1">WITH TARGETS</div>
-			{#each targetedCategories as cat (cat.id)}
-				{@const prog = getCatProgress(cat.spent, cat.target ?? 0)}
-				{@const pct = cat.target && cat.target > 0 ? Math.round((cat.spent / cat.target) * 100) : 0}
-				{@const catMarker = amendmentMarker(`categoryTarget:${cat.id}`)}
-
-				{#if editingCategoryId === cat.id}
-					<!-- Inline edit mode -->
-					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200 bg-amber-50 px-1">
-						<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
-						<span class="text-xs w-32 shrink-0">{cat.name}</span>
-						<form method="POST" action="?/saveCategoryTarget" use:enhance={validatedAmountSubmit(targetFeedback, 'Saved')}>
-							<input type="hidden" name="categoryId" value={cat.id} />
-							<input type="hidden" name="note" value={amendNote} />
-							<input type="hidden" name="applyForward" value={applyForward ? 'true' : 'false'} />
-							<div class="flex items-center gap-1">
-								<span class="text-xs">£</span>
-								<input name="amount" type="text" value={editAmount} class="border border-black p-0.5 w-20 font-terminal text-xs" />
-								<button type="submit" class="bracket-link text-xs text-green-700">Save</button>
-								<button type="button" class="bracket-link text-xs" onclick={cancelEdit}>Cancel</button>
-							</div>
-						</form>
-					</div>
-				{:else}
-					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200">
-						<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
-						<span class="text-xs w-32 shrink-0">{cat.name}</span>
-						<div class="flex items-center gap-0.5 text-xs min-w-[120px]">
-							<span>[</span>
-							<div class="flex-1 h-2 relative border-y border-gray-100">
-								{#if prog.overBy !== null && (cat.target ?? 0) > 0}
-									<!-- #7: solid = target's share, hatch = overflow -->
-									<div class="h-full {prog.color}" style="width: {(100 / pct) * 100}%"></div>
-									<div class="h-full hatch-overflow absolute top-0" style="left: {(100 / pct) * 100}%; right: 0"></div>
-								{:else}
-									<div class="h-full {prog.color}" style="width: {prog.width}%"></div>
-								{/if}
-							</div>
-							<span>]</span>
-							<span class="min-w-6 font-bold {pct > 100 ? 'text-red-700' : pct > 75 ? 'text-amber-600' : 'text-green-700'}">{pct}%</span>
-						</div>
-						<span class="text-xs min-w-[70px] text-right">
-							{formatCurrency(cat.spent)} <span class="text-gray-500">/</span> {formatCurrency(cat.target ?? 0)}
-						</span>
-						{#if prog.overBy !== null}
-							<span class="text-[10px] text-red-700 font-bold whitespace-nowrap">
-								{formatCurrency(prog.overBy)} over {formatCurrency(cat.target ?? 0)} target
-							</span>
-						{/if}
-						{#if cat.id < 0 && cat.spent > 0}
-							<a class="bracket-link text-xs" href="./uncategorised">[Triage]</a>
-						{/if}
-						<button class="bracket-link text-xs" onclick={() => startEdit(cat.id, cat.target)}>Edit</button>
-					</div>
-					{#if catMarker}
-						<div class="text-[10px] text-amber-700 pl-[144px] -mt-1 pb-0.5">{catMarker}</div>
-					{/if}
-				{/if}
-			{/each}
-		{/if}
-
-		{#if untargetedCategories.length > 0}
-			<div class="text-gray-500 font-bold text-xs py-1 {targetedCategories.length > 0 ? 'mt-1' : ''}">WITHOUT TARGETS</div>
-			{#each untargetedCategories as cat (cat.id)}
-				{#if editingCategoryId === cat.id}
-					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200 bg-amber-50 px-1">
-						<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
-						<span class="text-xs w-32 shrink-0">{cat.name}</span>
-						<form method="POST" action="?/saveCategoryTarget" use:enhance={validatedAmountSubmit(targetFeedback, 'Saved')}>
-							<input type="hidden" name="categoryId" value={cat.id} />
-							<input type="hidden" name="note" value={amendNote} />
-							<input type="hidden" name="applyForward" value={applyForward ? 'true' : 'false'} />
-							<div class="flex items-center gap-1">
-								<span class="text-xs">£</span>
-								<input name="amount" type="text" value={editAmount} class="border border-black p-0.5 w-20 font-terminal text-xs" placeholder="0.00" />
-								<button type="submit" class="bracket-link text-xs text-green-700">Save</button>
-								<button type="button" class="bracket-link text-xs" onclick={cancelEdit}>Cancel</button>
-							</div>
-						</form>
-					</div>
-				{:else}
-					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200">
-						<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
-						<span class="text-xs w-32 shrink-0">{cat.name}</span>
-						<span class="text-xs text-gray-500 min-w-[70px] text-right">{formatCurrency(cat.spent)} spent</span>
-						<button class="bracket-link text-xs" onclick={() => startEdit(cat.id, null)}>Set Target</button>
-						{#if cat.id < 0 && cat.spent > 0}
-							<a class="bracket-link text-xs" href="./uncategorised">[Triage]</a>
-						{/if}
-					</div>
-				{/if}
-			{/each}
-		{/if}
-
-		{#if editingCategoryId && !targetedCategories.find(c => c.id === editingCategoryId) && !untargetedCategories.find(c => c.id === editingCategoryId)}
-			{@const cat = data.categories.find(c => c.id === editingCategoryId)}
-			{#if cat}
-				<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200 bg-amber-50 px-1">
-					<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
-					<span class="text-xs w-32 shrink-0">{cat.name}</span>
-					<form method="POST" action="?/saveCategoryTarget" use:enhance={validatedAmountSubmit(targetFeedback, 'Saved')}>
-						<input type="hidden" name="categoryId" value={cat.id} />
-						<input type="hidden" name="note" value={amendNote} />
-						<input type="hidden" name="applyForward" value={applyForward ? 'true' : 'false'} />
-						<div class="flex items-center gap-1">
-							<span class="text-xs">£</span>
-							<input name="amount" type="text" value={editAmount} class="border border-black p-0.5 w-20 font-terminal text-xs" placeholder="0.00" />
-							<button type="submit" class="bracket-link text-xs text-green-700">Save</button>
-							<button type="button" class="bracket-link text-xs" onclick={cancelEdit}>Cancel</button>
-						</div>
-					</form>
-				</div>
-			{/if}
-		{/if}
-
-		{#if excludedCategories.length > 0}
-			<div class="text-gray-500 font-bold text-xs py-1 mt-1 opacity-40">EXCLUDED</div>
-			{#each excludedCategories as cat (cat.id)}
-				<div class="flex items-center gap-2 py-1 opacity-40">
-					<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
-					<span class="text-xs w-20 shrink-0 line-through">{cat.name}</span>
-					<span class="text-xs text-gray-500">—</span>
-				</div>
-			{/each}
-		{/if}
-	</div>
-
-	<!-- AMENDMENTS (task 4.4) -->
-	{#if data.budget}
-		<button
-			class="w-full font-bold flex justify-between items-center cursor-pointer px-2 py-1 text-xs bg-gray-50 border-t border-black"
-			onclick={() => (amendmentsOpen = !amendmentsOpen)}
-		>
-			<span>AMENDMENTS <span class="text-gray-500">{data.amendments.length} change{data.amendments.length === 1 ? '' : 's'}</span></span>
-			<span class="text-xs text-gray-500">{amendmentsOpen ? '[-]' : '[+]'}</span>
-		</button>
-		{#if amendmentsOpen}
-			<div class="px-2 py-1 border-b border-gray-300">
-				{#if data.amendments.length === 0}
-					<div class="text-xs text-gray-500 py-1">No amendments recorded for this month. Config edits are trailed automatically.</div>
-				{:else}
-					<div class="text-[10px] text-gray-500 py-0.5">Transactions are immutable — only config changes appear here, newest first.</div>
-					{#each data.amendments as amendment (amendment.id)}
-						<div class="flex flex-wrap items-baseline gap-x-1.5 py-0.5 border-b border-dotted border-gray-100 text-xs">
-							<span class="text-gray-500 w-20 shrink-0">{formatAmendmentDate(amendment.createdAt)}</span>
-							<span class="font-bold">{amendmentFieldLabel(amendment.field)}</span>
-							<span>{formatAmendmentValue(amendment.field, amendment.oldValue)}</span>
-							<span class="text-gray-500">&rarr;</span>
-							<span class="font-bold">{formatAmendmentValue(amendment.field, amendment.newValue)}</span>
-							{#if amendment.note}
-								<span class="text-gray-500">({amendment.note})</span>
-							{/if}
-						</div>
-					{/each}
-				{/if}
-			</div>
-		{/if}
-	{/if}
-
 	<!-- HISTORY -->
 	<div class="font-bold text-xs px-2 py-1 bg-gray-50 border-t border-black">HISTORY <span class="text-gray-500">{data.history.months.length} months</span></div>
 	<div class="px-2 py-1 border-b border-gray-300" bind:this={historyRef}>
@@ -736,5 +778,7 @@
 		{:else}
 			<div class="text-xs text-gray-500 py-1">No history yet.</div>
 		{/if}
+	</div>
+		</div>
 	</div>
 </div>

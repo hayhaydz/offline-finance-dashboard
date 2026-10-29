@@ -208,7 +208,7 @@
 					action="?/reclassify-refunds"
 					onsubmit={(e) => { if (!confirm(`Reclassify ${candidates.length} row(s) to refund? This cannot be undone automatically.`)) e.preventDefault(); }}
 				>
-					<button type="submit" class="bracket-link text-red-700">[Reclassify All To Refund]</button>
+					<button type="submit" class="bracket-link text-red-700">Reclassify All To Refund</button>
 				</form>
 				{/if}
 			{/if}

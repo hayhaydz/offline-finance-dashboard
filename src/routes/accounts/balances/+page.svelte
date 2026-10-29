@@ -16,7 +16,7 @@
 	<div class="border border-black">
 		<div class="border-b border-black bg-gray-100 p-2 font-bold flex justify-between items-center">
 			<span>BULK BALANCE UPDATE</span>
-			<a class="bracket-link text-xs" href="/accounts">[Back to accounts]</a>
+			<a class="bracket-link text-xs" href="/accounts">Back to accounts</a>
 		</div>
 
 		<div class="p-2 text-xs border-b border-black bg-gray-50">

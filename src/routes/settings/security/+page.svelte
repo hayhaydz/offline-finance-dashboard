@@ -359,7 +359,7 @@
 						{#if slot.kind !== 'password' && slot.kind !== 'recovery-passphrase'}
 							<form method="POST" action="?/revokeSlot" use:enhance class="inline">
 								<input type="hidden" name="slotId" value={slot.slotId} />
-								<button type="submit" class="bracket-link">[Revoke]</button>
+								<button type="submit" class="bracket-link">Revoke</button>
 							</form>
 						{:else if slot.kind === 'recovery-passphrase'}
 							<span class="text-gray-600 text-xs">rotate below</span>

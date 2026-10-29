@@ -83,7 +83,7 @@
 
 <div class="bg-gray-100 p-2 font-bold border-b border-black flex justify-between items-center">
 	<span>BUDGET HISTORY</span>
-	<a href="/overview/budgets" class="bracket-link text-xs">[Current Month]</a>
+	<a href="/overview/budgets" class="bracket-link text-xs">Current Month</a>
 </div>
 
 {#if data.months.length === 0}

@@ -214,7 +214,7 @@
 					{/if}
 				{:else if projectionNullReason === 'no_minimum_payment'}
 					<span class="text-amber-700">No minimum payment set</span>
-					<a href="/accounts/{accountSlug}/edit" class="bracket-link ml-1">[Set rule →]</a>
+					<a href="/accounts/{accountSlug}/edit" class="bracket-link ml-1">Set rule →</a>
 				{:else}
 					<span class="text-red-700">Payment below interest — CRITICAL</span>
 				{/if}

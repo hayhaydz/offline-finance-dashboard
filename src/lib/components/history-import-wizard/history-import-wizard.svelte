@@ -145,7 +145,7 @@
 					<a
 						href="/api/history/export?kind={kind}"
 						download
-						class="bracket-link">[Export {kind} CSV]</a
+						class="bracket-link">Export {kind} CSV</a
 					>
 				</div>
 				<label class="flex items-center gap-2">
@@ -299,7 +299,7 @@
 				when it finishes.
 			</p>
 		</div>
-		<button type="button" class="bracket-link" onclick={reset}>[Done]</button>
+		<button type="button" class="bracket-link" onclick={reset}>Done</button>
 	{:else if step === "result" && result}
 		<div class="border border-black bg-green-50 p-2 mb-2">
 			<p class="font-bold text-green-700 mb-1">{result.kind} history import applied</p>
@@ -323,6 +323,6 @@
 		{:else}
 			<p class="text-gray-600 mb-2">No rows were touched, so no backup was needed.</p>
 		{/if}
-		<button type="button" class="bracket-link" onclick={reset}>[Done]</button>
+		<button type="button" class="bracket-link" onclick={reset}>Done</button>
 	{/if}
 </div>

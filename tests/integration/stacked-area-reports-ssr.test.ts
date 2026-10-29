@@ -79,7 +79,7 @@ describe("Reports v2 index (R10)", () => {
 		});
 		expect(body).toContain("Net Worth Trajectory");
 		expect(body).toContain("Credit Strategy");
-		expect(body).toContain("[Read Report]");
+		expect(body).toContain("Read Report");
 		expect(body).toContain('href="/overview/reports/net-worth-trajectory"');
 		expect(body).toContain("2 PIECES");
 	});
@@ -117,8 +117,8 @@ describe("Report paper (science-paper template, R10)", () => {
 		expect(body).toContain("Data: something");
 		expect(body).toContain("Headline numbers");
 		expect(body).toContain("£42.00");
-		expect(body).toContain("[All Reports]");
-		expect(body).toContain("[Print / PDF]");
+		expect(body).toContain("All Reports");
+		expect(body).toContain("Print / PDF");
 	});
 
 	it("renders the net-worth figures from shared history data", () => {

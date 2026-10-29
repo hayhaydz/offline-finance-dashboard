@@ -191,7 +191,7 @@
             class="border border-black px-1 py-0.5 text-sm font-mono w-28 focus:outline-none"
           />
         </label>
-        <button type="submit" class="bracket-link text-xs font-bold">[Save]</button>
+        <button type="submit" class="bracket-link text-xs font-bold">Save</button>
       </div>
       {#if editErrors?.name}
         <div class="text-xs text-red-700 mt-1">{editErrors.name}</div>

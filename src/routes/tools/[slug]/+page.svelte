@@ -37,8 +37,8 @@
 	<div class="flex justify-between items-baseline mb-1">
 		<h1 class="text-lg font-bold">{data.tool.name}</h1>
 		<span class="flex gap-3 text-xs">
-			<a href="/tools" class="bracket-link">[All Tools]</a>
-			<button type="button" class="bracket-link" onclick={printPage}>[Print / PDF]</button>
+			<a href="/tools" class="bracket-link">All Tools</a>
+			<button type="button" class="bracket-link" onclick={printPage}>Print / PDF</button>
 		</span>
 	</div>
 	<p class="text-xs text-gray-500 mb-3">{data.tool.blurb}</p>
