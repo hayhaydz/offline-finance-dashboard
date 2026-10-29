@@ -13,6 +13,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 20:16:11 GMT | 2026-10-29 20:20:29 GMT | 0h 04m | B04 accounts first pass (R5+R29) + sweep 1 gate (check/test/build/vision) |
 | 2026-10-29 20:20:29 GMT | 2026-10-29 20:22:15 GMT | 0h 02m | B05 design: research + architecture record + progress-plan |
 | 2026-10-29 20:22:15 GMT | 2026-10-29 20:39:20 GMT | 0h 17m | Sweep 2 B05: schema+engine+mode UI+splits, gate passed |
+| 2026-10-29 20:39:20 GMT | 2026-10-29 20:40:54 GMT | 0h 02m | B06 research + data pipeline ADR committed |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
