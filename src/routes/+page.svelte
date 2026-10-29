@@ -141,17 +141,25 @@
 		accounts={data.accounts}
 	/>
 
-	<TaxYearProgress data={data.isaTracker} />
+	<!-- v3 R29: header widgets side-by-side (3/2 split) instead of stacked bands -->
+	<div class="grid grid-cols-5 gap-2 border-b border-black p-2">
+		<div class="col-span-3 border border-black [&>*:last-child]:border-b-0">
+			<TaxYearProgress data={data.isaTracker} />
+		</div>
+		<div class="col-span-2 border border-black [&>*:last-child]:border-b-0">
+			<IsaAllowanceWidget data={data.isaTracker} />
+		</div>
+	</div>
 
-	<IsaAllowanceWidget data={data.isaTracker} />
-
-	<!-- v3 R3: visualisation gallery — click-to-switch viz types -->
+	<!-- v3 R3: visualisation gallery — bento grid of compact cells -->
 	<HomeVizGallery
 		trend={data.netWorthTrend}
 		cashflow={data.cashflow}
 		assetGroups={assetGroups.map(g => ({ name: g.type, value: Math.max(0, g.balance) }))}
 	/>
 
+	<!-- v3 R29: INTEREST + ALERTS side-by-side (3/2 split) -->
+	<div class="grid grid-cols-5 gap-2 border-b border-black p-2">
 	<!-- INTEREST SUMMARY SECTION -->
 	{#if data.interestSummary}
 	{@const posted = data.interestSummary.actualInterestIsa + data.interestSummary.actualInterestNonIsa}
@@ -162,6 +170,7 @@
 			<a href="/accounts/interest/{currentYearSlug}" class="bracket-link text-xs">View Breakdown</a>
 		</div>
 	{/snippet}
+	<div class="col-span-3 border border-black [&>*:last-child]:border-b-0">
 	<SectionHeader title="INTEREST" action={interestAction} />
 	<div class="border-b border-black">
 		<div class="grid grid-cols-2 md:grid-cols-4">
@@ -180,7 +189,7 @@
 	</div>
 
 	<!-- Accordion: Interest Explanation -->
-	<div class="border-b border-black">
+	<div>
 		<button
 			type="button"
 			class="w-full p-2 text-left font-bold flex justify-between items-center hover:bg-gray-50"
@@ -206,22 +215,28 @@
 					{:else}
 						{formatCurrency(data.interestSummary.taxFreeStatusProjected.remaining)} remaining of {formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} allowance ({data.interestSummary.taxBand} rate).
 					{/if}
-				</div>
-			</div>
-		{/if}
+ 				</div>
+ 			</div>
+ 		{/if}
+	</div>
 	</div>
 	{/if}
 
-
+	<div class={data.interestSummary ? 'col-span-2 border border-black [&>*:last-child]:border-b-0' : 'col-span-5 border border-black [&>*:last-child]:border-b-0'}>
 	<AlertsSection
 		alerts={data.alerts}
 		title="ALERTS"
 		maxItems={5}
 		viewAllHref="/alerts"
 	/>
+	</div>
+	</div>
 
+	<!-- v3 R29: ACCOUNTS + GOALS side-by-side (3/2 split) -->
+	<div class="grid grid-cols-5 gap-2 p-2">
+	<div class={goals && goals.length > 0 ? 'col-span-3 border border-black [&>*:last-child]:border-b-0' : 'col-span-5 border border-black [&>*:last-child]:border-b-0'}>
 	<!-- ACCOUNTS BY TYPE -->
-	<div class="font-bold flex justify-between bg-gray-100 border-y border-black p-2">
+	<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 		<div class="flex items-center gap-2">
 			<span>ACCOUNTS ({activeAccountCount})</span>
 			{#if data.staleness}
@@ -295,11 +310,13 @@
 			</div>
 		{/if}
 	</div>
+	</div>
 
 	<!-- GOALS PREVIEW -->
 	{#if goals && goals.length > 0}
+	<div class="col-span-2 border border-black [&>*:last-child]:border-b-0">
 	<div bind:this={goalsSectionRef}>
-		<div class="font-bold flex justify-between bg-gray-100 border-y border-black p-2">
+		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 			<div class="flex items-center gap-2">
 				<span>GOALS ({goalsFilter === 'all' ? goals.length : filteredGoals.length})</span>
 				<span class="text-xs font-bold text-gray-500">{data.staleness?.label ?? ''}</span>
@@ -361,5 +378,7 @@
 			/>
 		{/if}
 	</div>
+	</div>
 	{/if}
+	</div>
 {/if}
