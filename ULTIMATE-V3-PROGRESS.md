@@ -8,6 +8,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 19:16:01 GMT | 2026-10-29 19:22:50 GMT | 0h 07m | Sweep 1 B01: research/judge/plan/edit/self-review — full-viewport shell, no-wrap nav, top-bar fix |
 | 2026-10-29 19:23:53 GMT | 2026-10-29 19:32:33 GMT | 0h 09m | Sweep 1 B02 batch 1: header revert + viz gallery + tests; §9 addendum (R29–R31) recorded |
 | 2026-10-29 19:33:30 GMT | 2026-10-29 19:52:40 GMT | 0h 19m | R30 bento gallery redesign + vision fixes; never-stop override recorded |
+| 2026-10-29 19:52:40 GMT | 2026-10-29 20:05:31 GMT | 0h 13m | R29 home two-column conversion + vision adjudication; B02 complete |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -23,9 +24,9 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R1 | [x] (B01 shell) | ev: commits b6acfe5+c8f0502; shell 1584×984 @1600×1000, internal scroll, meta width=1280, nav rows flex-nowrap. Page-level inner max-w wrappers handled per-block (B02–B04) — shell-level R1 holds |
 | R2 | [x] | Already satisfied by v2: hooks loginRedirect covers `/` → `/login?reason=logged-out&redirectTo=%2F`; login page renders "You have been logged out. Data is sealed." + login form + [Register] = clear path. ev: Sweep-0 CDP snapshot uid=1_14 + B01 research #6 |
 | R3 | [x] | ev: header reverted (no sparkline in NetWorthDisplay, live); viz gallery below header — bento grid of switchable-sized cells with click-to-expand (R3 interaction preserved); commits ba5073f+307e48d+9f458e0 |
-| R4 | [ ] | goal bars revert (remove black milestone lines) |
+| R4 | [x] | ev: commit ebef83b; tick lines stripped from DebtCard/GoalCard/GoalRow (bars pre-v2 form); DOM tickLines:0; vision "plain progress bars with no vertical tick marks"; textual 1mo/3mo labels + milestone data model kept (pre-v2 features) |
 | R5 | [ ] | rate heatmap full width |
-| R6 | [ ] | goals allocation full width |
+| R6 | [x] | ev: goals allocation + debt detail max-w wrappers removed; DOM 1582px panels live; vision confirms full width |
 | R7 | [ ] | credit modes: panic vs stooze |
 | R8 | [ ] | Monzo-method transactions (pay-off-now vs over-time cost) |
 | R9 | [ ] | budget UX redesign |
@@ -58,7 +59,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 |---|---|---|---|
 | B01 SHELL & VIEWPORT | 1 | COMPLETE (sweep 1) | R1 R2 R16 ticked; shell full-viewport; residual: page-level max-w wrappers → B02/B03/B04 |
 | B02 HOME | 1 | COMPLETE (sweep 1) | R3 ✓ R29(home) ✓ R30 ✓; chart-internal P2s → R31 |
-| B03 GOALS | — | unvisited | R4 R6 · sweep-1 ★ |
+| B03 GOALS | 1 | COMPLETE (sweep 1) | R4 ✓ R6 ✓; bulletbar keeps tick capability (unused); deeper R29 grid pass when B03 revisited |
 | B04 ACCOUNTS & LIABILITIES | — | unvisited | R5 R17 · sweep-1 ★ |
 | B05 CREDIT & STOOZING | — | unvisited | R7 R8 R20 · sweep 2 |
 | B06 DATA MANAGEMENT | — | unvisited | R14 R15 R18 R19 R21 R22 R23 R26 · sweep 3 |
@@ -129,6 +130,22 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 - Vision P1 rejections (both chart-footer claims): delta −1,056.11 = −7,040.75 − (−5,984.64) exact (vision misread the 5%-padded y-max label −5,931.83 as a data point, 2nd occurrence); endpoint "-£7,040.75" minus IS present in DOM text node. P2 triage: chart-internal items → R31; row1 dead-space centering + contrast bumps → later polish; alerts 27 vs 21 badged → verify in B11. Row 4 beyond viewport in shot — DOM-verified 936/622×1060; vision check folded into sweep gate.
 
 ### B03 GOALS (Sweep 1)
+- research:
+  1. Milestone tick LINES are v2's "Phase 4 V1 #3" system: util `goal-milestone-ticks` + rendering in DebtCard (ticks each-block in bar), GoalCard (emergencyFundTicksForBar), GoalRow (ticks derived + GoalBulletBar), GoalDetailCard. GoalBulletBar is a v2-only component (not on main), used by GoalRow.
+  2. Pre-v2 (main): bars have NO tick lines; GoalCard/GoalRow DID have textual milestone labels (1mo/3mo/6mo/12mo under the name) — those are NOT the complaint and stay.
+  3. R6 width offenders: `goals/+page.svelte:271` `max-w-3xl mt-3` (allocation section), `goals/debt/[slug]/+page.svelte:23` `max-w-4xl` page wrapper.
+  4. Home also passes `milestones` to DebtCard (+page.svelte) — prop removal must update call sites.
+- judgments:
+  1. Remove tick-LINE rendering from all 5 components (bars revert to pre-v2 form); KEEP textual milestone labels that predate v2; KEEP the milestone data model + create/edit UI (removing the schema is out of scope for R4 and the data feeds textual "next milestone" hints).
+  2. DebtCard: drop ticks block + derived + prop; home call site drops the milestone prop. GoalCard: drop emergencyFundTicksForBar block + import; keep textual row. GoalRow: drop ticks derived + GoalBulletBar usage → inline plain bar (GoalBulletBar with default no-ticks already renders plain bar — simpler: stop passing ticks, keep component; component keeps defaulting ticks=[] so it renders a plain bar). GoalDetailCard: drop its tick block.
+  3. R6: allocation section + debt detail lose max-w wrappers (full width per R1/R29).
+  4. Update tests pinning ticks (search tests for milestone-ticks/debtTicks).
+- PLAN:
+  - [x] U1 strip tick lines from DebtCard (+ home call site milestone prop) + GoalDetailCard checked (textual only — kept). ev: commit `ebef83b`; DOM tickLines:0 on /goals
+  - [x] U2 strip tick lines from GoalCard + GoalRow (textual 1mo/3mo labels KEPT — pre-v2 feature); GoalBulletBar keeps tick capability (unused default plain). ev: same commit; vision "plain progress bars with no vertical tick marks"
+  - [x] U3 R6 width: goals allocation `max-w-3xl` removed (panel 1582px live), debt detail `max-w-4xl` → `w-full` (1582px live). ev: DOM wrapClass "p-4 w-full", allocPanelWidth 1582
+  - [x] U4 gate: check 0/0; full suite 988/988 (bulletbar tick-capability tests still green — component unchanged); live /goals (10 rows, 10 plain bars, console 0 err, 0 5xx) + /goals/debt/clear-mastercard (0 ticks, full width, clean). Gotcha found: /goals/debt/pay renders "Debt goal not found" error page — legacy breadcrumb artifact, not a real slug; error page itself renders correctly. ev: CDP outputs above
+  - [x] U5 record + tick R4/R6 — below
 
 ## Decisions
 | Date | Decision | Rationale |
