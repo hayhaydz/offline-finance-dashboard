@@ -47,6 +47,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-29T00:22 | 2026-10-29T00:26 | 0h04m | Tools input hardening: compound projector null-crash found live + fixed (null-safe summary), math-layer clamps + 4 edge unit tests; live garbage-input sweep clean, 0 console errors; check 0/0 · 981/981 |
 | 2026-10-29T00:26 | 2026-10-29T00:29 | 0h03m | Keyboard journey live: ⌘K palette filter+Enter → /goals navigation verified (old session-bug note closed); ? help overlay opens w/ focus capture, Escape closes; 0 console errors |
 | 2026-10-29T00:29 | 2026-10-29T00:36 | 0h07m | Final vision sweep: 7 route screenshots (tools/reports/home/goals CLEAN via vmodel); budgets P1 'no legend' on burn-down → added 4-entry legend + test; live + zai-vision confirmed fixed; check 0/0 · 982/982 |
+| 2026-10-29T00:36 | 2026-10-29T00:47 | 0h11m | Console+5xx sweep across all 25 routes (clean); vision on alerts/snapshots (no P0/P1); P2 triage: 1 deferred (shorthand .00-drop = app-wide convention), 1 rejected (vision misread, verified in source) |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -131,6 +132,8 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 - [x] fix: tools compound projector crashed on cleared/negative typed inputs — ev: found LIVE (cleared number field → null .toLocaleString() TypeError in console); hardened compoundSeries at the math boundary (finite guards + clamp rate≤15%/years≤40/principal,monthly≥0 — typed values bypass HTML min/max) + yearlyInterestPence non-finite → 0; summary line null-safe (?? 0); 4 new unit tests (negatives clamp, NaN → flat zero, 10,000y→41 pts & 50%→<£400k cap, non-finite interest); live re-test: cleared inputs render £0+£0/mo honest summary, absurd values no NaN/Infinity, 0 console errors; check 0/0 · 981/981
 - [x] keyboard-first journey LIVE end-to-end (closes the old 'palette click-through blocked' note) — ev: on /accounts ⌘K opened palette, typing 'goals' filtered to 2 options (first 'Goals Navigate'), Enter NAVIGATED to /goals; ? opened help overlay (role=dialog, focus captured inside), Escape closed it; 0 console errors
 - [x] final-audit fix: burn-down chart had no visible legend (P1 from final vision sweep) — ev: added 4-entry line legend under BurnDownChart SVG (actual spend / even pace / today / target, same pattern as PSA legend) + SSR test; live: legend in DOM + scrolled into view → zai-vision CONFIRMS 'legend now renders directly under the chart plot', no P0/P1 (first shot missed it only because the legend sat below the viewport fold — DOM probe had it); vmodel 1305-overloaded ×2 → zai-vision fallback per protocol; check 0/0 · 982/982
+- [x] final console/network sweep: ALL 25 routes clean — ev: navigated every real route (auth/home/accounts+detail/liabilities/balances/interest/isa/tax/routine/goals+archived/reports/tools/budgets+uncategorised/expenses/snapshots/alerts/overview/settings×2): 0 console errors, 0 5xx (3 initial 404s were my wrong path guesses — bulk-update=/accounts/balances, interest=/accounts/interest/all, profile=/settings/profile); vision on final-alerts + final-snapshots: no P0/P1; P2 triage below
+- [ ] P2 triage (final sweep): snapshots 'mixed decimals' → DEFERRED — formatCurrencyShorthand deliberately drops .00 / collapses exact £k (app-wide convention: accounts page etc.); changing snapshots alone would create real inconsistency. alerts 'low-contrast gray on tinted rows' → REJECTED — no gray-on-tint pairing exists in AlertGroup/AlertsSection (severity text = *-700 on *-50, ≈7:1); vision misread, self-flagged 'needs verification'
 - [ ] Ledger ≥ 6h verified
 
 ## Decisions
@@ -176,6 +179,8 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 ## Vision review log
 | Date | Screenshot | Verdict |
 |---|---|---|
+| 2026-10-29 | screenshots/final-alerts.png | zai-vision: no P0/P1; P2 contrast claim rejected after source check |
+| 2026-10-29 | screenshots/final-snapshots.png | zai-vision: no P0/P1; P2 decimal-precision deferred (shorthand convention) |
 | 2026-10-29 | screenshots/final-tools.png | vmodel CLEAN |
 | 2026-10-29 | screenshots/final-reports.png | vmodel CLEAN |
 | 2026-10-29 | screenshots/final-home.png | vmodel CLEAN |
