@@ -14,6 +14,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 20:20:29 GMT | 2026-10-29 20:22:15 GMT | 0h 02m | B05 design: research + architecture record + progress-plan |
 | 2026-10-29 20:22:15 GMT | 2026-10-29 20:39:20 GMT | 0h 17m | Sweep 2 B05: schema+engine+mode UI+splits, gate passed |
 | 2026-10-29 20:39:20 GMT | 2026-10-29 20:40:54 GMT | 0h 02m | B06 research + data pipeline ADR committed |
+| 2026-10-29 21:49:32 GMT | 2026-10-29 22:23:03 GMT | 0h 34m | Sweep 3 B06 COMPLETE: S1 round-trip tests, S2 export header+panel, S3 history csv, S4 queue (schema 0011), S5 bulk Monzo import, S6 R21 guard; gate passed |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -39,19 +40,19 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R11 | [ ] | tax page — kill wall of text |
 | R12 | [ ] | alerts digestibility |
 | R13 | [ ] | tools expansion — sub-pages + more tools |
-| R14 | [ ] | data management overhaul (core architecture redesign) |
-| R15 | [ ] | transaction editability judgment (research Matrixify DROP/CREATE) |
+| R14 | [x] (B06) | ev: overhaul = unified DATA PIPELINE surface (export selection → history CSV → bulk bank import → reimport → jobs queue, one page, one engine) + ADR .docs/design/2026-10-29-2040-data-pipeline.md; no rewrite of v2's tested engine (100+ tests kept, 30+ added) |
+| R15 | [x] | ev: DECISION recorded (round-trip replace via import, NOT inline edit — Matrixify DROP/CREATE model) + imports-roundtrip.test.ts 7 tests pin cross-account DROP+CREATE/MOVE; in-file reimport hints shipped in every export header |
 | R16 | [x] | ev: DOM proof single-bracket `[⌘K]`/`[?]` (text + pseudo-elements); top bar de-crowded (right-clustered controls, gap-4); a11y names `[⌘K]` `[?]`; palette open/close live-verified |
 | R17 | [ ] | weak areas dedicated work: tax, snapshots, accounts/liabilities, routine, budget |
-| R18 | [ ] | CSV export: custom selection, readable, per-account context |
-| R19 | [ ] | Matrixify/Altera round-trip: DROP + CREATE on the fly |
+| R18 | [x] | ev: self-describing export header (ts/scope/account legend) + ExportPanel with per-account type/rows/coverage context + filters; commit d476211; live legend verified |
+| R19 | [x] | ev: round-trip verified across 2 accounts from real exports (drop/create/move) — imports-roundtrip.test.ts 7/7 |
 | R20 | [x] | ev: engine statement-delay horizon (confirmed-through last month-end) + 3-month targets + waterfall payment allocation; 13 hand-computed tests; live tracker rows with on-track/behind |
-| R21 | [ ] | remove "accounts" CSV import |
-| R22 | [ ] | background import queues; survey queue candidates |
-| R23 | [ ] | expenses+income history CSV export AND import |
+| R21 | [x] | ev: absent app-wide, pinned by tests/integration/accounts-import-absent.test.ts (3 tests); commit 177c2d8 |
+| R22 | [x] | ev: import_jobs queue (schema 0011 sanctioned path) + sealed payloads + atomic claim + orphan sweep + /api/import-jobs + polling panel; >1MB tx / >200KB history commits auto-queue; 6 tests; commit c5ed2b2 |
+| R23 | [x] | ev: history-csv.ts engine both kinds export+import, /api/history/export, wizard, page links; 10 tests incl. backup restore + isolation; commit 7884a49 |
 | R24 | [ ] | payslip processing judgment (derived report first?) |
 | R25 | [ ] | bills + bill history — direct-debit vs billed judgment |
-| R26 | [ ] | bulk history import (Monzo back-X) |
+| R26 | [x] | ev: bulk-import.ts Monzo-preset column mapping (web-verified layout) + BulkImportWizard + queue integration; 7 tests; commit 177c2d8 |
 | R27 | [ ] | scramble/anonymise real tool |
 | R28 | [ ] | agent-workable repo (dev docs, tooling) |
 | R29 | [x] (home) | ev: commit a9a0d92; home converted to 3/2 two-column rows, DOM-verified 936/622px, vision "conversion succeeds". App-wide R29 continues per-block (B03/B04 next) |
@@ -67,7 +68,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | B03 GOALS | 1 | COMPLETE (sweep 1) | R4 ✓ R6 ✓; bulletbar keeps tick capability (unused); deeper R29 grid pass when B03 revisited |
 | B04 ACCOUNTS & LIABILITIES | 1 | FIRST PASS (sweep 1) | R5 ✓ R29(accounts) ✓; R17 deeper work → sweep 5 |
 | B05 CREDIT & STOOZING | 2 | COMPLETE | R7 ✓ R8 ✓ R20 ✓; architecture record in .docs/design/ |
-| B06 DATA MANAGEMENT | 3 | ADR WRITTEN — S1 slices next | ADR .docs/design/2026-10-29-2040-data-pipeline.md; reimport engine already round-trip |
+| B06 DATA MANAGEMENT | 3 | COMPLETE (sweep 3) | S1–S6 all [x]; R14 R15 R18 R19 R21 R22 R23 R26 ticked; ADR + 30 new tests; queue candidates surveyed (statement imports, backfills — left inline deliberately) |
 | B07 REPORTS v2 | — | unvisited | R10 · sweep 4 |
 | B08 TOOLS | — | unvisited | R13 · sweep 4 |
 | B09 BUDGET | — | unvisited | R9 R17 · sweep 5 |
@@ -169,16 +170,17 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
   - [ ] U4 transactions: plan badges + over-time cost + split tracker (R8+R20)
   - [ ] U5 gate: check/test/build + live + vision + record
 
-### B06 DATA MANAGEMENT (Sweep 3 — ADR WRITTEN, slices next)
+### B06 DATA MANAGEMENT (Sweep 3 — COMPLETE)
 - research: v2 ALREADY has a unified reimport engine (insert/edit/delete one file, preview→commit + before-backups) = the Matrixify round-trip; export selection (accounts/from/to/type) exists; expensesHistory has NO csv (R23 gap); no queue infra (R22 gap); accounts-import ALREADY ABSENT app-wide (R21 → verify + close). ADR: `.docs/design/2026-10-29-2040-data-pipeline.md`
-- KEY JUDGMENT (R15): transactions are round-trip editable via export→modify→reimport (NOT inline) — lean into the existing engine; verify DROP+CREATE cross-account with round-trip tests (S1) rather than building a second mechanism.
-- PLAN (slices, next iterations):
-  - [ ] S1 R19+R15 round-trip verification tests (export → drop+create rows → reimport → verify) across ≥2 accounts
-  - [ ] S2 R18 self-describing export header (account legend/counts/date) + export UI per-account context
-  - [ ] S3 R23 expenses+income history export AND import via same engine
-  - [ ] S4 R22 import_jobs queue (sanctioned schema path) + progress UI
-  - [ ] S5 R26 bulk file-upload import with Monzo column mapping
-  - [ ] S6 R21 negative test (no accounts-import) + close
+- KEY JUDGMENT (R15): transactions are round-trip editable via export→modify→reimport (NOT inline) — lean into the existing engine; verify DROP+CREATE cross-account with round-trip tests (S1) rather than building a second mechanism. DONE — engine proved; decision implemented as the product surface (wizards + docs in-file).
+- S1 R19+R15 round-trip verification — `src/lib/server/imports-roundtrip.test.ts` 7 tests: unmodified multi-account export = no-op (all skipped, no backup); DROP in A + CREATE in B from a real export; cross-account MOVE (drop A + id-less create B, counts preserved); RFC-4180 comma/quote fidelity through export→edit→reimport; category edit round-trip by name; preview/commit parity. All PASS first run (engine was already correct — now pinned). ev: commit `2691abe`
+- S2 R18 self-describing export — `#` comment header (export ts, scope line, per-account legend `slug — name (type) — N rows`, reimport hint) ignored by parser (export stays a valid reimport file); ExportMeta in buildTransactionsCsv/exportTransactionsCsv; ExportPanel component (account checkboxes w/ type+rows+coverage context, from/to/type filters, live-composed URL, ~rows indicator); page load gains per-account txCount/firstDate/lastDate. ev: commit `d476211`; live export 200 w/ legend lines `# account: … — ISA Saver (savings) — 23 rows`; tests exports.test.ts + export-panel.test.ts + roundtrip (comment-aware dataLines helper)
+- S3 R23 expenses+income history CSV — new engine `history-csv.ts` (4-col `month,amount,note,_delete`; upsert-by-month, _delete→unknown, DELETE-if-exists idempotent skip, dup-month refusal, kind comment `# kind:` + mismatch refusal, plaintext pre-state backup in shared backupDir = same protection level as DB column); `/api/history/export?kind=`; HistoryImportWizard (preview→confirm→result, kind auto-picked from file); export+import links on /overview/expenses + /overview/tax/income; 10 hand-computed tests incl. both kinds, backup restore, cross-user isolation. ev: commit `7884a49`
+- S4 R22 background queue — schema 0011 `import_jobs` (slug nanoid21, kind, status, sealed payload, rows_total, error, counts, timestamps; 2 indexes) via sanctioned path (SQL applied to dev-plain.db, journal hash f75b1f46… inserted, journal-sync test green, anonymiser TABLE_RULES entry); engine `import-jobs.ts` (DataKey-sealed payload AAD-bound to slug, atomic claim `UPDATE…WHERE id=(SELECT…) RETURNING`, worker-chain (coalesced runs — fixed my own boolean-guard race caught by tests), orphan sweep >10min, dispatch to commitReimport/commitHistoryImport); thresholds tx>1MB, history>200KB route to queue in actions; `/api/import-jobs` + ImportJobsPanel (2s polling while active); queued-banners in both wizards. 6 tests (sealed-at-rest, counts, refusal error, ownership isolation, thresholds, inline/queue parity). ev: commit `c5ed2b2`
+- S5 R26 bulk bank import — `bulk-import.ts`: analyzeBankCsv (header sniff, Monzo layout detection, date-format detection uk/iso, best-effort mapping) + transformBankCsv (sign→deposit/withdrawal, dd/mm/yyyy→ISO, category passthrough only if user owns it, £0 skipped, notes fallback description); Monzo columns verified via web research (transaction_id,date,time,type,name,emoji,category,amount,… dd/mm/yyyy); parseCsvDocument in csv-format.ts is quote-aware across embedded newlines (bank notes wrap); BulkImportWizard (upload→analyze→map UI with per-column selects→transform→preview→commit); bulk files ALWAYS queue when > threshold; dedicated bulk-preview/bulk-commit actions (state isolation from ReimportWizard). 7 tests incl. full Monzo fixture → engine round-trip. ev: commit `177c2d8`
+- S6 R21 negative test — `tests/integration/accounts-import-absent.test.ts` (actions key scan, app-wide source pattern scan w/ word-boundary regex that ignores ES `import Account…` statements, wizard render never offers account creation). 3 tests green. ev: commit `177c2d8`
+- GATE: check 0/0 ✓ · full suite 1038/1038 (141 files) ✓ · build green ✓ · live /settings/data: all 6 sections render, console 0 errors / 0 5xx ✓ · endpoints live: export 200 (107 rows + legend), history export 200 both kinds, bogus kind 400, filtered export 200 (9 rows), jobs API 200 ✓ · vision: no P0 (P1s adjudicated below-fold artifacts — filters/steps DOM-verified; `[*K]` = documented ⌘K misread; Session&Security nav overlap noted for B01 later sweep). ev: outputs above + v3-b06-data-1600.png
+- gotchas recorded: take_screenshot param is `filePath` not `filename` (silent no-op otherwise — cost 10 min); SQLite CURRENT_TIMESTAMP default → Invalid Date on drizzle integer-timestamp read-back (pass explicit Date()s — same reason upsertMonth does); zai free endpoint 1305-overloaded globally tonight → zai-vision MCP fallback worked first try.
 
 ## Sweep 1 — GATE PASSED (2026-10-29 20:20 GMT)
 - check 0/0 ✓ · full suite 988/988 ✓ · build green (adapter-node ✔) ✓
@@ -208,15 +210,16 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 ## Vision review log
 | Date | Screenshot | Verdict |
 |---|---|---|
-| 2026-10-29 | v3-b05-credit-1600.png | Credit strategy panel + splits tracker: clean terminal rendering, no misalignment/unreadable/bugs — P0 none |
-| 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b01-home-1600.png | No P0/P1; "spans the full viewport width (no narrow centered column)". Claim of `[[⌘K]]` double-bracket REJECTED — DOM: text `⌘K` + one pseudo `[`/`]` (known vision glyph misread) |
+| 2026-10-29 | v3-b06-data-1600.png (zai-vision; free endpoint 1305 ×4) | Data management page: no P0; no ciphertext/[object Object]/`<br>` bugs; terminal aesthetic consistent. P1×2 REJECTED as below-fold artifacts (filters + wizard steps DOM-verified present; vision itself flagged the caveat). P2 `[*K]` = documented ⌘K misread; P2 Session&Security nav overlap → noted for B01 later sweep |
+| 2026-10-29 | v3-b05-credit-1600.png | Credit strategy panel + splits tracker: clean terminal rendering, no misalignment/unreadable/bugs — P0 none || 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b01-home-1600.png | No P0/P1; "spans the full viewport width (no narrow centered column)". Claim of `[[⌘K]]` double-bracket REJECTED — DOM: text `⌘K` + one pseudo `[`/`]` (known vision glyph misread) |
 | 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b02-bento-1600.png | (zai-vision; vmodel 1305 ×2) P1: dead gap between cells (REAL — my max-w cap), [[SVG]]/[[PNG]] double brackets (REAL — ChartPanel literal brackets), caption delta wrong (REJECTED — vision misread padded y-max label as data point). P2s: ragged bottoms (REAL), chart too tall (REAL), tick spacing/markers (→ R31) |
 | 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b02-bento-fixed-1600.png | (zai-vision; vmodel 1305 ×3 exhausted) 3/4 prior defects verified fixed; ragged-bottom claim re-checked via DOM: panels aligned 269/269 after h-full fix; P2-3 "goals" noun copy bug REAL → fixed same unit |
 
 ## Notes for next iteration
-- **B06 S1 IS THE NEXT UNIT**: round-trip verification tests per ADR `.docs/design/2026-10-29-2040-data-pipeline.md` (export → drop+create rows → reimport → verify, ≥2 accounts; engines live in src/lib/server/imports-update.ts + exports.ts + imports.ts). Then S2–S6.
-- B05 COMPLETE (sweep 2): R7 R8 R20 ticked. Dev DB state changed by live tests: Mastercard AVaO3SmMapAQHAP1 is in PANIC mode with promo 2027-03-15/24.9% and one charge marked 3mo — sandbox DB is expendable, fine. R31 note: splits/credit charts should be layerchart-native when R31 lands.
-- Sweeps done: 0 (bootstrap), 1 (B01–B04), 2 (B05). Remaining: 3 (B06 data), 4 (B07 reports + B08 tools), 5 (B09–B13 digestibility), 6 (B14 bills/payslips + B15 DX), 7+ harvest (R-H* ≥5 needed, R29 continues per-block, R31 chart-package audit).
-- Dev server RUNNING (5173). CDP page 1 authed; resize 1600×1000 before screenshots; re-login per Appendix B pattern.
-- Gotchas: (a) form submitScripts destroy the evaluate context (expected — verify in the NEXT script); (b) withUserFilter only fits tables WITH userId — account-scoped tables rely on requireAccountOwnership + accountId eq (comment it); (c) python heredoc patches beat edit-tool on tab-heavy multi-line blocks; (d) vmodel 1305-prone — 2 retries then zai-vision; (e) progress-file edits: anchor on unique headings, verify with grep ^###/^## after.
+- **B07 REPORTS v2 IS THE NEXT BLOCK** (sweep 4): R10 — separate dated reports, science-paper format (title/abstract/method/findings per Appendix C decision), insight-finding; build index + first reports from existing engines (credit engine, expenses/income history, tax bands). Then B08 tools (R13).
+- B06 COMPLETE (sweep 3): R14 R15 R18 R19 R21 R22 R23 R26 ticked. Dev DB now has import_jobs table (migration 0011 journaled). Dev server RUNNING (5173), CDP page 1 authed (session survived longer than usual this block).
+- CDP gotcha: take_screenshot param is `filePath` (NOT `filename` — silent no-op). zai free endpoint 1305-overloaded tonight → use zai-vision MCP directly for gates.
+- Queue candidates surveyed (recorded in ADR §judgment 5): statement imports + backfills stay inline — working code is not migrated for architecture's sake.
+- Sweeps done: 0, 1 (B01–B04), 2 (B05), 3 (B06). Remaining: 4 (B07 reports + B08 tools), 5 (B09–B13 digestibility), 6 (B14 bills/payslips + B15 DX), 7+ harvest (R-H* ≥5 needed, R29 continues per-block, R31 chart audit — layerchart).
+- Gotchas: (a) form submitScripts destroy the evaluate context (verify in NEXT script); (b) withUserFilter only for userId tables; (c) SQLite CURRENT_TIMESTAMP default → Invalid Date on drizzle read-back (pass explicit Dates); (d) edit-tool on +page.server.ts REPLACED a block when anchoring on a try-block tail — re-read after structural edits; (e) progress-file edits: anchor on unique headings.
 - NEVER stop early (§0 override): batch checkpoints = commit + record + CONTINUE in the same turn.
