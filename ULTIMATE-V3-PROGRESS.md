@@ -66,7 +66,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | B03 GOALS | 1 | COMPLETE (sweep 1) | R4 ✓ R6 ✓; bulletbar keeps tick capability (unused); deeper R29 grid pass when B03 revisited |
 | B04 ACCOUNTS & LIABILITIES | 1 | FIRST PASS (sweep 1) | R5 ✓ R29(accounts) ✓; R17 deeper work → sweep 5 |
 | B05 CREDIT & STOOZING | 2 | COMPLETE | R7 ✓ R8 ✓ R20 ✓; architecture record in .docs/design/ |
-| B06 DATA MANAGEMENT | — | unvisited | R14 R15 R18 R19 R21 R22 R23 R26 · sweep 3 |
+| B06 DATA MANAGEMENT | 3 | ADR WRITTEN — S1 slices next | ADR .docs/design/2026-10-29-2040-data-pipeline.md; reimport engine already round-trip |
 | B07 REPORTS v2 | — | unvisited | R10 · sweep 4 |
 | B08 TOOLS | — | unvisited | R13 · sweep 4 |
 | B09 BUDGET | — | unvisited | R9 R17 · sweep 5 |
@@ -168,6 +168,17 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
   - [ ] U4 transactions: plan badges + over-time cost + split tracker (R8+R20)
   - [ ] U5 gate: check/test/build + live + vision + record
 
+### B06 DATA MANAGEMENT (Sweep 3 — ADR WRITTEN, slices next)
+- research: v2 ALREADY has a unified reimport engine (insert/edit/delete one file, preview→commit + before-backups) = the Matrixify round-trip; export selection (accounts/from/to/type) exists; expensesHistory has NO csv (R23 gap); no queue infra (R22 gap); accounts-import ALREADY ABSENT app-wide (R21 → verify + close). ADR: `.docs/design/2026-10-29-2040-data-pipeline.md`
+- KEY JUDGMENT (R15): transactions are round-trip editable via export→modify→reimport (NOT inline) — lean into the existing engine; verify DROP+CREATE cross-account with round-trip tests (S1) rather than building a second mechanism.
+- PLAN (slices, next iterations):
+  - [ ] S1 R19+R15 round-trip verification tests (export → drop+create rows → reimport → verify) across ≥2 accounts
+  - [ ] S2 R18 self-describing export header (account legend/counts/date) + export UI per-account context
+  - [ ] S3 R23 expenses+income history export AND import via same engine
+  - [ ] S4 R22 import_jobs queue (sanctioned schema path) + progress UI
+  - [ ] S5 R26 bulk file-upload import with Monzo column mapping
+  - [ ] S6 R21 negative test (no accounts-import) + close
+
 ## Sweep 1 — GATE PASSED (2026-10-29 20:20 GMT)
 - check 0/0 ✓ · full suite 988/988 ✓ · build green (adapter-node ✔) ✓
 - live smoke: `/`, `/goals`, `/goals/debt/clear-mastercard`, `/accounts` — console 0 errors, network 0 5xx on all
@@ -202,7 +213,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b02-bento-fixed-1600.png | (zai-vision; vmodel 1305 ×3 exhausted) 3/4 prior defects verified fixed; ragged-bottom claim re-checked via DOM: panels aligned 269/269 after h-full fix; P2-3 "goals" noun copy bug REAL → fixed same unit |
 
 ## Notes for next iteration
-- **Sweep 3 — DATA ARCHITECTURE (B06) is next**: write the architecture decision record FIRST (.docs/design/, covering R14 R15 R18 R19 R21 R22 R23 R26: export format, custom selection, round-trip DROP+CREATE, background queues, accounts-import removal, history import flows, editability judgment), then implement in slices with round-trip tests (export → mutate → import → verify).
+- **B06 S1 IS THE NEXT UNIT**: round-trip verification tests per ADR `.docs/design/2026-10-29-2040-data-pipeline.md` (export → drop+create rows → reimport → verify, ≥2 accounts; engines live in src/lib/server/imports-update.ts + exports.ts + imports.ts). Then S2–S6.
 - B05 COMPLETE (sweep 2): R7 R8 R20 ticked. Dev DB state changed by live tests: Mastercard AVaO3SmMapAQHAP1 is in PANIC mode with promo 2027-03-15/24.9% and one charge marked 3mo — sandbox DB is expendable, fine. R31 note: splits/credit charts should be layerchart-native when R31 lands.
 - Sweeps done: 0 (bootstrap), 1 (B01–B04), 2 (B05). Remaining: 3 (B06 data), 4 (B07 reports + B08 tools), 5 (B09–B13 digestibility), 6 (B14 bills/payslips + B15 DX), 7+ harvest (R-H* ≥5 needed, R29 continues per-block, R31 chart-package audit).
 - Dev server RUNNING (5173). CDP page 1 authed; resize 1600×1000 before screenshots; re-login per Appendix B pattern.
