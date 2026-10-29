@@ -7,6 +7,7 @@
 	import InterestRatesSection from '$lib/components/account/InterestRatesSection.svelte';
 	import DebtProjectionSection from '$lib/components/account/DebtProjectionSection.svelte';
 	import CreditModePanel from '$lib/components/account/CreditModePanel.svelte';
+	import SplitsSection from '$lib/components/account/SplitsSection.svelte';
 	import MonthlyBalancesSection from '$lib/components/account/MonthlyBalancesSection.svelte';
 	import NotesSection from '$lib/components/account/NotesSection.svelte';
 	import TransactionsSection from '$lib/components/account/TransactionsSection.svelte';
@@ -300,6 +301,7 @@
 		stooze={data.credit.stooze}
 		splits={data.credit.splits}
 	/>
+	<SplitsSection details={data.credit.chargeDetails} />
 {/if}
 
 <!-- DEBT PROJECTION SECTION — payoff assistance ONLY in panic mode

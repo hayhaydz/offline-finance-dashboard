@@ -95,6 +95,11 @@ export function lastMonthEnd(today: Date): Date {
 	return new Date(firstOfMonth.getTime() - 1);
 }
 
+/** Default clear-by target for an over_time charge: 3 months out (R20). */
+export function defaultClearBy(chargeDate: Date): Date {
+	return addMonths(chargeDate, SPLIT_TARGET_MONTHS);
+}
+
 /** Stooze reminders for a card in stooze mode (R7). Returns stoozing=false
  *  for anything without a future promo window or not in stooze mode. */
 export function stoozeStatus(
@@ -275,6 +280,32 @@ function planStatusFromPaid(
 		onTrack,
 		flexCostPence,
 	};
+}
+
+/** Per-charge plan statuses for a whole card (shared allocation — see
+ *  cardSplitSummary). Use this for per-charge detail UI. */
+export function chargeStatuses(
+	charges: CardCharge[],
+	payments: CardPayment[],
+	account: CreditCardAccount,
+	today: Date,
+): ChargePlanStatus[] {
+	const confirmedThrough = lastMonthEnd(today);
+	const paidTotal = allocatePayments(charges, payments);
+	const paidConfirmed = allocatePayments(
+		charges,
+		payments.filter((p) => p.date.getTime() <= confirmedThrough.getTime()),
+	);
+	return charges.map((c) =>
+		planStatusFromPaid(
+			c,
+			account,
+			today,
+			paidTotal.get(c.id) ?? 0,
+			paidConfirmed.get(c.id) ?? 0,
+			confirmedThrough,
+		),
+	);
 }
 
 export interface CardSplitSummary {

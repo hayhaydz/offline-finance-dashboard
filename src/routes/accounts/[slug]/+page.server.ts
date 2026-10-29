@@ -10,7 +10,7 @@ import {
 	settings,
 } from "$lib/db/schema";
 import { requireAccountOwnership } from "$lib/server/account-ownership";
-import { cardSplitSummary, stoozeStatus } from "$lib/server/credit-engine";
+import { cardSplitSummary, chargeStatuses, defaultClearBy, stoozeStatus } from "$lib/server/credit-engine";
 import { buildAvailableTaxYears } from "$lib/server/account-tax-year";
 import { getAlertsForAccount } from "$lib/server/alerts";
 import { getCategories, createCategory, ensureDefaultCategories } from "$lib/server/categories";
@@ -488,11 +488,20 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 
 	// Credit engine (v3 B05): per-card strategy payload — stooze reminders
 	// + split-tracker rollup. Only for credit cards.
+	type ChargeDetail = {
+		slug: string;
+		description: string | null;
+		amountPence: number;
+		date: Date;
+		status: ReturnType<typeof chargeStatuses>[number];
+	};
 	let credit: {
 		mode: "panic" | "stooze" | null;
 		stooze: ReturnType<typeof stoozeStatus> | null;
 		splits: ReturnType<typeof cardSplitSummary> | null;
+		chargeDetails: ChargeDetail[];
 	} | null = null;
+	let chargeDetails: ChargeDetail[] = [];
 	if (account.type === "credit-card") {
 		const engineAccount = {
 			creditMode: account.creditMode,
@@ -503,6 +512,8 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 			where: eq(accountTransactions.accountId, account.id),
 			columns: {
 				id: true,
+				slug: true,
+				description: true,
 				type: true,
 				amount: true,
 				payoffPlan: true,
@@ -510,6 +521,7 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 				allocatesToId: true,
 				transactionDate: true,
 			},
+			orderBy: desc(accountTransactions.transactionDate),
 		});
 		const charges = cardTx
 			.filter((t) => t.type === "charge")
@@ -529,10 +541,28 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 				allocatesToId: t.allocatesToId,
 			}));
 		const today = new Date();
+		const statuses = chargeStatuses(charges, payments, engineAccount, today);
+		const byId = new Map(charges.map((c, i) => [c.id, { c, s: statuses[i] }]));
+		chargeDetails = cardTx
+			.filter((t) => t.type === "charge")
+			.flatMap((t) => {
+				const entry = byId.get(t.id);
+				if (!entry) return [];
+				return [
+					{
+						slug: t.slug,
+						description: decryptTxDescription(user.id, t.slug, t.description),
+						amountPence: Math.abs(t.amount),
+						date: t.transactionDate,
+						status: entry.s,
+					},
+				];
+			});
 		credit = {
 			mode: account.creditMode,
 			stooze: stoozeStatus(engineAccount, currentBalance, today),
 			splits: cardSplitSummary(charges, payments, engineAccount, today),
+			chargeDetails,
 		};
 	}
 
@@ -596,6 +626,50 @@ export const actions: Actions = {
 				updatedAt: new Date(),
 			})
 			.where(and(eq(accounts.id, account.id), withUserFilter(user.id, accounts)));
+		return { success: true };
+	},
+	/**
+	 * Credit engine (v3 B05 / R8 R20): treat a charge as pay-off-immediately
+	 * or over time (Monzo method). over_time defaults the clear-by target to
+	 * 3 months from the charge date when unset.
+	 */
+	setPayoffPlan: async ({ request, locals, params }) => {
+		const user = requireAuth(locals);
+		const account = await requireAccountOwnership(locals, params.slug);
+		const formData = await request.formData();
+		const transactionSlug = formData.get("transactionSlug") as string | null;
+		const plan = formData.get("plan");
+		if (!transactionSlug) return fail(400, { error: "Missing transaction" });
+		if (plan !== "immediate" && plan !== "over_time") {
+			return fail(400, { error: "Plan must be immediate or over_time" });
+		}
+		const rows = await db.query.accountTransactions.findMany({
+			where: and(
+				eq(accountTransactions.slug, transactionSlug),
+				eq(accountTransactions.accountId, account.id),
+			),
+			columns: { id: true, type: true, transactionDate: true, plannedClearBy: true },
+		});
+		const tx = rows[0];
+		if (!tx) return fail(404, { error: "Transaction not found" });
+		if (tx.type !== "charge") {
+			return fail(400, { error: "Pay-off plans apply to card charges only" });
+		}
+		const plannedClearBy =
+			plan === "over_time" && !tx.plannedClearBy
+				? defaultClearBy(tx.transactionDate)
+				: tx.plannedClearBy;
+		await db
+			.update(accountTransactions)
+			.set({ payoffPlan: plan, plannedClearBy })
+			.where(
+				// ownership proven by requireAccountOwnership + the accountId
+				// equality (transactions carry no userId column)
+				and(
+					eq(accountTransactions.id, tx.id),
+					eq(accountTransactions.accountId, account.id),
+				),
+			);
 		return { success: true };
 	},
 	/**
