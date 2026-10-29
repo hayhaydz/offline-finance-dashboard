@@ -22,8 +22,12 @@ describe("chart-export helpers", () => {
 describe("ChartPanel export buttons (Phase 5 line 3)", () => {
 	it("renders [SVG] and [PNG] bracket buttons in the title band", () => {
 		const { body } = render(ChartPanelFixture);
-		expect(body).toContain("[SVG]");
-		expect(body).toContain("[PNG]");
+		// v3 R16 fix: brackets render via bracket-link CSS pseudo-elements;
+		// text nodes are bare SVG/PNG (never [[SVG]] double brackets)
+		expect(body).toContain(">SVG</button>");
+		expect(body).toContain(">PNG</button>");
+		expect(body).not.toContain("[[SVG]]");
+		expect(body).not.toContain("[[PNG]]");
 		expect(body).toContain("Download this chart as SVG");
 		expect(body).toContain("Download this chart as PNG");
 	});

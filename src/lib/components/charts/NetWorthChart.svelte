@@ -12,6 +12,7 @@
 		points,
 		formatPence,
 		controls,
+		aspect = 'default',
 	}: {
 		/** Oldest → newest, one per snapshot */
 		points: Array<{
@@ -22,10 +23,16 @@
 		formatPence: (pence: number) => string;
 		/** optional controls forwarded into the ChartPanel title band */
 		controls?: import('svelte').Snippet;
+		/**
+		 * Aspect variant (v3 R30): 'wide' draws a 900×180 canvas for wide
+		 * bento cells — same ink, compact height, text stays ~1:1 scale
+		 * when the cell is ~1000px. Default 600×220 suits narrow columns.
+		 */
+		aspect?: 'default' | 'wide';
 	} = $props();
 
-	const W = 600;
-	const H = 220;
+	const W = $derived(aspect === 'wide' ? 900 : 600);
+	const H = $derived(aspect === 'wide' ? 180 : 220);
 	const PAD = { l: 8, r: 8, t: 14, b: 20 };
 	const MARKER = 4;
 

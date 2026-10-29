@@ -49,13 +49,13 @@
 					type="button"
 					class="bracket-link text-[10px]"
 					title="Download this chart as SVG"
-					onclick={onExportSvg}>[SVG]</button
+					onclick={onExportSvg}>SVG</button
 				>
 				<button
 					type="button"
 					class="bracket-link text-[10px]"
 					title="Download this chart as PNG"
-					onclick={onExportPng}>[PNG]</button
+					onclick={onExportPng}>PNG</button
 				>
 			</span>
 		</span>

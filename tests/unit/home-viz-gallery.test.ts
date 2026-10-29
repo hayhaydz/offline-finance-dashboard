@@ -41,15 +41,19 @@ describe("HomeVizGallery (bento)", () => {
 		expect(body).toContain("Allocation");
 	});
 
-	it("sizes cells differently (bento spans) and caps chart scale", () => {
+	it("sizes cells differently (bento spans) and fills tracks fully", () => {
 		const { body } = render(HomeVizGallery, {
 			props: { trend, cashflow, assetGroups }
 		});
 		expect(body).toContain('class="col-span-2" data-viz-cell="trend"');
 		expect(body).toContain('class="col-span-3" data-viz-cell="cashflow"');
 		expect(body).toContain('class="col-span-1" data-viz-cell="allocation"');
-		// compact scale: trend SVG capped at 680px inside its cell
-		expect(body).toContain("max-w-[680px]");
+		// wide aspect: compact 900x180 canvas, no width caps inside cells
+		expect(body).toContain('viewBox="0 0 900 180"');
+		expect(body).not.toContain("max-w-[");
+		// single-bracket export buttons (ChartPanel renders brackets via CSS)
+		expect(body).not.toContain("[[SVG]]");
+		expect(body).not.toContain("[[PNG]]");
 	});
 
 	it("every cell carries an expand control with aria-expanded state", () => {

@@ -53,7 +53,7 @@
 
 {#if cells.length > 0}
 	<div class="border-b border-black p-2">
-		<div class="grid grid-cols-3 gap-2 items-start">
+		<div class="grid grid-cols-3 gap-2">
 			{#each cells as cell (cell.id)}
 				<div class={spanFor(cell.id)} data-viz-cell={cell.id}>
 					{#snippet expandControl()}
@@ -69,22 +69,17 @@
 					{/snippet}
 
 					{#if cell.id === 'trend'}
-						<!-- compact scale: cap the SVG width inside its cell -->
-						<div class="max-w-[680px]">
-							<NetWorthChart points={trend} formatPence={formatCurrency}>
-								{#snippet controls()}{@render expandControl()}{/snippet}
-							</NetWorthChart>
-						</div>
+						<NetWorthChart points={trend} formatPence={formatCurrency} aspect="wide">
+							{#snippet controls()}{@render expandControl()}{/snippet}
+						</NetWorthChart>
 					{:else if cell.id === 'cashflow' && cashflow}
-						<div class="max-w-[860px]">
-							<CashflowCalendar
-								year={cashflow.year}
-								month={cashflow.month}
-								obligations={cashflow.obligations}
-							>
-								{#snippet controls()}{@render expandControl()}{/snippet}
-							</CashflowCalendar>
-						</div>
+						<CashflowCalendar
+							year={cashflow.year}
+							month={cashflow.month}
+							obligations={cashflow.obligations}
+						>
+							{#snippet controls()}{@render expandControl()}{/snippet}
+						</CashflowCalendar>
 					{:else if cell.id === 'allocation'}
 						<AllocationBar items={assetGroups} label="held">
 							{#snippet controls()}{@render expandControl()}{/snippet}

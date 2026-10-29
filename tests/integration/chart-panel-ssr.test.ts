@@ -31,9 +31,13 @@ describe("ChartPanel (Phase 4 foundation)", () => {
 
 	it("omits the controls snippet when none is given (export buttons remain — Phase 5 line 3)", () => {
 		const { body } = renderPanel();
-		// no custom controls smuggled in, but [SVG]/[PNG] export buttons ship by default
+		// no custom controls smuggled in, but SVG/PNG export buttons ship by
+		// default. v3 R16 fix: brackets come from the bracket-link CSS
+		// pseudo-elements — the text nodes are bare SVG/PNG (no [[SVG]]).
 		expect(body).not.toContain("range-picker-stub");
-		expect(body).toContain("[SVG]");
-		expect(body).toContain("[PNG]");
+		expect(body).toContain(">SVG</button>");
+		expect(body).toContain(">PNG</button>");
+		expect(body).not.toContain("[[SVG]]");
+		expect(body).not.toContain("[[PNG]]");
 	});
 });
