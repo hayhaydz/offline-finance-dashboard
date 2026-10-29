@@ -65,7 +65,7 @@
 	>
 		<div class="flex gap-2 items-center min-w-0">
 			<span class="font-bold shrink-0 {severityText}">{prefix}</span>
-			<span class="font-bold">
+			<span class="font-bold min-w-0 truncate">
 				{#if directionIcon}
 					<span class="{severityText} mr-0.5">{directionIcon}</span>
 				{/if}
@@ -99,7 +99,7 @@
 						href={alert.href}
 						class="bracket-link text-xs"
 						onclick={(e) => e.stopPropagation()}
-					>[View]</a>
+					>View</a>
 				{/if}
 				{#if alert.secondaryHref}
 					<a
@@ -107,7 +107,7 @@
 						class="bracket-link text-xs"
 						title="Counterpart account"
 						onclick={(e) => e.stopPropagation()}
-					>[{alert.secondaryLabel ?? 'View'}]</a>
+					>{alert.secondaryLabel ?? 'View'}</a>
 				{/if}
 				{#if ackAction && !isAcked}
 					<form method="POST" action={ackAction} use:enhance={invalidate} class="inline">

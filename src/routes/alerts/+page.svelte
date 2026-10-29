@@ -26,14 +26,14 @@
 </script>
 
 <div class="">
-	<div class="border-b border-black p-2 font-bold flex justify-between items-center bg-white text-sm">
-		<span>ALERTS ({data.total})</span>
+	<div class="border-b border-black p-2 font-bold flex justify-between items-center gap-4 bg-white text-sm">
+		<span>ALERTS ({data.total}){#if data.total > 0}<span class="text-xs text-gray-500 font-normal">· {affectedAccounts()} account{affectedAccounts() !== 1 ? 's' : ''} affected</span>{/if}</span>
 		<a href="/" class="bracket-link text-xs">Homepage</a>
 	</div>
 
-	<!-- severity summary strip (R12): the shape of the problem, at a glance -->
+	<!-- severity summary strip (R12): three cells, aligned with the lanes below -->
 	{#if data.total > 0}
-		<div class="border-b border-black grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-300">
+		<div class="border-b border-black grid grid-cols-3 divide-x divide-gray-300">
 			<div class="px-2 py-1.5">
 				<div class="text-[10px] uppercase font-bold text-gray-600">Critical</div>
 				<div class="text-sm font-bold {data.redAlerts.length > 0 ? 'text-red-700' : 'text-gray-400'}">{data.redAlerts.length}</div>
@@ -45,10 +45,6 @@
 			<div class="px-2 py-1.5">
 				<div class="text-[10px] uppercase font-bold text-gray-600">Info</div>
 				<div class="text-sm font-bold {data.infoAlerts.length > 0 ? '' : 'text-gray-400'}">{data.infoAlerts.length}</div>
-			</div>
-			<div class="px-2 py-1.5">
-				<div class="text-[10px] uppercase font-bold text-gray-600">Accounts affected</div>
-				<div class="text-sm font-bold">{affectedAccounts()}</div>
 			</div>
 		</div>
 	{/if}
