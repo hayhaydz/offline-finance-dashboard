@@ -46,6 +46,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-29T00:21 | 2026-10-29T00:23 | 0h02m | Responsive probe extended to 6 more pages (tools/budgets/alerts/liabilities/expenses/snapshots) — all clean; 10/10 app-wide at 390px |
 | 2026-10-29T00:22 | 2026-10-29T00:26 | 0h04m | Tools input hardening: compound projector null-crash found live + fixed (null-safe summary), math-layer clamps + 4 edge unit tests; live garbage-input sweep clean, 0 console errors; check 0/0 · 981/981 |
 | 2026-10-29T00:26 | 2026-10-29T00:29 | 0h03m | Keyboard journey live: ⌘K palette filter+Enter → /goals navigation verified (old session-bug note closed); ? help overlay opens w/ focus capture, Escape closes; 0 console errors |
+| 2026-10-29T00:29 | 2026-10-29T00:36 | 0h07m | Final vision sweep: 7 route screenshots (tools/reports/home/goals CLEAN via vmodel); budgets P1 'no legend' on burn-down → added 4-entry legend + test; live + zai-vision confirmed fixed; check 0/0 · 982/982 |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -129,6 +130,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 - [x] responsive sweep completed — ev: extended 390px probe to tools/budgets/alerts/liabilities/expenses/snapshots: overflow:false + zero offenders on ALL SIX (10/10 app-wide after the nav-wrap fix)
 - [x] fix: tools compound projector crashed on cleared/negative typed inputs — ev: found LIVE (cleared number field → null .toLocaleString() TypeError in console); hardened compoundSeries at the math boundary (finite guards + clamp rate≤15%/years≤40/principal,monthly≥0 — typed values bypass HTML min/max) + yearlyInterestPence non-finite → 0; summary line null-safe (?? 0); 4 new unit tests (negatives clamp, NaN → flat zero, 10,000y→41 pts & 50%→<£400k cap, non-finite interest); live re-test: cleared inputs render £0+£0/mo honest summary, absurd values no NaN/Infinity, 0 console errors; check 0/0 · 981/981
 - [x] keyboard-first journey LIVE end-to-end (closes the old 'palette click-through blocked' note) — ev: on /accounts ⌘K opened palette, typing 'goals' filtered to 2 options (first 'Goals Navigate'), Enter NAVIGATED to /goals; ? opened help overlay (role=dialog, focus captured inside), Escape closed it; 0 console errors
+- [x] final-audit fix: burn-down chart had no visible legend (P1 from final vision sweep) — ev: added 4-entry line legend under BurnDownChart SVG (actual spend / even pace / today / target, same pattern as PSA legend) + SSR test; live: legend in DOM + scrolled into view → zai-vision CONFIRMS 'legend now renders directly under the chart plot', no P0/P1 (first shot missed it only because the legend sat below the viewport fold — DOM probe had it); vmodel 1305-overloaded ×2 → zai-vision fallback per protocol; check 0/0 · 982/982
 - [ ] Ledger ≥ 6h verified
 
 ## Decisions
@@ -174,6 +176,12 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 ## Vision review log
 | Date | Screenshot | Verdict |
 |---|---|---|
+| 2026-10-29 | screenshots/final-tools.png | vmodel CLEAN |
+| 2026-10-29 | screenshots/final-reports.png | vmodel CLEAN |
+| 2026-10-29 | screenshots/final-home.png | vmodel CLEAN |
+| 2026-10-29 | screenshots/final-goals.png | vmodel CLEAN (1 retry) |
+| 2026-10-29 | screenshots/final-budgets.png | vmodel P1: burn-down no legend → FIXED |
+| 2026-10-29 | screenshots/final-budgets-legend-scrolled.png | zai-vision CLEAN (legend confirmed) |
 | 2026-10-28 | p01-goal-after-add.png (flash) | CLEAN — aligned, contrast OK, no artifacts |
 | 2026-10-28 | p01-goal-after-withdraw.png (zai-vision) | CLEAN functionally, 0 P0/P1; math verified (£150, 15%, history rows correct); 5 P2 polish nits |
 | 2026-10-28 | p01-goal-detail-before.png (zai-vision) | CLEAN — 0 P0/P1; no ciphertext/[object Object]/<br>; metrics aligned |
