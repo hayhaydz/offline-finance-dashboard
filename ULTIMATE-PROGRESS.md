@@ -55,7 +55,8 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-29T00:50 | 2026-10-29T00:52 | 0h02m | PROD-mode browser E2E: adapter-node preview login → home USER: ADMIN, table + SVG, 0 console errors; release doc maintainer quirk + findings.md final sweep appended |
 | 2026-10-29T00:52 | 2026-10-29T00:52 | 0h00m | (corrected — timestamp estimates realigned to date output; no work minute claimed) |
 | 2026-10-29T00:52 | 2026-10-29T00:56 | 0h04m | Post-sweep responsive re-probe (budgets/snapshots/tools @390px clean; 1 P2 deferred), vision mobile check, console.* hygiene re-sweep, help-overlay accuracy audit, commit-message + VERSION_HISTORY audit |
-| 2026-10-29T00:56 | 2026-10-29T01:00 | 0h04m | Stop gate re-run (0/0 · 135/983); HelpOverlay indent fix; auth-route coverage (register/unlock/recovery/migrate/dev-login — guards correct, 0 errors) |
+| 2026-10-29T00:56 | 2026-10-29T00:58 | 0h02m | Stop gate re-run (0/0 · 135/983); HelpOverlay indent fix; auth-route coverage (register/unlock/recovery/migrate/dev-login — guards correct, 0 errors) |
+| 2026-10-29T00:58 | 2026-10-29T01:02 | 0h04m | Full-branch commit audit (62, all typed) + TODO sweep (0) + [?] header link live-verified (open/focus/close) |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -145,6 +146,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 - [x] regression net for the journal desync + prod-mode E2E — ev: new migration-journal-sync.test.ts (every migrations/*.sql sha256 must exist in the dev DB's __drizzle_migrations; skips when dev DB absent) — would have FAILED before today's fix, passes now; first full-suite run 1-file flake (documented pattern) → re-run 135 files / 983 tests GREEN; error-log sweep 2026-10-29: only expected categories (login/unlock/webauthn/register test traffic + intentional 404 probes); PROD-MODE browser E2E on adapter-node preview: login admin → home renders USER: ADMIN + snapshot table + sparkline SVG, Exit nav present, 0 console errors
 - [x] responsive re-probe of surfaces changed AFTER the 10/10 sweep (budgets legend row / snapshots rows / tools) — ev: 390px probe budgets+snapshots+tools all overflow:false, zero offenders; vision final-mobile-budgets-legend.png: no P0/P1; P2 deferred (note-input placeholder truncates at 390px — native input behaviour, desktop copy more valuable); hygiene re-sweep 0 stray console.* (client-logger internals + documented error-page only); help-overlay audited accurate vs implementations; 62 branch commits message-compliant; VERSION_HISTORY ordered, no dupes
 - [x] auth-route coverage completed (5 routes the 25-route sweep missed) — ev: register/recovery/migrate/dev-login all redirect authenticated users to / (correct guard), /unlock renders its form, 0 console errors
+- [x] final QA trio: 62-commit message audit (0 non-compliant), TODO/FIXME sweep (zero), [?] header link live-verified (opens overlay, focus captured, [Close] closes, 0 console errors)
 - [x] P2 triage (final sweep): snapshots 'mixed decimals' → DEFERRED — formatCurrencyShorthand deliberately drops .00 / collapses exact £k (app-wide convention: accounts page etc.); changing snapshots alone would create real inconsistency. alerts 'low-contrast gray on tinted rows' → REJECTED — no gray-on-tint pairing exists in AlertGroup/AlertsSection (severity text = *-700 on *-50, ≈7:1); vision misread, self-flagged 'needs verification'
 - [ ] Ledger ≥ 6h verified
 
