@@ -6,6 +6,7 @@
 	import AccountHeader from '$lib/components/account/AccountHeader.svelte';
 	import InterestRatesSection from '$lib/components/account/InterestRatesSection.svelte';
 	import DebtProjectionSection from '$lib/components/account/DebtProjectionSection.svelte';
+	import CreditModePanel from '$lib/components/account/CreditModePanel.svelte';
 	import MonthlyBalancesSection from '$lib/components/account/MonthlyBalancesSection.svelte';
 	import NotesSection from '$lib/components/account/NotesSection.svelte';
 	import TransactionsSection from '$lib/components/account/TransactionsSection.svelte';
@@ -291,8 +292,19 @@
 	{today}
 />
 
-<!-- DEBT PROJECTION SECTION -->
-{#if data.account.category === 'liability'}
+<!-- CREDIT STRATEGY (v3 B05 / R7): mode switcher + stooze reminders -->
+{#if data.account.type === 'credit-card' && data.credit}
+	<CreditModePanel
+		slug={data.account.slug}
+		mode={data.credit.mode}
+		stooze={data.credit.stooze}
+		splits={data.credit.splits}
+	/>
+{/if}
+
+<!-- DEBT PROJECTION SECTION — payoff assistance ONLY in panic mode
+     (R7): stoozing cards get friendly reminders instead (panel above). -->
+{#if data.account.category === 'liability' && (data.account.type !== 'credit-card' || data.credit?.mode === 'panic')}
 	<DebtProjectionSection
 		currentBalance={data.currentBalance}
 		currentRate={data.currentRate}

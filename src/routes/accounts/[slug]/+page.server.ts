@@ -10,6 +10,7 @@ import {
 	settings,
 } from "$lib/db/schema";
 import { requireAccountOwnership } from "$lib/server/account-ownership";
+import { cardSplitSummary, stoozeStatus } from "$lib/server/credit-engine";
 import { buildAvailableTaxYears } from "$lib/server/account-tax-year";
 import { getAlertsForAccount } from "$lib/server/alerts";
 import { getCategories, createCategory, ensureDefaultCategories } from "$lib/server/categories";
@@ -485,8 +486,59 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 	await ensureDefaultCategories(user.id);
 	const categories = await getCategories(user.id);
 
+	// Credit engine (v3 B05): per-card strategy payload — stooze reminders
+	// + split-tracker rollup. Only for credit cards.
+	let credit: {
+		mode: "panic" | "stooze" | null;
+		stooze: ReturnType<typeof stoozeStatus> | null;
+		splits: ReturnType<typeof cardSplitSummary> | null;
+	} | null = null;
+	if (account.type === "credit-card") {
+		const engineAccount = {
+			creditMode: account.creditMode,
+			promoEndsAt: account.promoEndsAt,
+			revertAprBps: account.revertAprBps,
+		};
+		const cardTx = await db.query.accountTransactions.findMany({
+			where: eq(accountTransactions.accountId, account.id),
+			columns: {
+				id: true,
+				type: true,
+				amount: true,
+				payoffPlan: true,
+				plannedClearBy: true,
+				allocatesToId: true,
+				transactionDate: true,
+			},
+		});
+		const charges = cardTx
+			.filter((t) => t.type === "charge")
+			.map((t) => ({
+				id: t.id,
+				amountPence: Math.abs(t.amount),
+				date: t.transactionDate,
+				payoffPlan: t.payoffPlan,
+				plannedClearBy: t.plannedClearBy,
+			}));
+		const payments = cardTx
+			.filter((t) => t.type === "payment")
+			.map((t) => ({
+				id: t.id,
+				amountPence: Math.abs(t.amount),
+				date: t.transactionDate,
+				allocatesToId: t.allocatesToId,
+			}));
+		const today = new Date();
+		credit = {
+			mode: account.creditMode,
+			stooze: stoozeStatus(engineAccount, currentBalance, today),
+			splits: cardSplitSummary(charges, payments, engineAccount, today),
+		};
+	}
+
 	return {
 		account,
+		credit,
 		transactionCount,
 		monthlyBalances: monthlyBalances.toReversed(),
 		currentBalance,
@@ -521,6 +573,31 @@ export const load: PageServerLoad = async ({ locals, params, url }) => {
 };
 
 export const actions: Actions = {
+	/**
+	 * Credit engine (v3 B05 / R7): switch a credit card's strategy mode.
+	 * panic = actively paying down (payoff UI). stooze = riding the 0%
+	 * promo (friendly reminders, no payoff pressure). "clear" unsets.
+	 */
+	setCreditMode: async ({ request, locals, params }) => {
+		const user = requireAuth(locals);
+		const account = await requireAccountOwnership(locals, params.slug);
+		if (account.type !== "credit-card") {
+			return fail(400, { error: "Credit mode applies to credit cards only" });
+		}
+		const formData = await request.formData();
+		const mode = formData.get("mode");
+		if (mode !== "panic" && mode !== "stooze" && mode !== "clear") {
+			return fail(400, { error: "Mode must be panic, stooze or clear" });
+		}
+		await db
+			.update(accounts)
+			.set({
+				creditMode: mode === "clear" ? null : mode,
+				updatedAt: new Date(),
+			})
+			.where(and(eq(accounts.id, account.id), withUserFilter(user.id, accounts)));
+		return { success: true };
+	},
 	/**
 	 * Add a new transaction to an account
 	 */
