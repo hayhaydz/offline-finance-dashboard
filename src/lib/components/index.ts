@@ -20,7 +20,7 @@ export { default as IsaAllowanceWidget } from "./IsaAllowanceWidget.svelte";
 export { default as InterestProjectionTable } from "./interest/InterestProjectionTable.svelte";
 export { default as IsaPacingSection } from "./isa/IsaPacingSection.svelte";
 export { default as KpiCard } from "./KpiCard.svelte";
-export { default as Navigation } from "./Navigation.svelte";
+export { default as Navigation } from "./navigation.svelte";
 export { default as NetWorthDisplay } from "./NetWorthDisplay.svelte";
 export { default as PaginationClient } from "./PaginationClient.svelte";
 export { default as SectionHeader } from "./SectionHeader.svelte";

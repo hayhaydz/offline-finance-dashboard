@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Navigation from '$lib/components/Navigation.svelte';
+	import Navigation from '$lib/components/navigation.svelte';
 	import SessionBanner from '$lib/components/SessionBanner.svelte';
 	import CommandPalette from '$lib/components/CommandPalette.svelte';
 	import HelpOverlay from '$lib/components/HelpOverlay.svelte';
