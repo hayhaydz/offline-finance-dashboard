@@ -47,7 +47,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-29T00:22 | 2026-10-29T00:26 | 0h04m | Tools input hardening: compound projector null-crash found live + fixed (null-safe summary), math-layer clamps + 4 edge unit tests; live garbage-input sweep clean, 0 console errors; check 0/0 · 981/981 |
 | 2026-10-29T00:26 | 2026-10-29T00:29 | 0h03m | Keyboard journey live: ⌘K palette filter+Enter → /goals navigation verified (old session-bug note closed); ? help overlay opens w/ focus capture, Escape closes; 0 console errors |
 | 2026-10-29T00:29 | 2026-10-29T00:36 | 0h07m | Final vision sweep: 7 route screenshots (tools/reports/home/goals CLEAN via vmodel); budgets P1 'no legend' on burn-down → added 4-entry legend + test; live + zai-vision confirmed fixed; check 0/0 · 982/982 |
-| 2026-10-29T00:36 | 2026-10-29T00:47 | 0h11m | Console+5xx sweep across all 25 routes (clean); vision on alerts/snapshots (no P0/P1); P2 triage: 1 deferred (shorthand .00-drop = app-wide convention), 1 rejected (vision misread, verified in source) |
+| 2026-10-29T00:36 | 2026-10-29T00:44 | 0h08m | Console+5xx sweep across all 25 routes (clean); vision on alerts/snapshots (no P0/P1); P2 triage: 1 deferred (shorthand .00-drop = app-wide convention), 1 rejected (vision misread, verified in source) |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
