@@ -27,7 +27,7 @@
 		if (target === 0) return { label: "—", class: "text-gray-500" };
 		const pct = Math.round((actual / target) * 100);
 		if (pct > 100) return { label: `OVER +${pct - 100}%`, class: "text-red-700 font-bold" };
-		if (pct >= 95) return { label: `UNDER -${100 - pct}%`, class: "text-amber-600 font-bold" };
+		if (pct >= 95) return { label: `UNDER -${100 - pct}%`, class: "text-amber-700 font-bold" };
 		return { label: `UNDER -${100 - pct}%`, class: "text-green-700 font-bold" };
 	}
 

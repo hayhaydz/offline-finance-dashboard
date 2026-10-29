@@ -67,14 +67,14 @@
 	);
 
 	let progressTextColor = $derived(
-		spentPercent > 100 ? "text-red-700" : spentPercent > 75 ? "text-amber-600" : "text-green-700",
+		spentPercent > 100 ? "text-red-700" : spentPercent > 75 ? "text-amber-700" : "text-green-700",
 	);
 
 	let statusLabel = $derived(
 		spentPercent > 100
 			? { text: "over budget", class: "text-red-700" }
 			: spentPercent > 75
-				? { text: "getting close", class: "text-amber-600" }
+				? { text: "getting close", class: "text-amber-700" }
 				: { text: "on track", class: "text-green-700" },
 	);
 
@@ -174,7 +174,7 @@
 		if (target === 0) return { label: "—", class: "text-gray-500" };
 		const pct = Math.round((actual / target) * 100);
 		if (pct > 100) return { label: `OVER +${pct - 100}%`, class: "text-red-700 font-bold" };
-		if (pct >= 95) return { label: `UNDER -${100 - pct}%`, class: "text-amber-600 font-bold" };
+		if (pct >= 95) return { label: `UNDER -${100 - pct}%`, class: "text-amber-700 font-bold" };
 		return { label: `UNDER -${100 - pct}%`, class: "text-green-700 font-bold" };
 	}
 
@@ -303,7 +303,7 @@
 			</div>
 			<div class="px-2 py-1.5">
 				<div class="text-[10px] uppercase font-bold text-gray-600">Pace</div>
-				<div class="text-sm font-bold {spentPercent > pacePercent ? 'text-amber-600' : 'text-green-700'}">
+				<div class="text-sm font-bold {spentPercent > pacePercent ? 'text-amber-700' : 'text-green-700'}">
 					{spentPercent > pacePercent ? "over pace" : "on pace"}
 				</div>
 				<div class="text-[10px] text-gray-500">spend {spentPercent}% · time {pacePercent}%</div>
@@ -447,7 +447,7 @@
 								{/if}
 							</div>
 							<span>]</span>
-							<span class="min-w-6 font-bold {pct > 100 ? 'text-red-700' : pct > 75 ? 'text-amber-600' : 'text-green-700'}">{pct}%</span>
+							<span class="min-w-6 font-bold {pct > 100 ? 'text-red-700' : pct > 75 ? 'text-amber-700' : 'text-green-700'}">{pct}%</span>
 						</div>
 						<span class="text-xs min-w-[70px] text-right">
 							{formatCurrency(cat.spent)} <span class="text-gray-500">/</span> {formatCurrency(cat.target ?? 0)}
