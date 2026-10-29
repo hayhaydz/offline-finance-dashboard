@@ -57,7 +57,8 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-29T00:52 | 2026-10-29T00:56 | 0h04m | Post-sweep responsive re-probe (budgets/snapshots/tools @390px clean; 1 P2 deferred), vision mobile check, console.* hygiene re-sweep, help-overlay accuracy audit, commit-message + VERSION_HISTORY audit |
 | 2026-10-29T00:56 | 2026-10-29T00:58 | 0h02m | Stop gate re-run (0/0 · 135/983); HelpOverlay indent fix; auth-route coverage (register/unlock/recovery/migrate/dev-login — guards correct, 0 errors) |
 | 2026-10-29T00:58 | 2026-10-29T00:59 | 0h01m | Full-branch commit audit (62, all typed) + TODO sweep (0) + [?] header link live-verified (open/focus/close) |
-| 2026-10-29T00:59 | 2026-10-29T01:02 | 0h03m | Plan-compliance closeout: bootstrap-commit audit, .docs untracked convention documented, seed.ts schema-sync verified |
+| 2026-10-29T00:59 | 2026-10-29T00:59 | 0h00m | Plan-compliance closeout: bootstrap-commit audit, .docs untracked convention documented, seed.ts schema-sync verified (instant greps — no time claimed) |
+| 2026-10-29T00:59 | 2026-10-29T01:05 | 0h06m | Final vision coverage: accounts (no P0/P1; ⌘K glyph misread rejected via source check) + tax (vmodel CLEAN) — every headline page now reviewed this round |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -149,6 +150,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 - [x] auth-route coverage completed (5 routes the 25-route sweep missed) — ev: register/recovery/migrate/dev-login all redirect authenticated users to / (correct guard), /unlock renders its form, 0 console errors
 - [x] final QA trio: 62-commit message audit (0 non-compliant), TODO/FIXME sweep (zero), [?] header link live-verified (opens overlay, focus captured, [Close] closes, 0 console errors)
 - [x] plan-compliance closeout: progress file committed at branch start (45eb59c ✓); plan file itself lives in untracked .docs/ (repo convention — zero .docs files tracked; VERSION_HISTORY save-points follow the same convention, resolving the plan's 'commit the plan file' instruction); seed.ts has no alert-acknowledgement reference correctly (runtime state, nothing to seed); categories referenced ✓
+- [x] final vision coverage completed (accounts + tax, the last unreviewed headline pages) — ev: accounts final-accounts-v2.png no P0/P1 (zai-vision; 'garbled [※K]' P2 REJECTED — actual markup is [⌘K] w/ title tooltip, vision misread the Mac glyph); tax final-tax-v2.png vmodel CLEAN; final sweep now covers every headline page
 - [x] P2 triage (final sweep): snapshots 'mixed decimals' → DEFERRED — formatCurrencyShorthand deliberately drops .00 / collapses exact £k (app-wide convention: accounts page etc.); changing snapshots alone would create real inconsistency. alerts 'low-contrast gray on tinted rows' → REJECTED — no gray-on-tint pairing exists in AlertGroup/AlertsSection (severity text = *-700 on *-50, ≈7:1); vision misread, self-flagged 'needs verification'
 - [ ] Ledger ≥ 6h verified
 
@@ -198,6 +200,8 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 ## Vision review log
 | Date | Screenshot | Verdict |
 |---|---|---|
+| 2026-10-29 | screenshots/final-accounts-v2.png | zai-vision: no P0/P1; ⌘K glyph misread rejected (source-verified) |
+| 2026-10-29 | screenshots/final-tax-v2.png | vmodel CLEAN |
 | 2026-10-29 | screenshots/final-mobile-budgets-legend.png | zai-vision: no P0/P1; P2 placeholder truncation deferred |
 | 2026-10-29 | screenshots/final-alerts.png | zai-vision: no P0/P1; P2 contrast claim rejected after source check |
 | 2026-10-29 | screenshots/final-snapshots.png | zai-vision: no P0/P1; P2 decimal-precision deferred (shorthand convention) |
