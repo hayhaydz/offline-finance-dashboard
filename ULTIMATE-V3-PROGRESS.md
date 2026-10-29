@@ -21,6 +21,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 22:53:53 GMT | 2026-10-29 23:02:40 GMT | 0h 09m | Sweep 5 B10 COMPLETE: tax finder cards + threshold bars + mini-tables; vision gate (P1 rejected w/ evidence); suite 1051/1051 |
 | 2026-10-29 23:02:41 GMT | 2026-10-29 23:06:30 GMT | 0h 04m | Sweep 5 B11 COMPLETE: alerts summary strip + severity lanes + badge fixes; vision P1s fixed same unit |
 | 2026-10-29 23:06:31 GMT | 2026-10-29 23:10:22 GMT | 0h 04m | Sweep 5 B12+B13 COMPLETE: snapshots + routine summary strips, checklist grid; suite 1051/1051 |
+| 2026-10-29 23:10:23 GMT | 2026-10-29 23:17:00 GMT | 0h 07m | Sweep 6 B14+B15 COMPLETE: bills page + income-vs-deposits report; anonymiser verified; runbook §9; suite 1051/1051 |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -56,11 +57,11 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R21 | [x] | ev: absent app-wide, pinned by tests/integration/accounts-import-absent.test.ts (3 tests); commit 177c2d8 |
 | R22 | [x] | ev: import_jobs queue (schema 0011 sanctioned path) + sealed payloads + atomic claim + orphan sweep + /api/import-jobs + polling panel; >1MB tx / >200KB history commits auto-queue; 6 tests; commit c5ed2b2 |
 | R23 | [x] | ev: history-csv.ts engine both kinds export+import, /api/history/export, wizard, page links; 10 tests incl. backup restore + isolation; commit 7884a49 |
-| R24 | [ ] | payslip processing judgment (derived report first?) |
-| R25 | [ ] | bills + bill history — direct-debit vs billed judgment |
+| R24 | [x] | ev: DECISION derived report first (no import); income-vs-deposits report live (declared vs deposit evidence, gap flags); commit 25e72c7 |
+| R25 | [x] | ev: DECISION derived patterns (DD-vs-invoiced invisible in data); /overview/bills live w/ summary strip + next-due; commit 25e72c7 |
 | R26 | [x] | ev: bulk-import.ts Monzo-preset column mapping (web-verified layout) + BulkImportWizard + queue integration; 7 tests; commit 177c2d8 |
-| R27 | [ ] | scramble/anonymise real tool |
-| R28 | [ ] | agent-workable repo (dev docs, tooling) |
+| R27 | [x] | ev: CLI verified end-to-end 2026-10-29 (admin→elmsworth.quarry79, structure preserved, self-check PASS); import_jobs rules added S4 |
+| R28 | [x] | ev: runbook §9 v3 extension surfaces (registries, pipeline, schema path, gotchas); commit 3310fec |
 | R29 | [x] (home) | ev: commit a9a0d92; home converted to 3/2 two-column rows, DOM-verified 936/622px, vision "conversion succeeds". App-wide R29 continues per-block (B03/B04 next) |
 | R30 | [x] | ev: commits 307e48d+9f458e0+e0a77b8; untitled bento grid live (trend col-span-2 1041px / allocation col-span-1 517px, panels aligned 269/269), wide-aspect 900×180 chart, [+] expand cycle verified, vision re-review clean of prior P1s |
 | R31 | [ ] | ADDENDUM §9: all visualisations on best svelte viz packages (layerchart first; new deps need approval) |
@@ -82,8 +83,8 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | B11 ALERTS | 5 | COMPLETE (sweep 5) | R12 ✓; lanes aligned to strip; badge truncation fixed |
 | B12 SNAPSHOTS | 5 | COMPLETE (sweep 5) | R17(snapshots) ✓; summary strip |
 | B13 ROUTINE | 5 | COMPLETE (sweep 5) | R17(routine) ✓; strip + checklist grid |
-| B14 BILLS & PAYSLIPS | — | unvisited | R24 R25 · sweep 6 |
-| B15 DX & AGENT TOOLING | — | unvisited | R27 R28 · sweep 6 |
+| B14 BILLS & PAYSLIPS | 6 | COMPLETE (sweep 6) | R24 ✓ R25 ✓; bills derived-pattern page + income-vs-deposits report |
+| B15 DX & AGENT TOOLING | 6 | COMPLETE (sweep 6) | R27 ✓ R28 ✓; anonymiser verified; runbook §9 |
 | B16 CROSS-CUTTING | — | unvisited | harvested · every sweep gate |
 
 ## Per-block research & judgments
@@ -248,6 +249,19 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 - research: streak + checklist + history table; checklist was a flex-wrap text blob; no summary.
 - judgment: summary strip (Current streak · Longest · This month x/y or "not started" · Action = start/continue link); checklist becomes a bordered cell grid (md 2-col, lg 3-col).
 - [x] U1 strip + grid. ev: commit `ca24496`; live cells 4, checklist 6 cells in grid; R17(routine leg) [x].
+
+### B14 BILLS & PAYSLIPS (Sweep 6 — COMPLETE)
+- research: NO bills/payslip tables exist; bills are IMPLICIT (recurring-pattern detector → projectObligations → cashflow calendar); income = declared month-keyed history; R25 asks for the direct-debit-vs-billed judgment, R24 for import-vs-derived-report.
+- JUDGMENT R25: bills stay DERIVED from payment evidence (detector: ≥3 occurrences, 28–35d cadence, ±10% amounts) — the DD-vs-invoiced distinction is invisible in transaction data and irrelevant to "what regular money goes out + when's next"; a hand-maintained bills table would add data entry + drift for zero insight. Implemented as `/overview/bills` (summary strip: count/per-month/per-year/next-due + table w/ 12-mo cost + last/next dates + totals row), nav link added.
+- JUDGMENT R24: derived report FIRST (the pre-seeded recommendation) — no payslip import; the payslip review = declared income vs actual deposit evidence from the ledger. Implemented as reports registry entry `income-vs-deposits` (per-month declared vs deposited + gap flags >£100 + reading-the-gaps notes; deposits grouped by strftime month).
+- units (all [x]):
+  - [x] U1 /overview/bills page + nav. ev: commit `25e72c7`; live 200, strip 4 cells, honest empty state (dev data has no qualifying patterns — detector verified by its own tests); report live 200 w/ ABSTRACT, 12 month rows
+  - [x] U2 income-vs-deposits report + registry test coverage. ev: same commit; reports-v2.test 3/3 incl. new slug
+  - [x] U3 gate: check 0/0; suite 1051/1051 (1 unrelated unlock-ceremony flake, green isolated + full rerun — documented flake pattern). ev: outputs above
+
+### B15 DX & AGENT TOOLING (Sweep 6 — COMPLETE)
+- R27: anonymise CLI verified END-TO-END on a dev DB copy (username admin→elmsworth.quarry79; 16 accounts/112 tx/4 snapshots preserved; amounts jittered; dates month-shifted; self-check PASS; ciphertext descriptions pass through verbatim by design — AAD-bound). import_jobs TABLE_RULES entry added in S4. Tool was already complete; v3 contribution = verification + runbook currency. ev: command output above (2026-10-29, supersedes 2026-10-18 check)
+- R28: agent runbook §9 "v3 extension surfaces" — reports registry, tools registry, data pipeline map, sanctioned schema path (5 steps incl. journal hash + TABLE_RULES), loop gotchas (CURRENT_TIMESTAMP/Invalid Date, filePath, bracket convention). ev: commit `3310fec`
 
 ## Sweep 1 — GATE PASSED (2026-10-29 20:20 GMT)
 - check 0/0 ✓ · full suite 988/988 ✓ · build green (adapter-node ✔) ✓
