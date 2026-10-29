@@ -36,6 +36,45 @@
 	}
 </script>
 
+<!-- SUMMARY STRIP (R17/B12): the state of the snapshot record, at a glance -->
+{#if data.snapshots.length > 0}
+	{@const latest = snapshotsWithTrends[0]}
+	<div class="border-b border-black grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-300">
+		<div class="px-2 py-1.5">
+			<div class="text-[10px] uppercase font-bold text-gray-600">Latest net worth</div>
+			<div class="text-sm font-bold">{formatCurrencyShorthand(latest.netWorthInCents)}</div>
+			<div class="text-[10px] text-gray-500">{latest.snapshotDate}</div>
+		</div>
+		<div class="px-2 py-1.5">
+			<div class="text-[10px] uppercase font-bold text-gray-600">Latest change</div>
+			<div class="text-sm font-bold {latest.trends ? getTrendColor(latest.trends.netWorthChange) : ''}">
+				{#if latest.trends}
+					{latest.trends.netWorthChange >= 0 ? '+' : ''}{formatCurrencyShorthand(latest.trends.netWorthChange)}
+				{:else}
+					—
+				{/if}
+			</div>
+			<div class="text-[10px] text-gray-500">vs previous snapshot</div>
+		</div>
+		<div class="px-2 py-1.5">
+			<div class="text-[10px] uppercase font-bold text-gray-600">Freshness</div>
+			<div class="text-sm font-bold {data.staleness ? '' : 'text-gray-400'}">
+				{#if data.staleness}
+					<span class={data.staleness.cssClass}>●</span> {data.staleness.label}
+				{:else}
+					—
+				{/if}
+			</div>
+			<div class="text-[10px] text-gray-500">page {data.page} of {data.totalPages}</div>
+		</div>
+		<div class="px-2 py-1.5">
+			<div class="text-[10px] uppercase font-bold text-gray-600">Action</div>
+			<a href="/overview/snapshots/create" class="bracket-link text-xs">+ Create Snapshot</a>
+			<div class="text-[10px] text-gray-500">locks today's balances</div>
+		</div>
+	</div>
+{/if}
+
 <!-- SNAPSHOTS LIST SECTION -->
 <div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 	<span class="text-xs text-gray-500">

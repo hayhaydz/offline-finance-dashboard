@@ -34,12 +34,46 @@
 	{/if}
 </div>
 
-<!-- Checklist reference -->
+<!-- SUMMARY STRIP (R17/B13): the habit, at a glance -->
+<div class="border-b border-black grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-300">
+	<div class="px-2 py-1.5">
+		<div class="text-[10px] uppercase font-bold text-gray-600">Current streak</div>
+		<div class="text-sm font-bold {streak.currentStreak > 0 ? 'text-green-700' : 'text-gray-400'}">
+			{streak.currentStreak} month{streak.currentStreak === 1 ? '' : 's'}
+		</div>
+	</div>
+	<div class="px-2 py-1.5">
+		<div class="text-[10px] uppercase font-bold text-gray-600">Longest</div>
+		<div class="text-sm font-bold">{streak.longestStreak} month{streak.longestStreak === 1 ? '' : 's'}</div>
+	</div>
+	<div class="px-2 py-1.5">
+		<div class="text-[10px] uppercase font-bold text-gray-600">This month</div>
+		<div class="text-sm font-bold">
+			{#if history[0]?.yearMonth === thisMonth}
+				{history[0].completedCount}/{history[0].totalItems}
+				{#if history[0].isComplete}<span class="text-green-700">DONE</span>{/if}
+			{:else}
+				<span class="text-amber-700">not started</span>
+			{/if}
+		</div>
+	</div>
+	<div class="px-2 py-1.5">
+		<div class="text-[10px] uppercase font-bold text-gray-600">Action</div>
+		<a href="/overview/routine/{thisMonth}" class="bracket-link text-xs">
+			{thisMonth === (history[0]?.yearMonth ?? '') ? 'Continue' : 'Start'} {formatYearMonth(thisMonth)}
+		</a>
+	</div>
+</div>
+
+<!-- Checklist reference (R29: a grid of cells, not a wrapped blob) -->
 <div class="border-b border-black p-2">
 	<div class="text-[10px] font-bold text-gray-500 uppercase mb-1">Checklist ({CHECKLIST_ITEMS.length} items)</div>
-	<div class="flex flex-wrap gap-x-4 gap-y-0.5">
-		{#each CHECKLIST_ITEMS as item}
-			<span class="text-xs text-gray-600">[{item.key}] {item.label}</span>
+	<div class="grid gap-1 md:grid-cols-2 lg:grid-cols-3">
+		{#each CHECKLIST_ITEMS as item (item.key)}
+			<div class="border border-black px-1 py-0.5 text-xs flex items-baseline gap-1.5">
+				<span class="font-bold text-gray-500">{item.key}</span>
+				<span class="text-gray-700">{item.label}</span>
+			</div>
 		{/each}
 	</div>
 </div>
