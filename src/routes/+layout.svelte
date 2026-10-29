@@ -52,6 +52,8 @@
 </script>
 
 <div class="border border-black max-w-4xl mx-auto w-full">
+	<!-- skip link: first tab stop, visible only on keyboard focus -->
+	<a href="#main-content" class="skip-link bracket-link text-xs">[Skip to content]</a>
 	{#if user}
 		<!-- .no-print: chrome strip stays on screen only (print/PDF rule) -->
 		<div class="bg-black text-white p-1 font-bold text-xs flex justify-between no-print">
@@ -86,7 +88,7 @@
 
 	<Navigation {user} {environment} breadcrumbOverrides={breadcrumbOverrides} />
 
-	<div class="scrollable-content" bind:this={scrollContainer}>
+	<main id="main-content" class="scrollable-content" bind:this={scrollContainer}>
 		{@render children()}
-	</div>
+	</main>
 </div>

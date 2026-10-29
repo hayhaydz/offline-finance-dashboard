@@ -169,6 +169,20 @@ td {
 	overflow-x: auto;
 }
 
+/* ── Skip link (Phase 9 a11y): off-screen until keyboard-focused ── */
+.skip-link {
+	position: absolute;
+	left: -9999px;
+	top: 0;
+	background: white;
+	color: black;
+	padding: 4px 8px;
+	z-index: 100;
+}
+.skip-link:focus-visible {
+	left: 0;
+}
+
 /* ── Print / PDF stylesheet (proposal #20) ─────────────────────────────
    Turns any page into a clean paper report: chrome (nav, actions, forms)
    hidden, data tables flow across pages, collapsed accordions forced open

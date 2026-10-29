@@ -9,7 +9,9 @@
 </script>
 
 {#if message}
+	<!-- role=alert/status: screen readers announce the action result -->
 	<div
+		role={message.type === 'error' ? 'alert' : 'status'}
 		class="p-2 border-t text-sm flex justify-between items-start
 			{message.type === 'error' ? 'bg-red-100' : 'bg-green-100'}"
 	>

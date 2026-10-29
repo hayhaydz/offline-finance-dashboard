@@ -16,7 +16,8 @@ import SnapshotsPage from "../../src/routes/overview/snapshots/+page.svelte";
 // ULTIMATE-PROGRESS.md; SSR pins the markup markers the action queries.
 
 const data = {
-	user: { username: "admin" },
+	environment: { mode: "development", isProduction: false, hasEncryption: true },
+	user: { id: 1, username: "admin", createdAt: new Date("2026-01-01"), inactivityTimeout: 240 },
 	snapshots: [
 		{
 			slug: "aaa",
@@ -35,7 +36,7 @@ const data = {
 	],
 	page: 1,
 	totalPages: 1,
-	staleness: {},
+	staleness: null,
 };
 
 describe("snapshots list-nav wiring", () => {
