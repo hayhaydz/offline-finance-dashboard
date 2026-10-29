@@ -13,6 +13,10 @@ import {
 	type HistoryKind,
 } from "$lib/server/history-csv";
 import {
+	enqueueImportJob,
+	QUEUE_THRESHOLD_BYTES,
+} from "$lib/server/import-jobs";
+import {
 	batchInsertTransactions,
 	getOverlappingTransactions,
 	type ImportRow,
@@ -426,6 +430,32 @@ export const actions: Actions = {
 			});
 		}
 
+		// R22: large commits go through the background queue — the upload
+		// is accepted immediately and the IMPORT JOBS panel reports progress.
+		if (csvText.length > QUEUE_THRESHOLD_BYTES.transactions) {
+			try {
+				const job = await enqueueImportJob(user.id, "transactions", csvText, {
+					recovery,
+				});
+				return {
+					action: "reimport-queued",
+					success: true,
+					jobSlug: job.slug,
+					recovery,
+				};
+			} catch (err) {
+				logError(
+					"settings-data:reimport-commit",
+					"Queueing large reimport failed",
+					err,
+				);
+				return fail(500, {
+					action: "reimport-commit",
+					errors: ["Could not queue the file — nothing was changed."],
+				});
+			}
+		}
+
 		try {
 			const result = await commitReimport(user.id, csvText, { recovery });
 			if ("errors" in result) {
@@ -548,6 +578,34 @@ export const actions: Actions = {
 				action: "history-commit",
 				errors: ["No file contents received — start over and select the file again."],
 			});
+		}
+
+		// R22: large history files go through the background queue too
+		if (csvText.length > QUEUE_THRESHOLD_BYTES.history) {
+			try {
+				const job = await enqueueImportJob(
+					user.id,
+					kind === "expenses" ? "history_expenses" : "history_income",
+					csvText,
+					{ recovery: false },
+				);
+				return {
+					action: "history-queued",
+					success: true,
+					kind,
+					jobSlug: job.slug,
+				};
+			} catch (err) {
+				logError(
+					"settings-data:history-commit",
+					"Queueing large history import failed",
+					err,
+				);
+				return fail(500, {
+					action: "history-commit",
+					errors: ["Could not queue the file — nothing was changed."],
+				});
+			}
 		}
 
 		try {

@@ -681,6 +681,28 @@ export const TABLE_RULES: Record<string, TableRule> = {
 		pk: "key",
 		columns: { key: "skip", value: "metadata-value" },
 	},
+	// Background import jobs (v3 S4): payload is DataKey-sealed ciphertext
+	// (v1|) — undecryptable in a copy without the owner's credential
+	// secrets, same construction as credentialSlots. Slugs stay verbatim:
+	// the payload AAD binds them.
+	importJobs: {
+		pk: "id",
+		columns: {
+			id: "skip",
+			slug: "skip",
+			userId: "skip",
+			kind: "skip",
+			status: "skip",
+			recovery: "skip",
+			payload: "secret",
+			rowsTotal: "skip",
+			errorMessage: "name",
+			resultCounts: "skip",
+			createdAt: "ts",
+			startedAt: "ts",
+			finishedAt: "ts",
+		},
+	},
 	settings: {
 		pk: "key",
 		columns: { key: "skip", value: "metadata-value", updatedAt: "ts" },

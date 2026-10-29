@@ -50,6 +50,7 @@
 	let isSubmitting = $state(false);
 
 	let preview: PreviewData | null = $state(null);
+	let queuedJobSlug = $state<string | null>(null);
 	let result = $state<{
 		counts: PreviewData["counts"];
 		backupFilename: string | null;
@@ -69,6 +70,12 @@
 				result = { counts: form.counts, backupFilename: form.backupFilename };
 				step = "result";
 			}
+		}
+		// R22: oversized commit was queued — the IMPORT JOBS panel tracks it
+		if (form?.action === "reimport-queued" && form.success) {
+			isSubmitting = false;
+			queuedJobSlug = form.jobSlug;
+			step = "result";
 		}
 	});
 
@@ -105,6 +112,7 @@
 		backupDetected = false;
 		parseError = null;
 		preview = null;
+		queuedJobSlug = null;
 		result = null;
 	}
 
@@ -362,6 +370,17 @@
 				</button>
 			</div>
 		</form>
+	{:else if step === "result" && queuedJobSlug}
+		<div class="border border-black bg-amber-100 p-2 mb-2">
+			<p class="font-bold text-amber-800 mb-1">Queued as a background job</p>
+			<p>
+				This file is large, so it was accepted and queued
+				(<span class="font-mono">{queuedJobSlug.slice(0, 8)}…</span>) instead of
+				running inline. The IMPORT JOBS panel below reports progress and counts
+				when it finishes.
+			</p>
+		</div>
+		<button type="button" class="bracket-link" onclick={reset}>[Done]</button>
 	{:else if step === "result" && result}
 		<div class="border border-black bg-green-50 p-2 mb-2">
 			<p class="font-bold text-green-700 mb-1">Reimport applied</p>

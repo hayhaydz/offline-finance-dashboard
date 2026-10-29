@@ -3,6 +3,7 @@
 	import type { SubmitFunction } from "@sveltejs/kit";
 	import ExportPanel from "$lib/components/export-panel/export-panel.svelte";
 	import HistoryImportWizard from "$lib/components/history-import-wizard/history-import-wizard.svelte";
+	import ImportJobsPanel from "$lib/components/import-jobs-panel/import-jobs-panel.svelte";
 	import ImportWizard from "$lib/components/import-wizard/import-wizard.svelte";
 	import ReimportWizard from "$lib/components/reimport-wizard/reimport-wizard.svelte";
 	import { formatCurrency } from "$lib/utils/currency";
@@ -115,6 +116,13 @@
 			<span>CSV REIMPORT — EDIT / DELETE / RESTORE</span>
 		</div>
 		<ReimportWizard {form} />
+	</section>
+
+	<section class="border-t border-black">
+		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
+			<span>IMPORT JOBS — BACKGROUND QUEUE</span>
+		</div>
+		<ImportJobsPanel />
 	</section>
 
 	<section class="border-t border-black">

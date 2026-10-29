@@ -71,6 +71,9 @@ export {
 	spendingCategoriesRelations,
 	systemMetadata,
 } from "./system";
+// Jobs domain
+export type { ImportJob } from "./jobs";
+export { importJobs, importJobsRelations } from "./jobs";
 // Tax domain
 export type { IncomeHistoryRow, TaxBandHistoryRow } from "./tax";
 export {
