@@ -4,7 +4,15 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 ## Time ledger
 | Session start | Session end | Elapsed | Work done |
 |---|---|---|---|
-| 2026-10-29 19:11:24 GMT | | | Sweep 0 bootstrap (in flight) |
+| 2026-10-29 19:11:24 GMT | 2026-10-29 19:14:46 GMT | 0h 03m | Sweep 0: progress file, casing fix, check/test/build baseline, live login verified |
+
+## Sweep 0 — Bootstrap (COMPLETE)
+- [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
+- [x] Containment self-check: `.opencode/opencode.json` present with `external_directory` deny-all + allows (temp dir, main checkout RO); shell deny-list (sudo/rm -r/git -C/worktree/reset --hard/etc.) intact. ev: file read at block start 19:11 GMT; ports 5173/4173 clear
+- [x] Baseline `npm run check` 0 errors / 0 warnings. ev: "svelte-check found 0 errors and 0 warnings" after commit `24890ed` (casing fix — see Decisions)
+- [x] Baseline `npm test` — 135 files / 983 tests ALL GREEN (matches v2 exit state exactly). ev: "Test Files 135 passed (135), Tests 983 passed (983)" @ 19:13:21
+- [x] Baseline `npm run build` green. ev: "✓ built in 10.74s" + adapter-node "✔ done"
+- [x] Dev server up from worktree + live login (admin/password) verified via CDP: `/` → `/login?reason=logged-out` → login → back to `/`. Console 0 errors (vite debug only), network 112 reqs, 0 5xx. ev: CDP list_console_messages/list_network_requests output 19:14 GMT
 
 ## Requirements disposition
 | Req | Status | Evidence / decision |
@@ -74,6 +82,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 | Loop runs in a dedicated worktree sandbox (`offline-finance-dashboard-v3`) with copied `.env` + DBs; main checkout read-only; agent-side guard config enforces external-directory denial + catastrophic-command deny-list | User decision (containment focus: damage outside the project folder + other repos) |
 | 2026-10-29 | No DB backup snapshots during the run — the original `dev-plain.db` in the main checkout is the recovery point; a wrecked sandbox DB is re-copied | User decision; coherent because the worktree copy is expendable |
 | 2026-10-29 | No push guard of any kind — pushes remain possible (plan still says the LOOP never pushes, but nothing technical blocks it and the user's manual pushes stay untouched) | User decision ("allow push") |
+| 2026-10-29 | Fixed import casing debt: `index.ts` + `+layout.svelte` imported `Navigation.svelte` but git records `navigation.svelte`; imports corrected to git casing (not a rename) | Fresh worktree checkout materialized true git casing, exposing latent wrong-case imports that the main checkout's case-insensitive FS had masked; git casing is canonical |
 
 ## Deferrals
 | Item | Reason |
@@ -84,7 +93,10 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 |---|---|---|
 
 ## Notes for next iteration
-- Sweep 0 in flight: baseline check/test/build + dev-server login verification remain after progress-file commit.
-- Guard config `.opencode/opencode.json` verified present with external_directory deny (containment self-check PASSED 2026-10-29 19:11 GMT). Untracked by design.
-- Baseline expectation (v2 exit state): check 0/0, 983 tests green, build green, 135 files.
+- **Sweep 0 COMPLETE** (19:14:46 GMT). Next: **Sweep 1 — BIG VISIBLE CHANGE (B01–B04)** per plan §6.3. Start with B01 SHELL & VIEWPORT BLOCK CYCLE: RESEARCH (git show main:<path> for "before" states) → JUDGE → PLAN (≤5 edit units) → EDIT → SELF-REVIEW.
+- Dev server: RUNNING in background (shell ID sh_189153b0a001cp8sLuyUCzricQ) at http://127.0.0.1:5173. If dead on resume: `npm run dev` background:true.
+- CDP browser: page 1 authenticated session active at `/` — sessions die <60s after login; re-login per Appendix B pattern (navigate → snapshot → fill uid×2 → click → poll in ONE evaluate_script).
+- Baseline observation for B01/R2: unauthenticated `/` already lands on `/login?reason=logged-out&redirectTo=%2F` showing "You have been logged out. Data is sealed." — R2 may be partially satisfied by v2 already; verify the "clear path to log in" criterion properly in B01's cycle before ticking.
+- Casing gotcha: this worktree materializes TRUE git casing (main checkout FS is case-insensitive and had masked it). If more casing errors surface, fix imports to git casing (`git ls-files` is truth).
+- `.docs/VERSION_HISTORY.md` did not exist in the worktree — created at Sweep 0 close.
 - Ledger discipline: end-times from fresh `date` AFTER work; correct drift DOWN only.
