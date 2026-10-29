@@ -39,31 +39,13 @@
 
 	let active = $state<ViewId>('trend');
 
-	// Fall off an empty default view to the first one with data.
-	$effect(() => {
+	// Effective view: falls off an empty default to the first view with
+	// data. Derived (not an effect) so SSR resolves it identically.
+	const effective = $derived.by(() => {
 		if (active === 'trend' && !hasTrend) {
-			const first = views.find((v) => v.available);
-			if (first) active = first.id;
+			return views.find((v) => v.available)?.id ?? null;
 		}
-	});
-
-	const monthLabel = $derived(
-		cashflow
-			? new Date(Date.UTC(cashflow.year, cashflow.month - 1, 1)).toLocaleDateString('en-GB', {
-					month: 'long',
-					year: 'numeric',
-					timeZone: 'UTC'
-				})
-			: ''
-	);
-
-	const trendSummary = $derived.by(() => {
-		if (trend.length < 2) return 'Not enough snapshots yet';
-		const first = trend[0].netWorthInCents;
-		const last = trend[trend.length - 1].netWorthInCents;
-		const delta = last - first;
-		const dir = delta >= 0 ? 'up' : 'down';
-		return `Net worth ${dir} ${formatCurrency(Math.abs(delta))} across ${trend.length} snapshots (${trend[0].date} → ${trend[trend.length - 1].date})`;
+		return active;
 	});
 </script>
 
@@ -76,10 +58,10 @@
 					<button
 						type="button"
 						role="tab"
-						aria-selected={active === view.id}
+						aria-selected={effective === view.id}
 						class="bracket-link text-xs"
-						class:bg-gray-100={active === view.id}
-						class:font-bold={active === view.id}
+						class:bg-gray-100={effective === view.id}
+						class:font-bold={effective === view.id}
 						onclick={() => (active = view.id)}
 					>
 						{view.label}
@@ -88,15 +70,15 @@
 			{/each}
 		</div>
 
-		{#if active === 'trend' && hasTrend}
+		{#if effective === 'trend' && hasTrend}
 			<NetWorthChart points={trend} formatPence={formatCurrency} />
-		{:else if active === 'cashflow' && hasCashflow && cashflow}
+		{:else if effective === 'cashflow' && hasCashflow && cashflow}
 			<CashflowCalendar
 				year={cashflow.year}
 				month={cashflow.month}
 				obligations={cashflow.obligations}
 			/>
-		{:else if active === 'allocation' && hasAllocation}
+		{:else if effective === 'allocation' && hasAllocation}
 			<AllocationBar items={assetGroups} label="held" />
 		{/if}
 	</div>
