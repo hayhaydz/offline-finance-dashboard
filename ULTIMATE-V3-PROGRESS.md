@@ -10,6 +10,8 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 19:33:30 GMT | 2026-10-29 19:52:40 GMT | 0h 19m | R30 bento gallery redesign + vision fixes; never-stop override recorded |
 | 2026-10-29 19:52:40 GMT | 2026-10-29 20:05:31 GMT | 0h 13m | R29 home two-column conversion + vision adjudication; B02 complete |
 | 2026-10-29 20:05:31 GMT | 2026-10-29 20:16:11 GMT | 0h 11m | B03 goals: tick lines removed, full-width allocation + debt detail, live+vision |
+| 2026-10-29 20:16:11 GMT | 2026-10-29 20:20:29 GMT | 0h 04m | B04 accounts first pass (R5+R29) + sweep 1 gate (check/test/build/vision) |
+| 2026-10-29 20:20:29 GMT | 2026-10-29 20:22:15 GMT | 0h 02m | B05 design: research + architecture record + progress-plan |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -62,7 +64,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | B02 HOME | 1 | COMPLETE (sweep 1) | R3 ✓ R29(home) ✓ R30 ✓; chart-internal P2s → R31 |
 | B03 GOALS | 1 | COMPLETE (sweep 1) | R4 ✓ R6 ✓; bulletbar keeps tick capability (unused); deeper R29 grid pass when B03 revisited |
 | B04 ACCOUNTS & LIABILITIES | 1 | FIRST PASS (sweep 1) | R5 ✓ R29(accounts) ✓; R17 deeper work → sweep 5 |
-| B05 CREDIT & STOOZING | — | unvisited | R7 R8 R20 · sweep 2 |
+| B05 CREDIT & STOOZING | 2 | DESIGN COMPLETE — U1 schema next | design record .docs/design/2026-10-29-2025-credit-engine.md; R7 R8 R20 |
 | B06 DATA MANAGEMENT | — | unvisited | R14 R15 R18 R19 R21 R22 R23 R26 · sweep 3 |
 | B07 REPORTS v2 | — | unvisited | R10 · sweep 4 |
 | B08 TOOLS | — | unvisited | R13 · sweep 4 |
@@ -145,27 +147,24 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 - R5+R29 pass (2026-10-29 20:19 GMT): heatmap max-w removed (panel 1582px live); SUMMARY stats + ACCOUNT ALERTS paired 3/2 (936/622 live) with empty-state cell when no accounts. ev: commit `5f10731`; console 0 err / 0 5xx; vision "implemented without visual defects" (heatmap full width, columns aligned, P0 none).
 - R17 deeper work (closed/open presentation, liabilities surface) — deferred to Sweep 5's dedicated weaker-area pass per plan §6.3; NOT forgotten: tracked in registry.
 
+### B05 CREDIT & STOOZING (Sweep 2 — DESIGN COMPLETE, implementation next)
+- research:
+  1. Schema today: accounts have creditLimit + minimumPayment rules; transactions have charge/payment/interest_charge types; NO promo/mode/plan concepts (src/lib/db/schema/accounts.ts).
+  2. Monzo Flex (web, monzo.com + community): Pay in Full / Pay in 3 interest-free; 6/12 carry fee/interest; can switch to interest-free before first payment; cards set a DEFAULT plan — validates per-transaction plans + card default.
+  3. Stoozing convention: 0% balance parked while savings earn; clear just before promo end (clear-by date a few days early for payment clearing).
+- design: `.docs/design/2026-10-29-2026-2025-credit-engine.md` — per-account creditMode panic|stooze (Appendix C), card-level promoEndsAt + revertAprBps, per-transaction payoffPlan immediate|over_time + plannedClearBy (3-month target), payment allocatesToId waterfall, statement-delay as engine input (confirmed-through = last month-end), pure-function engine + hand-computed tests, mode-switched panels (panic = existing DebtProjectionSection; stooze = reminders, no pressure).
+- PLAN (next units):
+  - [ ] U1 schema via sanctioned path (accounts + accountTransactions columns, db:generate → SQL → dev-plain.db → journal hash → seed.ts same unit)
+  - [ ] U2 credit-engine.ts + unit tests (hand-computed matrix in design record)
+  - [ ] U3 account detail: mode toggle + panic/stooze panels (DebtProjectionSection only in panic)
+  - [ ] U4 transactions: plan badges + over-time cost + split tracker (R8+R20)
+  - [ ] U5 gate: check/test/build + live + vision + record
+
 ## Sweep 1 — GATE PASSED (2026-10-29 20:20 GMT)
 - check 0/0 ✓ · full suite 988/988 ✓ · build green (adapter-node ✔) ✓
 - live smoke: `/`, `/goals`, `/goals/debt/clear-mastercard`, `/accounts` — console 0 errors, network 0 5xx on all
 - vision spot-checks: home ×3 (bento v1 → fixes → R29 two-column), goals ×1, accounts ×1 — zero open P0/P1 on changed surfaces; P2s triaged (chart internals → R31; polish → later sweeps)
 - ledger current · all work committed through `5f10731`
-- research:
-  1. Milestone tick LINES are v2's "Phase 4 V1 #3" system: util `goal-milestone-ticks` + rendering in DebtCard (ticks each-block in bar), GoalCard (emergencyFundTicksForBar), GoalRow (ticks derived + GoalBulletBar), GoalDetailCard. GoalBulletBar is a v2-only component (not on main), used by GoalRow.
-  2. Pre-v2 (main): bars have NO tick lines; GoalCard/GoalRow DID have textual milestone labels (1mo/3mo/6mo/12mo under the name) — those are NOT the complaint and stay.
-  3. R6 width offenders: `goals/+page.svelte:271` `max-w-3xl mt-3` (allocation section), `goals/debt/[slug]/+page.svelte:23` `max-w-4xl` page wrapper.
-  4. Home also passes `milestones` to DebtCard (+page.svelte) — prop removal must update call sites.
-- judgments:
-  1. Remove tick-LINE rendering from all 5 components (bars revert to pre-v2 form); KEEP textual milestone labels that predate v2; KEEP the milestone data model + create/edit UI (removing the schema is out of scope for R4 and the data feeds textual "next milestone" hints).
-  2. DebtCard: drop ticks block + derived + prop; home call site drops the milestone prop. GoalCard: drop emergencyFundTicksForBar block + import; keep textual row. GoalRow: drop ticks derived + GoalBulletBar usage → inline plain bar (GoalBulletBar with default no-ticks already renders plain bar — simpler: stop passing ticks, keep component; component keeps defaulting ticks=[] so it renders a plain bar). GoalDetailCard: drop its tick block.
-  3. R6: allocation section + debt detail lose max-w wrappers (full width per R1/R29).
-  4. Update tests pinning ticks (search tests for milestone-ticks/debtTicks).
-- PLAN:
-  - [x] U1 strip tick lines from DebtCard (+ home call site milestone prop) + GoalDetailCard checked (textual only — kept). ev: commit `ebef83b`; DOM tickLines:0 on /goals
-  - [x] U2 strip tick lines from GoalCard + GoalRow (textual 1mo/3mo labels KEPT — pre-v2 feature); GoalBulletBar keeps tick capability (unused default plain). ev: same commit; vision "plain progress bars with no vertical tick marks"
-  - [x] U3 R6 width: goals allocation `max-w-3xl` removed (panel 1582px live), debt detail `max-w-4xl` → `w-full` (1582px live). ev: DOM wrapClass "p-4 w-full", allocPanelWidth 1582
-  - [x] U4 gate: check 0/0; full suite 988/988 (bulletbar tick-capability tests still green — component unchanged); live /goals (10 rows, 10 plain bars, console 0 err, 0 5xx) + /goals/debt/clear-mastercard (0 ticks, full width, clean). Gotcha found: /goals/debt/pay renders "Debt goal not found" error page — legacy breadcrumb artifact, not a real slug; error page itself renders correctly. ev: CDP outputs above
-  - [x] U5 record + tick R4/R6 — below
 
 ## Decisions
 | Date | Decision | Rationale |
@@ -194,10 +193,9 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b02-bento-fixed-1600.png | (zai-vision; vmodel 1305 ×3 exhausted) 3/4 prior defects verified fixed; ragged-bottom claim re-checked via DOM: panels aligned 269/269 after h-full fix; P2-3 "goals" noun copy bug REAL → fixed same unit |
 
 ## Notes for next iteration
-- **B02 IN FLIGHT — R30 bento redesign is the immediate next unit** (§9 addendum): kill the VISUALISATIONS SectionHeader (no title at all), shrink chart scale (NetWorthChart H=220 too tall? smaller viewBox + smaller text), bento grid with different-sized cells (e.g. trend chart wide 2-col span, allocation narrow, cashflow cell) — `grid grid-cols-<n>` with col/row spans, terminal borders. Then vision-review the redesigned gallery (deferred from U5). Then R29 pass over the rest of home (KPI rows → grids), then B03 GOALS (R4 R6 + milestones prop removal lives there: `milestones={(goal as any).milestones ?? null}` in +page.svelte:350), then B04 ACCOUNTS (R5 heatmap width).
-- Sweep 1 gate when B02–B04 done: check 0/0 + full tests + live smoke of changed routes + vision spot-checks + `npm run build` + ledger + commits.
-- Audit dir for sweep-1 screenshots: `.docs/reviews/2026-10-29-1916-ultimate-v3-audit/`.
-- Dev server RUNNING (5173). CDP page 1 authed; **resize_page to 1600×1000 BEFORE screenshots** (window was emulating 500×844 phone). Sessions die <60s — re-login per Appendix B.
-- Gotchas hit: (a) print CSS `body > div` selector wrong — SvelteKit wraps body in `display:contents` div; used `.app-shell` class instead. (b) Palette-open check must run in a SEPARATE evaluate_script after click (Svelte flush is async). (c) Escape keydown must dispatch on `window` not `document`. (d) Test suite: 1 uncaptured first-run failure then 2× full green — documented flake; if a named failure recurs, investigate properly.
-- vmodel.sh: 1× 1305 flake then success on retry 2 (within the ×2 budget).
-- 30 flex-wrap instances remain app-wide (legends/forms mostly) — audit per-block in later sweeps per B01 judgment #4.
+- **B05 U1 IS THE NEXT UNIT**: schema via sanctioned path per design record `.docs/design/2026-10-29-2025-credit-engine.md` — accounts += creditMode/promoEndsAt/revertAprBps; accountTransactions += payoffPlan/plannedClearBy/allocatesToId; then db:generate → apply SQL to storage/dev-plain.db → complete __drizzle_migrations journal hash (sha256 of migration SQL; tests/integration/migration-journal-sync.test.ts enforces) → update scripts/seed.ts SAME UNIT. Then U2 engine + tests, U3 mode toggle + panels, U4 transaction plans + split tracker, U5 gate.
+- Sweep 1 PASSED (B01–B04 complete, gate evidenced at `## Sweep 1 — GATE PASSED`). Sweep 2 = B05. Sweeps 3–6 queued per plan §6.3.
+- Audit dir for sweep screenshots: `.docs/reviews/2026-10-29-1916-ultimate-v3-audit/`.
+- Dev server RUNNING (5173). CDP page 1 authed; **resize_page to 1600×1000 BEFORE screenshots**. Sessions die <60s — re-login per Appendix B.
+- Gotchas: (a) progress-file edits — anchor on unique headings, verify structure after (grep ^###/^##); two mangles this session, both repaired; (b) `/goals/debt/pay` is an error-page breadcrumb artifact — use real slugs from the debt list; (c) vmodel 1305-prone tonight — 2 retries then zai-vision; (d) palette/accordion interactions need a separate evaluate_script after clicks (Svelte flush) + window-dispatched keys; (e) print CSS must target `.app-shell` (SvelteKit display:contents wrapper); (f) 30 flex-wrap instances remain app-wide — audit per-block later.
+- NEVER stop early (§0 override): batch checkpoints = commit + record + CONTINUE in the same turn.
