@@ -1,0 +1,668 @@
+import { and, desc, eq } from "drizzle-orm";
+import { withUserFilter } from "$lib/auth/row-security";
+import { db } from "$lib/db/client";
+import {
+	accounts,
+	accountTransactions,
+	expensesHistory,
+	incomeHistory,
+} from "$lib/db/schema";
+import {
+	cardSplitSummary,
+	chargeStatuses,
+	stoozeStatus,
+} from "$lib/server/credit-engine";
+import { decryptTxDescription } from "$lib/server/crypto/protected-fields";
+import {
+	getDebtReport,
+	getInterestReport,
+	getMonthlySpend,
+	getNetWorthHistory,
+} from "$lib/server/reports";
+import { formatCurrency } from "$lib/utils/currency";
+
+/**
+ * Reports v2 (v3 B07, R10): separate dated reports, each a focused
+ * interesting question, rendered in a science-paper structure
+ * (title / abstract / method / findings) inside the terminal aesthetic —
+ * structure borrowed, not LaTeX pastiche (Appendix C decision).
+ *
+ * A report is a pure server-side document: headline numbers computed by
+ * the app's existing engines, an auto-written abstract with real figures,
+ * a method block naming the data and the math, and findings as terminal
+ * tables + optional figures (existing chart components, keyed).
+ */
+
+// ---------------------------------------------------------------------------
+// Document shape
+// ---------------------------------------------------------------------------
+
+export type ReportFigure =
+	| "netWorth"
+	| "stackedArea"
+	| "psaBullet"
+	| "monthlySpend"
+	| "categoryBars"
+	| "debtWaterfall"
+	| "none";
+
+export interface ReportRow {
+	label: string;
+	value: string;
+	/** semantic status colour; null = neutral */
+	flag?: "green" | "amber" | "red" | null;
+}
+
+export interface ReportSection {
+	heading: string;
+	rows?: ReportRow[];
+	notes?: string[];
+	figure?: ReportFigure;
+	/** extra figure payload key when a section needs the shared data */
+	note?: string;
+}
+
+export interface ReportDoc {
+	slug: string;
+	title: string;
+	/** Generation date, ISO — reports are written on demand */
+	date: string;
+	abstract: string;
+	method: string[];
+	findings: ReportSection[];
+	/** shared figure data, shape depends on `figure` keys used */
+	netWorthHistory?: { date: string; netWorthInCents: number; totalAssetsInCents: number; totalLiabilitiesInCents: number }[];
+	interest?: {
+		taxYearLabel: string;
+		band: string;
+		allowancePence: number;
+		actualPence: number;
+		projectedPence: number;
+	} | null;
+	monthlySpend?: {
+		month: string;
+		totalPence: number;
+		categories: { name: string; colour: string; spentPence: number }[];
+	}[];
+	debt?: {
+		goals: {
+			name: string;
+			slug: string;
+			remainingInCents: number;
+			projectedPayoffDate: string | null;
+		}[];
+		totalDebtInCents: number;
+		totalMonthlyMinimumInCents: number;
+		projectedDebtFreeDate: string | null;
+	} | null;
+}
+
+export interface ReportDefinition {
+	slug: string;
+	title: string;
+	/** One-line index blurb (the question the report asks) */
+	blurb: string;
+	build: (userId: number) => Promise<ReportDoc>;
+}
+
+const isoToday = () => new Date().toISOString().slice(0, 10);
+
+function pct(part: number, whole: number): string {
+	if (whole <= 0) return "—";
+	return `${((part / whole) * 100).toFixed(1)}%`;
+}
+
+// ---------------------------------------------------------------------------
+// Report: net-worth-trajectory
+// ---------------------------------------------------------------------------
+
+async function buildNetWorth(userId: number): Promise<ReportDoc> {
+	const history = await getNetWorthHistory(userId);
+	const date = isoToday();
+
+	if (history.length < 2) {
+		return {
+			slug: "net-worth-trajectory",
+			title: "Net Worth Trajectory",
+			date,
+			abstract:
+				"Insufficient history — at least two snapshots are needed to speak of a trajectory.",
+			method: ["Snapshots table, user-scoped", "Δ = latest − first over the window"],
+			findings: [
+				{ heading: "Findings", rows: [{ label: "snapshots available", value: String(history.length) }] },
+			],
+			netWorthHistory: history,
+		};
+	}
+
+	const first = history[0];
+	const latest = history[history.length - 1];
+	const delta = latest.netWorthInCents - first.netWorthInCents;
+	const window = `${first.date} → ${latest.date}`;
+
+	// best/worst month-over-month step
+	let bestStep = { date: "", delta: -Infinity };
+	let worstStep = { date: "", delta: Infinity };
+	for (let i = 1; i < history.length; i++) {
+		const step = history[i].netWorthInCents - history[i - 1].netWorthInCents;
+		if (step > bestStep.delta) bestStep = { date: history[i].date, delta: step };
+		if (step < worstStep.delta) worstStep = { date: history[i].date, delta: step };
+	}
+
+	const assetsDelta = latest.totalAssetsInCents - first.totalAssetsInCents;
+	const liabsDelta = latest.totalLiabilitiesInCents - first.totalLiabilitiesInCents;
+
+	return {
+		slug: "net-worth-trajectory",
+		title: "Net Worth Trajectory",
+		date,
+		abstract: `Net worth stands at ${formatCurrency(latest.netWorthInCents)} as of ${latest.date}, a change of ${delta >= 0 ? "+" : ""}${formatCurrency(delta)} since ${first.date}. Over the window, assets moved ${assetsDelta >= 0 ? "+" : ""}${formatCurrency(assetsDelta)} against liabilities ${liabsDelta <= 0 ? "" : "+"}${formatCurrency(liabsDelta)}; the largest single step was ${bestStep.delta >= 0 ? "+" : ""}${formatCurrency(bestStep.delta)} (${bestStep.date}).`,
+		method: [
+			`Data: net worth snapshots, ${history.length} observations (${window})`,
+			"Δ computed between first and latest observations; step analysis between consecutive snapshots",
+			"Amounts are stored pence; displayed rounded to pounds",
+		],
+		findings: [
+			{
+				heading: "Headline numbers",
+				rows: [
+					{ label: `net worth @ ${latest.date}`, value: formatCurrency(latest.netWorthInCents), flag: latest.netWorthInCents >= 0 ? "green" : "red" },
+					{ label: `change since ${first.date}`, value: `${delta >= 0 ? "+" : ""}${formatCurrency(delta)}`, flag: delta >= 0 ? "green" : "red" },
+					{ label: "assets", value: formatCurrency(latest.totalAssetsInCents) },
+					{ label: "liabilities", value: formatCurrency(latest.totalLiabilitiesInCents), flag: latest.totalLiabilitiesInCents > 0 ? "amber" : null },
+					{ label: "largest rise", value: `${formatCurrency(bestStep.delta)} (${bestStep.date})`, flag: "green" },
+					...(Number.isFinite(worstStep.delta)
+						? [{ label: "largest fall", value: `${formatCurrency(worstStep.delta)} (${worstStep.date})`, flag: "red" as const }]
+						: []),
+				],
+			},
+			{
+				heading: "Composition over time",
+				figure: "stackedArea",
+				notes: ["Assets and liabilities stacked — the gap between the two bands is the net worth line."],
+			},
+			{
+				heading: "Trajectory",
+				figure: "netWorth",
+			},
+		],
+		netWorthHistory: history,
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Report: savings-rate
+// ---------------------------------------------------------------------------
+
+async function buildSavingsRate(userId: number): Promise<ReportDoc> {
+	const [incomeRows, expenseRows] = await Promise.all([
+		db
+			.select({ month: incomeHistory.month, cents: incomeHistory.grossIncomeInCents })
+			.from(incomeHistory)
+			.where(withUserFilter(userId, incomeHistory))
+			.orderBy(desc(incomeHistory.month))
+			.limit(12),
+		db
+			.select({ month: expensesHistory.month, cents: expensesHistory.monthlyExpensesInCents })
+			.from(expensesHistory)
+			.where(withUserFilter(userId, expensesHistory))
+			.orderBy(desc(expensesHistory.month))
+			.limit(12),
+	]);
+
+	const date = isoToday();
+	const byMonth = new Map<string, { income: number | null; expenses: number | null }>();
+	for (const row of incomeRows) {
+		const entry = byMonth.get(row.month) ?? { income: null, expenses: null };
+		entry.income = row.cents;
+		byMonth.set(row.month, entry);
+	}
+	for (const row of expenseRows) {
+		const entry = byMonth.get(row.month) ?? { income: null, expenses: null };
+		entry.expenses = row.cents;
+		byMonth.set(row.month, entry);
+	}
+	const months = [...byMonth.keys()].sort().reverse();
+	const paired = months.filter((m) => {
+		const e = byMonth.get(m);
+		return e?.income !== null && e?.income !== undefined && e?.expenses !== null && e?.expenses !== undefined;
+	});
+
+	if (paired.length === 0) {
+		return {
+			slug: "savings-rate",
+			title: "Savings Rate & Runway",
+			date,
+			abstract:
+				"No months have both declared income and declared expenses — record at least one month of each to compute a savings rate.",
+			method: [
+				"Data: income_history and expenses_history (user-scoped, last 12 months)",
+				"savings rate = (income − expenses) / income",
+				"runway = liquid assets ÷ monthly expenses (needs account data)",
+			],
+			findings: [{ heading: "Findings", rows: [{ label: "paired months", value: "0" }] }],
+		};
+	}
+
+	const rates = paired.map((month) => {
+		const { income, expenses } = byMonth.get(month)!;
+		return { month, income: income!, expenses: expenses!, rate: (income! - expenses!) / income! };
+	});
+	const avgRate = rates.reduce((sum, r) => sum + r.rate, 0) / rates.length;
+	const best = rates.reduce((a, b) => (b.rate > a.rate ? b : a));
+	const worst = rates.reduce((a, b) => (b.rate < a.rate ? b : a));
+	const totalSaved = rates.reduce((sum, r) => sum + r.income - r.expenses, 0);
+
+	return {
+		slug: "savings-rate",
+		title: "Savings Rate & Runway",
+		date,
+		abstract: `Across ${rates.length} declared month${rates.length !== 1 ? "s" : ""}, the mean savings rate is ${pct(avgRate * 100, 100) === "—" ? "—" : `${(avgRate * 100).toFixed(1)}%`}, with a best of ${(best.rate * 100).toFixed(1)}% (${best.month}) and a worst of ${(worst.rate * 100).toFixed(1)}% (${worst.month}). Total declared surplus: ${formatCurrency(totalSaved)}.`,
+		method: [
+			`Data: income_history + expenses_history, ${rates.length} paired months of the last 12`,
+			"savings rate = (gross income − declared expenses) / gross income, per month",
+			"mean rate is unweighted across months (not income-weighted)",
+		],
+		findings: [
+			{
+				heading: "Monthly rates",
+				rows: rates
+					.slice()
+					.reverse()
+					.map((r) => ({
+						label: r.month,
+						value: `${(r.rate * 100).toFixed(1)}% · ${formatCurrency(r.income - r.expenses)} saved`,
+						flag: r.rate >= 0.2 ? ("green" as const) : r.rate >= 0 ? ("amber" as const) : ("red" as const),
+					})),
+			},
+			{
+				heading: "Extremes",
+				rows: [
+					{ label: "mean rate", value: `${(avgRate * 100).toFixed(1)}%` },
+					{ label: `best ${best.month}`, value: `${(best.rate * 100).toFixed(1)}%`, flag: "green" },
+					{ label: `worst ${worst.month}`, value: `${(worst.rate * 100).toFixed(1)}%`, flag: "red" },
+					{ label: "total surplus (declared)", value: formatCurrency(totalSaved) },
+				],
+				notes: [
+					"A negative month means declared expenses exceeded declared income — savings were drawn down.",
+					"Rate thresholds: ≥20% green, 0–20% amber, negative red.",
+				],
+			},
+		],
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Report: interest-vs-allowance
+// ---------------------------------------------------------------------------
+
+async function buildInterest(userId: number): Promise<ReportDoc> {
+	const report = await getInterestReport(userId);
+	const date = isoToday();
+	const headroom = report.psaAllowanceInCents - report.forecastTaxableInCents;
+
+	return {
+		slug: "interest-vs-allowance",
+		title: "Interest vs the Personal Savings Allowance",
+		date,
+		abstract: `Taxable interest for ${report.taxYearLabel} is tracking at ${formatCurrency(report.forecastTaxableInCents)} (actual ${formatCurrency(report.actualTaxableInCents)} + projected ${formatCurrency(report.projectedTaxableInCents)}) against a ${report.band}-band allowance of ${formatCurrency(report.psaAllowanceInCents)} — ${headroom >= 0 ? `${formatCurrency(headroom)} of headroom` : `${formatCurrency(-headroom)} OVER the allowance`}.`,
+		method: [
+			`Data: interest breakdown engine, tax year ${report.taxYearLabel} (6 Apr → 5 Apr)`,
+			`PSA by band: £1,000 basic / £500 higher / £0 additional — resolved band: ${report.band}`,
+			"forecast = actual (to date) + projected (annualised from rates to 5 Apr)",
+		],
+		findings: [
+			{
+				heading: "Allowance math",
+				figure: "psaBullet",
+			},
+			{
+				heading: "Numbers",
+				rows: [
+					{ label: "tax year", value: report.taxYearLabel },
+					{ label: "band", value: String(report.band) },
+					{ label: "allowance", value: formatCurrency(report.psaAllowanceInCents) },
+					{ label: "actual taxable", value: formatCurrency(report.actualTaxableInCents) },
+					{ label: "projected taxable", value: formatCurrency(report.projectedTaxableInCents) },
+					{ label: "forecast total", value: formatCurrency(report.forecastTaxableInCents), flag: headroom >= 0 ? "green" : "red" },
+					{ label: "headroom", value: `${headroom >= 0 ? "+" : ""}${formatCurrency(headroom)}`, flag: headroom >= 0 ? "green" : "red" },
+					{ label: "tax-free (ISA) actual + projected", value: formatCurrency(report.actualTaxFreeInCents + report.projectedTaxFreeInCents) },
+				],
+				notes: [
+					"Interest inside ISAs does not consume the allowance — the tax-free row is informational.",
+				],
+			},
+		],
+		interest: {
+			taxYearLabel: report.taxYearLabel,
+			band: String(report.band),
+			allowancePence: report.psaAllowanceInCents,
+			actualPence: report.actualTaxableInCents,
+			projectedPence: report.projectedTaxableInCents,
+		},
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Report: credit-strategy
+// ---------------------------------------------------------------------------
+
+async function buildCreditStrategy(userId: number): Promise<ReportDoc> {
+	const cards = await db
+		.select({
+			id: accounts.id,
+			slug: accounts.slug,
+			name: accounts.name,
+			creditMode: accounts.creditMode,
+			promoEndsAt: accounts.promoEndsAt,
+			revertAprBps: accounts.revertAprBps,
+		})
+		.from(accounts)
+		.where(
+			and(
+				withUserFilter(userId, accounts),
+				eq(accounts.type, "credit-card"),
+			),
+		);
+
+	const date = isoToday();
+	if (cards.length === 0) {
+		return {
+			slug: "credit-strategy",
+			title: "Credit Strategy — Stoozing & Payoff Pressure",
+			date,
+			abstract: "No credit-card accounts exist — there is no credit strategy to report.",
+			method: ["Data: credit-card accounts + their transactions through the credit engine"],
+			findings: [{ heading: "Findings", rows: [{ label: "cards", value: "0" }] }],
+		};
+	}
+
+	const today = new Date();
+	const sections: ReportSection[] = [];
+	let totalStoozed = 0;
+	let totalBehind = 0;
+	let totalOnTrack = 0;
+
+	for (const card of cards) {
+		const tx = await db
+			.select({
+				id: accountTransactions.id,
+				slug: accountTransactions.slug,
+				description: accountTransactions.description,
+				type: accountTransactions.type,
+				amount: accountTransactions.amount,
+				payoffPlan: accountTransactions.payoffPlan,
+				plannedClearBy: accountTransactions.plannedClearBy,
+				allocatesToId: accountTransactions.allocatesToId,
+				transactionDate: accountTransactions.transactionDate,
+			})
+			.from(accountTransactions)
+			.where(eq(accountTransactions.accountId, card.id))
+			.orderBy(desc(accountTransactions.transactionDate));
+
+		const charges = tx
+			.filter((t) => t.type === "charge")
+			.map((t) => ({
+				id: t.id,
+				amountPence: Math.abs(t.amount),
+				date: t.transactionDate,
+				payoffPlan: t.payoffPlan,
+				plannedClearBy: t.plannedClearBy,
+			}));
+		const payments = tx
+			.filter((t) => t.type === "payment")
+			.map((t) => ({
+				id: t.id,
+				amountPence: Math.abs(t.amount),
+				date: t.transactionDate,
+				allocatesToId: t.allocatesToId,
+			}));
+
+		const engineAccount = {
+			creditMode: card.creditMode,
+			promoEndsAt: card.promoEndsAt,
+			revertAprBps: card.revertAprBps,
+		};
+		const statuses = chargeStatuses(charges, payments, engineAccount, today);
+		const summary = cardSplitSummary(charges, payments, engineAccount, today);
+		const outstanding = statuses.reduce(
+			(sum, s) => sum + Math.max(0, s.remainingPence),
+			0,
+		);
+		const stooze = stoozeStatus(engineAccount, outstanding, today);
+
+		const rows: ReportRow[] = [
+			{ label: "mode", value: card.creditMode ?? "unset", flag: card.creditMode === "panic" ? "amber" : card.creditMode === "stooze" ? "green" : null },
+			{ label: "outstanding (charges)", value: formatCurrency(outstanding) },
+			{ label: "cleared / on-track / behind", value: `${summary.clearedCount} / ${summary.onTrackCount} / ${summary.behindCount}`, flag: summary.behindCount > 0 ? "red" : "green" },
+		];
+		if (stooze.stoozing && stooze.clearBy && stooze.daysLeft !== null) {
+			totalStoozed += outstanding;
+			rows.push({
+				label: "0% ends",
+				value: `${(stooze.promoEndsAt ?? new Date()).toISOString().slice(0, 10)} (${stooze.daysLeft} days)`,
+				flag: stooze.daysLeft <= 30 ? "red" : stooze.daysLeft <= 60 ? "amber" : "green",
+			});
+			rows.push({
+				label: "have ready / pay by",
+				value: `${formatCurrency(stooze.clearAmountPence ?? outstanding)} · ${stooze.clearBy.toISOString().slice(0, 10)}`,
+			});
+		}
+		if (summary.totalFlexCostPence > 0) {
+			rows.push({
+				label: "interest already accrued (late)",
+				value: formatCurrency(summary.totalFlexCostPence),
+				flag: "red",
+			});
+		}
+		sections.push({
+			heading: `${card.name} (${card.slug.slice(0, 8)})`,
+			rows,
+			notes: statuses
+				.filter((s) => s.remainingPence > 0 && !s.onTrack)
+				.slice(0, 3)
+				.map(
+					(s) =>
+						`A charge with ${formatCurrency(s.remainingPence)} remaining is behind its ${s.deadline.toISOString().slice(0, 10)} deadline — ${formatCurrency(s.requiredPerMonthPence)}/mo is now required.`,
+				),
+		});
+		totalBehind += summary.behindCount;
+		totalOnTrack += summary.onTrackCount;
+	}
+
+	return {
+		slug: "credit-strategy",
+		title: "Credit Strategy — Stoozing & Payoff Pressure",
+		date,
+		abstract: `${cards.length} card${cards.length !== 1 ? "s" : ""} tracked: ${totalOnTrack} charge plan${totalOnTrack !== 1 ? "s" : ""} on track, ${totalBehind} behind. ${totalStoozed > 0 ? `${formatCurrency(totalStoozed)} is riding 0% promos — the strategy is earning interest on the bank's money, provided clear-by dates hold.` : "No balances are riding promotional 0% windows."}`,
+		method: [
+			"Data: credit-card accounts + their charge/payment transactions (user-scoped)",
+			"Credit engine: statement-delay horizon = confirmed-through last month-end; 3-month payoff targets; waterfall payment allocation",
+			"stoozeStatus clear-by = promo end − 5 days (payment clearing buffer)",
+		],
+		findings: sections,
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Report: spending-profile
+// ---------------------------------------------------------------------------
+
+async function buildSpendingProfile(userId: number): Promise<ReportDoc> {
+	const monthlySpend = await getMonthlySpend(userId, 6);
+	const date = isoToday();
+	const complete = monthlySpend.filter((m) => m.totalPence > 0);
+	const latest = complete[complete.length - 1];
+
+	if (!latest) {
+		return {
+			slug: "spending-profile",
+			title: "Spending Profile — Where the Money Goes",
+			date,
+			abstract: "No categorised spending recorded in the last six months — nothing to profile yet.",
+			method: ["Data: budget category breakdown (budget-type filter, refund-aware) per calendar month"],
+			findings: [{ heading: "Findings", rows: [{ label: "months with spend", value: "0" }] }],
+			monthlySpend,
+		};
+	}
+
+	const avg = complete.reduce((s, m) => s + m.totalPence, 0) / complete.length;
+	const top = latest.categories[0];
+	const topShare = pct(top.spentPence, latest.totalPence);
+	const topCategories = latest.categories.slice(0, 5);
+
+	return {
+		slug: "spending-profile",
+		title: "Spending Profile — Where the Money Goes",
+		date,
+		abstract: `Six-month spending averages ${formatCurrency(avg)}/mo. In ${latest.month}, ${top.name} took ${topShare} of the month (${formatCurrency(top.spentPence)} of ${formatCurrency(latest.totalPence)}) across ${latest.categories.length} active categories.`,
+		method: [
+			"Data: category breakdown for the last 6 calendar months (budget definition: type-filtered, excluded accounts honoured, refunds netted)",
+			"category share = category spend ÷ month total; mean is over months with spend",
+		],
+		findings: [
+			{
+				heading: `Top categories — ${latest.month}`,
+				figure: "categoryBars",
+			},
+			{
+				heading: "Month totals",
+				figure: "monthlySpend",
+			},
+			{
+				heading: "Numbers",
+				rows: [
+					{ label: "months with recorded spend", value: `${complete.length} / 6` },
+					{ label: "mean monthly spend", value: `${formatCurrency(avg)}/mo` },
+					{ label: `latest (${latest.month})`, value: formatCurrency(latest.totalPence) },
+					{ label: `${top.name} share of ${latest.month}`, value: topShare, flag: "amber" },
+					...topCategories.map((c) => ({
+						label: `· ${c.name}`,
+						value: `${formatCurrency(c.spentPence)} (${pct(c.spentPence, latest.totalPence)})`,
+					})),
+				],
+			},
+		],
+		monthlySpend,
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Report: debt-horizon
+// ---------------------------------------------------------------------------
+
+async function buildDebtHorizon(userId: number): Promise<ReportDoc> {
+	const debt = await getDebtReport(userId);
+	const date = isoToday();
+
+	if (debt.goals.length === 0) {
+		return {
+			slug: "debt-horizon",
+			title: "Debt Horizon",
+			date,
+			abstract: "No debt goals are being tracked — the horizon is clear.",
+			method: ["Data: debt goals + linked account balances + minimum payments (snowball order)"],
+			findings: [{ heading: "Findings", rows: [{ label: "tracked debt goals", value: "0" }] }],
+		};
+	}
+
+	const monthsOfMinimums =
+		debt.totalMonthlyMinimumInCents > 0
+			? Math.ceil(debt.totalDebtInCents / debt.totalMonthlyMinimumInCents)
+			: null;
+
+	return {
+		slug: "debt-horizon",
+		title: "Debt Horizon",
+		date,
+		abstract: `${formatCurrency(debt.totalDebtInCents)} of debt across ${debt.goals.length} tracked goal${debt.goals.length !== 1 ? "s" : ""}, with minimum payments of ${formatCurrency(debt.totalMonthlyMinimumInCents)}/mo${monthsOfMinimums ? ` — ${monthsOfMinimums} months of minimums to clear` : ""}. ${debt.projectedDebtFreeDate ? `Projected debt-free: ${debt.projectedDebtFreeDate.toISOString().slice(0, 10)}.` : "No projection until payment schedules are set."}`,
+		method: [
+			"Data: debt goals with linked accounts (balances, minimum payment rules)",
+			"Waterfall order: smallest balance first (snowball)",
+			"projection = minimum-payment schedule unless a strategy overrides it",
+		],
+		findings: [
+			{
+				heading: "Waterfall",
+				figure: "debtWaterfall",
+			},
+			{
+				heading: "Numbers",
+				rows: [
+					{ label: "total debt", value: formatCurrency(debt.totalDebtInCents), flag: "amber" },
+					{ label: "monthly minimums", value: `${formatCurrency(debt.totalMonthlyMinimumInCents)}/mo` },
+					...(monthsOfMinimums
+						? [{ label: "months at minimums", value: String(monthsOfMinimums), flag: "amber" as const }]
+						: []),
+					{ label: "projected debt-free", value: debt.projectedDebtFreeDate ? debt.projectedDebtFreeDate.toISOString().slice(0, 10) : "—", flag: debt.projectedDebtFreeDate ? "green" : null },
+					...debt.goals.map((g) => ({
+						label: `· ${g.name}`,
+						value: `${formatCurrency(g.remainingInCents)}${g.projectedPayoffDate ? ` → ${g.projectedPayoffDate.toISOString().slice(0, 10)}` : ""}`,
+					})),
+				],
+			},
+		],
+		debt: {
+			goals: debt.goals.map((g) => ({
+				name: g.name,
+				slug: g.slug,
+				remainingInCents: g.remainingInCents,
+				projectedPayoffDate: g.projectedPayoffDate
+					? g.projectedPayoffDate.toISOString().slice(0, 10)
+					: null,
+			})),
+			totalDebtInCents: debt.totalDebtInCents,
+			totalMonthlyMinimumInCents: debt.totalMonthlyMinimumInCents,
+			projectedDebtFreeDate: debt.projectedDebtFreeDate
+				? debt.projectedDebtFreeDate.toISOString().slice(0, 10)
+				: null,
+		},
+	};
+}
+
+// ---------------------------------------------------------------------------
+// Registry
+// ---------------------------------------------------------------------------
+
+export const REPORTS: ReportDefinition[] = [
+	{
+		slug: "net-worth-trajectory",
+		title: "Net Worth Trajectory",
+		blurb: "Where the number has been, and the size of every step.",
+		build: buildNetWorth,
+	},
+	{
+		slug: "savings-rate",
+		title: "Savings Rate & Runway",
+		blurb: "What fraction of income survives each declared month.",
+		build: buildSavingsRate,
+	},
+	{
+		slug: "interest-vs-allowance",
+		title: "Interest vs the Personal Savings Allowance",
+		blurb: "Is the taxman getting a cut of the interest this tax year?",
+		build: buildInterest,
+	},
+	{
+		slug: "credit-strategy",
+		title: "Credit Strategy — Stoozing & Payoff Pressure",
+		blurb: "0% deadlines, split-tracker progress, and the cost of being late.",
+		build: buildCreditStrategy,
+	},
+	{
+		slug: "spending-profile",
+		title: "Spending Profile — Where the Money Goes",
+		blurb: "Category concentration and the shape of six months of spending.",
+		build: buildSpendingProfile,
+	},
+	{
+		slug: "debt-horizon",
+		title: "Debt Horizon",
+		blurb: "How far the minimum payments stretch, and the projected debt-free date.",
+		build: buildDebtHorizon,
+	},
+];
+
+export function findReport(slug: string): ReportDefinition | undefined {
+	return REPORTS.find((report) => report.slug === slug);
+}

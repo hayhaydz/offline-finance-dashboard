@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import { render } from "svelte/server";
 import StackedAreaChart from "$lib/components/charts/StackedAreaChart.svelte";
 import ReportsPage from "../../src/routes/overview/reports/+page.svelte";
+import ReportPaperPage from "../../src/routes/overview/reports/[slug]/+page.svelte";
 
-// Phase 5 line 1: assets-vs-liabilities stacked area + Reports page wiring.
+// v3 B07 (R10): reports are separate dated pieces in a science-paper
+// template; the stacked-area chart is a figure inside them.
 
 const pts = [
 	{ date: "2025-11-01", totalAssetsInCents: 2500000, totalLiabilitiesInCents: -2600000 },
@@ -54,42 +56,96 @@ describe("StackedAreaChart (Phase 5 line 1)", () => {
 	});
 });
 
-describe("Reports page (Phase 5 line 1)", () => {
-	it("renders range buttons and both charts from server data", () => {
-		const history = pts.map((p) => ({
-			...p,
-			netWorthInCents: p.totalAssetsInCents + p.totalLiabilitiesInCents,
-		}));
+describe("Reports v2 index (R10)", () => {
+	it("renders a dated article list linking each report", () => {
 		const { body } = render(ReportsPage, {
 			props: {
 				data: {
-					user: null,
-					environment: { mode: "loose", isProduction: false, hasEncryption: false },
-					netWorthHistory: history,
-					monthlySpend: [],
-					interestReport: {
-						taxYearLabel: "2026/27",
-						band: "basic",
-						psaAllowanceInCents: 100000,
-						actualTaxableInCents: 0,
-						projectedTaxableInCents: 0,
-						forecastTaxableInCents: 0,
-						actualTaxFreeInCents: 0,
-						projectedTaxFreeInCents: 0,
-					},
-					debtReport: {
-						totalDebtInCents: 0,
-						totalMonthlyMinimumInCents: 0,
-						projectedDebtFreeDate: null,
-						goals: [],
+					reports: [
+						{
+							slug: "net-worth-trajectory",
+							title: "Net Worth Trajectory",
+							blurb: "Where the number has been.",
+						},
+						{
+							slug: "credit-strategy",
+							title: "Credit Strategy",
+							blurb: "0% deadlines and payoff pressure.",
+						},
+					],
+					today: "2026-10-29",
+				},
+			},
+		});
+		expect(body).toContain("Net Worth Trajectory");
+		expect(body).toContain("Credit Strategy");
+		expect(body).toContain("[Read Report]");
+		expect(body).toContain('href="/overview/reports/net-worth-trajectory"');
+		expect(body).toContain("2 PIECES");
+	});
+});
+
+describe("Report paper (science-paper template, R10)", () => {
+	it("renders title, date, abstract, method and findings tables", () => {
+		const { body } = render(ReportPaperPage, {
+			props: {
+				data: {
+					report: {
+						slug: "test-report",
+						title: "A Focused Question",
+						date: "2026-10-29",
+						abstract: "The answer is 42 pounds.",
+						method: ["Data: something", "Math: division"],
+						findings: [
+							{
+								heading: "Headline numbers",
+								rows: [
+									{ label: "net", value: "£42.00", flag: "green" },
+									{ label: "debt", value: "£0.00" },
+								],
+							},
+						],
 					},
 				},
 			},
 		});
-		expect(body).toContain("[1y]");
-		expect(body).toContain("[5y]");
-		expect(body).toContain("[all]");
-		expect(body).toContain("all time");
+		expect(body).toContain("A Focused Question");
+		expect(body).toContain("29 OCT 2026");
+		expect(body).toContain("ABSTRACT");
+		expect(body).toContain("The answer is 42 pounds.");
+		expect(body).toContain("METHOD");
+		expect(body).toContain("Data: something");
+		expect(body).toContain("Headline numbers");
+		expect(body).toContain("£42.00");
+		expect(body).toContain("[All Reports]");
+		expect(body).toContain("[Print / PDF]");
+	});
+
+	it("renders the net-worth figures from shared history data", () => {
+		const history = pts.map((p, i) => ({
+			date: `2026-0${i + 1}-01`,
+			netWorthInCents: p.totalAssetsInCents + p.totalLiabilitiesInCents,
+			totalAssetsInCents: p.totalAssetsInCents,
+			totalLiabilitiesInCents: p.totalLiabilitiesInCents,
+		}));
+		const { body } = render(ReportPaperPage, {
+			props: {
+				data: {
+					report: {
+						slug: "net-worth-trajectory",
+						title: "Net Worth Trajectory",
+						date: "2026-10-29",
+						abstract: "abstract text",
+						method: ["m"],
+						findings: [
+							{ heading: "Trajectory", figure: "netWorth" },
+							{ heading: "Composition", figure: "stackedArea" },
+						],
+						netWorthHistory: history,
+					},
+				},
+			},
+		});
 		expect(body).toContain("Net worth over time");
 		expect(body).toContain("Assets vs liabilities");
 	});
