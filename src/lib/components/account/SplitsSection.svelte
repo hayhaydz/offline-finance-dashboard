@@ -94,7 +94,11 @@
 							<td class="text-right text-sm tabular-nums py-2 whitespace-nowrap">
 								{#if d.status.remainingPence > 0}
 									{formatCurrency(d.status.requiredPerMonthPence)}
-									<span class="text-gray-500 text-xs"> × {Math.max(0, d.status.targetMonths - d.status.monthsElapsed)}mo</span>
+									{#if d.status.plan === 'over_time'}
+										<span class="text-gray-500 text-xs"> × {Math.max(0, d.status.targetMonths - d.status.monthsElapsed)}mo</span>
+									{:else}
+										<span class="text-gray-500 text-xs"> next statement</span>
+									{/if}
 								{:else}
 									—
 								{/if}
