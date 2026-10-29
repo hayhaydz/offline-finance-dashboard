@@ -7,6 +7,11 @@ import {
 	spendingCategories,
 } from "$lib/db/schema";
 import {
+	analyzeBankCsv,
+	transformBankCsv,
+	type ColumnMapping,
+} from "$lib/server/bulk-import";
+import {
 	commitHistoryImport,
 	HISTORY_KINDS,
 	previewHistoryImport,
@@ -477,6 +482,175 @@ export const actions: Actions = {
 			return fail(500, {
 				action: "reimport-commit",
 				errors: ["Could not apply the file — nothing was changed. Try again."],
+			});
+		}
+	},
+
+	// -----------------------------------------------------------------------
+	// Bulk bank-history import (R26): analyze → map → transform to the
+	// app's CSV, then the standard reimport preview/commit applies it.
+	// -----------------------------------------------------------------------
+
+	"bulk-analyze": async ({ request, locals }) => {
+		const user = getAuthUser(locals);
+		if (!user) {
+			return fail(401, { action: "bulk-analyze", error: "Authentication required" });
+		}
+
+		const formData = await request.formData();
+		const csvText = String(formData.get("csvText") ?? "");
+		if (csvText === "") {
+			return fail(400, { action: "bulk-analyze", error: "No file contents received" });
+		}
+		if (csvText.length > 30_000_000) {
+			return fail(400, { action: "bulk-analyze", error: "File too large (max 30MB)" });
+		}
+
+		const analysis = analyzeBankCsv(csvText);
+		if ("error" in analysis) {
+			return fail(400, { action: "bulk-analyze", error: analysis.error });
+		}
+		return {
+			action: "bulk-analyze",
+			success: true,
+			header: analysis.header,
+			rowCount: analysis.rowCount,
+			sample: analysis.sample,
+			mapping: analysis.mapping,
+			monzoPreset: analysis.monzoPreset,
+		};
+	},
+
+	"bulk-transform": async ({ request, locals }) => {
+		const user = getAuthUser(locals);
+		if (!user) {
+			return fail(401, { action: "bulk-transform", error: "Authentication required" });
+		}
+
+		const formData = await request.formData();
+		const csvText = String(formData.get("csvText") ?? "");
+		const accountSlug = String(formData.get("accountSlug") ?? "");
+		let mapping: ColumnMapping;
+		try {
+			mapping = JSON.parse(String(formData.get("mapping") ?? "null"));
+		} catch {
+			return fail(400, { action: "bulk-transform", error: "Invalid mapping" });
+		}
+		if (!mapping || typeof mapping.dateCol !== "number") {
+			return fail(400, { action: "bulk-transform", error: "Invalid mapping" });
+		}
+		if (accountSlug === "") {
+			return fail(400, { action: "bulk-transform", error: "Choose a target account" });
+		}
+
+		const result = await transformBankCsv(user.id, accountSlug, csvText, mapping);
+		if ("error" in result) {
+			return fail(400, { action: "bulk-transform", error: result.error });
+		}
+		return {
+			action: "bulk-transform",
+			success: true,
+			accountSlug,
+			transformedCsv: result.csv,
+			rows: result.rows,
+			skipped: result.skipped,
+		};
+	},
+
+	"bulk-preview": async ({ request, locals }) => {
+		const user = getAuthUser(locals);
+		if (!user) {
+			return fail(401, {
+				action: "bulk-preview",
+				errors: ["Authentication required"],
+			});
+		}
+		const formData = await request.formData();
+		const csvText = String(formData.get("csvText") ?? "");
+		if (csvText === "") {
+			return fail(400, {
+				action: "bulk-preview",
+				errors: ["Nothing to preview — start over."],
+			});
+		}
+		try {
+			const preview = await previewReimport(user.id, csvText, { recovery: false });
+			if (!preview.ok) {
+				return fail(400, {
+					action: "bulk-preview",
+					errors: preview.errors.slice(0, MAX_PREVIEW_ERRORS),
+				});
+			}
+			return {
+				action: "bulk-preview",
+				success: true,
+				preview: {
+					counts: preview.counts,
+					edits: preview.edits.slice(0, 5),
+					inserts: preview.inserts.slice(0, 5),
+					deletes: preview.deletes.slice(0, 5),
+					isBackup: preview.isBackup,
+				},
+			};
+		} catch (err) {
+			logError("settings-data:bulk-preview", "Bulk preview failed", err);
+			return fail(500, {
+				action: "bulk-preview",
+				errors: ["Could not preview the file — nothing was changed."],
+			});
+		}
+	},
+
+	"bulk-commit": async ({ request, locals }) => {
+		const user = getAuthUser(locals);
+		if (!user) {
+			return fail(401, {
+				action: "bulk-commit",
+				errors: ["Authentication required"],
+			});
+		}
+		const formData = await request.formData();
+		const csvText = String(formData.get("csvText") ?? "");
+		if (csvText === "") {
+			return fail(400, {
+				action: "bulk-commit",
+				errors: ["Nothing to import — start over."],
+			});
+		}
+		// Bulk files are the queue's raison d'être — always background them
+		if (csvText.length > QUEUE_THRESHOLD_BYTES.transactions) {
+			try {
+				const job = await enqueueImportJob(user.id, "transactions", csvText, {
+					recovery: false,
+				});
+				return { action: "bulk-queued", success: true, jobSlug: job.slug };
+			} catch (err) {
+				logError("settings-data:bulk-commit", "Queueing bulk import failed", err);
+				return fail(500, {
+					action: "bulk-commit",
+					errors: ["Could not queue the file — nothing was changed."],
+				});
+			}
+		}
+		try {
+			const result = await commitReimport(user.id, csvText, { recovery: false });
+			if ("errors" in result) {
+				return fail(400, {
+					action: "bulk-commit",
+					errors: result.errors.slice(0, MAX_PREVIEW_ERRORS),
+				});
+			}
+			return {
+				action: "bulk-commit",
+				success: true,
+				counts: result.counts,
+				backupFilename: result.backupFilename,
+			};
+		} catch (err) {
+			logError("settings-data:bulk-commit", "Bulk commit failed", err);
+			return fail(500, {
+				action: "bulk-commit",
+				errors: ["Could not apply the file — nothing was changed."],
 			});
 		}
 	},

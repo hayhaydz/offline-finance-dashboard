@@ -105,3 +105,86 @@ export function serializeTransactionCsv(
 export function utcDateString(date: Date): string {
 	return date.toISOString().split("T")[0];
 }
+
+/**
+ * Split a CSV line into fields, respecting quoted values. Doubled quotes
+ * inside a quoted field decode to a single literal quote (RFC 4180).
+ * Shared by the reimport parser and the bulk bank-import mapper.
+ */
+export function splitCsvLine(line: string): string[] {
+	const fields: string[] = [];
+	let current = "";
+	let inQuotes = false;
+	for (let i = 0; i < line.length; i++) {
+		const char = line[i];
+		if (char === '"') {
+			if (inQuotes && line[i + 1] === '"') {
+				current += '"';
+				i++;
+			} else {
+				inQuotes = !inQuotes;
+			}
+		} else if (char === "," && !inQuotes) {
+			fields.push(current.trim());
+			current = "";
+		} else {
+			current += char;
+		}
+	}
+	fields.push(current.trim());
+	return fields;
+}
+
+/**
+ * Parse a full CSV document into rows of fields (RFC 4180 quoting,
+ * including quoted fields containing embedded newlines — bank exports
+ * put multi-line notes in quoted cells). Blank lines and `#` comment
+ * lines are skipped.
+ */
+export function parseCsvDocument(text: string): string[][] {
+	const rows: string[][] = [];
+	let row: string[] = [];
+	let current = "";
+	let inQuotes = false;
+
+	const endField = () => {
+		row.push(current.trim());
+		current = "";
+	};
+	const endRow = () => {
+		endField();
+		if (row.some((field) => field !== "")) rows.push(row);
+		row = [];
+	};
+
+	for (let i = 0; i < text.length; i++) {
+		const char = text[i];
+		if (inQuotes) {
+			if (char === '"') {
+				if (text[i + 1] === '"') {
+					current += '"';
+					i++;
+				} else {
+					inQuotes = false;
+				}
+			} else {
+				current += char;
+			}
+			continue;
+		}
+		if (char === '"') {
+			inQuotes = true;
+		} else if (char === ",") {
+			endField();
+		} else if (char === "\n") {
+			endRow();
+		} else if (char === "\r") {
+			// handled by the \n that follows (or end of text)
+		} else {
+			current += char;
+		}
+	}
+	if (current !== "" || row.length > 0) endRow();
+
+	return rows.filter((fields) => !(fields.length === 1 && fields[0].startsWith("#")));
+}
