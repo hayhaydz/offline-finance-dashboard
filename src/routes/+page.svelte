@@ -7,7 +7,7 @@
 	import GoalCard from '$lib/components/GoalCard.svelte';
 	import DebtCard from '$lib/components/DebtCard.svelte';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
-import CashflowCalendar from '$lib/components/charts/CashflowCalendar.svelte';
+	import HomeVizGallery from '$lib/components/charts/HomeVizGallery.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import { formatCurrency, formatCurrencyShorthand, formatAccountType, formatDateShorthand } from '$lib/utils/currency';
 	import { page as pageState } from '$app/state';
@@ -134,27 +134,23 @@ import CashflowCalendar from '$lib/components/charts/CashflowCalendar.svelte';
 		<div class="flex justify-between my-1"><span>Offline-first</span><span class="text-green-700 font-bold">Active</span></div>
 	</div>
 {:else}
-	<!-- Net worth display with server-side data -->
+	<!-- v3 R3: header reverted to pre-v2 form — the trend chart moved into
+	     the visualisation gallery below (HomeVizGallery). -->
 	<NetWorthDisplay
 		summary={data.netWorthSummary}
 		accounts={data.accounts}
-		trend={data.netWorthTrend}
 	/>
 
 	<TaxYearProgress data={data.isaTracker} />
 
 	<IsaAllowanceWidget data={data.isaTracker} />
 
-	<!-- Phase 7 line 2: cashflow calendar from recurring patterns -->
-	{#if data.cashflow?.obligations.length}
-		<div class="max-w-3xl">
-			<CashflowCalendar
-				year={data.cashflow.year}
-				month={data.cashflow.month}
-				obligations={data.cashflow.obligations}
-			/>
-		</div>
-	{/if}
+	<!-- v3 R3: visualisation gallery — click-to-switch viz types -->
+	<HomeVizGallery
+		trend={data.netWorthTrend}
+		cashflow={data.cashflow}
+		assetGroups={assetGroups.map(g => ({ name: g.type, value: Math.max(0, g.balance) }))}
+	/>
 
 	<!-- INTEREST SUMMARY SECTION -->
 	{#if data.interestSummary}
