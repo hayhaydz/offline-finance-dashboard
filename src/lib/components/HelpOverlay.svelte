@@ -6,6 +6,23 @@
 	 * closes on Escape or `[Close]`.
 	 */
 	let { open = $bindable(false) }: { open?: boolean } = $props();
+	import { captureFocus } from '$lib/utils/overlay-focus';
+
+	let closeBtn: HTMLButtonElement | null = $state(null);
+	let restoreFocus: (() => void) | null = null;
+
+	$effect(() => {
+		if (open) {
+			restoreFocus = captureFocus();
+			requestAnimationFrame(() => closeBtn?.focus());
+		}
+	});
+
+	function close() {
+		open = false;
+		restoreFocus?.();
+		restoreFocus = null;
+	}
 
 	const SHORTCUTS: Array<{ keys: string; action: string }> = [
 		{ keys: "j / ↓", action: "next row in the focused list" },
@@ -18,7 +35,7 @@
 
 	function onKeydown(event: KeyboardEvent) {
 		if (event.key === "Escape" && open) {
-			open = false;
+			close();
 			return;
 		}
 		if (
@@ -38,7 +55,8 @@
 				return;
 			}
 			event.preventDefault();
-			open = !open;
+			if (open) close();
+			else open = true;
 		}
 	}
 </script>
@@ -57,7 +75,8 @@
 				<button
 					type="button"
 					class="bracket-link text-xs"
-					onclick={() => (open = false)}>[Close]</button
+					bind:this={closeBtn}
+					onclick={close}>[Close]</button
 				>
 			</div>
 			<table class="w-full text-xs">

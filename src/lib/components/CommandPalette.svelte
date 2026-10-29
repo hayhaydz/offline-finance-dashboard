@@ -5,6 +5,7 @@
 		dynamicPaletteCommands,
 		filterCommands,
 	} from '$lib/utils/command-palette';
+	import { captureFocus } from '$lib/utils/overlay-focus';
 
 	let { open = $bindable(false) }: { open?: boolean } = $props();
 
@@ -20,17 +21,22 @@
 		if (activeIndex >= results.length) activeIndex = 0;
 	});
 
+	let restoreFocus: (() => void) | null = null;
+
 	$effect(() => {
 		if (open) {
+			// a11y: remember the trigger, focus the input once mounted
+			restoreFocus = captureFocus();
 			query = '';
 			activeIndex = 0;
-			// Focus the input once the overlay mounts
 			requestAnimationFrame(() => inputEl?.focus());
 		}
 	});
 
 	function close() {
 		open = false;
+		restoreFocus?.();
+		restoreFocus = null;
 	}
 
 	function run(cmd: (typeof commands)[number] | undefined) {

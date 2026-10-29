@@ -53,7 +53,8 @@
 
 <div class="border border-black max-w-4xl mx-auto w-full">
 	{#if user}
-		<div class="bg-black text-white p-1 font-bold text-xs flex justify-between">
+		<!-- .no-print: chrome strip stays on screen only (print/PDF rule) -->
+		<div class="bg-black text-white p-1 font-bold text-xs flex justify-between no-print">
 			<span>OFFLINE-FINANCE-v0.exe</span>
 			<span>USER: {user.username.toUpperCase()}</span>
 			<span>{modeIndicator}</span>

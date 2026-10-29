@@ -40,4 +40,13 @@ npm run dev            # → http://127.0.0.1:5173  (admin / password)
 
 ## Known deferred (with reasons)
 
-P2 backlog (8 cosmetic nits, listed in `ULTIMATE-PROGRESS.md` Notes): PSA panel legend, waterfall name truncation, last-point value tag, goal tick legend, tick-% rounding, type auto-suggest, duplicate-name hint, zero-month label visual. CSV export overhaul + 0%-intro credit-card split tracker + payslip/bills import pipeline + data scramble tool (hayhaydz notes) — sized as future projects, not this release.
+All 8 harvested P2 chart/form nits were fixed during Phase 9 polish cycles (PSA legend, waterfall truncation, net-worth value tag, goal tick legend + %-rounding, type auto-suggest, duplicate-name hint, zero-month labels — plus palette drift for /accounts/balances and print-chrome strips). Still open: the category-select auto-match quirk (below). CSV export overhaul + 0%-intro credit-card split tracker + payslip/bills import pipeline + data scramble tool (hayhaydz notes) — sized as future projects, not this release.
+
+## Known quirks (for future maintainers)
+
+- **Category select stays blank on programmatic auto-match**: component state is provably set (the auto-matched hint renders, and its condition requires `selectedCategoryId === String(id)`), but the DOM `<select>` refuses the value (`selectedIndex` -1) until the user interacts. Three fix attempts (value attr, `bind:value`, option `selected` attr) all failed; suspect the option list re-renders and clobbers the selection after assignment. Next step: DOM mutation observer on the select. The submitted `categoryId` may be empty unless the user picks manually.
+- **CDP browser sessions die <60s after login** (idle-logout beacon doesn't count CDP events as trusted activity). Workaround that reliably beats it: navigate to the target route (redirects to `/login?redirectTo=…`), log in, and drive everything through ONE `evaluate_script` round-trip that dispatches real DOM events.
+- **Chrome DevTools fullPage screenshots clip at `.scrollable-content` max-height** — panels below the fold look "missing" to vision models. Always cross-check bottom-of-page vision claims against the a11y tree or curl SSR before acting.
+- **devalue action responses dedupe values as array indices** — `{"success":1,"updated":2}` can actually be `[true, 0]` references. Verify action outcomes via server logs, never by eyeballing the payload.
+- **Svelte 5 `{@const}` must sit directly inside a block**, not the SVG root — use script-level `$derived`s for chart label positions.
+- **The edit tool occasionally reports success without writing** (tab/space drift on complex files). For targeted line changes, an `awk`/python rewrite with an `assert old in src` guard is the reliable path — and always re-read the section after.

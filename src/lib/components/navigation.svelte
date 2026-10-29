@@ -216,7 +216,7 @@
   const showDevBadge = $derived(!environment.isProduction);
 </script>
 
-<div bind:this={breadcrumbEl} class="bg-black text-white p-1 text-xs flex items-center overflow-x-auto whitespace-nowrap scrollbar-none">
+<div bind:this={breadcrumbEl} class="bg-black text-white p-1 text-xs flex items-center overflow-x-auto whitespace-nowrap scrollbar-none no-print">
   {#each breadcrumbs as crumb, index}
     {#if index > 0}<span class="mx-1 flex-none">></span>{/if}
     {#if crumb.skipLink || index === breadcrumbs.length - 1}

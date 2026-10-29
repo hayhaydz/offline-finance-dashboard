@@ -26,8 +26,29 @@
 		onCancel: () => void;
 	} = $props();
 
+	import { captureFocus } from '$lib/utils/overlay-focus';
+
+	let cancelBtn: HTMLButtonElement | null = $state(null);
+	let restoreFocus: (() => void) | null = null;
+
+	// a11y: focus into the dialog on open, back to the trigger on dismiss
+	$effect(() => {
+		if (open) {
+			restoreFocus = captureFocus();
+			requestAnimationFrame(() => cancelBtn?.focus());
+		}
+	});
+
+	function dismissed() {
+		restoreFocus?.();
+		restoreFocus = null;
+	}
+
 	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape') onCancel();
+		if (e.key === 'Escape') {
+			onCancel();
+			dismissed();
+		}
 	}
 </script>
 
@@ -57,13 +78,24 @@
 				<p class="text-[10px] text-gray-500 mt-2">This action cannot be undone.</p>
 			</div>
 			<div class="border-t border-black p-2 flex gap-3 justify-end">
-				<button type="button" class="bracket-link text-xs" onclick={onCancel}>
+				<button
+					type="button"
+					class="bracket-link text-xs"
+					bind:this={cancelBtn}
+					onclick={() => {
+						onCancel();
+						dismissed();
+					}}
+				>
 					{cancelLabel}
 				</button>
 				<button
 					type="button"
 					class="bracket-link text-xs font-bold text-red-700"
-					onclick={onConfirm}
+					onclick={() => {
+						onConfirm();
+						dismissed();
+					}}
 				>
 					{confirmLabel}
 				</button>
