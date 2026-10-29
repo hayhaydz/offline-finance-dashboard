@@ -12,9 +12,12 @@
 	let {
 		items,
 		label = "allocated",
+		controls,
 	}: {
 		items: Array<{ name: string; value: number }>;
 		label?: string;
+		/** optional controls forwarded into the ChartPanel title band */
+		controls?: import('svelte').Snippet;
 	} = $props();
 
 	const shares = $derived(allocationShares(items));
@@ -29,7 +32,7 @@
 	);
 </script>
 
-<ChartPanel title="Allocation" {summary}>
+<ChartPanel title="Allocation" {summary} {controls}>
 	{#if shares.length > 0}
 		<div class="p-2">
 			<div class="flex h-5 border border-black w-full overflow-hidden" role="img"

@@ -14,11 +14,14 @@
 		month,
 		obligations,
 		today = new Date(),
+		controls,
 	}: {
 		year: number;
 		month: number;
 		obligations: Obligation[];
 		today?: Date;
+		/** optional controls forwarded into the ChartPanel title band */
+		controls?: import('svelte').Snippet;
 	} = $props();
 
 	const weeks = $derived(monthGrid(year, month, obligations));
@@ -48,7 +51,7 @@
 	);
 </script>
 
-<ChartPanel title="Cashflow calendar — {monthName}" {summary}>
+<ChartPanel title="Cashflow calendar — {monthName}" {summary} {controls}>
 	<div class="p-2">
 		<table class="w-full text-xs border-collapse">
 			<thead>

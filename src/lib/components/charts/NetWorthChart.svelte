@@ -11,6 +11,7 @@
 	let {
 		points,
 		formatPence,
+		controls,
 	}: {
 		/** Oldest → newest, one per snapshot */
 		points: Array<{
@@ -19,6 +20,8 @@
 		}>;
 		/** pence → display string (e.g. formatCurrency) */
 		formatPence: (pence: number) => string;
+		/** optional controls forwarded into the ChartPanel title band */
+		controls?: import('svelte').Snippet;
 	} = $props();
 
 	const W = 600;
@@ -81,7 +84,7 @@
 	);
 </script>
 
-<ChartPanel title="Net worth over time" {summary}>
+<ChartPanel title="Net worth over time" {summary} {controls}>
 	{#if points.length > 0}
 		<svg
 			viewBox="0 0 {W} {H}"
