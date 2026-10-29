@@ -49,17 +49,7 @@ describe("accounts CSV import is absent (R21)", () => {
 	it("the transaction import wizard only targets accounts, never creates them", () => {
 		const { body } = render(ImportWizard, {
 			props: {
-				accounts: [
-					{
-						id: 1,
-						slug: "slug1",
-						name: "A",
-						type: "current",
-						txCount: 0,
-						firstDate: null,
-						lastDate: null,
-					},
-				],
+				accounts: [{ id: 1, slug: "slug1", name: "A", type: "current" }],
 				categories: [],
 				form: undefined,
 			},
