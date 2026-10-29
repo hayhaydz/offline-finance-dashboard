@@ -7,6 +7,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 19:11:24 GMT | 2026-10-29 19:14:46 GMT | 0h 03m | Sweep 0: progress file, casing fix, check/test/build baseline, live login verified |
 | 2026-10-29 19:16:01 GMT | 2026-10-29 19:22:50 GMT | 0h 07m | Sweep 1 B01: research/judge/plan/edit/self-review — full-viewport shell, no-wrap nav, top-bar fix |
 | 2026-10-29 19:23:53 GMT | 2026-10-29 19:32:33 GMT | 0h 09m | Sweep 1 B02 batch 1: header revert + viz gallery + tests; §9 addendum (R29–R31) recorded |
+| 2026-10-29 19:33:30 GMT | 2026-10-29 19:52:40 GMT | 0h 19m | R30 bento gallery redesign + vision fixes; never-stop override recorded |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -48,7 +49,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R27 | [ ] | scramble/anonymise real tool |
 | R28 | [ ] | agent-workable repo (dev docs, tooling) |
 | R29 | [ ] | ADDENDUM §9: multi-column full-width layouts app-wide (1-col was for the narrow box) |
-| R30 | [ ] | ADDENDUM §9: home gallery — no title, smaller scale, bento grid of different-sized cells |
+| R30 | [x] | ev: commits 307e48d+9f458e0+e0a77b8; untitled bento grid live (trend col-span-2 1041px / allocation col-span-1 517px, panels aligned 269/269), wide-aspect 900×180 chart, [+] expand cycle verified, vision re-review clean of prior P1s |
 | R31 | [ ] | ADDENDUM §9: all visualisations on best svelte viz packages (layerchart first; new deps need approval) |
 | R-H* | — | harvested items appended as discovered (≥5 to implement before stop) |
 
@@ -116,6 +117,14 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
   - [x] U4 unit test for gallery (SSR default view, hidden-empty tabs, empty-trend fallback, all-empty nothing) — 4/4 green; found + fixed dead trendSummary + SSR-inert $effect fallback (derived `effective` instead). ev: commit `60f3f52`; full suite 987/987
   - [x] U5 gate: live `/` — tabs render (Trend selected, Cashflow hidden: no obligations in dev data), click-switch Trend→Allocation→Trend works, console 0 errors, 0 5xx. VISION DEFERRED to the R30 bento redesign (surface changes again immediately — vision pass there). ev: CDP evaluate output above
 - **IN FLIGHT — R30 redesign queue (next batch, from §9 addendum):** remove VISUALISATIONS title entirely; shrink chart scale; bento grid of different-sized cells (no single tall stack); R29 multi-column thinking for the rest of home afterwards.
+- R30 DONE (2026-10-29 19:52 GMT):
+  - [x] Untitled bento grid (`grid-cols-3`): trend `col-span-2`, allocation `col-span-1`, cashflow `col-span-3` when present. ev: commits `307e48d`,`9f458e0`,`e0a77b8`; live DOM grid `grid grid-cols-3 gap-2`
+  - [x] Compact wide-aspect trend chart (`aspect="wide"` → 900×180 viewBox) fills its cell — no more oversized tall chart. ev: live `svgViewBox:"0 0 900 180"`, cell 1041×269
+  - [x] Click-to-expand kept (R3 interaction survives): `[+]`/`[−]` per cell via forwarded `controls` snippet → col-span-3. ev: live expand/collapse cycle col-span-2↔3, aria-expanded toggles
+  - [x] Vision P1s from bento v1 fixed: dead gap (was my max-w cap — removed), ragged bottoms (ChartPanel now `h-full flex flex-col` + `mt-auto` summary — panels measure 269/269 aligned), `[[SVG]]`/`[[PNG]]` double brackets (literal brackets removed from ChartPanel; CSS supplies one pair — same fix class as ⌘K; tests updated chart-panel-ssr + chart-export-ssr). ev: commit `e0a77b8`; DOM text `SVG`/`PNG` + one pseudo-bracket
+  - [x] Vision P1-3 (caption delta wrong) REJECTED with arithmetic: aria-label delta −£1,056.11 = latest(−7,040.75) − first(−5,984.64) exactly; vision read the 5%-padded y-max label (−5,931.83) as a data point (its figure −1,108.92 = −7,040.75 − (−5,931.83), precisely that error). ev: aria-label string + solve yHi = maxV + 0.05·range = −5,931.83 ✓
+  - [x] P2-3 copy bug fixed: AllocationBar summary noun parameterised (`noun` prop, default "goals"; gallery passes "asset classes"). P2 triage: x-axis tick spacing + marker-colour legend + end-label crowding = NetWorthChart internals → folded into R31 (chart package upgrade) not hand-rolled polish. ev: commit `e0a77b8`
+  - Gate: check 0/0; full suite 988/988; live `/` console 0 errors / 0 5xx; vision re-review: 3 of 4 previous defects verified fixed + ragged-bottom fix then DOM-confirmed (269/269)
 
 ## Decisions
 | Date | Decision | Rationale |
@@ -130,6 +139,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 | No push guard of any kind — pushes remain possible (plan still says the LOOP never pushes, but nothing technical blocks it and the user's manual pushes stay untouched) | User decision ("allow push") |
 | 2026-10-29 | Fixed import casing debt: `index.ts` + `+layout.svelte` imported `Navigation.svelte` but git records `navigation.svelte`; imports corrected to git casing (not a rename) | Fresh worktree checkout materialized true git casing, exposing latent wrong-case imports that the main checkout's case-insensitive FS had masked; git casing is canonical |
 | 2026-10-29 | USER mid-run direction appended to plan as §9 R29–R31: full-width multi-column bento layouts app-wide; home gallery loses its title + shrinks into a bento grid; all charts audited against best svelte viz packages | User instruction during Sweep 1 B02 ("original design was a narrow vertical box… take advantage of 1440px… gallery too large and tall, looks terrible… best svelte data visualisation npm packages"). R31 respects the package.json lock: layerchart (already installed) is the preferred library; anything else needs explicit approval |
+| 2026-10-29 | NEVER-STOP override: plan §0 amended + `--batch 5` removed from Appendix A — the agent works continuously within each turn, ending only at §8 stop conditions or genuine BLOCKED; mid-run user messages are requirements to integrate, never reasons to pause | User instruction ("why did you stop the loop. you must never stop… prevent yourself from stopping. even when i add my own thoughts and comments"); batch-capped turn endings halted the loop between harness re-invocations |
 
 ## Deferrals
 | Item | Reason |
@@ -139,6 +149,8 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | Date | Screenshot | Verdict |
 |---|---|---|
 | 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b01-home-1600.png | No P0/P1; "spans the full viewport width (no narrow centered column)". Claim of `[[⌘K]]` double-bracket REJECTED — DOM: text `⌘K` + one pseudo `[`/`]` (known vision glyph misread) |
+| 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b02-bento-1600.png | (zai-vision; vmodel 1305 ×2) P1: dead gap between cells (REAL — my max-w cap), [[SVG]]/[[PNG]] double brackets (REAL — ChartPanel literal brackets), caption delta wrong (REJECTED — vision misread padded y-max label as data point). P2s: ragged bottoms (REAL), chart too tall (REAL), tick spacing/markers (→ R31) |
+| 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b02-bento-fixed-1600.png | (zai-vision; vmodel 1305 ×3 exhausted) 3/4 prior defects verified fixed; ragged-bottom claim re-checked via DOM: panels aligned 269/269 after h-full fix; P2-3 "goals" noun copy bug REAL → fixed same unit |
 
 ## Notes for next iteration
 - **B02 IN FLIGHT — R30 bento redesign is the immediate next unit** (§9 addendum): kill the VISUALISATIONS SectionHeader (no title at all), shrink chart scale (NetWorthChart H=220 too tall? smaller viewBox + smaller text), bento grid with different-sized cells (e.g. trend chart wide 2-col span, allocation narrow, cashflow cell) — `grid grid-cols-<n>` with col/row spans, terminal borders. Then vision-review the redesigned gallery (deferred from U5). Then R29 pass over the rest of home (KPI rows → grids), then B03 GOALS (R4 R6 + milestones prop removal lives there: `milestones={(goal as any).milestones ?? null}` in +page.svelte:350), then B04 ACCOUNTS (R5 heatmap width).
