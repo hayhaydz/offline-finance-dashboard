@@ -22,7 +22,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 |---|---|---|
 | R1 | [x] (B01 shell) | ev: commits b6acfe5+c8f0502; shell 1584×984 @1600×1000, internal scroll, meta width=1280, nav rows flex-nowrap. Page-level inner max-w wrappers handled per-block (B02–B04) — shell-level R1 holds |
 | R2 | [x] | Already satisfied by v2: hooks loginRedirect covers `/` → `/login?reason=logged-out&redirectTo=%2F`; login page renders "You have been logged out. Data is sealed." + login form + [Register] = clear path. ev: Sweep-0 CDP snapshot uid=1_14 + B01 research #6 |
-| R3 | [ ] | home header revert + viz gallery (click-to-switch) |
+| R3 | [x] | ev: header reverted (no sparkline in NetWorthDisplay, live); viz gallery below header — bento grid of switchable-sized cells with click-to-expand (R3 interaction preserved); commits ba5073f+307e48d+9f458e0 |
 | R4 | [ ] | goal bars revert (remove black milestone lines) |
 | R5 | [ ] | rate heatmap full width |
 | R6 | [ ] | goals allocation full width |
@@ -48,7 +48,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R26 | [ ] | bulk history import (Monzo back-X) |
 | R27 | [ ] | scramble/anonymise real tool |
 | R28 | [ ] | agent-workable repo (dev docs, tooling) |
-| R29 | [ ] | ADDENDUM §9: multi-column full-width layouts app-wide (1-col was for the narrow box) |
+| R29 | [x] (home) | ev: commit a9a0d92; home converted to 3/2 two-column rows, DOM-verified 936/622px, vision "conversion succeeds". App-wide R29 continues per-block (B03/B04 next) |
 | R30 | [x] | ev: commits 307e48d+9f458e0+e0a77b8; untitled bento grid live (trend col-span-2 1041px / allocation col-span-1 517px, panels aligned 269/269), wide-aspect 900×180 chart, [+] expand cycle verified, vision re-review clean of prior P1s |
 | R31 | [ ] | ADDENDUM §9: all visualisations on best svelte viz packages (layerchart first; new deps need approval) |
 | R-H* | — | harvested items appended as discovered (≥5 to implement before stop) |
@@ -57,7 +57,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | Block | Last sweep | BLOCK CYCLE stage | Notes |
 |---|---|---|---|
 | B01 SHELL & VIEWPORT | 1 | COMPLETE (sweep 1) | R1 R2 R16 ticked; shell full-viewport; residual: page-level max-w wrappers → B02/B03/B04 |
-| B02 HOME | — | unvisited | R3 · sweep-1 ★ |
+| B02 HOME | 1 | COMPLETE (sweep 1) | R3 ✓ R29(home) ✓ R30 ✓; chart-internal P2s → R31 |
 | B03 GOALS | — | unvisited | R4 R6 · sweep-1 ★ |
 | B04 ACCOUNTS & LIABILITIES | — | unvisited | R5 R17 · sweep-1 ★ |
 | B05 CREDIT & STOOZING | — | unvisited | R7 R8 R20 · sweep 2 |
@@ -125,6 +125,10 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
   - [x] Vision P1-3 (caption delta wrong) REJECTED with arithmetic: aria-label delta −£1,056.11 = latest(−7,040.75) − first(−5,984.64) exactly; vision read the 5%-padded y-max label (−5,931.83) as a data point (its figure −1,108.92 = −7,040.75 − (−5,931.83), precisely that error). ev: aria-label string + solve yHi = maxV + 0.05·range = −5,931.83 ✓
   - [x] P2-3 copy bug fixed: AllocationBar summary noun parameterised (`noun` prop, default "goals"; gallery passes "asset classes"). P2 triage: x-axis tick spacing + marker-colour legend + end-label crowding = NetWorthChart internals → folded into R31 (chart package upgrade) not hand-rolled polish. ev: commit `e0a77b8`
   - Gate: check 0/0; full suite 988/988; live `/` console 0 errors / 0 5xx; vision re-review: 3 of 4 previous defects verified fixed + ragged-bottom fix then DOM-confirmed (269/269)
+- R29 home pass (2026-10-29 19:56 GMT): 1-column bands → sized 2-column rows via `grid-cols-5` (3/2 splits): TaxYearProgress|IsaAllowance, INTEREST|ALERTS, ACCOUNTS|GOALS; conditional spans when data absent; `[&>*:last-child]:border-b-0` wrapper trick avoids editing shared components. ev: commit `a9a0d92`; DOM rows 936/622px ×3; vision "conversion succeeds… no P0… full width used well". B02 COMPLETE (R3+R29+R30 for home).
+- Vision P1 rejections (both chart-footer claims): delta −1,056.11 = −7,040.75 − (−5,984.64) exact (vision misread the 5%-padded y-max label −5,931.83 as a data point, 2nd occurrence); endpoint "-£7,040.75" minus IS present in DOM text node. P2 triage: chart-internal items → R31; row1 dead-space centering + contrast bumps → later polish; alerts 27 vs 21 badged → verify in B11. Row 4 beyond viewport in shot — DOM-verified 936/622×1060; vision check folded into sweep gate.
+
+### B03 GOALS (Sweep 1)
 
 ## Decisions
 | Date | Decision | Rationale |
