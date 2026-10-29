@@ -4,6 +4,7 @@ import {
 	currentMonthSlug,
 	dynamicPaletteCommands,
 	filterCommands,
+	PALETTE_ACTIONS,
 } from "$lib/utils/command-palette";
 
 describe("command palette registry (#19)", () => {
@@ -49,6 +50,33 @@ describe("filterCommands", () => {
 
 	it("no matches yields an empty list", () => {
 		expect(filterCommands(all, "zzz-unknown")).toEqual([]);
+	});
+});
+
+describe("palette quick actions (#19 completion)", () => {
+	it("ships the toggle-ascii and open-help actions in the Action section", () => {
+		expect(PALETTE_ACTIONS.map((a) => a.action)).toEqual([
+			"toggle-ascii",
+			"open-help",
+		]);
+		expect(PALETTE_ACTIONS.every((a) => a.section === "Action")).toBe(true);
+	});
+
+	it("actions are discoverable by their keywords", () => {
+		const ids = filterCommands(PALETTE_ACTIONS, "ascii").map((c) => c.id);
+		expect(ids).toEqual(["action-ascii"]);
+		expect(filterCommands(PALETTE_ACTIONS, "shortcuts").map((c) => c.id)).toContain(
+			"action-help",
+		);
+	});
+
+	it("actions carry no duplicate ids vs the navigation registry", () => {
+		const all = [
+			...dynamicPaletteCommands(),
+			...PALETTE_COMMANDS,
+			...PALETTE_ACTIONS,
+		];
+		expect(new Set(all.map((c) => c.id)).size).toBe(all.length);
 	});
 });
 

@@ -39,6 +39,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-28T23:57 | 2026-10-28T23:58 | 0h01m | Palette drift fix: /accounts/balances added to ⌘K + route-coverage drift-guard tests (2); live-verified filter-to-entry; check 0/0 · 955/955 |
 | 2026-10-28T23:59 | 2026-10-29T00:03 | 0h04m | Phase 9 cycle 5: perf re-audit (no regression) · print-chrome strips .no-print · overlay focus capture/restore (3 overlays, util + 3 tests, live-verified) · maintainer quirks docs; check 0/0 · 958/958 |
 | 2026-10-29T00:03 | 2026-10-29T00:04 | 0h01m | Deferral RESOLVED: category-select auto-match — MutationObserver (zero events) + compiled-runtime read pinpointed Svelte select matcher type mismatch (number option __value vs string value expr); String(cat.id) fix live-verified (Groceries preselected); check 0/0 · 958/958 |
+| 2026-10-29T00:04 | 2026-10-29T00:06 | 0h02m | Palette quick actions (#19 completion): toggle-ascii + open-help shipped, unit-tested ×3, both live-verified end-to-end; check 0/0 · 961/961 |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -114,6 +115,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 - [x] a11y fix: overlay focus management (palette + help + confirm modal) — ev: new overlay-focus.ts (captureFocus: snapshot activeElement at open, restore on close, no-op if disconnected) + 3 jsdom unit tests; all three overlays capture/restore + move initial focus INTO the dialog; LIVE: Escape from palette → focus on [⌘K] trigger; [Close] from help → focus on [?] trigger; input/[Close] focused on open; console 0 errors
 - [x] Docs: known-quirks maintainer section — ev: docs/dev/ultimate-2.0-release.md now documents category-select quirk, CDP session killer + workaround, screenshot clip artifact, devalue gotcha, {@const} rule, edit-tool haunt; deferred list refreshed (8/8 P2 nits fixed)
 - [x] FIX (deferral resolved): category select auto-match now applies — ev: fresh-context revisit: MutationObserver showed ZERO select mutations (no clobbering) → read Svelte's compiled select runtime (BDkFxreM.js): matcher M() compares option __value against the value expression WITHOUT coercion — number cat.id never equals string selectedCategoryId → selectedIndex=-1; fix = option value={String(cat.id)}; LIVE: catVal "11", selIdx 7, selText "Groceries", console 0 errors — the #14 auto-match feature now actually preselects + submits correctly; SSR test impossible (SSR coerces value attrs to strings — only client-mount could catch it; recorded in test notes); check 0/0 · 958/958
+- [x] feat: palette quick actions (#19 spec completion — was navigation-only) — ev: PALETTE_ACTIONS registry (toggle-ascii via the same charts-ascii localStorage mechanism as the Reports button; open-help via onHelp callback prop from layout) + 3 unit tests (presence, keyword discovery, no id collisions); LIVE: type "ascii"+Enter → storage flipped 0→1, 3 pre.ascii-chart rendered, navigated to /overview/reports; type "shortcuts"+Enter → ? help overlay opens; console 0 errors; check 0/0 · 961/961
 - [ ] Ledger ≥ 6h verified
 
 ## Decisions

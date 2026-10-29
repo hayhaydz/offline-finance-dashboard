@@ -8,6 +8,10 @@
  * returns everything in registry order.
  */
 
+/** Quick actions the component executes instead of navigating (#19's
+ * "jump + quick actions" — actions landed in a Phase 9 polish cycle). */
+export type PaletteActionId = "toggle-ascii" | "open-help";
+
 export interface PaletteCommand {
 	id: string;
 	label: string;
@@ -16,6 +20,8 @@ export interface PaletteCommand {
 	keywords?: string;
 	/** Section heading in the palette list. */
 	section: string;
+	/** When set, the palette runs this action instead of navigating. */
+	action?: PaletteActionId;
 }
 
 export const PALETTE_COMMANDS: readonly PaletteCommand[] = [
@@ -38,6 +44,26 @@ export const PALETTE_COMMANDS: readonly PaletteCommand[] = [
 	{ id: "reports", label: "Reports", href: "/overview/reports", keywords: "charts trends analysis", section: "Navigate" },
 	{ id: "settings-general", label: "Settings — General", href: "/settings/general", keywords: "categories preferences", section: "Navigate" },
 	{ id: "settings-security", label: "Settings — Session & Security", href: "/settings/profile", keywords: "session logout devices", section: "Navigate" },
+];
+
+/** Quick actions (executed by the component, not navigation). */
+export const PALETTE_ACTIONS: readonly PaletteCommand[] = [
+	{
+		id: "action-ascii",
+		label: "Toggle ASCII chart mode",
+		href: "/overview/reports",
+		action: "toggle-ascii",
+		keywords: "ascii terminal variant pure text charts",
+		section: "Action",
+	},
+	{
+		id: "action-help",
+		label: "Keyboard shortcuts",
+		href: "",
+		action: "open-help",
+		keywords: "help keys j k enter question overlay",
+		section: "Action",
+	},
 ];
 
 /** Current calendar month as a YYYY-MM budget slug. */

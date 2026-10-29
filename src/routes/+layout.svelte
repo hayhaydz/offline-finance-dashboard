@@ -80,7 +80,7 @@
 		</div>
 
 		<SessionBanner />
-		<CommandPalette bind:open={paletteOpen} />
+		<CommandPalette bind:open={paletteOpen} onHelp={() => (helpOpen = true)} />
 		<HelpOverlay bind:open={helpOpen} />
 	{/if}
 

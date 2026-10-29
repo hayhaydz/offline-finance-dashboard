@@ -1,19 +1,28 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import {
+		PALETTE_ACTIONS,
 		PALETTE_COMMANDS,
 		dynamicPaletteCommands,
 		filterCommands,
 	} from '$lib/utils/command-palette';
 	import { captureFocus } from '$lib/utils/overlay-focus';
 
-	let { open = $bindable(false) }: { open?: boolean } = $props();
+	let {
+		open = $bindable(false),
+		/** Layout callback: open the `?` help overlay (open-help action). */
+		onHelp,
+	}: { open?: boolean; onHelp?: () => void } = $props();
 
 	let query = $state('');
 	let activeIndex = $state(0);
 	let inputEl = $state<HTMLInputElement | null>(null);
 
-	const commands = $derived([...dynamicPaletteCommands(), ...PALETTE_COMMANDS]);
+	const commands = $derived([
+		...dynamicPaletteCommands(),
+		...PALETTE_COMMANDS,
+		...PALETTE_ACTIONS,
+	]);
 	const results = $derived(filterCommands(commands, query));
 
 	// Keep the highlight inside the filtered list
@@ -42,6 +51,18 @@
 	function run(cmd: (typeof commands)[number] | undefined) {
 		if (!cmd) return;
 		close();
+		if (cmd.action === 'toggle-ascii') {
+			// same mechanism as the Reports [ASCII] button — flip the
+			// stored preference, then let the page's mount effect apply it
+			const on = localStorage.getItem('charts-ascii') === '1';
+			localStorage.setItem('charts-ascii', on ? '0' : '1');
+			goto(cmd.href);
+			return;
+		}
+		if (cmd.action === 'open-help') {
+			onHelp?.();
+			return;
+		}
 		goto(cmd.href);
 	}
 
