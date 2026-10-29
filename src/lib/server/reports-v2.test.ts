@@ -25,6 +25,7 @@ describe("reports-v2 registry", () => {
 			"credit-strategy",
 			"spending-profile",
 			"debt-horizon",
+			"income-vs-deposits",
 		]) {
 			expect(REPORTS.some((r) => r.slug === slug)).toBe(true);
 		}

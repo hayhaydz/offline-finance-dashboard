@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import {
@@ -621,6 +621,100 @@ async function buildDebtHorizon(userId: number): Promise<ReportDoc> {
 }
 
 // ---------------------------------------------------------------------------
+// Report: income-vs-deposits (R24 — derived payslip review)
+// ---------------------------------------------------------------------------
+
+async function buildIncomeVsDeposits(userId: number): Promise<ReportDoc> {
+	const [incomeRows, depositRows] = await Promise.all([
+		db
+			.select({ month: incomeHistory.month, cents: incomeHistory.grossIncomeInCents })
+			.from(incomeHistory)
+			.where(withUserFilter(userId, incomeHistory))
+			.orderBy(desc(incomeHistory.month))
+			.limit(12),
+		db
+			.select({
+				month: sql<string>`strftime('%Y-%m', ${accountTransactions.transactionDate}, 'unixepoch')`,
+				cents: sql<number>`sum(${accountTransactions.amount})`,
+			})
+			.from(accountTransactions)
+			.innerJoin(accounts, eq(accountTransactions.accountId, accounts.id))
+			.where(
+				and(
+					withUserFilter(userId, accounts),
+					isNull(accounts.deletedAt),
+					eq(accountTransactions.type, "deposit"),
+				),
+			)
+			.groupBy(sql`strftime('%Y-%m', ${accountTransactions.transactionDate}, 'unixepoch')`)
+			.orderBy(desc(sql`strftime('%Y-%m', ${accountTransactions.transactionDate}, 'unixepoch')`))
+			.limit(12),
+	]);
+
+	const date = isoToday();
+	const depositsByMonth = new Map(
+		depositRows.map((r) => [r.month, Number(r.cents)]),
+	);
+	const months = incomeRows.map((r) => r.month);
+	if (months.length === 0) {
+		return {
+			slug: "income-vs-deposits",
+			title: "Income vs Deposit Evidence",
+			date,
+			abstract:
+				"No declared income months on record — declare income in Income History to run the payslip review.",
+			method: [
+				"Data: income_history (declared gross) vs deposit transactions per month",
+				"gap = declared − deposits; both directions are interesting",
+			],
+			findings: [{ heading: "Findings", rows: [{ label: "declared months", value: "0" }] }],
+		};
+	}
+
+	const rows = months.map((month) => {
+		const declared = incomeRows.find((r) => r.month === month)!.cents;
+		const deposited = depositsByMonth.get(month) ?? 0;
+		const gap = declared - deposited;
+		return { month, declared, deposited, gap };
+	});
+	const mismatches = rows.filter((r) => r.declared > 0 && Math.abs(r.gap) > 100_00);
+	const totalGap = rows.reduce((sum, r) => sum + r.gap, 0);
+
+	return {
+		slug: "income-vs-deposits",
+		title: "Income vs Deposit Evidence",
+		date,
+		abstract: `${rows.length} declared month${rows.length !== 1 ? "s" : ""} checked against actual deposits: ${mismatches.length} differ by more than £100${mismatches.length > 0 ? ` (largest: ${formatCurrency(Math.max(...mismatches.map((m) => Math.abs(m.gap))))} in ${mismatches.reduce((a, b) => (Math.abs(b.gap) > Math.abs(a.gap) ? b : a)).month})` : ""}. Net declared-minus-deposited across the window: ${formatCurrency(totalGap)}.`,
+		method: [
+			"Data: income_history (declared gross per month) + deposit-type transactions grouped by month",
+			"gap = declared gross − deposited total; interest/refunds excluded by the deposit type filter",
+			"threshold: |gap| > £100 flags a month (payslip splits, timing, or a missed deposit)",
+		],
+		findings: [
+			{
+				heading: "Monthly comparison",
+				rows: rows.reverse().map((r) => ({
+					label: r.month,
+					value: `declared ${formatCurrency(r.declared)} · deposited ${formatCurrency(r.deposited)} · gap ${r.gap >= 0 ? "+" : ""}${formatCurrency(r.gap)}`,
+					flag:
+						r.declared > 0 && Math.abs(r.gap) > 100_00
+							? ("amber" as const)
+							: null,
+				})),
+			},
+			{
+				heading: "Reading the gaps",
+				notes: [
+					"A persistent positive gap: declared income never reaches the accounts — payslip splits (bonus, shares, pension salary sacrifice) or an out-of-app account.",
+					"A negative gap: deposits exceed declared income — reimbursements typed as deposits, or the declared month is understated.",
+					"This is the derived payslip review: no payslip files to import, the evidence is your own transaction ledger (R24 decision).",
+				],
+			},
+		],
+	};
+}
+
+// ---------------------------------------------------------------------------
 // Registry
 // ---------------------------------------------------------------------------
 
@@ -660,6 +754,12 @@ export const REPORTS: ReportDefinition[] = [
 		title: "Debt Horizon",
 		blurb: "How far the minimum payments stretch, and the projected debt-free date.",
 		build: buildDebtHorizon,
+	},
+	{
+		slug: "income-vs-deposits",
+		title: "Income vs Deposit Evidence",
+		blurb: "Does the declared income actually land in the accounts? The derived payslip review.",
+		build: buildIncomeVsDeposits,
 	},
 ];
 

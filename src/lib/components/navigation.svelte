@@ -70,6 +70,7 @@
       { href: '/overview/routine', label: 'Routine', includeChildRoutes: true },
       { href: '/overview/budgets', label: 'Budgets' },
       { href: '/overview/expenses', label: 'Expenses' },
+      { href: '/overview/bills', label: 'Bills' },
       { href: '/overview/reports', label: 'Reports' },
       { href: '/overview/tax', label: 'Tax', includeChildRoutes: true }
     ]},
@@ -168,6 +169,7 @@
         all: 'All',
         // P2-1 (2026-10-27 audit): title-case every crumb consistently
         expenses: 'Expenses',
+        bills: 'Bills',
         alerts: 'Alerts',
         general: 'General',
         security: 'Security',
