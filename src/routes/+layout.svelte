@@ -51,34 +51,38 @@
 	});
 </script>
 
-<div class="border border-black max-w-4xl mx-auto w-full">
+<div class="border border-black max-w-none mx-0 w-full h-[calc(100vh-1rem)] flex flex-col overflow-hidden">
 	<!-- skip link: first tab stop, visible only on keyboard focus -->
 	<a href="#main-content" class="skip-link bracket-link text-xs">[Skip to content]</a>
 	{#if user}
 		<!-- .no-print: chrome strip stays on screen only (print/PDF rule) -->
-		<div class="bg-black text-white p-1 font-bold text-xs flex justify-between no-print">
-			<span>OFFLINE-FINANCE-v0.exe</span>
-			<span>USER: {user.username.toUpperCase()}</span>
-			<span>{modeIndicator}</span>
-			{#if !environment.isProduction}
-				<span class="text-amber-400">[!] DEV DATA [!]</span>
-			{/if}
-			<button
-				type="button"
-				class="bracket-link text-xs text-white"
-				onclick={() => (paletteOpen = true)}
-				title="Open command palette (⌘K)"
-			>
-				[⌘K]
-			</button>
-			<button
-				type="button"
-				class="bracket-link text-xs text-white"
-				onclick={() => (helpOpen = !helpOpen)}
-				title="Keyboard shortcuts (?)"
-			>
-				[?]
-			</button>
+		<div class="bg-black text-white p-1 font-bold text-xs flex items-center gap-4 no-print">
+			<span class="flex-none">OFFLINE-FINANCE-v0.exe</span>
+			<span class="flex-1 min-w-0 flex items-center gap-4">
+				<span>USER: {user.username.toUpperCase()}</span>
+				<span>{modeIndicator}</span>
+				{#if !environment.isProduction}
+					<span class="text-amber-400">[!] DEV DATA [!]</span>
+				{/if}
+			</span>
+			<div class="flex-none flex items-center gap-1">
+				<button
+					type="button"
+					class="bracket-link text-xs text-white"
+					onclick={() => (paletteOpen = true)}
+					title="Open command palette (⌘K)"
+				>
+					⌘K
+				</button>
+				<button
+					type="button"
+					class="bracket-link text-xs text-white"
+					onclick={() => (helpOpen = !helpOpen)}
+					title="Keyboard shortcuts (?)"
+				>
+					?
+				</button>
+			</div>
 		</div>
 
 		<SessionBanner />
@@ -88,7 +92,7 @@
 
 	<Navigation {user} {environment} breadcrumbOverrides={breadcrumbOverrides} />
 
-	<main id="main-content" class="scrollable-content" bind:this={scrollContainer}>
+	<main id="main-content" class="scrollable-content flex-1 min-h-0" bind:this={scrollContainer}>
 		{@render children()}
 	</main>
 </div>

@@ -53,7 +53,7 @@ html {
 }
 
 body {
-	@apply font-terminal text-sm leading-tight bg-white text-black m-0 px-4 py-6 md:px-8 md:py-12;
+	@apply font-terminal text-sm leading-tight bg-white text-black m-0 p-2;
 }
 
 /* Base table styles for terminal aesthetic */
@@ -92,7 +92,11 @@ td {
 
 /* Scrollable content area for main content */
 .scrollable-content {
-	max-height: calc(100vh - 200px);
+	/* Full-viewport terminal window (v3 R1): the shell is a flex column
+	   pinned to the viewport height; the main region takes all remaining
+	   space and scrolls internally. */
+	flex: 1 1 0%;
+	min-height: 0;
 	overflow-y: auto;
 }
 
@@ -201,7 +205,14 @@ td {
 		display: none !important;
 	}
 
-	/* Let long content flow across paper instead of the on-screen scroll area */
+	/* Let long content flow across paper instead of the on-screen scroll area.
+	   The full-viewport flex shell (v3 R1) must release its pinned height too. */
+	body > div {
+		height: auto !important;
+		max-height: none !important;
+		overflow: visible !important;
+	}
+
 	.scrollable-content {
 		max-height: none !important;
 		overflow: visible !important;
