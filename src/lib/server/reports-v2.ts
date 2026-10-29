@@ -148,6 +148,13 @@ async function buildNetWorth(userId: number): Promise<ReportDoc> {
 		if (step > bestStep.delta) bestStep = { date: history[i].date, delta: step };
 		if (step < worstStep.delta) worstStep = { date: history[i].date, delta: step };
 	}
+	// A monotonic window has no rise (or no fall) — never label one with
+	// the other's sign.
+	const hasRise = bestStep.delta > 0;
+	const hasFall = worstStep.delta < 0;
+	const biggestStep = hasFall && (!hasRise || Math.abs(worstStep.delta) > Math.abs(bestStep.delta))
+		? { ...worstStep, kind: "fall" as const }
+		: { ...bestStep, kind: "rise" as const };
 
 	const assetsDelta = latest.totalAssetsInCents - first.totalAssetsInCents;
 	const liabsDelta = latest.totalLiabilitiesInCents - first.totalLiabilitiesInCents;
@@ -156,7 +163,7 @@ async function buildNetWorth(userId: number): Promise<ReportDoc> {
 		slug: "net-worth-trajectory",
 		title: "Net Worth Trajectory",
 		date,
-		abstract: `Net worth stands at ${formatCurrency(latest.netWorthInCents)} as of ${latest.date}, a change of ${delta >= 0 ? "+" : ""}${formatCurrency(delta)} since ${first.date}. Over the window, assets moved ${assetsDelta >= 0 ? "+" : ""}${formatCurrency(assetsDelta)} against liabilities ${liabsDelta <= 0 ? "" : "+"}${formatCurrency(liabsDelta)}; the largest single step was ${bestStep.delta >= 0 ? "+" : ""}${formatCurrency(bestStep.delta)} (${bestStep.date}).`,
+		abstract: `Net worth stands at ${formatCurrency(latest.netWorthInCents)} as of ${latest.date}, a change of ${delta >= 0 ? "+" : ""}${formatCurrency(delta)} since ${first.date}. Over the window, assets moved ${assetsDelta >= 0 ? "+" : ""}${formatCurrency(assetsDelta)} against liabilities ${liabsDelta <= 0 ? "" : "+"}${formatCurrency(liabsDelta)}; the largest single step was a ${biggestStep.kind} of ${formatCurrency(Math.abs(biggestStep.delta))} (${biggestStep.date}).`,
 		method: [
 			`Data: net worth snapshots, ${history.length} observations (${window})`,
 			"Δ computed between first and latest observations; step analysis between consecutive snapshots",
@@ -170,8 +177,10 @@ async function buildNetWorth(userId: number): Promise<ReportDoc> {
 					{ label: `change since ${first.date}`, value: `${delta >= 0 ? "+" : ""}${formatCurrency(delta)}`, flag: delta >= 0 ? "green" : "red" },
 					{ label: "assets", value: formatCurrency(latest.totalAssetsInCents) },
 					{ label: "liabilities", value: formatCurrency(latest.totalLiabilitiesInCents), flag: latest.totalLiabilitiesInCents > 0 ? "amber" : null },
-					{ label: "largest rise", value: `${formatCurrency(bestStep.delta)} (${bestStep.date})`, flag: "green" },
-					...(Number.isFinite(worstStep.delta)
+					...(hasRise
+						? [{ label: "largest rise", value: `${formatCurrency(bestStep.delta)} (${bestStep.date})`, flag: "green" as const }]
+						: []),
+					...(hasFall
 						? [{ label: "largest fall", value: `${formatCurrency(worstStep.delta)} (${worstStep.date})`, flag: "red" as const }]
 						: []),
 				],

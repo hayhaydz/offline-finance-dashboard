@@ -91,11 +91,14 @@
 		</section>
 
 		<!-- Findings: full-width paper (R1/R29); table sections pair up in a
-		     2-col grid, figure sections span both columns -->
-		<div class="grid md:grid-cols-2 md:divide-x md:divide-gray-300">
+		     2-col grid ONLY when two or more tables exist (a lone table
+		     spans full width — no empty quadrant); figures always span -->
+		{#if report.findings}
+			{@const tableSections = report.findings.filter((s) => !s.figure && (s.rows?.length ?? 0) > 0).length}
+			<div class="grid md:grid-cols-2 md:divide-x md:divide-gray-300">
 			{#each report.findings as section, i (section.heading)}
 				<section
-					class="{i > 0 ? 'border-t' : ''} {section.figure ? 'md:col-span-2 md:border-t' : ''} border-black p-2"
+					class="{i > 0 ? 'border-t' : ''} {section.figure || tableSections < 2 ? 'md:col-span-2 md:border-t' : ''} border-black p-2"
 				>
 					<h2 class="font-bold text-xs mb-2 uppercase">{section.heading}</h2>
 
@@ -119,7 +122,7 @@
 						<section class="chart-panel">
 							<div class="chart-panel-title"><span>Net worth over time</span></div>
 							<div class="p-2">
-								<pre class="ascii-chart">{asciiLineChart(
+								<pre class="ascii-chart max-w-3xl">{asciiLineChart(
 									report.netWorthHistory.map((p) => p.netWorthInCents),
 									{ rows: 8, label: "net" },
 								)}</pre>
@@ -142,11 +145,11 @@
 						<section class="chart-panel">
 							<div class="chart-panel-title"><span>Assets vs liabilities</span></div>
 							<div class="p-2 flex flex-col gap-1">
-								<pre class="ascii-chart">{asciiLineChart(
+								<pre class="ascii-chart max-w-3xl">{asciiLineChart(
 									report.netWorthHistory.map((p) => p.totalAssetsInCents),
 									{ rows: 5, label: "ast" },
 								)}</pre>
-								<pre class="ascii-chart">{asciiLineChart(
+								<pre class="ascii-chart max-w-3xl">{asciiLineChart(
 									report.netWorthHistory.map((p) => p.totalLiabilitiesInCents),
 									{ rows: 5, label: "lia" },
 								)}</pre>
@@ -207,6 +210,7 @@
 			</section>
 		{/each}
 		</div>
+		{/if}
 	</div>
 
 	<footer class="text-xs text-gray-500 mt-2 flex justify-between">
