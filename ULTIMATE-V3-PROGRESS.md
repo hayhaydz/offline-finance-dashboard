@@ -22,6 +22,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 23:02:41 GMT | 2026-10-29 23:06:30 GMT | 0h 04m | Sweep 5 B11 COMPLETE: alerts summary strip + severity lanes + badge fixes; vision P1s fixed same unit |
 | 2026-10-29 23:06:31 GMT | 2026-10-29 23:10:22 GMT | 0h 04m | Sweep 5 B12+B13 COMPLETE: snapshots + routine summary strips, checklist grid; suite 1051/1051 |
 | 2026-10-29 23:10:23 GMT | 2026-10-29 23:17:00 GMT | 0h 07m | Sweep 6 B14+B15 COMPLETE: bills page + income-vs-deposits report; anonymiser verified; runbook §9; suite 1051/1051 |
+| 2026-10-29 23:17:01 GMT | 2026-10-29 23:21:33 GMT | 0h 05m | Sweep 7 harvest: R-H2+R-H3 (report grid + ascii toggle), R-H5 (tax 3-up), R-H8 (amber AA); badge-count mismatch disproven |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -65,7 +66,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R29 | [x] (home) | ev: commit a9a0d92; home converted to 3/2 two-column rows, DOM-verified 936/622px, vision "conversion succeeds". App-wide R29 continues per-block (B03/B04 next) |
 | R30 | [x] | ev: commits 307e48d+9f458e0+e0a77b8; untitled bento grid live (trend col-span-2 1041px / allocation col-span-1 517px, panels aligned 269/269), wide-aspect 900×180 chart, [+] expand cycle verified, vision re-review clean of prior P1s |
 | R31 | [ ] | ADDENDUM §9: all visualisations on best svelte viz packages (layerchart first; new deps need approval) |
-| R-H* | — | harvested: R-H1 queue candidates beyond imports (statement backfills) — logged; R-H2 ASCII toggle as report mode — logged; R-H3 reports findings 2-col grid — logged; **R-H4 bracket-link literal-bracket sweep — IMPLEMENTED (B09)**. ≥5 to implement before stop (1/5 done) |
+| R-H* | 5/5 done | R-H2 ascii toggle ✓ R-H3 findings grid+full-width ✓ R-H4 bracket sweep+net ✓ R-H5 tax 3-up ✓ R-H8 amber contrast ✓ (commits de46c48+1fe28c8+e09a288); R-H1 statement-backfill stays logged (speculative) |
 
 ## Block registry
 | Block | Last sweep | BLOCK CYCLE stage | Notes |
@@ -85,7 +86,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | B13 ROUTINE | 5 | COMPLETE (sweep 5) | R17(routine) ✓; strip + checklist grid |
 | B14 BILLS & PAYSLIPS | 6 | COMPLETE (sweep 6) | R24 ✓ R25 ✓; bills derived-pattern page + income-vs-deposits report |
 | B15 DX & AGENT TOOLING | 6 | COMPLETE (sweep 6) | R27 ✓ R28 ✓; anonymiser verified; runbook §9 |
-| B16 CROSS-CUTTING | — | unvisited | harvested · every sweep gate |
+| B16 CROSS-CUTTING | 7 | ACTIVE | harvest sweep 7 running: 5 R-H implemented ≥ gate; a11y pass done; next: fresh full-app vision audit + P2 triage |
 
 ## Per-block research & judgments
 ### B01 SHELL & VIEWPORT (Sweep 1)
@@ -262,6 +263,13 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 ### B15 DX & AGENT TOOLING (Sweep 6 — COMPLETE)
 - R27: anonymise CLI verified END-TO-END on a dev DB copy (username admin→elmsworth.quarry79; 16 accounts/112 tx/4 snapshots preserved; amounts jittered; dates month-shifted; self-check PASS; ciphertext descriptions pass through verbatim by design — AAD-bound). import_jobs TABLE_RULES entry added in S4. Tool was already complete; v3 contribution = verification + runbook currency. ev: command output above (2026-10-29, supersedes 2026-10-18 check)
 - R28: agent runbook §9 "v3 extension surfaces" — reports registry, tools registry, data pipeline map, sanctioned schema path (5 steps incl. journal hash + TABLE_RULES), loop gotchas (CURRENT_TIMESTAMP/Invalid Date, filePath, bracket convention). ev: commit `3310fec`
+
+### B16 CROSS-CUTTING / SWEEP 7 HARVEST (2026-10-29 23:17 → 23:21)
+- R-H3 IMPLEMENTED: report papers full-width (max-w cap dropped, R1-consistent) + findings 2-col grid (md:grid-cols-2, figure sections col-span-2). ev: commit `de46c48`; live findingsGrid true, figureSpans 2; tests 7/7
+- R-H2 IMPLEMENTED: ASCII render toggle on report papers (localStorage `charts-ascii`, [ASCII] button beside [Print / PDF]) — netWorth + stackedArea figures swap SVG↔ascii pre blocks. ev: live off=2 svg/0 pre → on=0 svg/3 pre
+- R-H5 IMPLEMENTED: tax finder cards 3-up at xl (dead quadrant fixed). ev: commit `1fe28c8`
+- R-H8 IMPLEMENTED: amber text contrast pass — text-amber-600→700 app-wide (10 files; 4.19:1→5.13:1, WCAG AA). ev: same commit; check 0/0; suite 1051/1051
+- Home-vs-alerts badge count (B02-noted mismatch) re-verified: home "ALERTS (28) [!!9] [!13]" == /alerts page 28 with matching lanes — NO BUG (stale-session artifact from B02). Recorded as resolved-by-verification.
 
 ## Sweep 1 — GATE PASSED (2026-10-29 20:20 GMT)
 - check 0/0 ✓ · full suite 988/988 ✓ · build green (adapter-node ✔) ✓
