@@ -23,6 +23,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 23:06:31 GMT | 2026-10-29 23:10:22 GMT | 0h 04m | Sweep 5 B12+B13 COMPLETE: snapshots + routine summary strips, checklist grid; suite 1051/1051 |
 | 2026-10-29 23:10:23 GMT | 2026-10-29 23:17:00 GMT | 0h 07m | Sweep 6 B14+B15 COMPLETE: bills page + income-vs-deposits report; anonymiser verified; runbook §9; suite 1051/1051 |
 | 2026-10-29 23:17:01 GMT | 2026-10-29 23:21:33 GMT | 0h 05m | Sweep 7 harvest: R-H2+R-H3 (report grid + ascii toggle), R-H5 (tax 3-up), R-H8 (amber AA); badge-count mismatch disproven |
+| 2026-10-29 23:21:34 GMT | 2026-10-29 23:27:09 GMT | 0h 06m | Sweep 7 vision re-audit: report grid P0 + monotonic-label P1 + ascii width fixed; suite 1052/1052; build green |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -271,6 +272,13 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 - R-H8 IMPLEMENTED: amber text contrast pass — text-amber-600→700 app-wide (10 files; 4.19:1→5.13:1, WCAG AA). ev: same commit; check 0/0; suite 1051/1051
 - Home-vs-alerts badge count (B02-noted mismatch) re-verified: home "ALERTS (28) [!!9] [!13]" == /alerts page 28 with matching lanes — NO BUG (stale-session artifact from B02). Recorded as resolved-by-verification.
 
+### SWEEP 7 CONTINUED — vision re-audit round (2026-10-29 23:22 → 23:27)
+- Vision re-review of the R-H3 report grid (v3-b07h-report-grid-1600.png, zai-vision) found 3 REAL defects, all fixed same unit (commit `8926b9a`):
+  - P0 lone table in 2-col grid left an empty quadrant → tables now span full width UNLESS ≥2 tables exist (pairing only when it pays). ev: live spanningSections 3, no empty cell
+  - P1 "largest rise −£352.03" on a monotonic-decline window → builder now emits rise/fall rows only when a step of that sign exists; abstract picks the biggest step with its true kind ("a fall of £352.05"). ev: live labels show ONLY "largest fall"; abstract snippet verified
+  - P2 ascii charts stretched full-width read as compressed clusters → pre capped max-w-3xl
+- Gate after fixes: check 0/0; suite 1052/1052; build green. ev: outputs above
+
 ## Sweep 1 — GATE PASSED (2026-10-29 20:20 GMT)
 - check 0/0 ✓ · full suite 988/988 ✓ · build green (adapter-node ✔) ✓
 - live smoke: `/`, `/goals`, `/goals/debt/clear-mastercard`, `/accounts` — console 0 errors, network 0 5xx on all
@@ -300,6 +308,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | Date | Screenshot | Verdict |
 |---|---|---|
 | 2026-10-29 | v3-b06-data-1600.png (zai-vision; free endpoint 1305 ×4) | Data management page: no P0; no ciphertext/[object Object]/`<br>` bugs; terminal aesthetic consistent. P1×2 REJECTED as below-fold artifacts (filters + wizard steps DOM-verified present; vision itself flagged the caveat). P2 `[*K]` = documented ⌘K misread; P2 Session&Security nav overlap → noted for B01 later sweep |
+| 2026-10-29 | v3-b07h-report-grid-1600.png (zai-vision) | Report findings grid v1: P0 empty quadrant (REAL — lone table, fixed w/ conditional spans), P0 ascii unreadable (partially REAL — opt-in mode stretched, capped max-w-3xl), P1 negative "largest rise" (REAL — monotomic window labeling bug, fixed). All 3 verified fixed live | 
 | 2026-10-29 | v3-b09-budget-1600.png (zai-vision) | Budget redesign: no P0. P1 amendment-cluster = pre-existing options-bar UX (no apply button BY DESIGN — options ride on next config edit) → clarified with helper text; P2s: note placeholder truncation FIXED (w-64), column height imbalance (accepted, content-driven), bracket dialect = REAL R16-class bug → fixed app-wide as R-H4, amber pace contrast → wording fixed ("over pace") |
 | 2026-10-29 | v3-b05-credit-1600.png | Credit strategy panel + splits tracker: clean terminal rendering, no misalignment/unreadable/bugs — P0 none |
 | 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b01-home-1600.png | No P0/P1; "spans the full viewport width (no narrow centered column)". Claim of `[[⌘K]]` double-bracket REJECTED — DOM: text `⌘K` + one pseudo `[`/`]` (known vision glyph misread) |
