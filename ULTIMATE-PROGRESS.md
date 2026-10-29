@@ -48,6 +48,8 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-29T00:26 | 2026-10-29T00:29 | 0h03m | Keyboard journey live: ⌘K palette filter+Enter → /goals navigation verified (old session-bug note closed); ? help overlay opens w/ focus capture, Escape closes; 0 console errors |
 | 2026-10-29T00:29 | 2026-10-29T00:36 | 0h07m | Final vision sweep: 7 route screenshots (tools/reports/home/goals CLEAN via vmodel); budgets P1 'no legend' on burn-down → added 4-entry legend + test; live + zai-vision confirmed fixed; check 0/0 · 982/982 |
 | 2026-10-29T00:36 | 2026-10-29T00:44 | 0h08m | Console+5xx sweep across all 25 routes (clean); vision on alerts/snapshots (no P0/P1); P2 triage: 1 deferred (shorthand .00-drop = app-wide convention), 1 rejected (vision misread, verified in source) |
+| 2026-10-29T00:44 | 2026-10-29T00:45 | 0h02m | Release doc final update (session fixes, gates 134/982, P2 deferral cross-linked) + P2 triage checkbox closed + Deferrals row |
+| 2026-10-29T00:45 | 2026-10-29T00:46 | 0h01m | Production build verified: npm run build GREEN (10.4s, adapter-node) — first build proof of the run |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -133,7 +135,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 - [x] keyboard-first journey LIVE end-to-end (closes the old 'palette click-through blocked' note) — ev: on /accounts ⌘K opened palette, typing 'goals' filtered to 2 options (first 'Goals Navigate'), Enter NAVIGATED to /goals; ? opened help overlay (role=dialog, focus captured inside), Escape closed it; 0 console errors
 - [x] final-audit fix: burn-down chart had no visible legend (P1 from final vision sweep) — ev: added 4-entry line legend under BurnDownChart SVG (actual spend / even pace / today / target, same pattern as PSA legend) + SSR test; live: legend in DOM + scrolled into view → zai-vision CONFIRMS 'legend now renders directly under the chart plot', no P0/P1 (first shot missed it only because the legend sat below the viewport fold — DOM probe had it); vmodel 1305-overloaded ×2 → zai-vision fallback per protocol; check 0/0 · 982/982
 - [x] final console/network sweep: ALL 25 routes clean — ev: navigated every real route (auth/home/accounts+detail/liabilities/balances/interest/isa/tax/routine/goals+archived/reports/tools/budgets+uncategorised/expenses/snapshots/alerts/overview/settings×2): 0 console errors, 0 5xx (3 initial 404s were my wrong path guesses — bulk-update=/accounts/balances, interest=/accounts/interest/all, profile=/settings/profile); vision on final-alerts + final-snapshots: no P0/P1; P2 triage below
-- [ ] P2 triage (final sweep): snapshots 'mixed decimals' → DEFERRED — formatCurrencyShorthand deliberately drops .00 / collapses exact £k (app-wide convention: accounts page etc.); changing snapshots alone would create real inconsistency. alerts 'low-contrast gray on tinted rows' → REJECTED — no gray-on-tint pairing exists in AlertGroup/AlertsSection (severity text = *-700 on *-50, ≈7:1); vision misread, self-flagged 'needs verification'
+- [x] P2 triage (final sweep): snapshots 'mixed decimals' → DEFERRED — formatCurrencyShorthand deliberately drops .00 / collapses exact £k (app-wide convention: accounts page etc.); changing snapshots alone would create real inconsistency. alerts 'low-contrast gray on tinted rows' → REJECTED — no gray-on-tint pairing exists in AlertGroup/AlertsSection (severity text = *-700 on *-50, ≈7:1); vision misread, self-flagged 'needs verification'
 - [ ] Ledger ≥ 6h verified
 
 ## Decisions
@@ -174,6 +176,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 ## Deferrals
 | Item | Reason |
 |---|---|
+| Snapshots £ shorthand drops .00 / collapses exact £k (final-sweep P2) | Deliberate app-wide formatCurrencyShorthand convention (accounts etc.); per-page change would create real inconsistency |
 | ~~Category select stays visually blank on auto-match~~ **RESOLVED 2026-10-29** | Fixed in Phase 9 cycle 6 — see checklist. Root cause was a type mismatch in Svelte 5's select matcher, not DOM clobbering (MutationObserver showed ZERO events; reading the compiled runtime found M() comparing option __value (number cat.id) against the string value expression — 11 !== "11" → selectedIndex=-1). Fix: option value={String(cat.id)}. Live-verified: selText "Groceries", catVal "11" |
 
 ## Vision review log
