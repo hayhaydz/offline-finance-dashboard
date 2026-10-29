@@ -191,3 +191,71 @@ intentionally preserved, so rare residual shape leakage is by design.
 `src/lib/db/schema/`, the anonymiser aborts until `TABLE_RULES` in
 `scripts/anonymise.ts` classifies it. Never weaken the guard by adding a
 catch-all rule.
+
+## 9. v3 extension surfaces (2026-10-29)
+
+The registry pattern is how v3 grows — study these before adding a report
+or tool; adding an entry is the whole change.
+
+### Reports v2 (dated science-paper articles)
+
+- Registry: `src/lib/server/reports-v2.ts` (`REPORTS: ReportDefinition[]`).
+- A report = one async `build(userId)` returning a `ReportDoc`
+  (title/date/abstract/method/findings; findings are label→value rows with
+  semantic flags plus optional `figure` keys rendered by existing charts).
+- Abstracts are auto-written with real numbers — no lorem.
+- Routes: `/overview/reports` (index) + `/overview/reports/[slug]`
+  (registry lookup, 404 unknown). No per-report route files.
+- Tests: `src/lib/server/reports-v2.test.ts` pins registry integrity and
+  requires every builder to degrade cleanly for a nonexistent user.
+
+### Tools (sub-page what-if calculators)
+
+- Registry: `src/lib/utils/tool-registry.ts` (`TOOLS`).
+- A tool = component under `src/lib/components/tools/` + registry entry +
+  a branch in `src/routes/tools/[slug]/+page.svelte` (which also assembles
+  per-tool server data in its load).
+- Math lives in `src/lib/utils/tool-math.ts` with hand-computed parity
+  tests (`tests/unit/tool-math.test.ts`) — add formulas there, never
+  inline in components.
+
+### Data pipeline (settings/data)
+
+One page, one writer engine. Surface order mirrors the flow: export
+selection → history CSV → bulk bank import → transaction reimport →
+background jobs.
+
+- Exports are self-describing: `#` comment headers (account legend, scope)
+  that the reimport parser ignores, so an export is a valid import file.
+- Reimport engine: `src/lib/server/imports-update.ts` (insert/edit/delete
+  by one file; Matrixify DROP/CREATE round-trip — pinned by
+  `imports-roundtrip.test.ts`).
+- History (expenses/income months): `src/lib/server/history-csv.ts`
+  (upsert-by-month, `_delete=1` → unknown).
+- Bulk bank import: `src/lib/server/bulk-import.ts` (column mapping with
+  Monzo preset; transforms to the app CSV then feeds the same engines).
+- Background queue: `import_jobs` table + `src/lib/server/import-jobs.ts`
+  (payloads sealed under the owner's DataKey; commits > 1MB tx / 200KB
+  history auto-queue; `/api/import-jobs` + the IMPORT JOBS panel poll).
+
+### Schema changes (sanctioned Active-Dev path)
+
+1. Edit `src/lib/db/schema/*` → `npm run db:generate`.
+2. Apply the generated SQL to `storage/dev-plain.db` (sqlite3 `.read`).
+3. Insert the migration's sha256 into `__drizzle_migrations` —
+   `tests/integration/migration-journal-sync.test.ts` enforces this; a
+   fresh `vite preview` boot replays unjournaled migrations and crashes.
+4. Classify any new table/column in the anonymiser's `TABLE_RULES`
+   (`scripts/anonymise.ts`) — it aborts on drift by design.
+5. Update `scripts/seed.ts` in the same unit if the seed data is affected.
+
+### Gotchas recorded by the v3 loop
+
+- SQLite `CURRENT_TIMESTAMP` defaults are TEXT — drizzle's integer
+  timestamp mode reads them back as Invalid Date. Pass explicit `new Date()`
+  on insert when you will read the column back (see `import-jobs.ts`).
+- `take_screenshot` (chrome-devtools MCP) saves only via `filePath`
+  (`filename` is a silent no-op).
+- Bracket-link elements must not carry literal `[label]` text — the CSS
+  supplies the brackets (`tests/integration/bracket-link-convention.test.ts`
+  enforces it app-wide).
