@@ -20,7 +20,7 @@
   }
 </script>
 
-<div class="p-4 max-w-4xl">
+<div class="p-4 w-full"><!-- v3 R6: full width -->
   <!-- Header -->
   <div class="mb-4">
     <a href="/goals?type=debt" class="bracket-link text-xs">Back to Debt Goals</a>

@@ -266,9 +266,10 @@ async function placeAtEnd() {
 	/>
 {/if}
 
-<!-- Phase 7 line 2: allocation view — share of total allocated money per goal -->
+<!-- Phase 7 line 2: allocation view — share of total allocated money per goal
+     (v3 R6: full width, no max-w wrapper) -->
 {#if goals.length > 0}
-	<div class="max-w-3xl mt-3">
+	<div class="mt-3">
 		<AllocationBar
 			items={goals.map((g) => ({ name: g.name, value: Math.max(0, g.currentAllocation ?? 0) }))}
 			label="allocated"

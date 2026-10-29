@@ -360,7 +360,6 @@
 								percent={goal.progress.percent}
 								projectedPayoffDate={goal.projectedPayoffDate}
 								updatedAt={goal.updatedAt}
-								milestones={(goal as any).milestones ?? null}
 							/>
 						{:else}
 							<GoalCard {goal} />

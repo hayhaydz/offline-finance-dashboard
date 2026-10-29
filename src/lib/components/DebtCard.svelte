@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { formatCurrencyShorthand, formatDateShorthand } from '$lib/utils/currency';
 	import { getStaleness } from '$lib/utils/staleness';
-	import { debtTicks } from '$lib/utils/goal-milestone-ticks';
 
 	interface Props {
 		name: string;
@@ -11,22 +10,12 @@
 		percent: number;
 		projectedPayoffDate: Date | null;
 		updatedAt: Date;
-		/** DB milestone rows (Phase 4 V1 #3: bullet-bar ticks) */
-		milestones?: Array<{ label: string; thresholdInCents: number; reachedAt: Date | string | null }> | null;
 	}
 
-	let { name, slug, paidInCents, remainingInCents, percent, projectedPayoffDate, updatedAt, milestones }: Props =
+	let { name, slug, paidInCents, remainingInCents, percent, projectedPayoffDate, updatedAt }: Props =
 		$props();
 
 	const staleness = $derived(getStaleness(updatedAt));
-
-	// Phase 4 V1 #3: milestone ticks on the bar. Starting balance is
-	// reconstructable from paid + remaining; current balance = remaining.
-	const ticks = $derived(
-		milestones && milestones.length > 0
-			? debtTicks(paidInCents + remainingInCents, remainingInCents, milestones)
-			: [],
-	);
 
 	const progressColor = $derived(
 		percent >= 70
@@ -52,7 +41,7 @@
 		</div>
 	</div>
 
-	<!-- Progress bar -->
+	<!-- Progress bar (v3 R4: milestone tick lines removed — pre-v2 form) -->
 	<div class="flex items-center gap-2 text-sm leading-none font-bold {progressColor.text} mb-1">
 		<span>[</span>
 		<div class="flex-1 h-5 relative mt-px border-y border-gray-100">
@@ -65,14 +54,6 @@
 				class="h-full {progressColor.bg} transition-all duration-300 mix-blend-multiply"
 				style="width: {Math.min(100, Math.max(0, percent))}%"
 			></div>
-			{#each ticks as tick (tick.label)}
-				<span
-					class="absolute -top-[3px] -bottom-[3px] w-[2px] {tick.achieved ? 'bg-green-700' : 'bg-gray-500'}"
-					style="left: {Math.min(100, Math.max(0, tick.pct))}%"
-					title="{tick.label} — {tick.achieved ? 'reached' : 'pending'} ({tick.pct}%)"
-					aria-hidden="true"
-				></span>
-			{/each}
 		</div>
 		<span>]</span>
 		<span class="text-xs text-gray-900 min-w-8 text-right font-bold">{Math.round(percent)}% paid</span>

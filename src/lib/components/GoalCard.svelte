@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { formatCurrencyShorthand, formatDate } from '$lib/utils/currency';
 	import { getStaleness } from '$lib/utils/staleness';
-	import { emergencyFundTicks } from '$lib/utils/goal-milestone-ticks';
 	import type { Snippet } from 'svelte';
 
 	// GoalDisplay interface - only the fields needed for display
@@ -53,12 +52,7 @@
 		];
 	});
 
-	// Phase 4 V1 #3: bar-tick positions (shared util — same mapping as GoalRow)
-	const emergencyFundTicksForBar = $derived(
-		goal.isEmergencyFund
-			? emergencyFundTicks(goal.targetAmountInCents, goal.currentAllocation)
-			: [],
-	);
+	// Phase 4 V1 #3: bar-tick positions removed in v3 (R4) — pre-v2 bars have no tick lines
 
 	// Progress bar text color based on progress
 	const progressTextColor = $derived(
@@ -101,7 +95,7 @@
 		{/if}
 	</div>
 
-	<!-- Progress Bar (ASSET_CONTAINER style; Phase 4 V1 #3: emergency-fund milestone ticks) -->
+	<!-- Progress Bar (ASSET_CONTAINER style; v3 R4: tick lines removed — pre-v2 form) -->
 	<div class="flex items-center gap-2 text-sm leading-none font-bold {progressTextColor} mb-1">
 		<span>[</span>
 		<div class="flex-1 h-5 relative mt-px border-y border-gray-100">
@@ -114,16 +108,6 @@
 				class="h-full {progressBgColor} transition-all duration-300 mix-blend-multiply"
 				style="width: {progress}%"
 			></div>
-			{#if emergencyFundTicksForBar.length > 0}
-				{#each emergencyFundTicksForBar as tick (tick.label)}
-					<span
-						class="absolute -top-[3px] -bottom-[3px] w-[2px] {tick.achieved ? 'bg-green-700' : 'bg-gray-500'}"
-						style="left: {tick.pct}%"
-						title="{tick.label} — {tick.achieved ? 'reached' : 'pending'} ({tick.pct}%)"
-						aria-hidden="true"
-					></span>
-				{/each}
-			{/if}
 		</div>
 		<span>]</span>
 		<span class="text-xs text-gray-900 min-w-8 text-right font-bold">{progress}%</span>
