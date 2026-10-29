@@ -66,6 +66,15 @@ export const accounts = sqliteTable(
 		// Credit and loan tracking
 		creditLimit: integer("creditLimit"), // NULL for installment debt
 		originalPrincipal: integer("originalPrincipal"), // NULL for revolving debt
+		// Credit engine (v3 B05 / R7): per-account strategy mode. panic =
+		// actively paying the debt down (payoff UI shows); stooze = riding a
+		// 0% promo while savings earn interest (friendly reminders only).
+		// NULL = no strategy chosen (non-cards default).
+		creditMode: text("creditMode", { enum: ["panic", "stooze"] }),
+		// Credit engine (v3 B05 / R7 R20): end of the 0% promotional window.
+		promoEndsAt: integer("promo_ends_at", { mode: "timestamp" }),
+		// APR (basis points) the card reverts to after the promo ends.
+		revertAprBps: integer("revertAprBps"),
 	},
 	(table) => ({
 		userClosedIdx: index("idx_accounts_user_closed").on(
@@ -110,6 +119,16 @@ export const accountTransactions = sqliteTable(
 		amount: integer("amount").notNull(), // Signed cents: + for additions, - for deductions
 		categoryId: integer("category_id"),
 		description: text("description"),
+		// Credit engine (v3 B05 / R8): Monzo-method pay-off plan for card
+		// charges — immediate (clear with next statement) or over_time
+		// (tracked split). NULL = card default.
+		payoffPlan: text("payoffPlan", { enum: ["immediate", "over_time"] }),
+		// Credit engine (v3 B05 / R20): target clear-by date for a charge
+		// (defaults to 3 months from the charge date; overridable).
+		plannedClearBy: integer("planned_clear_by", { mode: "timestamp" }),
+		// Credit engine (v3 B05 / R20): payment → the charge it pays down.
+		// NULL = general payment (engine waterfall allocates it).
+		allocatesToId: integer("allocates_to_id"),
 		transactionDate: integer("transaction_date", {
 			mode: "timestamp",
 		}).notNull(),

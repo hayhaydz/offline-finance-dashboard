@@ -187,6 +187,9 @@
     "minimumPaymentType": "flat_or_percentage",
     "minimumPaymentFlat": 2500,
     "minimumPaymentPercentage": 100,
+    "creditMode": "panic",
+    "promoEndsAt": null,
+    "revertAprBps": 2390,
     "balances": [
       {
         "balanceInCents": -120000,
@@ -224,6 +227,9 @@
     "minimumPaymentType": "flat_or_percentage",
     "minimumPaymentFlat": 2500,
     "minimumPaymentPercentage": 100,
+    "creditMode": "stooze",
+    "promoEndsAt": "2027-01-15",
+    "revertAprBps": 2490,
     "balances": [
       {
         "balanceInCents": -80000,

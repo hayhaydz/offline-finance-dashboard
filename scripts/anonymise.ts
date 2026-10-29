@@ -456,6 +456,12 @@ export const TABLE_RULES: Record<string, TableRule> = {
 			minimumPaymentPercentage: "amount",
 			creditLimit: "amount",
 			originalPrincipal: "amount",
+			// Credit engine (v3 B05): strategy enum copies verbatim (no
+			// identity signal); promo window shifts with the date layer;
+			// APR is a rate, not an identity — copy.
+			creditMode: "skip",
+			promoEndsAt: "ts",
+			revertAprBps: "skip",
 		},
 	},
 	accountTransactions: {
@@ -469,6 +475,11 @@ export const TABLE_RULES: Record<string, TableRule> = {
 			amount: "amount",
 			categoryId: "skip",
 			description: "protected-text",
+			// Credit engine (v3 B05): plan enum + FK copy/skip; the
+			// clear-by target shifts with the date layer like other ts.
+			payoffPlan: "skip",
+			plannedClearBy: "ts",
+			allocatesToId: "skip",
 			transactionDate: "ts",
 			createdAt: "ts",
 		},

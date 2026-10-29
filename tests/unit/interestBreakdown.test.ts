@@ -202,6 +202,9 @@ const baseAccount: Account = {
 	minimumPaymentPercentage: 0,
 	creditLimit: null,
 	originalPrincipal: null,
+	creditMode: null,
+	promoEndsAt: null,
+	revertAprBps: null,
 };
 
 const createAccount = (overrides: Partial<Account>): Account => ({

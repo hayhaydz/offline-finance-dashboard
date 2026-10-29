@@ -39,6 +39,10 @@ interface AccountFixture {
 	minimumPaymentType: (typeof schema.accounts.$inferInsert)["minimumPaymentType"];
 	minimumPaymentFlat: (typeof schema.accounts.$inferInsert)["minimumPaymentFlat"];
 	minimumPaymentPercentage: (typeof schema.accounts.$inferInsert)["minimumPaymentPercentage"];
+	// Credit engine (v3 B05): per-card strategy + 0% promo window
+	creditMode: (typeof schema.accounts.$inferInsert)["creditMode"];
+	promoEndsAt: string | null;
+	revertAprBps: number | null;
 	balances: Array<{
 		balanceInCents: number;
 		daysAgo: number;
@@ -136,6 +140,9 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 				minimumPaymentType: a.minimumPaymentType,
 				minimumPaymentFlat: a.minimumPaymentFlat,
 				minimumPaymentPercentage: a.minimumPaymentPercentage,
+				creditMode: a.creditMode ?? null,
+				promoEndsAt: a.promoEndsAt ? new Date(a.promoEndsAt) : null,
+				revertAprBps: a.revertAprBps ?? null,
 				createdAt: now,
 				updatedAt: now,
 			})

@@ -71,6 +71,13 @@
       "when": 1793219977398,
       "tag": "0009_eminent_wrecker",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1793305397971,
+      "tag": "0010_great_major_mapleleaf",
+      "breakpoints": true
     }
   ]
 }
