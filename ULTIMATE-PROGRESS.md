@@ -60,6 +60,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-29T00:59 | 2026-10-29T00:59 | 0h00m | Plan-compliance closeout: bootstrap-commit audit, .docs untracked convention documented, seed.ts schema-sync verified (instant greps — no time claimed) |
 | 2026-10-29T00:59 | 2026-10-29T01:03 | 0h04m | Final vision coverage: accounts (no P0/P1; ⌘K glyph misread rejected via source check) + tax (vmodel CLEAN) — every headline page now reviewed this round |
 | 2026-10-29T01:03 | 2026-10-29T01:04 | 0h01m | Logout flow live-verified end-to-end (Exit→/login, session dead, / redirects) — original audit env finding closed |
+| 2026-10-29T01:04 | 2026-10-29T01:08 | 0h04m | Stop-file assembly + read-back (git log exact match); true stop-gate 0/0 · 135/983; session restored; ledger proofread (54 rows clean); dev-login prod gate verified |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -153,6 +154,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 - [x] plan-compliance closeout: progress file committed at branch start (45eb59c ✓); plan file itself lives in untracked .docs/ (repo convention — zero .docs files tracked; VERSION_HISTORY save-points follow the same convention, resolving the plan's 'commit the plan file' instruction); seed.ts has no alert-acknowledgement reference correctly (runtime state, nothing to seed); categories referenced ✓
 - [x] final vision coverage completed (accounts + tax, the last unreviewed headline pages) — ev: accounts final-accounts-v2.png no P0/P1 (zai-vision; 'garbled [※K]' P2 REJECTED — actual markup is [⌘K] w/ title tooltip, vision misread the Mac glyph); tax final-tax-v2.png vmodel CLEAN; final sweep now covers every headline page
 - [x] logout flow LIVE end-to-end (last unverified original-audit environmental finding) — ev: Exit click → POST /logout → landed /login (form back, Register nav, Exit gone); revisit / → redirected to /login — session truly dead, no DEV_AUTO_LOGIN fake; 0 console errors
+- [x] closing verifications — ev: stop-gate re-run 0/0 · 135/983 (01:05, post-HelpOverlay-fix); browser session restored to logged-in ADMIN home (0 console errors); progress-file structural proofread (54 ledger rows, 0 malformed, all Decisions/Deferrals/Vision-log tables intact); /dev-login production gate verified in code (non-development APP_ENV → 404 + security log); stop file drafted + read-back verified (git log diff = exact match)
 - [x] P2 triage (final sweep): snapshots 'mixed decimals' → DEFERRED — formatCurrencyShorthand deliberately drops .00 / collapses exact £k (app-wide convention: accounts page etc.); changing snapshots alone would create real inconsistency. alerts 'low-contrast gray on tinted rows' → REJECTED — no gray-on-tint pairing exists in AlertGroup/AlertsSection (severity text = *-700 on *-50, ≈7:1); vision misread, self-flagged 'needs verification'
 - [ ] Ledger ≥ 6h verified
 
