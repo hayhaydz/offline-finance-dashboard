@@ -2,6 +2,7 @@
 	import { enhance } from "$app/forms";
 	import type { SubmitFunction } from "@sveltejs/kit";
 	import ExportPanel from "$lib/components/export-panel/export-panel.svelte";
+	import HistoryImportWizard from "$lib/components/history-import-wizard/history-import-wizard.svelte";
 	import ImportWizard from "$lib/components/import-wizard/import-wizard.svelte";
 	import ReimportWizard from "$lib/components/reimport-wizard/reimport-wizard.svelte";
 	import { formatCurrency } from "$lib/utils/currency";
@@ -100,6 +101,13 @@
 			<span>CSV EXPORT — SELECT WHAT TO EXPORT</span>
 		</div>
 		<ExportPanel accounts={data.accounts} />
+	</section>
+
+	<section class="border-t border-black">
+		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
+			<span>HISTORY CSV — EXPENSES / INCOME MONTHS</span>
+		</div>
+		<HistoryImportWizard {form} />
 	</section>
 
 	<section class="border-t border-black">

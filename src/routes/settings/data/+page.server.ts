@@ -7,6 +7,12 @@ import {
 	spendingCategories,
 } from "$lib/db/schema";
 import {
+	commitHistoryImport,
+	HISTORY_KINDS,
+	previewHistoryImport,
+	type HistoryKind,
+} from "$lib/server/history-csv";
+import {
 	batchInsertTransactions,
 	getOverlappingTransactions,
 	type ImportRow,
@@ -441,6 +447,137 @@ export const actions: Actions = {
 			return fail(500, {
 				action: "reimport-commit",
 				errors: ["Could not apply the file — nothing was changed. Try again."],
+			});
+		}
+	},
+
+	// -----------------------------------------------------------------------
+	// History CSV (expenses + income months) — preview → commit (R23)
+	// -----------------------------------------------------------------------
+
+	"history-preview": async ({ request, locals }) => {
+		const user = getAuthUser(locals);
+		if (!user) {
+			return fail(401, {
+				action: "history-preview",
+				errors: ["Authentication required"],
+			});
+		}
+
+		const formData = await request.formData();
+		const kind = String(formData.get("kind") ?? "");
+		const csvText = String(formData.get("csvText") ?? "");
+
+		if (!(HISTORY_KINDS as readonly string[]).includes(kind)) {
+			return fail(400, {
+				action: "history-preview",
+				errors: ["Unknown history kind"],
+			});
+		}
+		if (csvText === "") {
+			return fail(400, {
+				action: "history-preview",
+				errors: ["No file contents received — select a file first."],
+			});
+		}
+		if (csvText.length > 1_000_000) {
+			return fail(400, {
+				action: "history-preview",
+				errors: ["File too large — history files are month rows only."],
+			});
+		}
+
+		try {
+			const preview = await previewHistoryImport(
+				user.id,
+				kind as HistoryKind,
+				csvText,
+			);
+			if (!preview.ok) {
+				return fail(400, {
+					action: "history-preview",
+					errors: preview.errors.slice(0, MAX_PREVIEW_ERRORS),
+				});
+			}
+			return {
+				action: "history-preview",
+				success: true,
+				kind,
+				preview: {
+					counts: preview.counts,
+					edits: preview.edits.slice(0, MAX_PREVIEW_EDITS),
+					inserts: preview.inserts.slice(0, MAX_PREVIEW_INSERTS),
+					deletes: preview.deletes.slice(0, MAX_PREVIEW_DELETES),
+					isBackup: preview.isBackup,
+				},
+			};
+		} catch (err) {
+			logError(
+				"settings-data:history-preview",
+				"History preview failed",
+				err,
+			);
+			return fail(500, {
+				action: "history-preview",
+				errors: ["Could not preview the file — nothing was changed."],
+			});
+		}
+	},
+
+	"history-commit": async ({ request, locals }) => {
+		const user = getAuthUser(locals);
+		if (!user) {
+			return fail(401, {
+				action: "history-commit",
+				errors: ["Authentication required"],
+			});
+		}
+
+		const formData = await request.formData();
+		const kind = String(formData.get("kind") ?? "");
+		const csvText = String(formData.get("csvText") ?? "");
+
+		if (!(HISTORY_KINDS as readonly string[]).includes(kind)) {
+			return fail(400, {
+				action: "history-commit",
+				errors: ["Unknown history kind"],
+			});
+		}
+		if (csvText === "") {
+			return fail(400, {
+				action: "history-commit",
+				errors: ["No file contents received — start over and select the file again."],
+			});
+		}
+
+		try {
+			const result = await commitHistoryImport(
+				user.id,
+				kind as HistoryKind,
+				csvText,
+			);
+			if (!result.ok) {
+				return fail(400, {
+					action: "history-commit",
+					errors: result.errors.slice(0, MAX_PREVIEW_ERRORS),
+				});
+			}
+			return {
+				action: "history-commit",
+				success: true,
+				kind,
+				counts: result.counts,
+				backupFilename: result.backupFilename,
+			};
+		} catch (err) {
+			logError(
+				"settings-data:history-commit",
+				"History commit failed",
+				err,
+			);
+			return fail(500, {
+				action: "history-commit",
+				errors: ["Could not apply the file — nothing was changed."],
 			});
 		}
 	},

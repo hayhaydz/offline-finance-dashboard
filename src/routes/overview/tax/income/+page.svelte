@@ -68,9 +68,13 @@
 
 <main>
 	<!-- HEADER -->
-	<div class="flex justify-between items-center border-b border-black p-2 bg-gray-100">
+	<div class="flex justify-between items-center gap-4 border-b border-black p-2 bg-gray-100">
 		<span class="font-bold">INCOME HISTORY</span>
-		<a href="/overview/tax" class="bracket-link text-xs">[Tax]</a>
+		<span class="flex gap-3 text-xs">
+			<a href="/api/history/export?kind=income" download class="bracket-link">[Export CSV]</a>
+			<a href="/settings/data" class="bracket-link">[Import CSV]</a>
+			<a href="/overview/tax" class="bracket-link">[Tax]</a>
+		</span>
 	</div>
 
 	<!-- ═══ TREND ═══ -->
