@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
+	import { listnav } from '$lib/utils/list-nav';
 	import { formatCurrencyShorthand } from '$lib/utils/currency';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 
@@ -64,9 +65,9 @@
 					<th class="text-right pr-1">MoM Change</th>
 				</tr>
 			</thead>
-			<tbody>
+			<tbody use:listnav>
 				{#each snapshotsWithTrends as snapshot}
-					<tr class="border-b border-gray-200 last:border-b-0">
+					<tr class="border-b border-gray-200 last:border-b-0" data-nav-row>
 						<td class="text-center border-r border-gray-200 text-sm py-2">
 							{#if snapshot.trends}
 								<span class="text-xl {getTrendColor(snapshot.trends.netWorthChange)}">
@@ -77,7 +78,7 @@
 							{/if}
 						</td>
 						<td class="pl-2 text-sm py-2">
-							<a href="/overview/snapshots/{snapshot.slug}" class="bracket-link text-xs">{snapshot.snapshotDate}</a>
+							<a href="/overview/snapshots/{snapshot.slug}" class="bracket-link text-xs" data-nav-primary>{snapshot.snapshotDate}</a>
 						</td>
 						<td class="text-right pr-1 text-sm tabular-nums py-2">{formatCurrencyShorthand(snapshot.netWorthInCents)}</td>
 						<td class="text-right pr-1 text-sm tabular-nums py-2">{formatCurrencyShorthand(snapshot.totalAssetsInCents)}</td>

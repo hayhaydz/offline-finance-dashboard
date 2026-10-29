@@ -90,8 +90,8 @@
 				</tbody>
 			</table>
 			<div class="chart-panel-summary">
-				List navigation works on the accounts and goals lists — click a list
-				first so it receives keys.
+			List navigation works on the accounts, goals and snapshots lists
+			— click a list first so it receives keys.
 			</div>
 		</div>
 	</div>
