@@ -19,6 +19,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 22:34:01 GMT | 2026-10-29 22:40:08 GMT | 0h 06m | Sweep 4 B08 COMPLETE: tools index + 6 sub-pages + 2 new tools (stooze, milestones) + math tests; live gate passed |
 | 2026-10-29 22:40:09 GMT | 2026-10-29 22:53:52 GMT | 0h 14m | Sweep 5 B09 COMPLETE: budget summary strip + two-column redesign; R-H4 bracket-link sweep (58 fixes, 29 files) + regression net |
 | 2026-10-29 22:53:53 GMT | 2026-10-29 23:02:40 GMT | 0h 09m | Sweep 5 B10 COMPLETE: tax finder cards + threshold bars + mini-tables; vision gate (P1 rejected w/ evidence); suite 1051/1051 |
+| 2026-10-29 23:02:41 GMT | 2026-10-29 23:06:30 GMT | 0h 04m | Sweep 5 B11 COMPLETE: alerts summary strip + severity lanes + badge fixes; vision P1s fixed same unit |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -42,7 +43,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R9 | [x] | ev: budget summary strip (4 cells) + two-column body; commit e09a288; live gridCols 3 + summary cells; SSR test 3/3; vision P0 none |
 | R10 | [x] | ev: reports v2 — registry + science-paper template + dated article index + 6 launch reports (net-worth, savings-rate, interest-PSA, credit-strategy, spending-profile, debt-horizon); all live 200 w/ ABSTRACT+METHOD; commit 4886287; tests 1043/1043 |
 | R11 | [x] | ev: finder years as cards w/ threshold bars + arithmetic mini-tables; commit 32df8b4; live 3 cards/bars/mini-rows; vision 0 P0 (math P1 rejected w/ source evidence) |
-| R12 | [ ] | alerts digestibility |
+| R12 | [x] | ev: severity summary strip + severity lanes (red|amber|info side by side); commits 5cd73f1+eac0fab; live 3/3 aligned; vision 0 P0 after fixes |
 | R13 | [x] | ev: tools index + 6 sub-pages (4 deepened + NEW stooze calculator + NEW milestone projector); hand-computed math tests; all live 200; commit 04a7e65 |
 | R14 | [x] (B06) | ev: overhaul = unified DATA PIPELINE surface (export selection → history CSV → bulk bank import → reimport → jobs queue, one page, one engine) + ADR .docs/design/2026-10-29-2040-data-pipeline.md; no rewrite of v2's tested engine (100+ tests kept, 30+ added) |
 | R15 | [x] | ev: DECISION recorded (round-trip replace via import, NOT inline edit — Matrixify DROP/CREATE model) + imports-roundtrip.test.ts 7 tests pin cross-account DROP+CREATE/MOVE; in-file reimport hints shipped in every export header |
@@ -77,7 +78,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | B08 TOOLS | 4 | COMPLETE (sweep 4) | R13 ✓; 6 tools as sub-pages; registry at src/lib/utils/tool-registry.ts — add tool = component + registry entry + [slug] branch |
 | B09 BUDGET | 5 | COMPLETE (sweep 5) | R9 ✓ R17(budget) ✓; R-H4 harvested+implemented (58 bracket-link fixes + regression net) |
 | B10 TAX | 5 | COMPLETE (sweep 5) | R11 ✓ R17(tax) ✓; P2 dead-space → R29 polish |
-| B11 ALERTS | — | unvisited | R12 · sweep 5 |
+| B11 ALERTS | 5 | COMPLETE (sweep 5) | R12 ✓; lanes aligned to strip; badge truncation fixed |
 | B12 SNAPSHOTS | — | unvisited | R17 · sweep 5 |
 | B13 ROUTINE | — | unvisited | R17 · sweep 5 |
 | B14 BILLS & PAYSLIPS | — | unvisited | R24 R25 · sweep 6 |
@@ -227,6 +228,15 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
   - [x] U2 vision (zai-vision; vmodel 1305): 0 P0. P1 "interest misprojected 7.5×" REJECTED with source evidence — projection is rate-forward by design (getProjectedInterestBreakdown: current balances × current rates × days-remaining; label says +proj; same figure appears in B07's interest report from the same tested engine; prior-year ACTUAL ≠ this-year rate-forward projection). P2s: 3-cards-in-2-col dead space + apply-control position inconsistency → R29 polish list; bar label collision risk → fine at current widths. ev: this entry + v3-b10-tax-1600.png
   - [x] U3 gate: check 0/0; full suite 1051/1051 (146 files). ev: outputs above
 - R11 [x]; R17(tax leg) [x].
+
+### B11 ALERTS (Sweep 5 — COMPLETE)
+- research: /alerts already groups by title + severity with expand/ack/snooze (v2); the digestibility gap = one long vertical wall + no at-a-glance counts; AlertBadge carries 2 missed literal-bracket labels (multi-line tags).
+- judgments (R12+R29): severity SUMMARY STRIP (counts) + severity LANES (red|amber|info side by side at lg) replacing the stacked sections; empty lanes hidden on small, shown as "none" in lane at wide; accounts-affected count in the header.
+- units (all [x]):
+  - [x] U1 lanes + strip + header count. ev: commit `5cd73f1`; live stripCols 3 / laneCols 3 aligned, lane headers CRITICAL 9 | WARNINGS 13 | INFORMATION 6 (sums to 28 = header total — vision reconciled)
+  - [x] U2 vision P1s fixed: strip↔lanes misalignment (strip 4→3 cells, accounts-affected → header); AlertBadge literal `[View]`/`[secondary]` brackets stripped + title span min-w-0 truncate for narrow lanes. ev: commit `eac0fab`; live doubleBrackets 0, overflowClusters 0
+  - [x] U3 gate: check 0/0; alert tests 9/9; suite 1051/1051. ev: outputs above
+- R12 [x].
 
 ## Sweep 1 — GATE PASSED (2026-10-29 20:20 GMT)
 - check 0/0 ✓ · full suite 988/988 ✓ · build green (adapter-node ✔) ✓

@@ -71,9 +71,9 @@
 	<div class="flex justify-between items-center gap-4 border-b border-black p-2 bg-gray-100">
 		<span class="font-bold">INCOME HISTORY</span>
 		<span class="flex gap-3 text-xs">
-			<a href="/api/history/export?kind=income" download class="bracket-link">[Export CSV]</a>
-			<a href="/settings/data" class="bracket-link">[Import CSV]</a>
-			<a href="/overview/tax" class="bracket-link">[Tax]</a>
+			<a href="/api/history/export?kind=income" download class="bracket-link">Export CSV</a>
+			<a href="/settings/data" class="bracket-link">Import CSV</a>
+			<a href="/overview/tax" class="bracket-link">Tax</a>
 		</span>
 	</div>
 
@@ -112,7 +112,7 @@
 				<input id="rf-amount" name="amount" type="text" inputmode="numeric" placeholder="3200.00"
 					bind:value={rangeAmount} class="border border-black px-1 py-1 text-xs font-mono w-24" />
 			</div>
-			<button type="submit" class="bracket-link text-xs">[Fill Range]</button>
+			<button type="submit" class="bracket-link text-xs">Fill Range</button>
 		</form>
 
 		{#if confirmRangeFill}
@@ -131,7 +131,7 @@
 					<input type="hidden" name="toMonth" value={confirmRangeFill.toMonth} />
 					<input type="hidden" name="amount" value={rangeAmount} />
 					<input type="hidden" name="confirmed" value="yes" />
-					<button type="submit" class="bracket-link text-xs text-red-700">[Confirm Overwrite]</button>
+					<button type="submit" class="bracket-link text-xs text-red-700">Confirm Overwrite</button>
 				</form>
 				<span class="text-gray-600">(reload the page to cancel)</span>
 			</div>
@@ -231,7 +231,7 @@
 							class="border border-black px-1 py-1 text-xs font-mono w-44"
 						/>
 					</div>
-					<button type="submit" class="bracket-link text-xs">[Save Month]</button>
+					<button type="submit" class="bracket-link text-xs">Save Month</button>
 				</form>
 				<form
 					method="POST"
@@ -240,7 +240,7 @@
 					class="mt-2 inline"
 				>
 					<input type="hidden" name="month" value={selectedMonth} />
-					<button type="submit" class="bracket-link text-xs text-red-700">[Remove Entry]</button>
+					<button type="submit" class="bracket-link text-xs text-red-700">Remove Entry</button>
 				</form>
 				<p class="text-[10px] text-gray-600 mt-1">
 					&pound;0 is a known zero-income month — distinct from removing the entry (unknown).

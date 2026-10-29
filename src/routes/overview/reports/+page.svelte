@@ -45,7 +45,7 @@
 					<span class="text-xs text-gray-500 whitespace-nowrap">{displayDate(data.today)}</span>
 				</div>
 				<p class="text-xs text-gray-600 mt-1">{report.blurb}</p>
-				<span class="bracket-link text-xs">[Read Report]</span>
+				<span class="bracket-link text-xs">Read Report</span>
 			</a>
 		{/each}
 	</div>

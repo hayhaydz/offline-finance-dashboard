@@ -55,8 +55,8 @@
 			<h2 class="font-bold text-xs mb-1">ABSTRACT</h2>
 			<p class="text-sm leading-relaxed">{report.abstract}</p>
 			<div class="flex gap-3 mt-2 text-xs">
-				<a href="/overview/reports" class="bracket-link">[All Reports]</a>
-				<button type="button" class="bracket-link" onclick={printPage}>[Print / PDF]</button>
+				<a href="/overview/reports" class="bracket-link">All Reports</a>
+				<button type="button" class="bracket-link" onclick={printPage}>Print / PDF</button>
 			</div>
 		</section>
 
