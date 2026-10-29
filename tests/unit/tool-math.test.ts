@@ -6,6 +6,7 @@ import {
 	simulatePayoff,
 	taxOnInterestPence,
 	yearlyInterestPence,
+	type CompoundPoint,
 } from "$lib/utils/tool-math";
 import { calculatePayoffProjection } from "$lib/server/debtMetrics";
 
@@ -196,5 +197,61 @@ describe("compoundSeries", () => {
 			years: 5,
 		});
 		expect(pts.map((p) => p.year)).toEqual([0, 1, 2, 3, 4, 5]);
+	});
+});
+
+// Phase 9 cycle 9: typed inputs bypass HTML min/max — the math layer must
+// be total (no NaN into SVG paths, no negative balances, no runaway loops).
+describe("compoundSeries input hardening", () => {
+	const allFinite = (pts: CompoundPoint[]) =>
+		pts.every(
+			(p) =>
+				Number.isFinite(p.balancePence) &&
+				Number.isFinite(p.contributedPence) &&
+				Number.isFinite(p.interestPence),
+		);
+
+	it("clamps typed negative principal/monthly to 0", () => {
+		const pts = compoundSeries({
+			principalPence: -50_000,
+			monthlyPence: -100,
+			rateBasisPoints: 300,
+			years: 2,
+		});
+		expect(pts[0].balancePence).toBe(0);
+		expect(pts.every((p) => p.balancePence >= 0)).toBe(true);
+		expect(allFinite(pts)).toBe(true);
+	});
+
+	it("NaN inputs (cleared number fields) degrade to a flat zero projection, never NaN", () => {
+		const pts = compoundSeries({
+			principalPence: NaN,
+			monthlyPence: NaN,
+			rateBasisPoints: NaN,
+			years: NaN,
+		});
+		expect(pts).toHaveLength(1);
+		expect(pts[0].balancePence).toBe(0);
+		expect(allFinite(pts)).toBe(true);
+	});
+
+	it("caps rate at 15% and years at 40 regardless of typed values", () => {
+		const pts = compoundSeries({
+			principalPence: 100_000,
+			monthlyPence: 0,
+			rateBasisPoints: 5000, // typed 50%
+			years: 10_000, // typed 10000 years
+		});
+		// 40 years + the start point, and no more
+		expect(pts).toHaveLength(41);
+		// rate capped at 15%: monthly-compounded 40y growth of £1,000
+		// ≈ £388.7k; the uncapped 50% input would give ≈ £32.5 billion
+		expect(pts[40].balancePence).toBeLessThan(40_000_000);
+		expect(allFinite(pts)).toBe(true);
+	});
+
+	it("yearlyInterestPence returns 0 for non-finite inputs", () => {
+		expect(yearlyInterestPence(NaN, 455)).toBe(0);
+		expect(yearlyInterestPence(1_000_000, Infinity)).toBe(0);
 	});
 });

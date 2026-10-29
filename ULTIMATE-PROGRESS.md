@@ -44,6 +44,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-29T00:14 | 2026-10-29T00:18 | 0h04m | Phase 9 cycle 8: screen-reader pass — skip-to-content link (off-screen until focus), main landmark on the scroll container, SubmitFeedback role=alert/status; 4 SSR tests + live-verified; check 0/0 · 977/977 |
 | 2026-10-29T00:18 | 2026-10-29T00:21 | 0h03m | Mobile responsive sweep at 390px: FOUND page-level horizontal scroll on all pages (unwrapping nav rows) → fixed w/ flex-wrap; re-probe clean ×4; vision CLEAN; check 0/0 · 977/977 |
 | 2026-10-29T00:21 | 2026-10-29T00:23 | 0h02m | Responsive probe extended to 6 more pages (tools/budgets/alerts/liabilities/expenses/snapshots) — all clean; 10/10 app-wide at 390px |
+| 2026-10-29T00:22 | 2026-10-29T00:26 | 0h04m | Tools input hardening: compound projector null-crash found live + fixed (null-safe summary), math-layer clamps + 4 edge unit tests; live garbage-input sweep clean, 0 console errors; check 0/0 · 981/981 |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -125,6 +126,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 - [x] a11y: screen-reader pass — skip link + main landmark + announced feedback — ev: [Skip to content] first tab stop (off-screen left:-9999px, left:0 on focus — live style checks), content div → <main id="main-content"> (still .scrollable-container styles), SubmitFeedback role=alert(error)/role=status(success) so SRs hear action results; 4 SSR tests (LayoutA11yFixture + SubmitFeedback roles) + live DOM verification; latent snapshots-fixture type gap surfaced by the layout change and fixed (environment + UserDto + staleness null); check 0/0 · 977/977
 - [x] fix: mobile horizontal scroll on every page (nav rows didn't wrap) — ev: 390px probe found docW 662 > clientW 500 on home/accounts/reports/goals (same shell offenders — main nav + sub-nav flex rows); fix = flex-wrap + gap-x/y on both nav rows in Navigation.svelte; re-probe: overflow:false, docW 500 == clientW on ALL FOUR pages; vision P9d-mobile-accounts-fixed.png CLEAN (1× 1305 retry); desktop unaffected (wrap only engages when items don't fit); check 0/0 · 977/977
 - [x] responsive sweep completed — ev: extended 390px probe to tools/budgets/alerts/liabilities/expenses/snapshots: overflow:false + zero offenders on ALL SIX (10/10 app-wide after the nav-wrap fix)
+- [x] fix: tools compound projector crashed on cleared/negative typed inputs — ev: found LIVE (cleared number field → null .toLocaleString() TypeError in console); hardened compoundSeries at the math boundary (finite guards + clamp rate≤15%/years≤40/principal,monthly≥0 — typed values bypass HTML min/max) + yearlyInterestPence non-finite → 0; summary line null-safe (?? 0); 4 new unit tests (negatives clamp, NaN → flat zero, 10,000y→41 pts & 50%→<£400k cap, non-finite interest); live re-test: cleared inputs render £0+£0/mo honest summary, absurd values no NaN/Infinity, 0 console errors; check 0/0 · 981/981
 - [ ] Ledger ≥ 6h verified
 
 ## Decisions

@@ -25,6 +25,8 @@ export function yearlyInterestPence(
 	balanceInCents: number,
 	rateBasisPoints: number,
 ): number {
+	if (!Number.isFinite(balanceInCents) || !Number.isFinite(rateBasisPoints))
+		return 0;
 	return Math.round((balanceInCents * rateBasisPoints) / 10_000);
 }
 
@@ -116,10 +118,23 @@ export interface CompoundPoint {
 	interestPence: number;
 }
 
+/** Coerce a possibly-NaN/Infinity typed input to a finite number
+ *  (Svelte number inputs bind '' → undefined → NaN through arithmetic). */
+function finite(value: number, fallback = 0): number {
+	return Number.isFinite(value) ? value : fallback;
+}
+
+/** Input ceilings mirroring the tool form constraints (typed values are
+ *  not bound by the HTML min/max attributes, which only advise). */
+const MAX_RATE_BP = 1500; // 15.00% — matches the rate input's max
+const MAX_YEARS = 40; // matches the years input's max
+
 /**
  * Monthly-compounded savings projection: balance grows by rate/12 each
  * month, `monthlyPence` is added at the end of each month. Sampled at
- * whole years (plus the start point).
+ * whole years (plus the start point). Inputs are clamped to the form's
+ * documented ranges — typed negatives/NaN (number inputs ignore min/max
+ * when typed into) degrade to honest projections, never NaN paths.
  */
 export function compoundSeries(params: {
 	principalPence: number;
@@ -127,9 +142,15 @@ export function compoundSeries(params: {
 	rateBasisPoints: number;
 	years: number;
 }): CompoundPoint[] {
-	const { principalPence, monthlyPence, rateBasisPoints, years } = params;
+	const principalPence = Math.max(0, finite(params.principalPence));
+	const monthlyPence = Math.max(0, finite(params.monthlyPence));
+	const rateBasisPoints = Math.min(
+		MAX_RATE_BP,
+		Math.max(0, finite(params.rateBasisPoints)),
+	);
+	const years = Math.min(MAX_YEARS, Math.max(0, finite(params.years)));
 	const monthlyRate = rateBasisPoints / 10_000 / 12;
-	const totalMonths = Math.max(0, Math.round(years * 12));
+	const totalMonths = Math.round(years * 12);
 
 	const points: CompoundPoint[] = [
 		{ year: 0, balancePence: Math.round(principalPence), contributedPence: Math.round(principalPence), interestPence: 0 },

@@ -436,9 +436,9 @@
 				</div>
 			</div>
 			<div class="chart-panel-summary">
-				£{compoundPrincipal.toLocaleString()} + £{compoundMonthly}/mo at
+				£{(compoundPrincipal ?? 0).toLocaleString()} + £{compoundMonthly ?? 0}/mo at
 				{compoundRatePct}% monthly-compounded →
-				{formatCurrency(compoundFinal.balancePence)} in {compoundYears} years
+				{formatCurrency(compoundFinal.balancePence)} in {compoundYears ?? 0} years
 				({formatCurrency(compoundFinal.contributedPence)} contributed,
 				{formatCurrency(compoundFinal.interestPence)} interest). Solid line: balance;
 				dashed: contributions.
