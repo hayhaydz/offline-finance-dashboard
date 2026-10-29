@@ -316,11 +316,10 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b02-bento-fixed-1600.png | (zai-vision; vmodel 1305 ×3 exhausted) 3/4 prior defects verified fixed; ragged-bottom claim re-checked via DOM: panels aligned 269/269 after h-full fix; P2-3 "goals" noun copy bug REAL → fixed same unit |
 
 ## Notes for next iteration
-- **SWEEP 5 NEXT — CONTENT DIGESTIBILITY (B09–B13)**: budget UX redesign (R9, "complex and confusing"), tax wall-of-text (R11), alerts digestibility (R12), snapshots + routine weaker areas (R17). Start with B09 budget.
-- B07+B08 COMPLETE (sweep 4): R10 R13 ticked. Registries: reports (server/reports-v2.ts) + tools (utils/tool-registry.ts) — adding entries is the extension pattern.
-- B06 COMPLETE (sweep 3): data pipeline unified. Dev DB has import_jobs (migration 0011 journaled). Dev server RUNNING (5173), CDP page 1 authed.
-- CDP gotcha: take_screenshot param is `filePath` (NOT `filename` — silent no-op). zai free endpoint 1305-overloaded tonight → use zai-vision MCP directly for gates.
-- Queue candidates surveyed (recorded in ADR §judgment 5): statement imports + backfills stay inline — working code is not migrated for architecture's sake.
-- Sweeps done: 0, 1 (B01–B04), 2 (B05), 3 (B06), 4 (B07+B08). Remaining: 5 (B09–B13 digestibility), 6 (B14 bills/payslips + B15 DX), 7+ harvest (R-H* ≥5 needed — 3 candidates logged; R29 continues per-block; R31 chart audit — layerchart).
-- Gotchas: (a) form submitScripts destroy the evaluate context (verify in NEXT script); (b) withUserFilter only for userId tables; (c) SQLite CURRENT_TIMESTAMP default → Invalid Date on drizzle read-back (pass explicit Dates); (d) edit-tool on +page.server.ts REPLACED a block when anchoring on a try-block tail — re-read after structural edits; (e) progress-file edits: NEVER anchor on `## Sweep 1 — GATE` heading (consumed it twice this block — both repaired).
-- NEVER stop early (§0 override): batch checkpoints = commit + record + CONTINUE in the same turn.
+- **STATE: R1–R28 ALL [x] · 5/5 R-H implemented · 8 sweeps (0–7) done · check 0/0 · 1052/1052 · build green.** Remaining for Definition-of-v3: (a) ledger ≥12h genuine work — currently ~3h (CORRECT, date-anchored rows only) — the gate CANNOT be met yet, so NO stop file; (b) final full-app audit finding zero open P0/P1 (tonight's surfaces are clean; re-audit everything fresh next blocks); (c) docs/dev/ultimate-3.0-release.md changelog+runbook (final-gate item).
+- **NEXT BLOCK: continue sweep 7+ harvest/polish.** Candidates: R-H1 statement-backfill queue preset (speculative — only if it earns its keep); home row-1 dead-space centering (B02 P2); budget column height imbalance; R31 layerchart audit (still unvisited — chart components hand-rolled; layerchart is in the stack); R29 pass over remaining surfaces (accounts detail, goals detail, interest years, isa pages); B04 deeper closed/open presentation.
+- Dev server RUNNING (5173, worktree). CDP page 1 authed. Dev DB: Mastercard in panic mode w/ promo 2027-03-15 (live-test residue, sandbox-expendable).
+- CDP gotchas: take_screenshot needs `filePath`; form-submit scripts destroy evaluate context; resize 1600×1000 before screenshots.
+- Progress-file gotcha: NEVER anchor edits on the `## Sweep 1 — GATE` heading (consumed 3× — all repaired); python heredoc beats edit-tool for tab-heavy blocks.
+- vmodel.sh 1305-flaky tonight; zai-vision MCP worked every time (first-try) — prefer it for gates.
+- The registry extension pattern is the v3 way: reports (server/reports-v2.ts), tools (utils/tool-registry.ts) — one builder + one entry.
