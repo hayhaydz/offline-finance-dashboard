@@ -16,6 +16,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 20:39:20 GMT | 2026-10-29 20:40:54 GMT | 0h 02m | B06 research + data pipeline ADR committed |
 | 2026-10-29 21:49:32 GMT | 2026-10-29 22:23:03 GMT | 0h 34m | Sweep 3 B06 COMPLETE: S1 round-trip tests, S2 export header+panel, S3 history csv, S4 queue (schema 0011), S5 bulk Monzo import, S6 R21 guard; gate passed |
 | 2026-10-29 22:23:04 GMT | 2026-10-29 22:34:00 GMT | 0h 11m | Sweep 4 B07 COMPLETE: reports v2 registry + template + index + 6 reports + tests; live + vision gate passed |
+| 2026-10-29 22:34:01 GMT | 2026-10-29 22:40:08 GMT | 0h 06m | Sweep 4 B08 COMPLETE: tools index + 6 sub-pages + 2 new tools (stooze, milestones) + math tests; live gate passed |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -40,7 +41,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R10 | [x] | ev: reports v2 — registry + science-paper template + dated article index + 6 launch reports (net-worth, savings-rate, interest-PSA, credit-strategy, spending-profile, debt-horizon); all live 200 w/ ABSTRACT+METHOD; commit 4886287; tests 1043/1043 |
 | R11 | [ ] | tax page — kill wall of text |
 | R12 | [ ] | alerts digestibility |
-| R13 | [ ] | tools expansion — sub-pages + more tools |
+| R13 | [x] | ev: tools index + 6 sub-pages (4 deepened + NEW stooze calculator + NEW milestone projector); hand-computed math tests; all live 200; commit 04a7e65 |
 | R14 | [x] (B06) | ev: overhaul = unified DATA PIPELINE surface (export selection → history CSV → bulk bank import → reimport → jobs queue, one page, one engine) + ADR .docs/design/2026-10-29-2040-data-pipeline.md; no rewrite of v2's tested engine (100+ tests kept, 30+ added) |
 | R15 | [x] | ev: DECISION recorded (round-trip replace via import, NOT inline edit — Matrixify DROP/CREATE model) + imports-roundtrip.test.ts 7 tests pin cross-account DROP+CREATE/MOVE; in-file reimport hints shipped in every export header |
 | R16 | [x] | ev: DOM proof single-bracket `[⌘K]`/`[?]` (text + pseudo-elements); top bar de-crowded (right-clustered controls, gap-4); a11y names `[⌘K]` `[?]`; palette open/close live-verified |
@@ -71,7 +72,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | B05 CREDIT & STOOZING | 2 | COMPLETE | R7 ✓ R8 ✓ R20 ✓; architecture record in .docs/design/ |
 | B06 DATA MANAGEMENT | 3 | COMPLETE (sweep 3) | S1–S6 all [x]; R14 R15 R18 R19 R21 R22 R23 R26 ticked; ADR + 30 new tests; queue candidates surveyed (statement imports, backfills — left inline deliberately) |
 | B07 REPORTS v2 | 4 | COMPLETE (sweep 4) | R10 ✓; 6 reports live; density P2 → R29 pass later; ASCII toggle → R-H2 |
-| B08 TOOLS | — | unvisited | R13 · sweep 4 |
+| B08 TOOLS | 4 | COMPLETE (sweep 4) | R13 ✓; 6 tools as sub-pages; registry at src/lib/utils/tool-registry.ts — add tool = component + registry entry + [slug] branch |
 | B09 BUDGET | — | unvisited | R9 R17 · sweep 5 |
 | B10 TAX | — | unvisited | R11 R17 · sweep 5 |
 | B11 ALERTS | — | unvisited | R12 · sweep 5 |
@@ -194,6 +195,17 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
   - [x] U5 gate: check 0/0; all 6 reports live 200 w/ ABSTRACT+METHOD; console 0 errors; 0 5xx; vision (vmodel flaky ×3, 2 partial runs): no P0/P1 rendering defects — only a density opinion (data IS dense: 4 cards) → triaged to R29 full-width findings layout when B07 revisited; screenshot v3-b07-credit-report-1600.png
 - R10 [x] ticked. ASCII/range chart cluster from the old page retired with the page (charts live on inside report figures; ASCII mode remains on… DECISION: ASCII variant was page-local; if missed it can return as a report-level toggle — recorded as R-H2 harvest candidate).
 
+### B08 TOOLS (Sweep 4 — COMPLETE)
+- research: old /tools = ONE page, 4 tools crammed 2×2 (rate what-if, overpayment, ISA optimiser, compound projector) with `max-w-6xl`; tool-math.ts is the shared client math w/ parity tests; getToolsData the shared loader.
+- judgments: index-and-sub-pages (like reports) — `/tools` becomes a card grid; each tool gets `/tools/[slug]` full-width with MORE detail than the old cards: rate tool gains per-account scenario table; overpayment gains ALL-debts comparison; ISA optimiser gains move-sources breakdown (highest rate first); compound gains yearly milestones table. TWO NEW tools (R13 "more more more"): stooze calculator (seeded from real cards) + milestone projector (net-worth slope). New math in tool-math.ts (daily-compounded stooze earnings, mean-delta milestone projection).
+- units (all [x]):
+  - [x] U1 tool-registry.ts (6 slugs/names/blurbs) + tool-math: stoozeCalculation + projectMilestones. ev: hand-computed tests — £1000@5%/365d = 5127p±, revert 26990p±, clearBy=−5d; £2000→£3200 over 12mo → £10k crossing at 68 months; flat/falling → [] (4 new tests, 29/29 file)
+  - [x] U2 6 tool components under components/tools/ (4 moved+deepened, 2 new). ev: tools-page-ssr.test 8/8 (index cards, sub-page shell, component details, empty states)
+  - [x] U3 routes: `/tools` index grid + `/tools/[slug]` (registry lookup, 404 unknown, per-tool data assembly: cards for stooze, netWorthHistory for projector). ev: live — index 6 cards; all 6 sub-pages 200 w/ [All Tools]; bad slug 404
+  - [x] U4 live deep-check: stooze seeded £2,585 from real Visa Gold (no promo → honest zeros), fi-projector window 2025-11→2026-02 delta −£352/mo → "flat or falling; no milestone" (correct negative path). Console clean, no errors. ev: CDP outputs above
+  - [x] U5 gate: check 0/0; full suite 1047/1047; commit `04a7e65`
+- R13 [x] ticked. Old single-page tools tests rewritten to new architecture (anti-rot).
+
 ## Sweep 1 — GATE PASSED (2026-10-29 20:20 GMT)
 - check 0/0 ✓ · full suite 988/988 ✓ · build green (adapter-node ✔) ✓
 - live smoke: `/`, `/goals`, `/goals/debt/clear-mastercard`, `/accounts` — console 0 errors, network 0 5xx on all
@@ -229,11 +241,11 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b02-bento-fixed-1600.png | (zai-vision; vmodel 1305 ×3 exhausted) 3/4 prior defects verified fixed; ragged-bottom claim re-checked via DOM: panels aligned 269/269 after h-full fix; P2-3 "goals" noun copy bug REAL → fixed same unit |
 
 ## Notes for next iteration
-- **B08 TOOLS IS THE NEXT BLOCK** (sweep 4, R13): sub-pages per tool + more tools. Current tools surface: find src/routes/tools (or /tools) — expand each tool into its own page with detail, add 2-3 new tools from existing engines (rate scenarios, tax-band finder, debt strategy comparator are candidates).
-- B07 COMPLETE (sweep 4): R10 ticked. Reports registry at src/lib/server/reports-v2.ts — ADDING a report = one builder + registry entry (no route work). R-H2/R-H3 harvested.
+- **SWEEP 5 NEXT — CONTENT DIGESTIBILITY (B09–B13)**: budget UX redesign (R9, "complex and confusing"), tax wall-of-text (R11), alerts digestibility (R12), snapshots + routine weaker areas (R17). Start with B09 budget.
+- B07+B08 COMPLETE (sweep 4): R10 R13 ticked. Registries: reports (server/reports-v2.ts) + tools (utils/tool-registry.ts) — adding entries is the extension pattern.
 - B06 COMPLETE (sweep 3): data pipeline unified. Dev DB has import_jobs (migration 0011 journaled). Dev server RUNNING (5173), CDP page 1 authed.
 - CDP gotcha: take_screenshot param is `filePath` (NOT `filename` — silent no-op). zai free endpoint 1305-overloaded tonight → use zai-vision MCP directly for gates.
 - Queue candidates surveyed (recorded in ADR §judgment 5): statement imports + backfills stay inline — working code is not migrated for architecture's sake.
-- Sweeps done: 0, 1 (B01–B04), 2 (B05), 3 (B06). Remaining: 4 (B07 reports + B08 tools), 5 (B09–B13 digestibility), 6 (B14 bills/payslips + B15 DX), 7+ harvest (R-H* ≥5 needed, R29 continues per-block, R31 chart audit — layerchart).
-- Gotchas: (a) form submitScripts destroy the evaluate context (verify in NEXT script); (b) withUserFilter only for userId tables; (c) SQLite CURRENT_TIMESTAMP default → Invalid Date on drizzle read-back (pass explicit Dates); (d) edit-tool on +page.server.ts REPLACED a block when anchoring on a try-block tail — re-read after structural edits; (e) progress-file edits: anchor on unique headings.
+- Sweeps done: 0, 1 (B01–B04), 2 (B05), 3 (B06), 4 (B07+B08). Remaining: 5 (B09–B13 digestibility), 6 (B14 bills/payslips + B15 DX), 7+ harvest (R-H* ≥5 needed — 3 candidates logged; R29 continues per-block; R31 chart audit — layerchart).
+- Gotchas: (a) form submitScripts destroy the evaluate context (verify in NEXT script); (b) withUserFilter only for userId tables; (c) SQLite CURRENT_TIMESTAMP default → Invalid Date on drizzle read-back (pass explicit Dates); (d) edit-tool on +page.server.ts REPLACED a block when anchoring on a try-block tail — re-read after structural edits; (e) progress-file edits: NEVER anchor on `## Sweep 1 — GATE` heading (consumed it twice this block — both repaired).
 - NEVER stop early (§0 override): batch checkpoints = commit + record + CONTINUE in the same turn.
