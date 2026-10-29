@@ -53,6 +53,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-29T00:46 | 2026-10-29T00:47 | 0h05m | PRODUCTION build gate: npm run build GREEN (10.4s); preview boot crash found (journal 9/10 vs direct-SQL schema) → journal completed for 0009 → preview boots, /login 200, authed 302s; check 0/0 · 982/982 |
 | 2026-10-29T00:48 | 2026-10-29T00:51 | 0h04m | Journal-sync regression test (fails on the pre-fix state, green now); full suite 135/983 (one first-run flake, rerun clean); error-log sweep = expected categories only |
 | 2026-10-29T00:51 | 2026-10-29T00:53 | 0h02m | PROD-mode browser E2E: adapter-node preview login → home USER: ADMIN, table + SVG, 0 console errors; release doc maintainer quirk + findings.md final sweep appended |
+| 2026-10-29T00:53 | 2026-10-29T00:58 | 0h05m | Criteria audit: all 67 [x] items evidence-checked (2 carry inline evidence without ev: prefix — substance present); all 11 charts confirmed wired to real routes; closing live journey accounts-jk/budgets-legend/tools-summary/home-skip all green, 0 console errors |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
