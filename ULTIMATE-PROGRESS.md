@@ -59,7 +59,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-29T00:58 | 2026-10-29T00:59 | 0h01m | Full-branch commit audit (62, all typed) + TODO sweep (0) + [?] header link live-verified (open/focus/close) |
 | 2026-10-29T00:59 | 2026-10-29T00:59 | 0h00m | Plan-compliance closeout: bootstrap-commit audit, .docs untracked convention documented, seed.ts schema-sync verified (instant greps — no time claimed) |
 | 2026-10-29T00:59 | 2026-10-29T01:03 | 0h04m | Final vision coverage: accounts (no P0/P1; ⌘K glyph misread rejected via source check) + tax (vmodel CLEAN) — every headline page now reviewed this round |
-| 2026-10-29T01:03 | 2026-10-29T01:07 | 0h04m | Logout flow live-verified end-to-end (Exit→/login, session dead, / redirects) — original audit env finding closed |
+| 2026-10-29T01:03 | 2026-10-29T01:04 | 0h01m | Logout flow live-verified end-to-end (Exit→/login, session dead, / redirects) — original audit env finding closed |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
