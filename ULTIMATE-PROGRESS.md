@@ -54,6 +54,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-29T00:48 | 2026-10-29T00:50 | 0h02m | Journal-sync regression test (fails on the pre-fix state, green now); full suite 135/983 (one first-run flake, rerun clean); error-log sweep = expected categories only |
 | 2026-10-29T00:50 | 2026-10-29T00:52 | 0h02m | PROD-mode browser E2E: adapter-node preview login → home USER: ADMIN, table + SVG, 0 console errors; release doc maintainer quirk + findings.md final sweep appended |
 | 2026-10-29T00:52 | 2026-10-29T00:52 | 0h00m | (corrected — timestamp estimates realigned to date output; no work minute claimed) |
+| 2026-10-29T00:52 | 2026-10-29T00:58 | 0h06m | Post-sweep responsive re-probe (budgets/snapshots/tools @390px clean; 1 P2 deferred), vision mobile check, console.* hygiene re-sweep, help-overlay accuracy audit, commit-message + VERSION_HISTORY audit |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -141,6 +142,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 - [x] final console/network sweep: ALL 25 routes clean — ev: navigated every real route (auth/home/accounts+detail/liabilities/balances/interest/isa/tax/routine/goals+archived/reports/tools/budgets+uncategorised/expenses/snapshots/alerts/overview/settings×2): 0 console errors, 0 5xx (3 initial 404s were my wrong path guesses — bulk-update=/accounts/balances, interest=/accounts/interest/all, profile=/settings/profile); vision on final-alerts + final-snapshots: no P0/P1; P2 triage below
 - [x] fix: production build boot crash — migration journal out of sync with the sanctioned direct-SQL path — ev: `npm run preview` died at boot (DrizzleError: alert_acknowledgements already exists) because 0009_eminent_wrecker.sql was applied via the sanctioned db:generate→apply-SQL path but its hash never reached __drizzle_migrations, so every fresh process replayed it (dev survived only via its cached hooks module); diagnosis read-only via the app's own better-sqlite3 client (10 files vs 9 journal entries, sha256 match on all but 0009); fix = the migration's missing bookkeeping half (single journal INSERT, exactly what the migrator itself would have written); preview then BOOTED on adapter-node build: /login 200 + renders, all authed routes 302; gates re-run check 0/0 · 982/982
 - [x] regression net for the journal desync + prod-mode E2E — ev: new migration-journal-sync.test.ts (every migrations/*.sql sha256 must exist in the dev DB's __drizzle_migrations; skips when dev DB absent) — would have FAILED before today's fix, passes now; first full-suite run 1-file flake (documented pattern) → re-run 135 files / 983 tests GREEN; error-log sweep 2026-10-29: only expected categories (login/unlock/webauthn/register test traffic + intentional 404 probes); PROD-MODE browser E2E on adapter-node preview: login admin → home renders USER: ADMIN + snapshot table + sparkline SVG, Exit nav present, 0 console errors
+- [x] responsive re-probe of surfaces changed AFTER the 10/10 sweep (budgets legend row / snapshots rows / tools) — ev: 390px probe budgets+snapshots+tools all overflow:false, zero offenders; vision final-mobile-budgets-legend.png: no P0/P1; P2 deferred (note-input placeholder truncates at 390px — native input behaviour, desktop copy more valuable); hygiene re-sweep 0 stray console.* (client-logger internals + documented error-page only); help-overlay audited accurate vs implementations; 62 branch commits message-compliant; VERSION_HISTORY ordered, no dupes
 - [x] P2 triage (final sweep): snapshots 'mixed decimals' → DEFERRED — formatCurrencyShorthand deliberately drops .00 / collapses exact £k (app-wide convention: accounts page etc.); changing snapshots alone would create real inconsistency. alerts 'low-contrast gray on tinted rows' → REJECTED — no gray-on-tint pairing exists in AlertGroup/AlertsSection (severity text = *-700 on *-50, ≈7:1); vision misread, self-flagged 'needs verification'
 - [ ] Ledger ≥ 6h verified
 
@@ -183,12 +185,14 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 ## Deferrals
 | Item | Reason |
 |---|---|
+| Note-input placeholder truncates at 390px (final mobile P2) | Native input behaviour when narrow; field fully usable; desktop phrasing kept |
 | Snapshots £ shorthand drops .00 / collapses exact £k (final-sweep P2) | Deliberate app-wide formatCurrencyShorthand convention (accounts etc.); per-page change would create real inconsistency |
 | ~~Category select stays visually blank on auto-match~~ **RESOLVED 2026-10-29** | Fixed in Phase 9 cycle 6 — see checklist. Root cause was a type mismatch in Svelte 5's select matcher, not DOM clobbering (MutationObserver showed ZERO events; reading the compiled runtime found M() comparing option __value (number cat.id) against the string value expression — 11 !== "11" → selectedIndex=-1). Fix: option value={String(cat.id)}. Live-verified: selText "Groceries", catVal "11" |
 
 ## Vision review log
 | Date | Screenshot | Verdict |
 |---|---|---|
+| 2026-10-29 | screenshots/final-mobile-budgets-legend.png | zai-vision: no P0/P1; P2 placeholder truncation deferred |
 | 2026-10-29 | screenshots/final-alerts.png | zai-vision: no P0/P1; P2 contrast claim rejected after source check |
 | 2026-10-29 | screenshots/final-snapshots.png | zai-vision: no P0/P1; P2 decimal-precision deferred (shorthand convention) |
 | 2026-10-29 | screenshots/final-tools.png | vmodel CLEAN |
