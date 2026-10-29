@@ -173,3 +173,112 @@ export function compoundSeries(params: {
 	}
 	return points;
 }
+
+// ---------------------------------------------------------------------------
+// v3 B08 (R13): stooze calculator + FI milestone projector
+// ---------------------------------------------------------------------------
+
+export interface StoozeResult {
+	/** Interest earned in savings over the remaining 0% window (daily compounding) */
+	savingsInterestPence: number;
+	/** Interest the card would charge if the balance rides PAST the promo
+	 *  end for the same number of days at the revert APR */
+	revertCostPence: number;
+	/** Net advantage of stoozing (earned − cost when both apply) */
+	netGainPence: number;
+	/** Recommended pay-by date: promo end minus 5 working-ish days */
+	clearByDate: string | null;
+	daysRemaining: number;
+}
+
+/**
+ * Stooze economics: a 0% balance parked while savings earn. Interest is
+ * daily-compounded on a 365-day year (banks vary; this is the honest
+ * approximation). Negative/NaN inputs degrade to zeros.
+ */
+export function stoozeCalculation(params: {
+	balancePence: number;
+	savingsRateBasisPoints: number;
+	revertAprBasisPoints: number;
+	promoEndsAt: Date | null;
+	today?: Date;
+}): StoozeResult {
+	const today = params.today ?? new Date();
+	const balance = Math.max(0, finite(params.balancePence));
+	const savingsDaily = Math.max(0, finite(params.savingsRateBasisPoints)) / 10_000 / 365;
+	const revertDaily = Math.max(0, finite(params.revertAprBasisPoints)) / 10_000 / 365;
+
+	const daysRemaining = params.promoEndsAt
+		? Math.max(0, Math.ceil((params.promoEndsAt.getTime() - today.getTime()) / 86_400_000))
+		: 0;
+
+	const savingsInterestPence = Math.round(
+		balance * (Math.pow(1 + savingsDaily, daysRemaining) - 1),
+	);
+	const revertCostPence = Math.round(
+		balance * (Math.pow(1 + revertDaily, daysRemaining) - 1),
+	);
+	const clearBy = params.promoEndsAt
+		? new Date(params.promoEndsAt.getTime() - 5 * 86_400_000)
+		: null;
+
+	return {
+		savingsInterestPence,
+		revertCostPence,
+		netGainPence: savingsInterestPence - revertCostPence,
+		clearByDate: clearBy ? clearBy.toISOString().slice(0, 10) : null,
+		daysRemaining,
+	};
+}
+
+export interface FiMilestone {
+	targetPence: number;
+	/** Months from the last history point until the target is crossed (null = never) */
+	monthsFromNow: number | null;
+	date: string | null;
+}
+
+/**
+ * FI milestone projector: fit the mean monthly net-worth delta over the
+ * history window, then project when each power-of-ten target (above the
+ * current net worth, up to £1M) is crossed. Flat/negative slopes return
+ * never. Uses the mean delta (robust to noisy months) over the window.
+ */
+export function projectMilestones(params: {
+	history: { date: string; netWorthInCents: number }[];
+	today?: Date;
+}): FiMilestone[] {
+	const { history } = params;
+	const today = params.today ?? new Date();
+	if (history.length < 2) return [];
+
+	const latest = history[history.length - 1];
+	const first = history[0];
+	const firstMs = new Date(`${first.date}T00:00:00.000Z`).getTime();
+	const latestMs = new Date(`${latest.date}T00:00:00.000Z`).getTime();
+	const monthsInWindow = Math.max(
+		1,
+		Math.round((latestMs - firstMs) / (30.44 * 86_400_000)),
+	);
+	const monthlyDelta =
+		(latest.netWorthInCents - first.netWorthInCents) / monthsInWindow;
+	if (monthlyDelta <= 0) return [];
+
+	const out: FiMilestone[] = [];
+	let target = 10_000 * 100; // £10k in pence
+	while (target <= 100_000_000) {
+		if (target > latest.netWorthInCents) {
+			const gap = target - latest.netWorthInCents;
+			const months = Math.ceil(gap / monthlyDelta);
+			const date = new Date(latestMs + months * 30.44 * 86_400_000);
+			out.push({
+				targetPence: target,
+				monthsFromNow: months,
+				date: date.toISOString().slice(0, 10),
+			});
+			if (out.length >= 6) break;
+		}
+		target *= 10;
+	}
+	return out;
+}

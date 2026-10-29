@@ -5,8 +5,7 @@ import { getToolsData } from "$lib/server/tools";
 export const load: PageServerLoad = async ({ locals }) => {
 	const user = requireAuth(locals);
 
-	// Phase 6: one typed loader — balances, effective rates, band, PSA,
-	// debt minimums and the taxable-interest forecast, all from the
-	// existing engines. The client (utils/tool-math.ts) runs scenarios.
+	// The index needs only the context line (band/PSA/tax year), but the
+	// loader is cheap and shared with the sub-pages.
 	return await getToolsData(user.id);
 };

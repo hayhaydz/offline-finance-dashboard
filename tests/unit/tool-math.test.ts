@@ -3,7 +3,9 @@ import {
 	BAND_RATE_PCT,
 	compoundSeries,
 	isaMoveTaxSavedPence,
+	projectMilestones,
 	simulatePayoff,
+	stoozeCalculation,
 	taxOnInterestPence,
 	yearlyInterestPence,
 	type CompoundPoint,
@@ -253,5 +255,86 @@ describe("compoundSeries input hardening", () => {
 	it("yearlyInterestPence returns 0 for non-finite inputs", () => {
 		expect(yearlyInterestPence(NaN, 455)).toBe(0);
 		expect(yearlyInterestPence(1_000_000, Infinity)).toBe(0);
+	});
+});
+
+// ── v3 B08: stooze calculator + milestone projector ────────────────────
+
+describe("stoozeCalculation", () => {
+	it("computes daily-compounded savings earnings and revert cost over the window", () => {
+		// £1,000 at 5% savings for exactly 365 days: 100000·((1+0.05/365)^365 − 1)
+		const result = stoozeCalculation({
+			balancePence: 100_000,
+			savingsRateBasisPoints: 500,
+			revertAprBasisPoints: 2390,
+			promoEndsAt: new Date("2027-10-29T00:00:00.000Z"),
+			today: new Date("2026-10-29T00:00:00.000Z"),
+		});
+		expect(result.daysRemaining).toBe(365);
+		// (1 + 0.05/365)^365 ≈ 1.051267 → ≈ 5127p
+		expect(result.savingsInterestPence).toBeGreaterThan(5100);
+		expect(result.savingsInterestPence).toBeLessThan(5150);
+		// (1 + 0.239/365)^365 ≈ 1.2699 → ≈ 26990p
+		expect(result.revertCostPence).toBeGreaterThan(26_900);
+		expect(result.revertCostPence).toBeLessThan(27_100);
+		// net = earned − cost (negative: revert APR dwarfs savings rate)
+		expect(result.netGainPence).toBe(
+			result.savingsInterestPence - result.revertCostPence,
+		);
+		// clear-by = promo end − 5 days
+		expect(result.clearByDate).toBe("2027-10-24");
+	});
+
+	it("handles missing promo and degenerate inputs", () => {
+		const noPromo = stoozeCalculation({
+			balancePence: 100_000,
+			savingsRateBasisPoints: 500,
+			revertAprBasisPoints: 2390,
+			promoEndsAt: null,
+		});
+		expect(noPromo.daysRemaining).toBe(0);
+		expect(noPromo.savingsInterestPence).toBe(0);
+		expect(noPromo.clearByDate).toBeNull();
+	});
+});
+
+describe("projectMilestones", () => {
+	it("projects crossings from the mean monthly delta", () => {
+		// 2025-12-01 → 2026-12-01 ≈ 12 months; 200000p → 320000p = +10000p/mo
+		const history = [
+			{ date: "2025-12-01", netWorthInCents: 200_000 },
+			{ date: "2026-12-01", netWorthInCents: 320_000 },
+		];
+		const milestones = projectMilestones({ history });
+		expect(milestones.length).toBeGreaterThan(0);
+		// next power of ten above £3,200 is £10,000 = 1,000,000p
+		expect(milestones[0]?.targetPence).toBe(1_000_000);
+		// gap 680000p at 10000p/mo = 68 months
+		expect(milestones[0]?.monthsFromNow).toBe(68);
+		// then £100k, £1M — six entries max, ascending
+		expect(milestones[1]?.targetPence).toBe(10_000_000);
+		expect(milestones.map((m) => m.targetPence)).toEqual(
+			[...milestones.map((m) => m.targetPence)].sort((a, b) => a - b),
+		);
+	});
+
+	it("returns nothing for flat or falling net worth", () => {
+		expect(
+			projectMilestones({
+				history: [
+					{ date: "2025-12-01", netWorthInCents: 300_000 },
+					{ date: "2026-12-01", netWorthInCents: 300_000 },
+				],
+			}),
+		).toEqual([]);
+		expect(
+			projectMilestones({
+				history: [
+					{ date: "2025-12-01", netWorthInCents: 400_000 },
+					{ date: "2026-12-01", netWorthInCents: 300_000 },
+				],
+			}),
+		).toEqual([]);
+		expect(projectMilestones({ history: [{ date: "2026-01-01", netWorthInCents: 1 }] })).toEqual([]);
 	});
 });
