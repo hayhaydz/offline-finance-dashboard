@@ -61,7 +61,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R29 | [x] (home) | ev: commit a9a0d92; home converted to 3/2 two-column rows, DOM-verified 936/622px, vision "conversion succeeds". App-wide R29 continues per-block (B03/B04 next) |
 | R30 | [x] | ev: commits 307e48d+9f458e0+e0a77b8; untitled bento grid live (trend col-span-2 1041px / allocation col-span-1 517px, panels aligned 269/269), wide-aspect 900×180 chart, [+] expand cycle verified, vision re-review clean of prior P1s |
 | R31 | [ ] | ADDENDUM §9: all visualisations on best svelte viz packages (layerchart first; new deps need approval) |
-| R-H* | — | harvested items: R-H1 (B06 idea) import-queue candidates beyond imports — statement-import backfill via bulk mapper preset; R-H2 ASCII chart toggle as report-level render mode (retired with old reports page); R-H3 reports findings tables → 2-col full-width grid (R29 for B07); ≥5 to implement before stop |
+| R-H* | — | harvested: R-H1 queue candidates beyond imports (statement backfills) — logged; R-H2 ASCII toggle as report mode — logged; R-H3 reports findings 2-col grid — logged; **R-H4 bracket-link literal-bracket sweep — IMPLEMENTED (B09)**. ≥5 to implement before stop (1/5 done) |
 
 ## Block registry
 | Block | Last sweep | BLOCK CYCLE stage | Notes |
