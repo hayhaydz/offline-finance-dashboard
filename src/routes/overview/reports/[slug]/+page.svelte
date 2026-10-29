@@ -6,6 +6,7 @@
 	import CategoryBars from "$lib/components/charts/CategoryBars.svelte";
 	import DebtWaterfallChart from "$lib/components/charts/DebtWaterfallChart.svelte";
 	import { formatCurrency } from "$lib/utils/currency";
+	import { asciiLineChart, asciiSparkline } from "$lib/utils/ascii-charts";
 	import type { ReportDoc, ReportRow } from "$lib/server/reports-v2";
 
 	/**
@@ -40,9 +41,20 @@
 	function printPage() {
 		window.print();
 	}
+
+	// R-H2: pure-terminal ASCII render mode for line figures (Variant A),
+	// remembered per browser — the toggle the old reports page had.
+	let asciiMode = $state(false);
+	$effect(() => {
+		if (localStorage.getItem("charts-ascii") === "1") asciiMode = true;
+	});
+	function toggleAscii() {
+		asciiMode = !asciiMode;
+		localStorage.setItem("charts-ascii", asciiMode ? "1" : "0");
+	}
 </script>
 
-<article class="p-3 max-w-6xl">
+<article class="p-3">
 	<div class="border border-black">
 		<!-- Title block -->
 		<header class="bg-gray-100 border-b border-black p-2 flex justify-between items-baseline gap-4">
@@ -57,6 +69,14 @@
 			<div class="flex gap-3 mt-2 text-xs">
 				<a href="/overview/reports" class="bracket-link">All Reports</a>
 				<button type="button" class="bracket-link" onclick={printPage}>Print / PDF</button>
+				<button
+					type="button"
+					class="bracket-link font-bold"
+					class:text-green-700={asciiMode}
+					aria-pressed={asciiMode}
+					title="Pure-terminal ASCII render mode for line figures"
+					onclick={toggleAscii}>ASCII</button
+				>
 			</div>
 		</section>
 
@@ -70,10 +90,14 @@
 			</ul>
 		</section>
 
-		<!-- Findings -->
-		{#each report.findings as section, i (section.heading)}
-			<section class="{i > 0 ? 'border-t' : ''} border-black p-2">
-				<h2 class="font-bold text-xs mb-2 uppercase">{section.heading}</h2>
+		<!-- Findings: full-width paper (R1/R29); table sections pair up in a
+		     2-col grid, figure sections span both columns -->
+		<div class="grid md:grid-cols-2 md:divide-x md:divide-gray-300">
+			{#each report.findings as section, i (section.heading)}
+				<section
+					class="{i > 0 ? 'border-t' : ''} {section.figure ? 'md:col-span-2 md:border-t' : ''} border-black p-2"
+				>
+					<h2 class="font-bold text-xs mb-2 uppercase">{section.heading}</h2>
 
 				{#if section.rows && section.rows.length > 0}
 					<div class="border border-black overflow-x-auto mb-2">
@@ -91,16 +115,50 @@
 				{/if}
 
 				{#if section.figure === "netWorth" && report.netWorthHistory && report.netWorthHistory.length > 1}
-					<NetWorthChart
-						points={report.netWorthHistory}
-						formatPence={(p) => formatCurrency(p)}
-					/>
+					{#if asciiMode}
+						<section class="chart-panel">
+							<div class="chart-panel-title"><span>Net worth over time</span></div>
+							<div class="p-2">
+								<pre class="ascii-chart">{asciiLineChart(
+									report.netWorthHistory.map((p) => p.netWorthInCents),
+									{ rows: 8, label: "net" },
+								)}</pre>
+								<div class="text-xs text-gray-500 mt-1">
+									{report.netWorthHistory[0]?.date} → {report.netWorthHistory[report.netWorthHistory.length - 1]?.date}
+									· spark {asciiSparkline(report.netWorthHistory.map((p) => p.netWorthInCents))}
+								</div>
+							</div>
+							<div class="chart-panel-summary">ASCII mode — {report.netWorthHistory.length} observations</div>
+						</section>
+					{:else}
+						<NetWorthChart
+							points={report.netWorthHistory}
+							formatPence={(p) => formatCurrency(p)}
+						/>
+					{/if}
 				{/if}
 				{#if section.figure === "stackedArea" && report.netWorthHistory && report.netWorthHistory.length > 1}
-					<StackedAreaChart
-						points={report.netWorthHistory}
-						formatPence={(p) => formatCurrency(p)}
-					/>
+					{#if asciiMode}
+						<section class="chart-panel">
+							<div class="chart-panel-title"><span>Assets vs liabilities</span></div>
+							<div class="p-2 flex flex-col gap-1">
+								<pre class="ascii-chart">{asciiLineChart(
+									report.netWorthHistory.map((p) => p.totalAssetsInCents),
+									{ rows: 5, label: "ast" },
+								)}</pre>
+								<pre class="ascii-chart">{asciiLineChart(
+									report.netWorthHistory.map((p) => p.totalLiabilitiesInCents),
+									{ rows: 5, label: "lia" },
+								)}</pre>
+							</div>
+							<div class="chart-panel-summary">ASCII mode — assets / liabilities bands</div>
+						</section>
+					{:else}
+						<StackedAreaChart
+							points={report.netWorthHistory}
+							formatPence={(p) => formatCurrency(p)}
+						/>
+					{/if}
 				{/if}
 				{#if section.figure === "psaBullet" && report.interest}
 					<PsaBulletChart
@@ -148,6 +206,7 @@
 				{/if}
 			</section>
 		{/each}
+		</div>
 	</div>
 
 	<footer class="text-xs text-gray-500 mt-2 flex justify-between">
