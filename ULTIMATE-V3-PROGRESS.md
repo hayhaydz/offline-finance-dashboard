@@ -18,6 +18,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 22:23:04 GMT | 2026-10-29 22:34:00 GMT | 0h 11m | Sweep 4 B07 COMPLETE: reports v2 registry + template + index + 6 reports + tests; live + vision gate passed |
 | 2026-10-29 22:34:01 GMT | 2026-10-29 22:40:08 GMT | 0h 06m | Sweep 4 B08 COMPLETE: tools index + 6 sub-pages + 2 new tools (stooze, milestones) + math tests; live gate passed |
 | 2026-10-29 22:40:09 GMT | 2026-10-29 22:53:52 GMT | 0h 14m | Sweep 5 B09 COMPLETE: budget summary strip + two-column redesign; R-H4 bracket-link sweep (58 fixes, 29 files) + regression net |
+| 2026-10-29 22:53:53 GMT | 2026-10-29 23:02:40 GMT | 0h 09m | Sweep 5 B10 COMPLETE: tax finder cards + threshold bars + mini-tables; vision gate (P1 rejected w/ evidence); suite 1051/1051 |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -40,7 +41,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R8 | [x] | ev: SplitsSection [now]/[3mo] per-charge plans + setPayoffPlan; over-time cost = revert-APR flex cost shown per charge; live toggle verified |
 | R9 | [x] | ev: budget summary strip (4 cells) + two-column body; commit e09a288; live gridCols 3 + summary cells; SSR test 3/3; vision P0 none |
 | R10 | [x] | ev: reports v2 — registry + science-paper template + dated article index + 6 launch reports (net-worth, savings-rate, interest-PSA, credit-strategy, spending-profile, debt-horizon); all live 200 w/ ABSTRACT+METHOD; commit 4886287; tests 1043/1043 |
-| R11 | [ ] | tax page — kill wall of text |
+| R11 | [x] | ev: finder years as cards w/ threshold bars + arithmetic mini-tables; commit 32df8b4; live 3 cards/bars/mini-rows; vision 0 P0 (math P1 rejected w/ source evidence) |
 | R12 | [ ] | alerts digestibility |
 | R13 | [x] | ev: tools index + 6 sub-pages (4 deepened + NEW stooze calculator + NEW milestone projector); hand-computed math tests; all live 200; commit 04a7e65 |
 | R14 | [x] (B06) | ev: overhaul = unified DATA PIPELINE surface (export selection → history CSV → bulk bank import → reimport → jobs queue, one page, one engine) + ADR .docs/design/2026-10-29-2040-data-pipeline.md; no rewrite of v2's tested engine (100+ tests kept, 30+ added) |
@@ -75,7 +76,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | B07 REPORTS v2 | 4 | COMPLETE (sweep 4) | R10 ✓; 6 reports live; density P2 → R29 pass later; ASCII toggle → R-H2 |
 | B08 TOOLS | 4 | COMPLETE (sweep 4) | R13 ✓; 6 tools as sub-pages; registry at src/lib/utils/tool-registry.ts — add tool = component + registry entry + [slug] branch |
 | B09 BUDGET | 5 | COMPLETE (sweep 5) | R9 ✓ R17(budget) ✓; R-H4 harvested+implemented (58 bracket-link fixes + regression net) |
-| B10 TAX | — | unvisited | R11 R17 · sweep 5 |
+| B10 TAX | 5 | COMPLETE (sweep 5) | R11 ✓ R17(tax) ✓; P2 dead-space → R29 polish |
 | B11 ALERTS | — | unvisited | R12 · sweep 5 |
 | B12 SNAPSHOTS | — | unvisited | R17 · sweep 5 |
 | B13 ROUTINE | — | unvisited | R17 · sweep 5 |
@@ -217,6 +218,15 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
   - [x] U4 R-H4 HARVEST: the bracket bug was app-wide — 58 instances across 29 files batch-fixed (incl. 7 I introduced tonight in tools/wizards); regression net tests/integration/bracket-link-convention.test.ts (owning-tag-aware heuristic, no false positives); 5 stale test pins updated to CSS-bracket convention. ev: grep count 0; suite 1051/1051
   - [x] U5 new SSR test budget-page-redesign-ssr.test.ts (summary cells, grid, over-label semantics). ev: 3/3
 - R9 [x]; R17(budget leg) [x]. Vision log updated (no P0; P1 amendment-cluster = pre-existing options-bar UX, clarified; P2s fixed or triaged to R29 polish).
+
+### B10 TAX (Sweep 5 — COMPLETE)
+- research: /overview/tax wall-of-text = BAND FINDER's Arithmetic column — stacked prose lines (KNOWN/BOUNDED/PROJECTED/INTEREST/ASSESSMENT) inside a wide table; no SSR test pins; engine (band-finder, interestBreakdown projection) already tested.
+- judgments (R11+R29): finder years become CARDS (grid 2-up wide) — verdict badge + suggested band in header; THRESHOLD BAR visualising assessment vs £50,270/£150,000 with a LABELLED higher-rate marker (not mystery ticks); arithmetic as label→value MINI-TABLE (scannable, semantic margin row); per-card controls (assumption form, apply-as). Band history untouched.
+- units:
+  - [x] U1 page rewritten (finder section only). ev: commit `32df8b4`; live 3 finder cards, cardGrid true, 3 threshold bars, 14 mini-table rows; console clean
+  - [x] U2 vision (zai-vision; vmodel 1305): 0 P0. P1 "interest misprojected 7.5×" REJECTED with source evidence — projection is rate-forward by design (getProjectedInterestBreakdown: current balances × current rates × days-remaining; label says +proj; same figure appears in B07's interest report from the same tested engine; prior-year ACTUAL ≠ this-year rate-forward projection). P2s: 3-cards-in-2-col dead space + apply-control position inconsistency → R29 polish list; bar label collision risk → fine at current widths. ev: this entry + v3-b10-tax-1600.png
+  - [x] U3 gate: check 0/0; full suite 1051/1051 (146 files). ev: outputs above
+- R11 [x]; R17(tax leg) [x].
 
 ## Sweep 1 — GATE PASSED (2026-10-29 20:20 GMT)
 - check 0/0 ✓ · full suite 988/988 ✓ · build green (adapter-node ✔) ✓
