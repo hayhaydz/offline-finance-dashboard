@@ -88,7 +88,7 @@
 			</table>
 		</div>
 		{#if displayRows.overflow > 0}
-			<p class="text-xs text-amber-600 mb-4">... and {displayRows.overflow} more</p>
+			<p class="text-xs text-amber-700 mb-4">... and {displayRows.overflow} more</p>
 		{/if}
 	{/if}
 

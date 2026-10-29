@@ -132,7 +132,7 @@
 					</table>
 				</div>
 				{#if overflowCount > 0}
-					<p class="text-xs text-amber-600 mt-1">... and {overflowCount} more</p>
+					<p class="text-xs text-amber-700 mt-1">... and {overflowCount} more</p>
 				{/if}
 			</div>
 		{/if}

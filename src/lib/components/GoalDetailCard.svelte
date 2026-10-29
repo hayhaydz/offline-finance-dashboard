@@ -50,7 +50,7 @@
 	});
 
 	const progressTextColor = $derived(
-		progressColor === 'green' ? 'text-green-700' : progressColor === 'amber' ? 'text-amber-600' : 'text-red-600'
+		progressColor === 'green' ? 'text-green-700' : progressColor === 'amber' ? 'text-amber-700' : 'text-red-600'
 	);
 
 	const progressBgColor = $derived(

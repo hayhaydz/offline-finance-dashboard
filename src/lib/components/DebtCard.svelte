@@ -21,7 +21,7 @@
 		percent >= 70
 			? { text: 'text-green-700', bg: 'bg-green-700' }
 			: percent >= 30
-				? { text: 'text-amber-600', bg: 'bg-amber-600' }
+				? { text: 'text-amber-700', bg: 'bg-amber-600' }
 				: { text: 'text-red-600', bg: 'bg-red-600' },
 	);
 </script>

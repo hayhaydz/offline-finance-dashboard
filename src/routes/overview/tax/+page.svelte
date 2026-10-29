@@ -76,7 +76,9 @@
 				No income recorded yet. Start at <a href="/overview/tax/income" class="bracket-link">Income History</a> — the finder fills in from there.
 			</p>
 		{:else}
-			<div class="grid gap-0 md:grid-cols-2 md:divide-x md:divide-gray-300">
+			<!-- R-H5: three years of cards read 3-up on wide screens (kills the
+		     dead quadrant the 2-col grid left with 3 cards) -->
+		<div class="grid gap-0 md:grid-cols-2 xl:grid-cols-3 md:divide-x md:divide-gray-300">
 				{#each data.finder as year (year.taxYear)}
 					<div class="p-2 border-b border-gray-200 flex flex-col gap-1.5">
 						<!-- card header: year + verdict + suggestion -->

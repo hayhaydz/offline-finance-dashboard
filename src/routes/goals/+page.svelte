@@ -173,7 +173,7 @@ async function placeAtEnd() {
 		if (goal.color && typeof goal.color === 'string') {
 			// Debt goal with pre-calculated color
 			if (goal.color === 'green') return { text: 'text-green-700', bg: 'bg-green-700' };
-			if (goal.color === 'amber') return { text: 'text-amber-600', bg: 'bg-amber-600' };
+			if (goal.color === 'amber') return { text: 'text-amber-700', bg: 'bg-amber-600' };
 			return { text: 'text-red-600', bg: 'bg-red-600' };
 		}
 		// Savings goal: delegate to shared utility

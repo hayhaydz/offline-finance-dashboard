@@ -364,7 +364,7 @@
               <span>{projection?.payoffDate ? formatDateShorthand(projection!.payoffDate!) : "-"}</span>
             </div>
           {:else}
-            <div class="text-amber-600 text-xs mt-1">
+            <div class="text-amber-700 text-xs mt-1">
               Payment too small to cover interest
             </div>
           {/if}
@@ -497,7 +497,7 @@
               <td class="text-right pr-1 text-sm py-2">
                 {history.type}
               </td>
-              <td class="text-right pr-1 text-sm py-2 text-amber-600">
+              <td class="text-right pr-1 text-sm py-2 text-amber-700">
                 {formatCurrency(history.amount)}
               </td>
               <td class="text-right pr-1 text-sm py-2">
@@ -537,7 +537,7 @@
                 {#if allocation.type === "USER_ADD"}
                   <span class="text-green-700">+ADD</span>
                 {:else if allocation.type === "USER_WITHDRAW"}
-                  <span class="text-amber-600">-WITHDRAW</span>
+                  <span class="text-amber-700">-WITHDRAW</span>
                 {:else if allocation.type === "GOAL_DELETED"}
                   <span class="text-red-700">DELETED</span>
                 {:else if allocation.type === "AUTO_REDUCE_NEGATIVE_BALANCE"}
@@ -552,7 +552,7 @@
                     >+{formatCurrency(allocation.amount)}</span
                   >
                 {:else}
-                  <span class="text-amber-600"
+                  <span class="text-amber-700"
                     >{formatCurrency(allocation.amount)}</span
                   >
                 {/if}

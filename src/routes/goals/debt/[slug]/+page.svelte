@@ -6,7 +6,7 @@
 
   const progressColor = (color: string) => {
     if (color === 'green') return { text: 'text-green-700', bg: 'bg-green-700' };
-    if (color === 'amber') return { text: 'text-amber-600', bg: 'bg-amber-600' };
+    if (color === 'amber') return { text: 'text-amber-700', bg: 'bg-amber-600' };
     return { text: 'text-red-600', bg: 'bg-red-600' };
   };
 
@@ -84,11 +84,11 @@
         <div>
           {#if data.paceMetrics.projectedPayoffDate}
             <span class="text-gray-600">Projected:</span>
-            <span class="font-bold {data.onTrack === true ? 'text-green-700' : data.onTrack === false ? 'text-amber-600' : ''}">
+            <span class="font-bold {data.onTrack === true ? 'text-green-700' : data.onTrack === false ? 'text-amber-700' : ''}">
               {formatDate(new Date(data.paceMetrics.projectedPayoffDate))}
             </span>
             {#if data.onTrack !== null}
-              <span class="text-xs ml-1 {data.onTrack ? 'text-green-700' : 'text-amber-600'} font-bold">
+              <span class="text-xs ml-1 {data.onTrack ? 'text-green-700' : 'text-amber-700'} font-bold">
                 {data.onTrack ? 'On track' : 'Behind'}
               </span>
             {/if}
