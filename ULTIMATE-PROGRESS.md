@@ -63,6 +63,8 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-29T01:04 | 2026-10-29T01:06 | 0h02m | Stop-file assembly + read-back (git log exact match); true stop-gate 0/0 · 135/983; session restored; ledger proofread (54 rows clean); dev-login prod gate verified |
 | 2026-10-29T01:06 | 2026-10-29T01:09 | 0h03m | Stop-file completion protocol: claim-by-claim verification (found+fixed 67→74 items, chart count, 56 screenshots census), diff stats added (158 files/11,460 ins), full read-back, vision-log consistency (11 rows, all files on disk) |
 | 2026-10-29T01:07 | 2026-10-29T01:10 | 0h03m | Live SVG-export spot-check (4 buttons, filename correct, 0 errors) |
+| 2026-10-29T01:10 | 2026-10-29T01:12 | 0h02m | Cold-start verification: fresh dev server (multi-day process killed) → boot 1s → login → unlock ceremony → home renders data, 0 console errors |
+| 2026-10-29T01:08 | 2026-10-29T01:09 | 0h01m | Terminal gate: 0/0 · 135/983 (4th consecutive green); full progress-file proofread (54 rows coherent) |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -158,6 +160,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 - [x] logout flow LIVE end-to-end (last unverified original-audit environmental finding) — ev: Exit click → POST /logout → landed /login (form back, Register nav, Exit gone); revisit / → redirected to /login — session truly dead, no DEV_AUTO_LOGIN fake; 0 console errors
 - [x] closing verifications — ev: stop-gate re-run 0/0 · 135/983 (01:05, post-HelpOverlay-fix); browser session restored to logged-in ADMIN home (0 console errors); progress-file structural proofread (54 ledger rows, 0 malformed, all Decisions/Deferrals/Vision-log tables intact); /dev-login production gate verified in code (non-development APP_ENV → 404 + security log); stop file drafted + read-back verified (git log diff = exact match)
 - [x] final live SVG-export spot-check — ev: /overview/reports 4 [SVG] buttons, click → anchor download 'spending-by-month.svg', 0 console errors (serialization covered by chart-export-ssr tests)
+- [x] cold-start verification (last environmental risk) — ev: killed the multi-day dev server → fresh process boots in 1s, runMigrations clean on cold import (journal fix proven), login → /unlock (correct: fresh keyring empty) → password ceremony → home renders USER: ADMIN + sparkline + snapshot table, 0 console errors; dev server left running fresh + verified
 - [x] P2 triage (final sweep): snapshots 'mixed decimals' → DEFERRED — formatCurrencyShorthand deliberately drops .00 / collapses exact £k (app-wide convention: accounts page etc.); changing snapshots alone would create real inconsistency. alerts 'low-contrast gray on tinted rows' → REJECTED — no gray-on-tint pairing exists in AlertGroup/AlertsSection (severity text = *-700 on *-50, ≈7:1); vision misread, self-flagged 'needs verification'
 - [ ] Ledger ≥ 6h verified
 
