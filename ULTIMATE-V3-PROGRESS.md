@@ -12,6 +12,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 20:05:31 GMT | 2026-10-29 20:16:11 GMT | 0h 11m | B03 goals: tick lines removed, full-width allocation + debt detail, live+vision |
 | 2026-10-29 20:16:11 GMT | 2026-10-29 20:20:29 GMT | 0h 04m | B04 accounts first pass (R5+R29) + sweep 1 gate (check/test/build/vision) |
 | 2026-10-29 20:20:29 GMT | 2026-10-29 20:22:15 GMT | 0h 02m | B05 design: research + architecture record + progress-plan |
+| 2026-10-29 20:22:15 GMT | 2026-10-29 20:39:20 GMT | 0h 17m | Sweep 2 B05: schema+engine+mode UI+splits, gate passed |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -30,8 +31,8 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R4 | [x] | ev: commit ebef83b; tick lines stripped from DebtCard/GoalCard/GoalRow (bars pre-v2 form); DOM tickLines:0; vision "plain progress bars with no vertical tick marks"; textual 1mo/3mo labels + milestone data model kept (pre-v2 features) |
 | R5 | [x] | ev: commit 5f10731; heatmap max-w-3xl removed — panel 1582px live @1600 viewport; vision "full width… no visual defects" |
 | R6 | [x] | ev: goals allocation + debt detail max-w wrappers removed; DOM 1582px panels live; vision confirms full width |
-| R7 | [ ] | credit modes: panic vs stooze |
-| R8 | [ ] | Monzo-method transactions (pay-off-now vs over-time cost) |
+| R7 | [x] | ev: CreditModePanel + setCreditMode; payoff UI gated to panic mode (live-verified stooze shows reminders only, panic shows projection); design record .docs/design/2026-10-29-2025-credit-engine.md |
+| R8 | [x] | ev: SplitsSection [now]/[3mo] per-charge plans + setPayoffPlan; over-time cost = revert-APR flex cost shown per charge; live toggle verified |
 | R9 | [ ] | budget UX redesign |
 | R10 | [ ] | reports v2 — dated science-paper-style focused reports |
 | R11 | [ ] | tax page — kill wall of text |
@@ -43,7 +44,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R17 | [ ] | weak areas dedicated work: tax, snapshots, accounts/liabilities, routine, budget |
 | R18 | [ ] | CSV export: custom selection, readable, per-account context |
 | R19 | [ ] | Matrixify/Altera round-trip: DROP + CREATE on the fly |
-| R20 | [ ] | 0% split tracker (3-month target, statement-delay lag) |
+| R20 | [x] | ev: engine statement-delay horizon (confirmed-through last month-end) + 3-month targets + waterfall payment allocation; 13 hand-computed tests; live tracker rows with on-track/behind |
 | R21 | [ ] | remove "accounts" CSV import |
 | R22 | [ ] | background import queues; survey queue candidates |
 | R23 | [ ] | expenses+income history CSV export AND import |
@@ -64,7 +65,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | B02 HOME | 1 | COMPLETE (sweep 1) | R3 ✓ R29(home) ✓ R30 ✓; chart-internal P2s → R31 |
 | B03 GOALS | 1 | COMPLETE (sweep 1) | R4 ✓ R6 ✓; bulletbar keeps tick capability (unused); deeper R29 grid pass when B03 revisited |
 | B04 ACCOUNTS & LIABILITIES | 1 | FIRST PASS (sweep 1) | R5 ✓ R29(accounts) ✓; R17 deeper work → sweep 5 |
-| B05 CREDIT & STOOZING | 2 | DESIGN COMPLETE — U1 schema next | design record .docs/design/2026-10-29-2025-credit-engine.md; R7 R8 R20 |
+| B05 CREDIT & STOOZING | 2 | COMPLETE | R7 ✓ R8 ✓ R20 ✓; architecture record in .docs/design/ |
 | B06 DATA MANAGEMENT | — | unvisited | R14 R15 R18 R19 R21 R22 R23 R26 · sweep 3 |
 | B07 REPORTS v2 | — | unvisited | R10 · sweep 4 |
 | B08 TOOLS | — | unvisited | R13 · sweep 4 |
@@ -147,7 +148,14 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 - R5+R29 pass (2026-10-29 20:19 GMT): heatmap max-w removed (panel 1582px live); SUMMARY stats + ACCOUNT ALERTS paired 3/2 (936/622 live) with empty-state cell when no accounts. ev: commit `5f10731`; console 0 err / 0 5xx; vision "implemented without visual defects" (heatmap full width, columns aligned, P0 none).
 - R17 deeper work (closed/open presentation, liabilities surface) — deferred to Sweep 5's dedicated weaker-area pass per plan §6.3; NOT forgotten: tracked in registry.
 
-### B05 CREDIT & STOOZING (Sweep 2 — DESIGN COMPLETE, implementation next)
+### B05 CREDIT & STOOZING (Sweep 2 — COMPLETE)
+- design: `.docs/design/2026-10-29-2025-credit-engine.md` (research: Monzo Flex Pay-in-Full/Pay-in-3 semantics; stoozing conventions)
+- units (all [x]):
+  - [x] U1 schema via sanctioned path: accounts += creditMode/promoEndsAt/revertAprBps, accountTransactions += payoffPlan/plannedClearBy/allocatesToId; migration 0010 applied to dev-plain.db; journal hash f2ecbf7c… inserted (migration-journal-sync green); seed.ts + fixtures updated (Visa Gold=panic/23.9%, Mastercard=stooze/promo 2027-01-15/24.9%) + anonymiser TABLE_RULES extended (its drift guard caught all 6 columns — worked as designed). ev: commit `ea4422a`
+  - [x] U2 engine `src/lib/server/credit-engine.ts`: stoozeStatus (clear-by = promo−5d), allocatePayments (explicit→waterfall earliest-deadline), chargePlanStatus/chargeStatuses (statement-delay horizon = last month-end, 3-month target, revert-APR flex cost), cardSplitSummary (single shared allocation, no double counting), defaultClearBy. 13 hand-computed unit tests (3 initial failures were MY test-arithmetic slips — engine correct; e.g. 40k−30k=10k to c1, Sep10+3mo=Dec10). ev: commit `fc36232`; 13/13 green
+  - [x] U3 mode toggle + panels: CreditModePanel ([Pay off]/[Stooze 0%]/[Clear] + promo-window form), setCreditMode + setPromoWindow actions; DebtProjectionSection now renders for credit cards ONLY in panic mode (R7). ev: commits `1250142`,`34bb6f7`; live: stooze reminders "0% ends 2027-03-15 (136 days) · have £450.00 ready · pay by 2027-03-10" + NO payoff UI; panic → projection returns
+  - [x] U4 SplitsSection (R8 R20): per-charge [now]/[3mo] toggle (setPayoffPlan; over_time defaults clear-by +3mo), confirmed-through-last-month-end progress, per-month requirement (immediate = "next statement"), deadline, if-late cost at revert APR. ev: commits `f19fae0` + display fix; live toggle £650→£325×2mo verified, "behind" badge correct (£150/£800 vs 2mo elapsed)
+  - [x] U5 gate: check 0/0; 1001/1001 (137 files); build green; live Mastercard flow (stooze→promo→reminders→panic→3mo toggle) console 0 errors / 0 5xx; vision P0 none ("high-quality, functional terminal rendering"). ev: outputs above + v3-b05-credit-1600.png
 - research:
   1. Schema today: accounts have creditLimit + minimumPayment rules; transactions have charge/payment/interest_charge types; NO promo/mode/plan concepts (src/lib/db/schema/accounts.ts).
   2. Monzo Flex (web, monzo.com + community): Pay in Full / Pay in 3 interest-free; 6/12 carry fee/interest; can switch to interest-free before first payment; cards set a DEFAULT plan — validates per-transaction plans + card default.
@@ -188,14 +196,15 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 ## Vision review log
 | Date | Screenshot | Verdict |
 |---|---|---|
+| 2026-10-29 | v3-b05-credit-1600.png | Credit strategy panel + splits tracker: clean terminal rendering, no misalignment/unreadable/bugs — P0 none |
 | 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b01-home-1600.png | No P0/P1; "spans the full viewport width (no narrow centered column)". Claim of `[[⌘K]]` double-bracket REJECTED — DOM: text `⌘K` + one pseudo `[`/`]` (known vision glyph misread) |
 | 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b02-bento-1600.png | (zai-vision; vmodel 1305 ×2) P1: dead gap between cells (REAL — my max-w cap), [[SVG]]/[[PNG]] double brackets (REAL — ChartPanel literal brackets), caption delta wrong (REJECTED — vision misread padded y-max label as data point). P2s: ragged bottoms (REAL), chart too tall (REAL), tick spacing/markers (→ R31) |
 | 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b02-bento-fixed-1600.png | (zai-vision; vmodel 1305 ×3 exhausted) 3/4 prior defects verified fixed; ragged-bottom claim re-checked via DOM: panels aligned 269/269 after h-full fix; P2-3 "goals" noun copy bug REAL → fixed same unit |
 
 ## Notes for next iteration
-- **B05 U1 IS THE NEXT UNIT**: schema via sanctioned path per design record `.docs/design/2026-10-29-2025-credit-engine.md` — accounts += creditMode/promoEndsAt/revertAprBps; accountTransactions += payoffPlan/plannedClearBy/allocatesToId; then db:generate → apply SQL to storage/dev-plain.db → complete __drizzle_migrations journal hash (sha256 of migration SQL; tests/integration/migration-journal-sync.test.ts enforces) → update scripts/seed.ts SAME UNIT. Then U2 engine + tests, U3 mode toggle + panels, U4 transaction plans + split tracker, U5 gate.
-- Sweep 1 PASSED (B01–B04 complete, gate evidenced at `## Sweep 1 — GATE PASSED`). Sweep 2 = B05. Sweeps 3–6 queued per plan §6.3.
-- Audit dir for sweep screenshots: `.docs/reviews/2026-10-29-1916-ultimate-v3-audit/`.
-- Dev server RUNNING (5173). CDP page 1 authed; **resize_page to 1600×1000 BEFORE screenshots**. Sessions die <60s — re-login per Appendix B.
-- Gotchas: (a) progress-file edits — anchor on unique headings, verify structure after (grep ^###/^##); two mangles this session, both repaired; (b) `/goals/debt/pay` is an error-page breadcrumb artifact — use real slugs from the debt list; (c) vmodel 1305-prone tonight — 2 retries then zai-vision; (d) palette/accordion interactions need a separate evaluate_script after clicks (Svelte flush) + window-dispatched keys; (e) print CSS must target `.app-shell` (SvelteKit display:contents wrapper); (f) 30 flex-wrap instances remain app-wide — audit per-block later.
+- **Sweep 3 — DATA ARCHITECTURE (B06) is next**: write the architecture decision record FIRST (.docs/design/, covering R14 R15 R18 R19 R21 R22 R23 R26: export format, custom selection, round-trip DROP+CREATE, background queues, accounts-import removal, history import flows, editability judgment), then implement in slices with round-trip tests (export → mutate → import → verify).
+- B05 COMPLETE (sweep 2): R7 R8 R20 ticked. Dev DB state changed by live tests: Mastercard AVaO3SmMapAQHAP1 is in PANIC mode with promo 2027-03-15/24.9% and one charge marked 3mo — sandbox DB is expendable, fine. R31 note: splits/credit charts should be layerchart-native when R31 lands.
+- Sweeps done: 0 (bootstrap), 1 (B01–B04), 2 (B05). Remaining: 3 (B06 data), 4 (B07 reports + B08 tools), 5 (B09–B13 digestibility), 6 (B14 bills/payslips + B15 DX), 7+ harvest (R-H* ≥5 needed, R29 continues per-block, R31 chart-package audit).
+- Dev server RUNNING (5173). CDP page 1 authed; resize 1600×1000 before screenshots; re-login per Appendix B pattern.
+- Gotchas: (a) form submitScripts destroy the evaluate context (expected — verify in the NEXT script); (b) withUserFilter only fits tables WITH userId — account-scoped tables rely on requireAccountOwnership + accountId eq (comment it); (c) python heredoc patches beat edit-tool on tab-heavy multi-line blocks; (d) vmodel 1305-prone — 2 retries then zai-vision; (e) progress-file edits: anchor on unique headings, verify with grep ^###/^## after.
 - NEVER stop early (§0 override): batch checkpoints = commit + record + CONTINUE in the same turn.
