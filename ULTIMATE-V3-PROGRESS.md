@@ -6,6 +6,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 |---|---|---|---|
 | 2026-10-29 19:11:24 GMT | 2026-10-29 19:14:46 GMT | 0h 03m | Sweep 0: progress file, casing fix, check/test/build baseline, live login verified |
 | 2026-10-29 19:16:01 GMT | 2026-10-29 19:22:50 GMT | 0h 07m | Sweep 1 B01: research/judge/plan/edit/self-review — full-viewport shell, no-wrap nav, top-bar fix |
+| 2026-10-29 19:23:53 GMT | 2026-10-29 19:32:33 GMT | 0h 09m | Sweep 1 B02 batch 1: header revert + viz gallery + tests; §9 addendum (R29–R31) recorded |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -46,6 +47,9 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R26 | [ ] | bulk history import (Monzo back-X) |
 | R27 | [ ] | scramble/anonymise real tool |
 | R28 | [ ] | agent-workable repo (dev docs, tooling) |
+| R29 | [ ] | ADDENDUM §9: multi-column full-width layouts app-wide (1-col was for the narrow box) |
+| R30 | [ ] | ADDENDUM §9: home gallery — no title, smaller scale, bento grid of different-sized cells |
+| R31 | [ ] | ADDENDUM §9: all visualisations on best svelte viz packages (layerchart first; new deps need approval) |
 | R-H* | — | harvested items appended as discovered (≥5 to implement before stop) |
 
 ## Block registry
@@ -93,6 +97,26 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
   - [x] U4 top bar double-bracket fix + de-crowd (+layout.svelte) (R16). ev: DOM proof `text:"⌘K"` + `::before "["` `::after "]"` → renders `[⌘K]` once; buttons clustered right with gap-4 layout
   - [x] U5 gate: check 0/0; targeted palette tests 15/15; full suite 983/983 (×2 green after 1 documented first-run flake); live `/` console 0 errors / 0 5xx; palette opens from fixed button + Escape closes; vision review no P0/P1 (see log)
 
+### B02 HOME (Sweep 1)
+- research:
+  1. v2→home diff vs `main`: (a) `trend={data.netWorthTrend}` prop on NetWorthDisplay = the v2 header chart (sparkline, renders only `{#if trend.length > 1}` — component auto-reverts when prop absent); (b) standalone CashflowCalendar block below IsaAllowanceWidget inside `max-w-3xl` wrapper; (c) 2× text-gray-400→500 contrast fixes; (d) `milestones` prop to GoalCard (that is B03/R4, not touched here).
+  2. Chart inventory (12 components, all ChartPanel-framed with export + a11y summary): NetWorthChart (full trend line), CashflowCalendar, AllocationBar (ink-density stacked composition bar via allocationShares), MonthlySpendChart, StackedAreaChart, etc.
+  3. Home load already provides everything a gallery needs: `netWorthTrend`, `cashflow {year,month,obligations}`, `accounts` (→ accountsByType asset groups for allocation).
+  4. Tests: no test pins home trend/sparkline/cashflow rendering (charts-empty-data-ssr + surface-views-ssr exercise the components themselves — unaffected by relocation).
+- judgments:
+  1. Header revert = stop passing `trend` to NetWorthDisplay (guard reverts render; no component edit). Keep `netWorthTrend` in load — the gallery consumes it.
+  2. v2's trend chart SURVIVES as gallery view #1 (relocate, don't delete — Appendix C revertibility decision).
+  3. NEW `HomeVizGallery.svelte` below the header stack: bracket-link switcher `[Trend] [Cashflow] [Allocation]`, one view at a time, full width, default Trend; Cashflow option hidden when no obligations; Allocation view = AllocationBar over asset account-type groups ("where the money sits").
+  4. Remove standalone CashflowCalendar block + its max-w-3xl wrapper (superseded by gallery view #2).
+  5. KEEP v2's gray-500 contrast fixes (a11y improvement, unrelated to the header chart).
+- PLAN (this batch, ≤5 units):
+  - [x] U1 home header revert (drop trend prop + CashflowCalendar block/import). ev: commit `ba5073f`; live `netWorthSparklineInHeader:false`
+  - [x] U2 create HomeVizGallery.svelte (3 switchable views). ev: commit `ba5073f`
+  - [x] U3 wire gallery below header stack; npm run check 0/0. ev: check output "0 errors and 0 warnings"
+  - [x] U4 unit test for gallery (SSR default view, hidden-empty tabs, empty-trend fallback, all-empty nothing) — 4/4 green; found + fixed dead trendSummary + SSR-inert $effect fallback (derived `effective` instead). ev: commit `60f3f52`; full suite 987/987
+  - [x] U5 gate: live `/` — tabs render (Trend selected, Cashflow hidden: no obligations in dev data), click-switch Trend→Allocation→Trend works, console 0 errors, 0 5xx. VISION DEFERRED to the R30 bento redesign (surface changes again immediately — vision pass there). ev: CDP evaluate output above
+- **IN FLIGHT — R30 redesign queue (next batch, from §9 addendum):** remove VISUALISATIONS title entirely; shrink chart scale; bento grid of different-sized cells (no single tall stack); R29 multi-column thinking for the rest of home afterwards.
+
 ## Decisions
 | Date | Decision | Rationale |
 |---|---|---|
@@ -105,6 +129,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 | No DB backup snapshots during the run — the original `dev-plain.db` in the main checkout is the recovery point; a wrecked sandbox DB is re-copied | User decision; coherent because the worktree copy is expendable |
 | 2026-10-29 | No push guard of any kind — pushes remain possible (plan still says the LOOP never pushes, but nothing technical blocks it and the user's manual pushes stay untouched) | User decision ("allow push") |
 | 2026-10-29 | Fixed import casing debt: `index.ts` + `+layout.svelte` imported `Navigation.svelte` but git records `navigation.svelte`; imports corrected to git casing (not a rename) | Fresh worktree checkout materialized true git casing, exposing latent wrong-case imports that the main checkout's case-insensitive FS had masked; git casing is canonical |
+| 2026-10-29 | USER mid-run direction appended to plan as §9 R29–R31: full-width multi-column bento layouts app-wide; home gallery loses its title + shrinks into a bento grid; all charts audited against best svelte viz packages | User instruction during Sweep 1 B02 ("original design was a narrow vertical box… take advantage of 1440px… gallery too large and tall, looks terrible… best svelte data visualisation npm packages"). R31 respects the package.json lock: layerchart (already installed) is the preferred library; anything else needs explicit approval |
 
 ## Deferrals
 | Item | Reason |
@@ -116,7 +141,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b01-home-1600.png | No P0/P1; "spans the full viewport width (no narrow centered column)". Claim of `[[⌘K]]` double-bracket REJECTED — DOM: text `⌘K` + one pseudo `[`/`]` (known vision glyph misread) |
 
 ## Notes for next iteration
-- **B01 COMPLETE** (19:22:50 GMT). Next: **B02 HOME** (R3): header revert via `git show main:src/routes/+page.svelte`, remove home `max-w-3xl` (+page.svelte:150), build viz gallery below header with click-to-switch viz types. Then B03 GOALS (R4 R6), B04 ACCOUNTS (R5 R17) to finish Sweep 1.
+- **B02 IN FLIGHT — R30 bento redesign is the immediate next unit** (§9 addendum): kill the VISUALISATIONS SectionHeader (no title at all), shrink chart scale (NetWorthChart H=220 too tall? smaller viewBox + smaller text), bento grid with different-sized cells (e.g. trend chart wide 2-col span, allocation narrow, cashflow cell) — `grid grid-cols-<n>` with col/row spans, terminal borders. Then vision-review the redesigned gallery (deferred from U5). Then R29 pass over the rest of home (KPI rows → grids), then B03 GOALS (R4 R6 + milestones prop removal lives there: `milestones={(goal as any).milestones ?? null}` in +page.svelte:350), then B04 ACCOUNTS (R5 heatmap width).
 - Sweep 1 gate when B02–B04 done: check 0/0 + full tests + live smoke of changed routes + vision spot-checks + `npm run build` + ledger + commits.
 - Audit dir for sweep-1 screenshots: `.docs/reviews/2026-10-29-1916-ultimate-v3-audit/`.
 - Dev server RUNNING (5173). CDP page 1 authed; **resize_page to 1600×1000 BEFORE screenshots** (window was emulating 500×844 phone). Sessions die <60s — re-login per Appendix B.
