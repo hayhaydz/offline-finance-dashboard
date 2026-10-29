@@ -229,35 +229,48 @@
 	accounts={data.accounts}
 />
 
-<!-- SUMMARY SECTION -->
-<div class="border-b border-black p-2">
-	<div class="flex justify-between my-1">
-		<span>Total Accounts</span>
-		<span>{totalAccounts}</span>
+<!-- v3 R29: summary stats + account alerts side-by-side (3/2 split) -->
+<div class="grid grid-cols-5 gap-2 border-b border-black p-2">
+	<div class="col-span-3 border border-black [&>*:last-child]:border-b-0">
+		<!-- SUMMARY SECTION -->
+		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
+			<span>SUMMARY</span>
+		</div>
+		<div class="p-2">
+			<div class="flex justify-between my-1">
+				<span>Total Accounts</span>
+				<span>{totalAccounts}</span>
+			</div>
+			<div class="flex justify-between my-1">
+				<span>Asset Accounts</span>
+				<span>{assetAccounts}</span>
+			</div>
+			<div class="flex justify-between my-1">
+				<span>Liability Accounts</span>
+				<span>{liabilityAccounts}</span>
+			</div>
+			<div class="flex justify-between my-1">
+				<span>Maturing Soon (90d)</span>
+				<span class={maturingSoonAccounts.length > 0 ? 'text-amber-700 font-bold' : ''}>{maturingSoonAccounts.length}</span>
+			</div>
+			{#if closedAccountCount > 0}
+				<div class="flex justify-between my-1 text-gray-500">
+					<span>Closed Accounts (not counted above)</span>
+					<span>{closedAccountCount}</span>
+				</div>
+			{/if}
+		</div>
 	</div>
-	<div class="flex justify-between my-1">
-		<span>Asset Accounts</span>
-		<span>{assetAccounts}</span>
-	</div>
-	<div class="flex justify-between my-1">
-		<span>Liability Accounts</span>
-		<span>{liabilityAccounts}</span>
-	</div>
-	<div class="flex justify-between my-1">
-		<span>Maturing Soon (90d)</span>
-		<span class={maturingSoonAccounts.length > 0 ? 'text-amber-700 font-bold' : ''}>{maturingSoonAccounts.length}</span>
-	</div>
-	{#if closedAccountCount > 0}
-		<div class="flex justify-between my-1 text-gray-500">
-			<span>Closed Accounts (not counted above)</span>
-			<span>{closedAccountCount}</span>
+	{#if sortedAccounts.length > 0}
+		<div class="col-span-2 border border-black [&>*:last-child]:border-b-0">
+			<AlertsSection alerts={data.alerts} title="ACCOUNT ALERTS" viewAllHref="/alerts" />
+		</div>
+	{:else}
+		<div class="col-span-2 border border-black p-2 text-xs text-gray-500">
+			No account alerts — no accounts to monitor yet.
 		</div>
 	{/if}
 </div>
-
-{#if sortedAccounts.length > 0}
-  <AlertsSection alerts={data.alerts} title="ACCOUNT ALERTS" viewAllHref="/alerts" />
-{/if}
 
 <!-- ACCOUNTS OVERVIEW SECTION -->
 <!-- Wrapper div for scroll-to-top reference -->
@@ -443,9 +456,10 @@
 		/>
 	{/if}
 
-	<!-- Phase 7 line 2: rate heatmap (savings accounts × months) -->
+	<!-- Phase 7 line 2: rate heatmap (savings accounts × months)
+	     (v3 R5: full width — no max-w wrapper) -->
 	{#if data.rateHeatmap?.rows.length}
-		<div class="max-w-3xl mt-3">
+		<div class="mt-3">
 			<RateHeatmap rows={data.rateHeatmap.rows} months={data.rateHeatmap.months} />
 		</div>
 	{/if}
