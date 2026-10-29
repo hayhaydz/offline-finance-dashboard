@@ -672,6 +672,38 @@ export const actions: Actions = {
 			);
 		return { success: true };
 	},
+	setPromoWindow: async ({ request, locals, params }) => {
+		const account = await requireAccountOwnership(locals, params.slug);
+		if (account.type !== "credit-card") {
+			return fail(400, { error: "Promo windows apply to credit cards only" });
+		}
+		const formData = await request.formData();
+		const promoEndStr = (formData.get("promoEnd") as string | null)?.trim();
+		const aprStr = (formData.get("revertApr") as string | null)?.trim();
+		if (!promoEndStr) return fail(400, { error: "Promo end date is required" });
+		const promoEndsAt = new Date(`${promoEndStr}T00:00:00.000Z`);
+		if (Number.isNaN(promoEndsAt.getTime())) {
+			return fail(400, { error: "Invalid promo end date" });
+		}
+		// revert APR in percent (e.g. 24.9) → basis points; optional
+		let revertAprBps: number | null = null;
+		if (aprStr) {
+			const apr = parseFloat(aprStr);
+			if (!Number.isFinite(apr) || apr < 0 || apr > 100) {
+				return fail(400, { error: "Revert APR must be 0–100%" });
+			}
+			revertAprBps = Math.round(apr * 100);
+		}
+		await db
+			.update(accounts)
+			.set({
+				promoEndsAt,
+				...(revertAprBps !== null ? { revertAprBps } : {}),
+				updatedAt: new Date(),
+			})
+			.where(and(eq(accounts.id, account.id), withUserFilter(requireAuth(locals).id, accounts)));
+		return { success: true };
+	},
 	/**
 	 * Add a new transaction to an account
 	 */

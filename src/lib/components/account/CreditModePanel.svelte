@@ -89,11 +89,31 @@
 					Stooze mode, but no active 0% window
 					{#if stooze?.promoEndsAt}
 						(ended {formatDateShorthand(stooze.promoEndsAt)})
-					{:else}
-						— set the promo end date for this card
 					{/if}
-					. Clear the balance or switch to <span class="font-bold">[Pay off]</span>.
+					. Set the promo end date to get reminders:
 				</p>
+				<form method="POST" action="?/setPromoWindow" class="flex flex-nowrap items-center gap-2 pt-1">
+					<label for="promoEnd" class="whitespace-nowrap">0% ends</label>
+					<input
+						type="date"
+						id="promoEnd"
+						name="promoEnd"
+						required
+						class="border border-black px-1 py-0.5 text-xs font-mono"
+					/>
+					<label for="revertApr" class="whitespace-nowrap">then APR %</label>
+					<input
+						type="text"
+						id="revertApr"
+						name="revertApr"
+						placeholder="24.9"
+						class="w-16 border border-black px-1 py-0.5 text-xs font-mono"
+					/>
+					<button type="submit" class="bracket-link text-xs">Save window</button>
+				</form>
+				{#if stooze?.promoEndsAt}
+					<p class="text-xs text-gray-500 pt-1">Or switch to <span class="font-bold">[Pay off]</span> to plan clearing it.</p>
+				{/if}
 			{/if}
 		{:else if mode === 'panic'}
 			<p class="text-gray-700">
