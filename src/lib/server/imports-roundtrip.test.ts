@@ -154,10 +154,22 @@ async function exportBoth(): Promise<string> {
 	return csv;
 }
 
+/** Data lines only: comment header lines (R18 legend) + header stripped. */
+function dataLines(csv: string): string[] {
+	const lines = csv
+		.trim()
+		.split("\n")
+		.filter((line) => !line.startsWith("#"));
+	expect(lines[0]).toBe(TRANSACTION_CSV_HEADER);
+	return lines;
+}
+
 /** Flip a row's trailing empty `_delete` cell to 1 (export rows end `,`). */
 function flagDelete(lines: string[], match: (line: string) => boolean): string[] {
 	return lines.map((line) =>
-		match(line) && line.endsWith(",") ? `${line}1` : line,
+		!line.startsWith("#") && match(line) && line.endsWith(",")
+			? `${line}1`
+			: line,
 	);
 }
 
@@ -225,8 +237,8 @@ describe("S1 round-trip — export is a valid reimport file", () => {
 		const csv = await exportBoth();
 		expect(csv).toContain(accountA.slug);
 		expect(csv).toContain(accountB.slug);
-		const dataRows = csv.trim().split("\n").length - 1; // minus header
-		expect(dataRows).toBe(aRowsBefore.length + bRowsBefore.length);
+		const rows = dataLines(csv).length - 1; // minus header
+		expect(rows).toBe(aRowsBefore.length + bRowsBefore.length);
 
 		const result = await commitReimport(testUserId, csv, { recovery: false });
 		expect("errors" in result).toBe(false);
@@ -234,7 +246,7 @@ describe("S1 round-trip — export is a valid reimport file", () => {
 		expect(result.counts.inserted).toBe(0);
 		expect(result.counts.edited).toBe(0);
 		expect(result.counts.deleted).toBe(0);
-		expect(result.counts.skipped).toBe(dataRows);
+		expect(result.counts.skipped).toBe(rows);
 		expect(result.backupFilename).toBeNull();
 
 		// Nothing written: identical row sets
@@ -265,9 +277,7 @@ describe("S1 round-trip — DROP + CREATE across accounts from a real export", (
 		);
 		await insertTx(accountA.id, "interest", 12, "2026-02-02", "stays put");
 
-		const csv = await exportBoth();
-		const lines = csv.trim().split("\n");
-		expect(lines[0]).toBe(TRANSACTION_CSV_HEADER);
+		const lines = dataLines(await exportBoth());
 
 		const mutated = appendInsert(
 			flagDelete(lines, (line) => line.includes("mis-entered gym fee")),
@@ -315,8 +325,7 @@ describe("S1 round-trip — cross-account MOVE (drop in A, create in B)", () => 
 		const aBefore = (await accountRows(accountA.id)).length;
 		const bBefore = (await accountRows(accountB.id)).length;
 
-		const csv = await exportBoth();
-		const lines = csv.trim().split("\n");
+		const lines = dataLines(await exportBoth());
 		const mutated = appendInsert(
 			flagDelete(lines, (line) => line.includes("belongs on B really")),
 			accountB.slug,
@@ -357,7 +366,7 @@ describe("S1 round-trip — fidelity through the export format", () => {
 		// Export must RFC-4180-escape the value
 		expect(csv).toContain('"He said ""hi, there"", twice"');
 
-		const lines = csv.trim().split("\n");
+		const lines = dataLines(csv);
 		const edited = lines.map((line) =>
 			line.includes("He said")
 				? line.replace(
@@ -394,7 +403,7 @@ describe("S1 round-trip — fidelity through the export format", () => {
 		const csv = await exportBoth();
 		expect(csv).toContain(`,${categoryGroceries.name},`);
 
-		const lines = csv.trim().split("\n");
+		const lines = dataLines(csv);
 		const edited = lines.map((line) =>
 			line.includes(categoryGroceries.name)
 				? line.replace(categoryGroceries.name, categoryTravel.name)
@@ -426,8 +435,7 @@ describe("S1 round-trip — preview/commit parity (safety chain)", () => {
 		);
 		await insertTx(accountB.id, "deposit", 321, "2026-06-02", "parity keep");
 
-		const csv = await exportBoth();
-		const lines = csv.trim().split("\n");
+		const lines = dataLines(await exportBoth());
 		const mutated = appendInsert(
 			flagDelete(lines, (line) => line.includes("parity drop")),
 			accountB.slug,

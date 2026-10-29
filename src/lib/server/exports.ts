@@ -113,11 +113,27 @@ export function parseExportOptions(
  * date then id so the file is deterministic. Only open accounts are
  * included (deliberate scope, tested); deleted accounts are excluded by
  * the existence guard on deletedAt.
+ *
+ * The file is self-describing (R18): leading `#` comment lines carry the
+ * export timestamp, scope and an account legend (`slug — name (type) — N
+ * rows`) so a downloaded file explains "which account is which or why or
+ * what" without the app open. Comments are ignored by the reimport parser,
+ * so the file remains a valid round-trip input.
  */
+export interface ExportMeta {
+	exportedAt: string;
+	rowCount: number;
+	accountSlugs: string[] | null;
+	from: string | null;
+	to: string | null;
+	type: TransactionType | null;
+	legend: { slug: string; name: string; type: string; rows: number }[];
+}
+
 export async function buildTransactionsCsv(
 	userId: number,
 	options: ExportOptions,
-): Promise<{ csv: string; rowCount: number }> {
+): Promise<{ csv: string; rowCount: number; meta: ExportMeta }> {
 	try {
 		const conditions = [
 			withUserFilter(userId, accounts),
@@ -159,6 +175,8 @@ export async function buildTransactionsCsv(
 				description: accountTransactions.description,
 				categoryName: spendingCategories.name,
 				accountSlug: accounts.slug,
+				accountName: accounts.name,
+				accountType: accounts.type,
 			})
 			.from(accountTransactions)
 			.innerJoin(accounts, eq(accountTransactions.accountId, accounts.id))
@@ -171,6 +189,45 @@ export async function buildTransactionsCsv(
 				asc(accountTransactions.transactionDate),
 				asc(accountTransactions.id),
 			);
+
+		// Account legend: per-account row counts over the accounts that appear
+		// in the file (the file describes itself, not the account universe).
+		const legendMap = new Map<
+			string,
+			{ name: string; type: string; rows: number }
+		>();
+		for (const row of rows) {
+			const entry = legendMap.get(row.accountSlug);
+			if (entry) {
+				entry.rows++;
+			} else {
+				legendMap.set(row.accountSlug, {
+					name: row.accountName,
+					type: row.accountType,
+					rows: 1,
+				});
+			}
+		}
+		const legend = [...legendMap.entries()]
+			.map(([slug, info]) => ({ slug, ...info }))
+			.sort((a, b) => b.rows - a.rows || a.slug.localeCompare(b.slug));
+
+		const exportedAt = new Date().toISOString();
+		const comments = [
+			`# offline-finance export — ${exportedAt}`,
+			`# rows: ${rows.length} · accounts: ${
+				options.accountSlugs === null
+					? "all open"
+					: options.accountSlugs.join(", ")
+			} · from ${options.from ?? "any"} to ${options.to ?? "any"} · type: ${
+				options.type ?? "all"
+			}`,
+			...legend.map(
+				(entry) =>
+					`# account: ${entry.slug} — ${entry.name} (${entry.type}) — ${entry.rows} rows`,
+			),
+			"# edit + reimport: set _delete=1 to remove a row, clear id to create one",
+		];
 
 		const csv = serializeTransactionCsv(
 			rows.map(
@@ -185,9 +242,22 @@ export async function buildTransactionsCsv(
 					deleteFlag: false,
 				}),
 			),
+			comments,
 		);
 
-		return { csv, rowCount: rows.length };
+		return {
+			csv,
+			rowCount: rows.length,
+			meta: {
+				exportedAt,
+				rowCount: rows.length,
+				accountSlugs: options.accountSlugs,
+				from: options.from,
+				to: options.to,
+				type: options.type,
+				legend,
+			},
+		};
 	} catch (error) {
 		logError("buildTransactionsCsv", "Failed to build transactions CSV", error);
 		throw error;
@@ -210,8 +280,13 @@ export function exportFilename(now = new Date()): string {
 export async function exportTransactionsCsv(
 	userId: number,
 	options: ExportOptions,
-): Promise<{ csv: string; filename: string; rowCount: number }> {
-	const { csv, rowCount } = await buildTransactionsCsv(userId, options);
+): Promise<{
+	csv: string;
+	filename: string;
+	rowCount: number;
+	meta: ExportMeta;
+}> {
+	const { csv, rowCount, meta } = await buildTransactionsCsv(userId, options);
 	const filename = exportFilename();
 	logInfo("exportTransactionsCsv", `Exported ${rowCount} transaction rows`, {
 		accounts: options.accountSlugs ?? "all",
@@ -219,5 +294,5 @@ export async function exportTransactionsCsv(
 		to: options.to,
 		type: options.type,
 	});
-	return { csv, filename, rowCount };
+	return { csv, filename, rowCount, meta };
 }

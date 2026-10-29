@@ -34,7 +34,7 @@ async function insertUser(): Promise<number> {
 async function insertAccount(
 	userId: number,
 	closed = false,
-): Promise<{ id: number; slug: string }> {
+): Promise<{ id: number; slug: string; name: string }> {
 	const [account] = await db
 		.insert(accounts)
 		.values({
@@ -47,7 +47,11 @@ async function insertAccount(
 			closedAt: closed ? new Date("2026-01-01T00:00:00.000Z") : null,
 			excludedFromNetWorth: false,
 		})
-		.returning({ id: accounts.id, slug: accounts.slug });
+		.returning({
+			id: accounts.id,
+			slug: accounts.slug,
+			name: accounts.name,
+		});
 	cleanupAccountIds.push(account.id);
 	return account;
 }
@@ -314,6 +318,52 @@ describe("buildTransactionsCsv", () => {
 		// Rows added by other tests in this account set are all id-rows that
 		// still match the DB — none may fail parsing.
 		expect(reparsed.errors).toEqual([]);
+	});
+});
+
+describe("self-describing export header (R18)", () => {
+	it("prepends timestamp, scope and account legend comment lines the parser ignores", async () => {
+		const a = await insertAccount(testUserId);
+		const b = await insertAccount(testUserId);
+		await insertTx(a.id, "deposit", 100, "2026-06-01", "one");
+		await insertTx(a.id, "interest", 200, "2026-06-02", "two");
+		await insertTx(b.id, "charge", -300, "2026-06-03", "three");
+
+		const { csv, meta } = await buildTransactionsCsv(testUserId, {
+			accountSlugs: [a.slug, b.slug],
+			from: "2026-06-01",
+			to: "2026-06-30",
+			type: null,
+		});
+
+		const comments = csv
+			.trim()
+			.split("\n")
+			.filter((l) => l.startsWith("#"));
+		expect(comments[0]).toMatch(/^# offline-finance export — \d{4}-\d{2}-\d{2}T/);
+		expect(comments[1]).toContain("rows: 3");
+		expect(comments[1]).toContain(`accounts: ${a.slug}, ${b.slug}`);
+		expect(comments[1]).toContain("from 2026-06-01 to 2026-06-30");
+		expect(comments[1]).toContain("type: all");
+		const legendA = comments.find((l) => l.startsWith(`# account: ${a.slug}`));
+		const legendB = comments.find((l) => l.startsWith(`# account: ${b.slug}`));
+		expect(legendA).toContain(a.name);
+		expect(legendA).toContain("2 rows");
+		expect(legendB).toContain("1 rows");
+
+		// Meta mirrors the header
+		expect(meta.rowCount).toBe(3);
+		expect(meta.exportedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+		const metaA = meta.legend.find((e) => e.slug === a.slug);
+		expect(metaA?.rows).toBe(2);
+		expect(metaA?.name).toBe(a.name);
+
+		// The legend comments do not break the reimport parser or the
+		// backup-header detector (no false isBackup).
+		const parsed = parseUpdateCsv(csv);
+		expect(parsed.errors).toEqual([]);
+		expect(parsed.rows).toHaveLength(3);
+		expect(parsed.isBackup).toBe(false);
 	});
 });
 

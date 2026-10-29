@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from "$app/forms";
 	import type { SubmitFunction } from "@sveltejs/kit";
+	import ExportPanel from "$lib/components/export-panel/export-panel.svelte";
 	import ImportWizard from "$lib/components/import-wizard/import-wizard.svelte";
 	import ReimportWizard from "$lib/components/reimport-wizard/reimport-wizard.svelte";
 	import { formatCurrency } from "$lib/utils/currency";
@@ -14,10 +15,20 @@
 		description: string | null;
 	};
 
+	type AccountContext = {
+		id: number;
+		slug: string;
+		name: string;
+		type: string;
+		txCount: number;
+		firstDate: string | null;
+		lastDate: string | null;
+	};
+
 	let { data, form } = $props<{
 		data: {
 			user: { id: number; username: string };
-			accounts: Array<{ id: number; slug: string; name: string; type: string }>;
+			accounts: AccountContext[];
 			categories: Array<{ key: string; name: string }>;
 		};
 		form?: any;
@@ -86,8 +97,14 @@
 
 	<section class="border-t border-black">
 		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
+			<span>CSV EXPORT — SELECT WHAT TO EXPORT</span>
+		</div>
+		<ExportPanel accounts={data.accounts} />
+	</section>
+
+	<section class="border-t border-black">
+		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 			<span>CSV REIMPORT — EDIT / DELETE / RESTORE</span>
-			<a href="/api/transactions/export" class="bracket-link text-xs">Export CSV</a>
 		</div>
 		<ReimportWizard {form} />
 	</section>

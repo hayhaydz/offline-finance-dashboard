@@ -1,7 +1,11 @@
 import { fail } from "@sveltejs/kit";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "$lib/db/client";
-import { accounts, spendingCategories } from "$lib/db/schema";
+import {
+	accountTransactions,
+	accounts,
+	spendingCategories,
+} from "$lib/db/schema";
 import {
 	batchInsertTransactions,
 	getOverlappingTransactions,
@@ -57,6 +61,42 @@ export const load: PageServerLoad = async ({ locals }) => {
 		),
 	});
 
+	// R18 per-account export context: which account is which, how much data
+	// each holds and over what period — so export selection is informed,
+	// not guesswork. Grouped aggregate over the user's own transactions.
+	const context = await db
+		.select({
+			slug: accounts.slug,
+			txCount: sql<number>`count(${accountTransactions.id})`,
+			firstDate: sql<string | null>`min(${accountTransactions.transactionDate})`,
+			lastDate: sql<string | null>`max(${accountTransactions.transactionDate})`,
+		})
+		.from(accounts)
+		.leftJoin(
+			accountTransactions,
+			eq(accountTransactions.accountId, accounts.id),
+		)
+		.where(
+			and(
+				eq(accounts.userId, user.id),
+				isNull(accounts.closedAt),
+				isNull(accounts.deletedAt),
+			),
+		)
+		.groupBy(accounts.slug);
+	const contextBySlug = new Map(context.map((row) => [row.slug, row]));
+
+	// The aggregate min/max come back as raw epoch values (timestamp-mode
+	// integer column) — normalise to YYYY-MM-DD.
+	const sqlDate = (value: unknown): string | null => {
+		if (value === null || value === undefined) return null;
+		const n = Number(value);
+		if (Number.isFinite(n) && n > 0) {
+			return new Date(n * 1000).toISOString().slice(0, 10);
+		}
+		return String(value).slice(0, 10);
+	};
+
 	return {
 		user: userDto(user),
 		accounts: userAccounts.map((a) => ({
@@ -64,6 +104,9 @@ export const load: PageServerLoad = async ({ locals }) => {
 			slug: a.slug,
 			name: a.name,
 			type: a.type,
+			txCount: Number(contextBySlug.get(a.slug)?.txCount ?? 0),
+			firstDate: sqlDate(contextBySlug.get(a.slug)?.firstDate),
+			lastDate: sqlDate(contextBySlug.get(a.slug)?.lastDate),
 		})),
 		categories: categories.map((c) => ({
 			key: c.key,
