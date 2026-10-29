@@ -15,6 +15,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 20:22:15 GMT | 2026-10-29 20:39:20 GMT | 0h 17m | Sweep 2 B05: schema+engine+mode UI+splits, gate passed |
 | 2026-10-29 20:39:20 GMT | 2026-10-29 20:40:54 GMT | 0h 02m | B06 research + data pipeline ADR committed |
 | 2026-10-29 21:49:32 GMT | 2026-10-29 22:23:03 GMT | 0h 34m | Sweep 3 B06 COMPLETE: S1 round-trip tests, S2 export header+panel, S3 history csv, S4 queue (schema 0011), S5 bulk Monzo import, S6 R21 guard; gate passed |
+| 2026-10-29 22:23:04 GMT | 2026-10-29 22:34:00 GMT | 0h 11m | Sweep 4 B07 COMPLETE: reports v2 registry + template + index + 6 reports + tests; live + vision gate passed |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -36,7 +37,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R7 | [x] | ev: CreditModePanel + setCreditMode; payoff UI gated to panic mode (live-verified stooze shows reminders only, panic shows projection); design record .docs/design/2026-10-29-2025-credit-engine.md |
 | R8 | [x] | ev: SplitsSection [now]/[3mo] per-charge plans + setPayoffPlan; over-time cost = revert-APR flex cost shown per charge; live toggle verified |
 | R9 | [ ] | budget UX redesign |
-| R10 | [ ] | reports v2 — dated science-paper-style focused reports |
+| R10 | [x] | ev: reports v2 — registry + science-paper template + dated article index + 6 launch reports (net-worth, savings-rate, interest-PSA, credit-strategy, spending-profile, debt-horizon); all live 200 w/ ABSTRACT+METHOD; commit 4886287; tests 1043/1043 |
 | R11 | [ ] | tax page — kill wall of text |
 | R12 | [ ] | alerts digestibility |
 | R13 | [ ] | tools expansion — sub-pages + more tools |
@@ -58,7 +59,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R29 | [x] (home) | ev: commit a9a0d92; home converted to 3/2 two-column rows, DOM-verified 936/622px, vision "conversion succeeds". App-wide R29 continues per-block (B03/B04 next) |
 | R30 | [x] | ev: commits 307e48d+9f458e0+e0a77b8; untitled bento grid live (trend col-span-2 1041px / allocation col-span-1 517px, panels aligned 269/269), wide-aspect 900×180 chart, [+] expand cycle verified, vision re-review clean of prior P1s |
 | R31 | [ ] | ADDENDUM §9: all visualisations on best svelte viz packages (layerchart first; new deps need approval) |
-| R-H* | — | harvested items appended as discovered (≥5 to implement before stop) |
+| R-H* | — | harvested items: R-H1 (B06 idea) import-queue candidates beyond imports — statement-import backfill via bulk mapper preset; R-H2 ASCII chart toggle as report-level render mode (retired with old reports page); R-H3 reports findings tables → 2-col full-width grid (R29 for B07); ≥5 to implement before stop |
 
 ## Block registry
 | Block | Last sweep | BLOCK CYCLE stage | Notes |
@@ -69,7 +70,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | B04 ACCOUNTS & LIABILITIES | 1 | FIRST PASS (sweep 1) | R5 ✓ R29(accounts) ✓; R17 deeper work → sweep 5 |
 | B05 CREDIT & STOOZING | 2 | COMPLETE | R7 ✓ R8 ✓ R20 ✓; architecture record in .docs/design/ |
 | B06 DATA MANAGEMENT | 3 | COMPLETE (sweep 3) | S1–S6 all [x]; R14 R15 R18 R19 R21 R22 R23 R26 ticked; ADR + 30 new tests; queue candidates surveyed (statement imports, backfills — left inline deliberately) |
-| B07 REPORTS v2 | — | unvisited | R10 · sweep 4 |
+| B07 REPORTS v2 | 4 | COMPLETE (sweep 4) | R10 ✓; 6 reports live; density P2 → R29 pass later; ASCII toggle → R-H2 |
 | B08 TOOLS | — | unvisited | R13 · sweep 4 |
 | B09 BUDGET | — | unvisited | R9 R17 · sweep 5 |
 | B10 TAX | — | unvisited | R11 R17 · sweep 5 |
@@ -182,6 +183,17 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 - GATE: check 0/0 ✓ · full suite 1038/1038 (141 files) ✓ · build green ✓ · live /settings/data: all 6 sections render, console 0 errors / 0 5xx ✓ · endpoints live: export 200 (107 rows + legend), history export 200 both kinds, bogus kind 400, filtered export 200 (9 rows), jobs API 200 ✓ · vision: no P0 (P1s adjudicated below-fold artifacts — filters/steps DOM-verified; `[*K]` = documented ⌘K misread; Session&Security nav overlap noted for B01 later sweep). ev: outputs above + v3-b06-data-1600.png
 - gotchas recorded: take_screenshot param is `filePath` not `filename` (silent no-op otherwise — cost 10 min); SQLite CURRENT_TIMESTAMP default → Invalid Date on drizzle integer-timestamp read-back (pass explicit Date()s — same reason upsertMonth does); zai free endpoint 1305-overloaded globally tonight → zai-vision MCP fallback worked first try.
 
+### B07 REPORTS v2 (Sweep 4 — COMPLETE)
+- research: old /overview/reports = ONE chart overview (net worth + stacked area + monthly spend + category bars + PSA bullet + debt waterfall, range pickers + ASCII mode) — exactly the "one overview" R10 rejects; engines beneath it are rich (reports.ts: netWorth/monthlySpend/interest/debt; credit-engine; expenses/income history; tax bands).
+- judgments: registry-driven report system — each report a focused question, dated, science-paper STRUCTURE (title/abstract/method/findings) inside terminal aesthetic (Appendix C decision); auto-written abstracts carry real numbers; figures reuse existing chart components by key; index = dated article list (news style); old chart surfaces get homes as reports (spend → spending-profile, debt → debt-horizon).
+- units (all [x]):
+  - [x] U1 registry `src/lib/server/reports-v2.ts` — ReportDoc (slug/title/date/abstract/method/findings/figures+data), ReportDefinition[]; 6 builders: net-worth-trajectory (Δ/steps/best-worst), savings-rate (paired income-vs-expenses months, thresholds ≥20% green), interest-vs-allowance (PSA headroom math), credit-strategy (all cards: modes, stooze deadlines, on-track/behind, flex cost), spending-profile (category concentration), debt-horizon (minimums months, projection). ev: commit `4886287`
+  - [x] U2 routes: `/overview/reports` index (article list w/ blurbs + dates) + `/overview/reports/[slug]` (404 on unknown, registry lookup). ev: live — index 6 [Read Report] links; bad slug 404
+  - [x] U3 ReportPaper template — title block w/ date, ABSTRACT (auto numbers), METHOD bullets, findings tables (label/value + semantic flags), figures by key (netWorth/stackedArea/psaBullet/monthlySpend/categoryBars/debtWaterfall), [All Reports] + [Print / PDF], footer slug+date. ev: DOM sections ABSTRACT/METHOD/4 card sections; tableRows 12; console clean
+  - [x] U4 tests: registry integrity (unique slugs, builders degrade on nonexistent user), index SSR (article list), paper SSR (structure + figures); old overview test rewritten to new architecture (anti-rot decision). ev: reports-v2.test 3/3 + stacked-area-reports-ssr 7/7; full suite 1043/1043
+  - [x] U5 gate: check 0/0; all 6 reports live 200 w/ ABSTRACT+METHOD; console 0 errors; 0 5xx; vision (vmodel flaky ×3, 2 partial runs): no P0/P1 rendering defects — only a density opinion (data IS dense: 4 cards) → triaged to R29 full-width findings layout when B07 revisited; screenshot v3-b07-credit-report-1600.png
+- R10 [x] ticked. ASCII/range chart cluster from the old page retired with the page (charts live on inside report figures; ASCII mode remains on… DECISION: ASCII variant was page-local; if missed it can return as a report-level toggle — recorded as R-H2 harvest candidate).
+
 ## Sweep 1 — GATE PASSED (2026-10-29 20:20 GMT)
 - check 0/0 ✓ · full suite 988/988 ✓ · build green (adapter-node ✔) ✓
 - live smoke: `/`, `/goals`, `/goals/debt/clear-mastercard`, `/accounts` — console 0 errors, network 0 5xx on all
@@ -217,8 +229,9 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b02-bento-fixed-1600.png | (zai-vision; vmodel 1305 ×3 exhausted) 3/4 prior defects verified fixed; ragged-bottom claim re-checked via DOM: panels aligned 269/269 after h-full fix; P2-3 "goals" noun copy bug REAL → fixed same unit |
 
 ## Notes for next iteration
-- **B07 REPORTS v2 IS THE NEXT BLOCK** (sweep 4): R10 — separate dated reports, science-paper format (title/abstract/method/findings per Appendix C decision), insight-finding; build index + first reports from existing engines (credit engine, expenses/income history, tax bands). Then B08 tools (R13).
-- B06 COMPLETE (sweep 3): R14 R15 R18 R19 R21 R22 R23 R26 ticked. Dev DB now has import_jobs table (migration 0011 journaled). Dev server RUNNING (5173), CDP page 1 authed (session survived longer than usual this block).
+- **B08 TOOLS IS THE NEXT BLOCK** (sweep 4, R13): sub-pages per tool + more tools. Current tools surface: find src/routes/tools (or /tools) — expand each tool into its own page with detail, add 2-3 new tools from existing engines (rate scenarios, tax-band finder, debt strategy comparator are candidates).
+- B07 COMPLETE (sweep 4): R10 ticked. Reports registry at src/lib/server/reports-v2.ts — ADDING a report = one builder + registry entry (no route work). R-H2/R-H3 harvested.
+- B06 COMPLETE (sweep 3): data pipeline unified. Dev DB has import_jobs (migration 0011 journaled). Dev server RUNNING (5173), CDP page 1 authed.
 - CDP gotcha: take_screenshot param is `filePath` (NOT `filename` — silent no-op). zai free endpoint 1305-overloaded tonight → use zai-vision MCP directly for gates.
 - Queue candidates surveyed (recorded in ADR §judgment 5): statement imports + backfills stay inline — working code is not migrated for architecture's sake.
 - Sweeps done: 0, 1 (B01–B04), 2 (B05), 3 (B06). Remaining: 4 (B07 reports + B08 tools), 5 (B09–B13 digestibility), 6 (B14 bills/payslips + B15 DX), 7+ harvest (R-H* ≥5 needed, R29 continues per-block, R31 chart audit — layerchart).
