@@ -51,7 +51,7 @@
 	});
 </script>
 
-<div class="border border-black max-w-none mx-0 w-full h-[calc(100vh-1rem)] flex flex-col overflow-hidden">
+<div class="app-shell border border-black max-w-none mx-0 w-full h-[calc(100vh-1rem)] flex flex-col overflow-hidden">
 	<!-- skip link: first tab stop, visible only on keyboard focus -->
 	<a href="#main-content" class="skip-link bracket-link text-xs">[Skip to content]</a>
 	{#if user}

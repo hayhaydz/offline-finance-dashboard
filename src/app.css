@@ -207,7 +207,7 @@ td {
 
 	/* Let long content flow across paper instead of the on-screen scroll area.
 	   The full-viewport flex shell (v3 R1) must release its pinned height too. */
-	body > div {
+	.app-shell {
 		height: auto !important;
 		max-height: none !important;
 		overflow: visible !important;
