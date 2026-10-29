@@ -17,6 +17,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 21:49:32 GMT | 2026-10-29 22:23:03 GMT | 0h 34m | Sweep 3 B06 COMPLETE: S1 round-trip tests, S2 export header+panel, S3 history csv, S4 queue (schema 0011), S5 bulk Monzo import, S6 R21 guard; gate passed |
 | 2026-10-29 22:23:04 GMT | 2026-10-29 22:34:00 GMT | 0h 11m | Sweep 4 B07 COMPLETE: reports v2 registry + template + index + 6 reports + tests; live + vision gate passed |
 | 2026-10-29 22:34:01 GMT | 2026-10-29 22:40:08 GMT | 0h 06m | Sweep 4 B08 COMPLETE: tools index + 6 sub-pages + 2 new tools (stooze, milestones) + math tests; live gate passed |
+| 2026-10-29 22:40:09 GMT | 2026-10-29 22:53:52 GMT | 0h 14m | Sweep 5 B09 COMPLETE: budget summary strip + two-column redesign; R-H4 bracket-link sweep (58 fixes, 29 files) + regression net |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -37,7 +38,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R6 | [x] | ev: goals allocation + debt detail max-w wrappers removed; DOM 1582px panels live; vision confirms full width |
 | R7 | [x] | ev: CreditModePanel + setCreditMode; payoff UI gated to panic mode (live-verified stooze shows reminders only, panic shows projection); design record .docs/design/2026-10-29-2025-credit-engine.md |
 | R8 | [x] | ev: SplitsSection [now]/[3mo] per-charge plans + setPayoffPlan; over-time cost = revert-APR flex cost shown per charge; live toggle verified |
-| R9 | [ ] | budget UX redesign |
+| R9 | [x] | ev: budget summary strip (4 cells) + two-column body; commit e09a288; live gridCols 3 + summary cells; SSR test 3/3; vision P0 none |
 | R10 | [x] | ev: reports v2 — registry + science-paper template + dated article index + 6 launch reports (net-worth, savings-rate, interest-PSA, credit-strategy, spending-profile, debt-horizon); all live 200 w/ ABSTRACT+METHOD; commit 4886287; tests 1043/1043 |
 | R11 | [ ] | tax page — kill wall of text |
 | R12 | [ ] | alerts digestibility |
@@ -73,7 +74,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | B06 DATA MANAGEMENT | 3 | COMPLETE (sweep 3) | S1–S6 all [x]; R14 R15 R18 R19 R21 R22 R23 R26 ticked; ADR + 30 new tests; queue candidates surveyed (statement imports, backfills — left inline deliberately) |
 | B07 REPORTS v2 | 4 | COMPLETE (sweep 4) | R10 ✓; 6 reports live; density P2 → R29 pass later; ASCII toggle → R-H2 |
 | B08 TOOLS | 4 | COMPLETE (sweep 4) | R13 ✓; 6 tools as sub-pages; registry at src/lib/utils/tool-registry.ts — add tool = component + registry entry + [slug] branch |
-| B09 BUDGET | — | unvisited | R9 R17 · sweep 5 |
+| B09 BUDGET | 5 | COMPLETE (sweep 5) | R9 ✓ R17(budget) ✓; R-H4 harvested+implemented (58 bracket-link fixes + regression net) |
 | B10 TAX | — | unvisited | R11 R17 · sweep 5 |
 | B11 ALERTS | — | unvisited | R12 · sweep 5 |
 | B12 SNAPSHOTS | — | unvisited | R17 · sweep 5 |
@@ -206,6 +207,17 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
   - [x] U5 gate: check 0/0; full suite 1047/1047; commit `04a7e65`
 - R13 [x] ticked. Old single-page tools tests rewritten to new architecture (anti-rot).
 
+### B09 BUDGET (Sweep 5 — COMPLETE)
+- research: /overview/budgets/[month] = 740-line monolith; status numbers scattered across 5 vertical bands (target accordion subtitle, progress bar, pace section, burn-down, filters); everything 1-column; no SSR test pins.
+- judgments (R9+R29): 4-cell SUMMARY STRIP under the header (Status/Spent-target/Pace/Remaining-or-Over incl. per-day-for-remaining-days math); two-column body (grid-cols-3: left col-span-2 = progress + category targets; right = target accordion + pace + burn-down + filters + amendments + history) — config out of the way, the month at a glance; logic/forms untouched (template-only restructure).
+- units (all [x]):
+  - [x] U1 summary strip (semantic colours; pace label "over pace"/"on pace"; over-budget shows per-day remaining or projected). ev: live summaryCells 6, DOM-verified
+  - [x] U2 two-column restructure via python slicing (gotcha: div-close accounting — page outer div + history inner both needed explicit closes; 3 iterations to balance). ev: check 0/0; live gridCols 3, col-span-2 present
+  - [x] U3 vision findings fixed: amendment options bar now says it attaches to the next config edit; note input widened; pace wording unambiguous; R16-class literal-bracket bugs (`[[All Months]]` etc.) stripped from budget surface. ev: commit `e09a288`
+  - [x] U4 R-H4 HARVEST: the bracket bug was app-wide — 58 instances across 29 files batch-fixed (incl. 7 I introduced tonight in tools/wizards); regression net tests/integration/bracket-link-convention.test.ts (owning-tag-aware heuristic, no false positives); 5 stale test pins updated to CSS-bracket convention. ev: grep count 0; suite 1051/1051
+  - [x] U5 new SSR test budget-page-redesign-ssr.test.ts (summary cells, grid, over-label semantics). ev: 3/3
+- R9 [x]; R17(budget leg) [x]. Vision log updated (no P0; P1 amendment-cluster = pre-existing options-bar UX, clarified; P2s fixed or triaged to R29 polish).
+
 ## Sweep 1 — GATE PASSED (2026-10-29 20:20 GMT)
 - check 0/0 ✓ · full suite 988/988 ✓ · build green (adapter-node ✔) ✓
 - live smoke: `/`, `/goals`, `/goals/debt/clear-mastercard`, `/accounts` — console 0 errors, network 0 5xx on all
@@ -235,6 +247,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | Date | Screenshot | Verdict |
 |---|---|---|
 | 2026-10-29 | v3-b06-data-1600.png (zai-vision; free endpoint 1305 ×4) | Data management page: no P0; no ciphertext/[object Object]/`<br>` bugs; terminal aesthetic consistent. P1×2 REJECTED as below-fold artifacts (filters + wizard steps DOM-verified present; vision itself flagged the caveat). P2 `[*K]` = documented ⌘K misread; P2 Session&Security nav overlap → noted for B01 later sweep |
+| 2026-10-29 | v3-b09-budget-1600.png (zai-vision) | Budget redesign: no P0. P1 amendment-cluster = pre-existing options-bar UX (no apply button BY DESIGN — options ride on next config edit) → clarified with helper text; P2s: note placeholder truncation FIXED (w-64), column height imbalance (accepted, content-driven), bracket dialect = REAL R16-class bug → fixed app-wide as R-H4, amber pace contrast → wording fixed ("over pace") |
 | 2026-10-29 | v3-b05-credit-1600.png | Credit strategy panel + splits tracker: clean terminal rendering, no misalignment/unreadable/bugs — P0 none |
 | 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b01-home-1600.png | No P0/P1; "spans the full viewport width (no narrow centered column)". Claim of `[[⌘K]]` double-bracket REJECTED — DOM: text `⌘K` + one pseudo `[`/`]` (known vision glyph misread) |
 | 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b02-bento-1600.png | (zai-vision; vmodel 1305 ×2) P1: dead gap between cells (REAL — my max-w cap), [[SVG]]/[[PNG]] double brackets (REAL — ChartPanel literal brackets), caption delta wrong (REJECTED — vision misread padded y-max label as data point). P2s: ragged bottoms (REAL), chart too tall (REAL), tick spacing/markers (→ R31) |
