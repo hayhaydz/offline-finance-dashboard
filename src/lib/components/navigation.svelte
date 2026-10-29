@@ -230,7 +230,7 @@
 </div>
 
 <div class="relative border-b">
-  <div class="flex items-center gap-4 p-2">
+  <div class="flex flex-wrap items-center gap-x-4 gap-y-1 p-2">
     {#each navItems as item}
       {#if !item.authRequired || user}
         {@const isActive = item.href === '/' ? currentPath === item.href : currentPath.startsWith(item.href)}
@@ -260,7 +260,7 @@
     {@const activeItem = navItems.find(i => i.href === activeSubNav)}
     {#if activeItem?.children}
       <div class="bg-gray-50 border-t">
-        <div class="flex gap-4 p-2 min-h-8 items-center">
+        <div class="flex flex-wrap gap-x-4 gap-y-1 p-2 min-h-8 items-center">
           {#each activeItem.children as child}
             {@const isChildActive = (() => {
               if (!isChildRouteActive(child)) return false;

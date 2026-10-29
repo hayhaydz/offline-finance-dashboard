@@ -42,6 +42,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 | 2026-10-29T00:04 | 2026-10-29T00:06 | 0h02m | Palette quick actions (#19 completion): toggle-ascii + open-help shipped, unit-tested ×3, both live-verified end-to-end; check 0/0 · 961/961 |
 | 2026-10-29T00:07 | 2026-10-29T00:14 | 0h07m | Phase 9 cycle 7: empty-data SSR sweep ×11 charts (all pass, permanent net) · j/k nav on snapshots list (wired + SSR test + live-verified j/j/k/Esc/Enter→detail); check 0/0 · 973/973 |
 | 2026-10-29T00:14 | 2026-10-29T00:18 | 0h04m | Phase 9 cycle 8: screen-reader pass — skip-to-content link (off-screen until focus), main landmark on the scroll container, SubmitFeedback role=alert/status; 4 SSR tests + live-verified; check 0/0 · 977/977 |
+| 2026-10-29T00:18 | 2026-10-29T00:21 | 0h03m | Mobile responsive sweep at 390px: FOUND page-level horizontal scroll on all pages (unwrapping nav rows) → fixed w/ flex-wrap; re-probe clean ×4; vision CLEAN; check 0/0 · 977/977 |
 
 ## Master checklist
 ### Phase 0 — Bootstrap
@@ -121,6 +122,7 @@ Branch: release/ultimate-2.0 · Started: 2026-10-28T19:29+00:00
 - [x] Phase 9 cycle 7: empty-data SSR sweep across ALL 11 chart components — ev: new charts-empty-data-ssr.test.ts (11 tests: every chart with empty/zero inputs renders honest output, no crash, no NaN/Infinity leak into markup) — ALL PASS first run (empty-state discipline from Phases 4–7 holds; now a permanent regression net); check 0/0
 - [x] feat: j/k list navigation on the snapshots list (3rd list surface) — ev: use:listnav tbody + data-nav-row rows + data-nav-primary detail links wired in /overview/snapshots (same pattern as accounts/goals); help-overlay summary updated; SSR wiring test on the real route component (markers contract); LIVE browser: j selects first row (aria-current, 2026-02-01), j/k move + return, Escape clears, Enter NAVIGATES to /overview/snapshots/WQHKahTulUgGfa-W, 0 console errors; check 0/0 · 973/973
 - [x] a11y: screen-reader pass — skip link + main landmark + announced feedback — ev: [Skip to content] first tab stop (off-screen left:-9999px, left:0 on focus — live style checks), content div → <main id="main-content"> (still .scrollable-container styles), SubmitFeedback role=alert(error)/role=status(success) so SRs hear action results; 4 SSR tests (LayoutA11yFixture + SubmitFeedback roles) + live DOM verification; latent snapshots-fixture type gap surfaced by the layout change and fixed (environment + UserDto + staleness null); check 0/0 · 977/977
+- [x] fix: mobile horizontal scroll on every page (nav rows didn't wrap) — ev: 390px probe found docW 662 > clientW 500 on home/accounts/reports/goals (same shell offenders — main nav + sub-nav flex rows); fix = flex-wrap + gap-x/y on both nav rows in Navigation.svelte; re-probe: overflow:false, docW 500 == clientW on ALL FOUR pages; vision P9d-mobile-accounts-fixed.png CLEAN (1× 1305 retry); desktop unaffected (wrap only engages when items don't fit); check 0/0 · 977/977
 - [ ] Ledger ≥ 6h verified
 
 ## Decisions
