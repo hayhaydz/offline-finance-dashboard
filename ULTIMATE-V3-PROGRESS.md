@@ -20,6 +20,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 22:40:09 GMT | 2026-10-29 22:53:52 GMT | 0h 14m | Sweep 5 B09 COMPLETE: budget summary strip + two-column redesign; R-H4 bracket-link sweep (58 fixes, 29 files) + regression net |
 | 2026-10-29 22:53:53 GMT | 2026-10-29 23:02:40 GMT | 0h 09m | Sweep 5 B10 COMPLETE: tax finder cards + threshold bars + mini-tables; vision gate (P1 rejected w/ evidence); suite 1051/1051 |
 | 2026-10-29 23:02:41 GMT | 2026-10-29 23:06:30 GMT | 0h 04m | Sweep 5 B11 COMPLETE: alerts summary strip + severity lanes + badge fixes; vision P1s fixed same unit |
+| 2026-10-29 23:06:31 GMT | 2026-10-29 23:10:22 GMT | 0h 04m | Sweep 5 B12+B13 COMPLETE: snapshots + routine summary strips, checklist grid; suite 1051/1051 |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -48,7 +49,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R14 | [x] (B06) | ev: overhaul = unified DATA PIPELINE surface (export selection → history CSV → bulk bank import → reimport → jobs queue, one page, one engine) + ADR .docs/design/2026-10-29-2040-data-pipeline.md; no rewrite of v2's tested engine (100+ tests kept, 30+ added) |
 | R15 | [x] | ev: DECISION recorded (round-trip replace via import, NOT inline edit — Matrixify DROP/CREATE model) + imports-roundtrip.test.ts 7 tests pin cross-account DROP+CREATE/MOVE; in-file reimport hints shipped in every export header |
 | R16 | [x] | ev: DOM proof single-bracket `[⌘K]`/`[?]` (text + pseudo-elements); top bar de-crowded (right-clustered controls, gap-4); a11y names `[⌘K]` `[?]`; palette open/close live-verified |
-| R17 | [ ] | weak areas dedicated work: tax, snapshots, accounts/liabilities, routine, budget |
+| R17 | [x] | ev: ALL five legs done — tax (B10 cards+bars), snapshots (B12 strip), accounts/liabilities (B04 first pass R5+R29), routine (B13 strip+grid), budget (B09 strip+two-col); commits 32df8b4+ca24496+5f10731+e09a288 |
 | R18 | [x] | ev: self-describing export header (ts/scope/account legend) + ExportPanel with per-account type/rows/coverage context + filters; commit d476211; live legend verified |
 | R19 | [x] | ev: round-trip verified across 2 accounts from real exports (drop/create/move) — imports-roundtrip.test.ts 7/7 |
 | R20 | [x] | ev: engine statement-delay horizon (confirmed-through last month-end) + 3-month targets + waterfall payment allocation; 13 hand-computed tests; live tracker rows with on-track/behind |
@@ -79,8 +80,8 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | B09 BUDGET | 5 | COMPLETE (sweep 5) | R9 ✓ R17(budget) ✓; R-H4 harvested+implemented (58 bracket-link fixes + regression net) |
 | B10 TAX | 5 | COMPLETE (sweep 5) | R11 ✓ R17(tax) ✓; P2 dead-space → R29 polish |
 | B11 ALERTS | 5 | COMPLETE (sweep 5) | R12 ✓; lanes aligned to strip; badge truncation fixed |
-| B12 SNAPSHOTS | — | unvisited | R17 · sweep 5 |
-| B13 ROUTINE | — | unvisited | R17 · sweep 5 |
+| B12 SNAPSHOTS | 5 | COMPLETE (sweep 5) | R17(snapshots) ✓; summary strip |
+| B13 ROUTINE | 5 | COMPLETE (sweep 5) | R17(routine) ✓; strip + checklist grid |
 | B14 BILLS & PAYSLIPS | — | unvisited | R24 R25 · sweep 6 |
 | B15 DX & AGENT TOOLING | — | unvisited | R27 R28 · sweep 6 |
 | B16 CROSS-CUTTING | — | unvisited | harvested · every sweep gate |
@@ -237,6 +238,16 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
   - [x] U2 vision P1s fixed: strip↔lanes misalignment (strip 4→3 cells, accounts-affected → header); AlertBadge literal `[View]`/`[secondary]` brackets stripped + title span min-w-0 truncate for narrow lanes. ev: commit `eac0fab`; live doubleBrackets 0, overflowClusters 0
   - [x] U3 gate: check 0/0; alert tests 9/9; suite 1051/1051. ev: outputs above
 - R12 [x].
+
+### B12 SNAPSHOTS (Sweep 5 — COMPLETE)
+- research: list w/ trend arrows + staleness + pagination already solid (v2); no at-a-glance summary; create action buried in section header.
+- judgment: summary strip (Latest net worth + date · Latest change vs previous · Freshness w/ staleness dot + page n/N · Action cell w/ create link) — consistent with B09/B11 strip pattern.
+- [x] U1 strip added. ev: commit `ca24496`; live cells 4, "Latest net worth" present; check 0/0; suite 1051/1051. R17(snapshots leg) [x].
+
+### B13 ROUTINE (Sweep 5 — COMPLETE)
+- research: streak + checklist + history table; checklist was a flex-wrap text blob; no summary.
+- judgment: summary strip (Current streak · Longest · This month x/y or "not started" · Action = start/continue link); checklist becomes a bordered cell grid (md 2-col, lg 3-col).
+- [x] U1 strip + grid. ev: commit `ca24496`; live cells 4, checklist 6 cells in grid; R17(routine leg) [x].
 
 ## Sweep 1 — GATE PASSED (2026-10-29 20:20 GMT)
 - check 0/0 ✓ · full suite 988/988 ✓ · build green (adapter-node ✔) ✓
