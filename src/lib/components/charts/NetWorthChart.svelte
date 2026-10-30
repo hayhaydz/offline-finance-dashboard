@@ -33,7 +33,11 @@
 
 	const W = $derived(aspect === 'wide' ? 900 : 600);
 	const H = $derived(aspect === 'wide' ? 180 : 220);
-	const PAD = { l: 8, r: 8, t: 14, b: 20 };
+	// R31 P2 fix: wide mode needs more right padding so the last date label
+	// and endpoint tag don't crowd the panel border
+	const PAD = $derived(
+		aspect === 'wide' ? { l: 8, r: 18, t: 14, b: 20 } : { l: 8, r: 8, t: 14, b: 20 },
+	);
 	const MARKER = 4;
 
 	const values = $derived(points.map((p) => p.netWorthInCents));
@@ -136,12 +140,25 @@
 			<!-- y axis: min / max (prefixed — unlabelled £ values get misread as data points) -->
 			<text x="{PAD.l}" y="{PAD.t}" font-size="10" fill="var(--chart-ink-soft)">max {formatPence(yHi)}</text>
 			<text x="{PAD.l}" y="{H - PAD.b - 2}" font-size="10" fill="var(--chart-ink-soft)">min {formatPence(yLo)}</text>
-			<!-- x axis: first / mid / last dates -->
-			<text x="{x(0)}" y="{H - 6}" font-size="10" text-anchor="start" fill="var(--chart-ink-soft)">{dateLabel(points[0].date)}</text>
-			{#if points.length > 2}
-				<text x="{x(midIndex)}" y="{H - 6}" font-size="10" text-anchor="middle" fill="var(--chart-ink-soft)">{dateLabel(points[midIndex].date)}</text>
+			<!-- x axis: every date when they fit (≤6 points — R31 P2 fix:
+		     first/mid/last skipped intermediate months), else first/mid/last -->
+			{#if points.length <= 6}
+				{#each points as p, i}
+					<text
+						x="{Math.min(Math.max(x(i), PAD.l + 18), W - PAD.r - 18)}"
+						y="{H - 6}"
+						font-size="10"
+						text-anchor="middle"
+						fill="var(--chart-ink-soft)"
+					>{dateLabel(p.date)}</text>
+				{/each}
+			{:else}
+				<text x="{x(0)}" y="{H - 6}" font-size="10" text-anchor="start" fill="var(--chart-ink-soft)">{dateLabel(points[0].date)}</text>
+				{#if points.length > 2}
+					<text x="{x(midIndex)}" y="{H - 6}" font-size="10" text-anchor="middle" fill="var(--chart-ink-soft)">{dateLabel(points[midIndex].date)}</text>
+				{/if}
+				<text x="{x(points.length - 1)}" y="{H - 6}" font-size="10" text-anchor="end" fill="var(--chart-ink-soft)">{dateLabel(points[points.length - 1].date)}</text>
 			{/if}
-			<text x="{x(points.length - 1)}" y="{H - 6}" font-size="10" text-anchor="end" fill="var(--chart-ink-soft)">{dateLabel(points[points.length - 1].date)}</text>
 			<!-- last-point value tag: bold ink label at the latest marker
 			     (positioned above, or below when the point sits near the top) -->
 			<text
@@ -153,6 +170,12 @@
 				fill="var(--chart-ink)"
 			>{formatPence(last)}</text>
 		</svg>
+		<!-- R31 P2 fix: marker colour semantics legend -->
+		<p class="text-[10px] text-gray-600 px-1 pt-1">
+			<span class="text-green-700 font-bold">■</span> rising step ·
+			<span class="text-red-700 font-bold">■</span> falling step ·
+			<span class="font-bold">■</span> latest
+		</p>
 	{:else}
 		<div class="text-xs text-gray-500 p-2 text-center">[no snapshot data]</div>
 	{/if}
