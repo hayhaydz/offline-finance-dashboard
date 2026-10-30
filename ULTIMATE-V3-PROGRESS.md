@@ -27,6 +27,8 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-30 08:39:20 GMT | 2026-10-30 08:55:22 GMT | 0h 16m | Sweep 8 open: R31 audit+chart fixes, release doc, R29 account detail, double-bracket residue fixed |
 | 2026-10-30 08:55:22 GMT | 2026-10-30 09:01:56 GMT | 0h 07m | R29 year pages + goals-detail judgment; B04 closed/open verified; full-app re-audit 41/41 clean + skip-link fix + row-1 centering |
 | 2026-10-30 09:01:56 GMT | 2026-10-30 09:10:00 GMT | 0h 08m | Bracket class closed: hardened net + 10 more literal labels fixed; suite 1053/1053 |
+| 2026-10-30 09:10:00 GMT | 2026-10-30 09:11:35 GMT | 0h 02m | Interrupted-tail: print grid collapse committed (989a5ab); R-H10 semantic headings left uncommitted mid-unit — resumed 18:56 |
+| 2026-10-30 18:56:03 GMT | 2026-10-30 19:01:09 GMT | 0h 05m | Sweep 9 open: R-H10 semantic headings completed + R-H11 palette registry coverage (38 cmds) + sync net; 1053→1059 green; live+console clean |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -70,7 +72,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R29 | [x] (home) | ev: commit a9a0d92; home converted to 3/2 two-column rows, DOM-verified 936/622px, vision "conversion succeeds". App-wide R29 continues per-block (B03/B04 next) |
 | R30 | [x] | ev: commits 307e48d+9f458e0+e0a77b8; untitled bento grid live (trend col-span-2 1041px / allocation col-span-1 517px, panels aligned 269/269), wide-aspect 900×180 chart, [+] expand cycle verified, vision re-review clean of prior P1s |
 | R31 | [x] | AUDIT COMPLETE 2026-10-30: layerchart 2.8.1 confirmed the interactive layer (HistoryTrendChart pattern: client-only, mono-wrapped, series/tick config) and stays the designated library for new interactive axis charts. The 12 terminal charts stay hand-rolled BY DESIGN: print-safe static SSR SVG, deterministic, test-pinned, aesthetic-locked — migrating to a client-only measuring library would regress print+SSR for hover alone. Deferred chart P2s fixed in-unit (commit 720f033): all-point ticks ≤6 snapshots (no skipped months), marker-colour legend (■rise/■fall/■latest), wide-mode right padding. ev: 1052/1052 green incl. 17 chart tests |
-| R-H* | 5/5 done | R-H2 ascii toggle ✓ R-H3 findings grid+full-width ✓ R-H4 bracket sweep+net ✓ R-H5 tax 3-up ✓ R-H8 amber contrast ✓ (commits de46c48+1fe28c8+e09a288); R-H1 statement-backfill stays logged (speculative) |
+| R-H* | 6 done (5 required) | R-H2 ascii toggle ✓ R-H3 findings grid+full-width ✓ R-H4 bracket sweep+net ✓ R-H5 tax 3-up ✓ R-H8 amber contrast ✓ (commits de46c48+1fe28c8+e09a288); R-H1 statement-backfill stays logged (speculative); R-H10 semantic headings ✓ edbf515; R-H11 palette registry coverage ✓ ae8aab9 |
 
 ## Block registry
 | Block | Last sweep | BLOCK CYCLE stage | Notes |
@@ -336,6 +338,11 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 - Home re-audit vision: no [[ anywhere; 2 P1s REJECTED — `[%K]` = 4th documented ⌘-glyph misread (DOM: text ⌘K + one pseudo bracket); "chart ends 2026-02 vs as-of Oct" = dev-data snapshot gap (chart honestly plots snapshot rows; not a code defect).
 
 - R16/R-H4 CLASS CLOSED: hardened the bracket regression net (multiline owning-tag scanner + self-test) — it immediately found 10 MORE literal-bracket labels the old heuristic missed (snapshots delete, goals Move-to-End, confirm-archive, notes breadcrumbs, account delete, HelpOverlay Close, SubmitFeedback Dismiss, both wizard Download-Backup buttons — this explains the re-audit's residual [[ on /overview routes: Dismiss/HelpOverlay render app-wide). All 10 fixed; help-overlay test pin updated to CSS-bracket convention. ev: commit `0bf4d5a`; net 2/2 + suite 1053/1053. The audit doc's skip-link note revised: skip link was already clean (comment-only change flushed vite's stale SSR module cache); the true sources were these labels.
+
+### Sweep 9 (2026-10-30 evening block)
+- R-H10 semantic headings (interrupted unit completed): SectionHeader div→h2 (m-0 text-sm — Tailwind preflight + body text-sm leading-tight = visually identical; verified safe nesting in all 5 consumers, none inside tables), NetWorthDisplay NET WORTH span→h1 (home/goals/accounts each gain exactly one h1 — none had one). ev: live home DOM `["H1:NET WORTH","H2:INTEREST View Breakdown"]`; suite 1053/1053 pre-R-H11; commit `edbf515`
+- R-H11 palette registry coverage: ⌘K was v2-era (19 Navigate, no v3 routes). Added REPORT_MIRROR (7 slugs+titles, duplicated from server registry w/ anti-rot sync test) + REPORT_COMMANDS, TOOL_COMMANDS (single-source import from client-safe tool-registry), Navigate += Bills + Data Management. ev: live palette sections `{Jump:2, Navigate:21, Reports:7, Tools:6, Action:2}`; "stooz" search hits credit-strategy report + stooze calculator; palette click → /overview/reports/credit-strategy 200; console 0 errors; commit `ae8aab9`; sync net caught TWO real title drifts on first run (Spending Profile—Where the Money Goes; Income vs Deposit Evidence) — mirror corrected, 6/6 green
+- Full suite 1059/1059 (147 files) after both units.
 
 ## Notes for next iteration
 - **STATE: R1–R28 ALL [x] · 5/5 R-H implemented · 8 sweeps (0–7) done · check 0/0 · 1052/1052 · build green.** Remaining for Definition-of-v3: (a) ledger ≥12h genuine work — currently ~3h (CORRECT, date-anchored rows only) — the gate CANNOT be met yet, so NO stop file; (b) final full-app audit finding zero open P0/P1 (tonight's surfaces are clean; re-audit everything fresh next blocks); (c) docs/dev/ultimate-3.0-release.md changelog+runbook (final-gate item).
