@@ -470,7 +470,7 @@
 													class="bracket-link text-xs text-red-700"
 													onclick={() => { pendingDelete = transaction; }}
 												>
-													
+													Delete
 												</button>
 											</form>
 										{/if}
