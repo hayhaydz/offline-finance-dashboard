@@ -9,6 +9,7 @@ import {
 	interestRates,
 } from "$lib/db/schema";
 import { getCurrentBalanceForAccount } from "$lib/server/derivedBalances";
+import { calculatePayoffProjection } from "$lib/server/debtMetrics";
 import { getDebtGoalProgress, syncMilestones } from "$lib/server/goals";
 import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
 import { getAuthUser, requireAuth } from "$lib/server/utils/auth-guard";
@@ -134,42 +135,26 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		minimumPaymentInCents = goal.linkedAccount.minimumPaymentFlat;
 	}
 
-	// Calculate interest cost scenarios
+	// Calculate interest cost scenarios — via the shared payoff engine
+	// (month-by-month: the final partial payment is charged exactly; the
+	// old ceil form could invert "faster costs less", sweep-9 vision find)
 	let interestIfMinOnly: number | null = null;
 	let interestIfOnPace: number | null = null;
 
 	if (aprBasisPoints !== null && aprBasisPoints > 0) {
-		// Min-only projection
 		if (minimumPaymentInCents > 0) {
-			const monthlyRate = aprBasisPoints / 10000 / 12;
-			const balance = progress.remainingInCents;
-			if (minimumPaymentInCents > balance * monthlyRate) {
-				const num = -Math.log(
-					1 - (monthlyRate * balance) / minimumPaymentInCents,
-				);
-				const den = Math.log(1 + monthlyRate);
-				const months = Math.ceil(num / den);
-				interestIfMinOnly = Math.max(
-					0,
-					minimumPaymentInCents * months - balance,
-				);
-			}
+			interestIfMinOnly = calculatePayoffProjection({
+				balanceInCents: progress.remainingInCents,
+				aprBasisPoints,
+				monthlyPaymentInCents: minimumPaymentInCents,
+			}).totalInterestInCents;
 		}
-
-		// On-pace projection (using avg monthly payment)
 		if (avgMonthlyPayment > 0 && progress.remainingInCents > 0) {
-			const monthlyRate = aprBasisPoints / 10000 / 12;
-			if (avgMonthlyPayment > progress.remainingInCents * monthlyRate) {
-				const num = -Math.log(
-					1 - (monthlyRate * progress.remainingInCents) / avgMonthlyPayment,
-				);
-				const den = Math.log(1 + monthlyRate);
-				const months = Math.ceil(num / den);
-				interestIfOnPace = Math.max(
-					0,
-					avgMonthlyPayment * months - progress.remainingInCents,
-				);
-			}
+			interestIfOnPace = calculatePayoffProjection({
+				balanceInCents: progress.remainingInCents,
+				aprBasisPoints,
+				monthlyPaymentInCents: avgMonthlyPayment,
+			}).totalInterestInCents;
 		}
 	}
 

@@ -65,16 +65,22 @@ export function calculatePayoffProjection(params: {
 		};
 	}
 
-	// Amortization formula: N = -ln(1 - (r * P) / A) / ln(1 + r)
-	const numerator = -Math.log(
-		1 - (monthlyRate * absBalance) / monthlyPaymentInCents,
-	);
-	const denominator = Math.log(1 + monthlyRate);
-	const months = Math.ceil(numerator / denominator);
+	// Month-by-month simulation (sweep 9, vision-caught ceil bug): the old
+	// `payment × ceil(months) − balance` overstated interest whenever the
+	// final payment was partial — a large payment rounded UP a nearly-paid
+	// balance by a whole payment, inverting the "faster costs less" truth.
+	let balance = absBalance;
+	let totalInterest = 0;
+	let months = 0;
+	while (balance > 0 && months < 1_200) {
+		const interest = balance * monthlyRate;
+		totalInterest += interest;
+		const pay = Math.min(monthlyPaymentInCents, balance + interest);
+		balance = balance + interest - pay;
+		months += 1;
+	}
 
-	const totalPaidInCents = monthlyPaymentInCents * months;
-	const totalInterestInCents = Math.max(0, totalPaidInCents - absBalance);
-
+	const totalInterestInCents = Math.round(totalInterest);
 	const projectedPayoffDate = new Date(Date.now() + months * MS_PER_MONTH);
 
 	return { months, projectedPayoffDate, totalInterestInCents };

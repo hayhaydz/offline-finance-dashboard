@@ -100,14 +100,20 @@ export function simulatePayoff(params: {
 		return { months: null, totalInterestInCents: null };
 	}
 
-	const months = Math.ceil(
-		-Math.log(1 - (monthlyRate * absBalance) / monthlyPaymentInCents) /
-			Math.log(1 + monthlyRate),
-	);
-	return {
-		months,
-		totalInterestInCents: Math.max(0, monthlyPaymentInCents * months - absBalance),
-	};
+	// Month-by-month simulation (mirrors debtMetrics; sweep 9): the final
+	// partial payment is charged exactly — no ceil-of-whole-payment
+	// overstatement (the old form could invert "faster costs less").
+	let balance = absBalance;
+	let totalInterest = 0;
+	let months = 0;
+	while (balance > 0 && months < 1_200) {
+		const interest = balance * monthlyRate;
+		totalInterest += interest;
+		const pay = Math.min(monthlyPaymentInCents, balance + interest);
+		balance = balance + interest - pay;
+		months += 1;
+	}
+	return { months, totalInterestInCents: Math.round(totalInterest) };
 }
 
 export interface CompoundPoint {

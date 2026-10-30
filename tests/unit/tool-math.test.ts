@@ -117,17 +117,38 @@ describe("simulatePayoff — parity with the server engine", () => {
 		});
 	}
 
-	it("hand-check: £2,000 @ 18.9% paying £100 → 25 months, £500 interest", () => {
+	it("hand-check: £2,000 @ 18.9% paying £100 → 25 months, £421.13 interest", () => {
 		// monthly r = 0.01575; N = -ln(1 − 0.01575×200000/10000)/ln(1.01575)
-		//           = -ln(0.685)/0.0156268 = 0.378336/0.0156268 = 24.21 → 25 months
-		// interest = 25 × £100 − £2,000 = £500
+		//           = 24.21 months → 24 full £100 payments + a £21.13 partial
+		// exact simulation interest = £421.13 (the old ceil form charged the
+		// partial as a whole payment: 25×£100 − £2,000 = £500 — £78.87 of
+		// phantom interest; sweep-9 fix)
 		const out = simulatePayoff({
 			balanceInCents: 200_000,
 			aprBasisPoints: 1890,
 			monthlyPaymentInCents: 10_000,
 		});
 		expect(out.months).toBe(25);
-		expect(out.totalInterestInCents).toBe(50_000);
+		expect(out.totalInterestInCents).toBe(42_113);
+	});
+
+	it("faster payoff never costs more: £318.68 vs £25/mo on £450 @ 21.9%", () => {
+		// the inversion case that exposed the ceil bug (debt detail page):
+		// min-only £25/mo vs on-pace £318.68/mo on £450 remaining
+		const minOnly = simulatePayoff({
+			balanceInCents: 45_000,
+			aprBasisPoints: 2_190,
+			monthlyPaymentInCents: 2_500,
+		});
+		const onPace = simulatePayoff({
+			balanceInCents: 45_000,
+			aprBasisPoints: 2_190,
+			monthlyPaymentInCents: 31_868,
+		});
+		expect(minOnly.totalInterestInCents!).toBeGreaterThan(0);
+		expect(onPace.months!).toBeLessThan(minOnly.months!);
+		// the invariant the old form broke:
+		expect(onPace.totalInterestInCents!).toBeLessThan(minOnly.totalInterestInCents!);
 	});
 
 	it("overpayment shortens the payoff: +£50/mo on the hand-check case", () => {
