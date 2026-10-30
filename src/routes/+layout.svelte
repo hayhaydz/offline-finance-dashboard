@@ -6,6 +6,7 @@
 	import { sessionTimer } from '$lib/utils/session-timer.svelte';
 	import { page } from '$app/state';
 	import { afterNavigate } from '$app/navigation';
+	import { documentTitle } from '$lib/utils/page-title';
 	import type { Snippet } from 'svelte';
 	import type { LayoutData } from './$types';
 
@@ -50,6 +51,11 @@
 		scrollContainer?.scrollTo({ top: 0 });
 	});
 </script>
+
+<!-- v3 R-H13: per-page document titles (lighthouse document-title audit) -->
+<svelte:head>
+	<title>{documentTitle(page.url.pathname)}</title>
+</svelte:head>
 
 <div class="app-shell border border-black max-w-none mx-0 w-full h-[calc(100vh-1rem)] flex flex-col overflow-hidden">
 	<!-- skip link: first tab stop, visible only on keyboard focus -->

@@ -149,7 +149,7 @@
 					>
 				</div>
 				<label class="flex items-center gap-2">
-					<input type="file" accept=".csv" onchange={handleFile} class="text-xs" />
+					<input type="file" accept=".csv" onchange={handleFile} class="text-xs" aria-label="Upload history CSV file" />
 				</label>
 				{#if fileName}
 					<p class="mt-1">

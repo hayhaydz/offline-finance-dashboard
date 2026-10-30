@@ -164,7 +164,7 @@
 		<form method="POST" action="?/bulk-analyze" use:enhance={enhanceHandler}>
 			<input type="hidden" name="csvText" value={csvText} />
 			<div class="border border-black bg-gray-50 p-2 mb-2">
-				<input type="file" accept=".csv" onchange={handleFile} class="text-xs" />
+				<input type="file" accept=".csv" onchange={handleFile} class="text-xs" aria-label="Upload bank CSV file" />
 				{#if fileName}
 					<p class="mt-1">
 						Selected: <span class="font-mono">{fileName}</span>

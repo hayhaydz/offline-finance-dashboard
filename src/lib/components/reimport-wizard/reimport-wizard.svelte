@@ -188,6 +188,7 @@
 						accept=".csv"
 						onchange={handleFile}
 						class="text-xs"
+						aria-label="Upload transactions CSV file"
 					/>
 				</label>
 				{#if fileName}
