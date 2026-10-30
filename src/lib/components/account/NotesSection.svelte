@@ -36,7 +36,7 @@
 					class="bracket-link text-xs"
 					onclick={() => addNoteOpen = !addNoteOpen}
 				>
-					{addNoteOpen ? '' : ''}
+					{addNoteOpen ? 'Close' : 'Add Note'}
 				</button>
 			{/if}
 		</div>

@@ -38,6 +38,37 @@ function scan(file: string): string[] {
 			}
 		}
 	}
+
+	// Form 3 (sweep 9): template-literal labels inside bracket-link element
+	// bodies — e.g. `[Hide ${n} closed]` in a ternary (the accounts closed-
+	// toggle relapse). Window: 10 lines after a bracket-link tag open.
+	// Requires a space inside the brackets so glyph codes ([+], [-], [!!])
+	// and pure placeholders stay legal; comment lines are skipped.
+	const lines = content.split("\n");
+	for (let i = 0; i < lines.length; i++) {
+		if (!/class="[^"]*bracket-link/.test(lines[i])) continue;
+		const window = lines.slice(i + 1, i + 11);
+		for (const w of window) {
+			const trimmed = w.trim();
+			if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) continue;
+			for (const m of trimmed.matchAll(/`(\[[^`\]]{0,80}\])`/g)) {
+				if (!m[1].includes(" ")) continue; // glyph codes stay legal
+				offenders.push(`template-literal label: ${m[1]}`);
+			}
+		}
+	}
+	// Form 4 (sweep 9): bracket-link elements whose label expression is
+	// ALWAYS empty — `{cond ? '' : ''}` renders an unnamed control (the
+	// NotesSection add-note relapse; axe button-name failure).
+	for (let i = 0; i < lines.length; i++) {
+		if (!/class="[^"]*bracket-link/.test(lines[i])) continue;
+		const window = lines.slice(i + 1, i + 8);
+		for (const w of window) {
+			if (/\?\s*''\s*:\s*''/.test(w)) {
+				offenders.push(`always-empty label: ${w.trim().slice(0, 60)}`);
+			}
+		}
+	}
 	return offenders.map((o) => `${path.relative(".", file)}: ${o}`);
 }
 
@@ -71,6 +102,32 @@ describe("bracket-link text convention (R-H4, hardened)", () => {
 				'<button class="bracket-link text-xs">[Delete]</button>',
 			);
 			expect(scan(tmp).length).toBeGreaterThan(0);
+		} finally {
+			fs.rmSync(tmp, { force: true });
+		}
+	});
+
+	it("self-test: template-literal ternary labels are flagged (Form 3)", () => {
+		const tmp = path.join(
+			path.resolve("tests/integration"),
+			".bracket-self-test.svelte",
+		);
+		try {
+			fs.writeFileSync(
+				tmp,
+				[
+					'<button type="button" class="bracket-link text-xs"',
+					"	onclick={() => toggle()}>",
+					"{open",
+					"	? `[Hide ${n} closed]`",
+					"	: `Show ${n} closed`}",
+					"</button>",
+				].join("\n"),
+			);
+			const found = scan(tmp);
+			expect(found.join("\n")).toContain("template-literal label: [Hide ${n} closed]");
+			// the bracket-free branch must NOT be flagged
+			expect(found.join("\n")).not.toContain("Show ${n} closed`}");
 		} finally {
 			fs.rmSync(tmp, { force: true });
 		}

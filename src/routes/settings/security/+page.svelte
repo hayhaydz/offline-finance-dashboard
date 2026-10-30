@@ -481,7 +481,7 @@
 		ceremony is required to continue.
 	</p>
 	<form method="POST" action="?/saveInactivityTimeout" use:enhance class="flex items-center gap-2">
-		<select name="inactivityTimeout" bind:value={inactivityTimeout} class="border border-black p-1 bg-white">
+		<select name="inactivityTimeout" bind:value={inactivityTimeout} aria-label="Seal after inactivity timeout" class="border border-black p-1 bg-white">
 			<option value={1}>1 minute</option>
 			<option value={5}>5 minutes</option>
 			<option value={10}>10 minutes</option>

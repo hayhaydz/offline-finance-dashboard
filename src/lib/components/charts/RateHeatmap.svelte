@@ -61,17 +61,17 @@
 			<table class="text-xs border-collapse">
 				<thead>
 					<tr>
-						<th class="text-left pr-2 font-bold"></th>
+						<th class="text-left pr-2 font-bold" scope="col"><span class="sr-only">Account</span></th>
 						{#each months as m (m.toISOString())}
-							<th class="px-1 font-normal text-gray-500">{monthLabel(m)}</th>
+							<th class="px-1 font-normal text-gray-500" scope="col">{monthLabel(m)}</th>
 						{/each}
 					</tr>
 				</thead>
 				<tbody>
 					{#each cells as row (row.name)}
 						<tr>
-							<td class="pr-2 whitespace-nowrap truncate max-w-36" title={row.name}
-								>{row.name}</td
+							<th class="pr-2 whitespace-nowrap truncate max-w-36 font-normal text-left" scope="row" title={row.name}
+								>{row.name}</th
 							>
 							{#each row.values as v, i (i)}
 								<td class="p-0">

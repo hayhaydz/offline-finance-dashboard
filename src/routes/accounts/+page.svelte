@@ -415,10 +415,10 @@
 				{:else}
 				{#each groupedSections as section (section.type)}
 					<tr class="border-b border-black">
-						<td colspan="9" class="pl-3 py-1 bg-gray-100 font-bold text-xs uppercase">
+						<th colspan="9" scope="colgroup" class="pl-3 py-1 bg-gray-100 font-bold text-xs uppercase text-left">
 							{formatAccountType(section.type)}
 							<span class="font-normal text-gray-600"> ({section.open.length + section.closed.length})</span>
-						</td>
+						</th>
 					</tr>
 					{#each section.open as account (account.id)}
 						{@render accountRow(account)}
@@ -432,8 +432,8 @@
 									onclick={() => toggleClosed(section.type)}
 								>
 									{showClosed(section.type)
-										? `[Hide ${section.closed.length} closed]`
-										: `[Show ${section.closed.length} closed]`}
+										? `Hide ${section.closed.length} closed`
+										: `Show ${section.closed.length} closed`}
 								</button>
 							</td>
 						</tr>

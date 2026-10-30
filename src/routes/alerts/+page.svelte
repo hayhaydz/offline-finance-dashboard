@@ -85,7 +85,7 @@
 
 			<!-- INFORMATION lane -->
 			<div class="{data.infoAlerts.length === 0 ? 'hidden lg:block' : ''} border-t lg:border-t-0 border-black">
-				<div class="border-b border-black px-2 py-1 bg-gray-100 text-xs font-bold font-mono text-zinc-500">
+				<div class="border-b border-black px-2 py-1 bg-gray-100 text-xs font-bold font-mono text-zinc-600">
 					[i] INFORMATION ({data.infoAlerts.length})
 				</div>
 				{#each infoGroups as group (group.title)}
@@ -102,7 +102,7 @@
 	{#if data.acknowledged.length > 0}
 		<button
 			type="button"
-			class="w-full border-b border-black px-2 py-1 bg-gray-50 text-xs font-bold font-mono text-zinc-400 flex justify-between items-center cursor-pointer"
+			class="w-full border-b border-black px-2 py-1 bg-gray-50 text-xs font-bold font-mono text-zinc-600 flex justify-between items-center cursor-pointer"
 			onclick={() => (showAcked = !showAcked)}
 		>
 			<span>[x] ACKNOWLEDGED ({data.acknowledged.length}) — hidden from all pages</span>

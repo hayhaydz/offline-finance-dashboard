@@ -281,14 +281,14 @@ async function placeAtEnd() {
 <div class="font-bold flex justify-between items-center bg-gray-100 border-b border-black p-2">
 	<div class="flex items-center gap-2">
 		{#if staleness}
-			<span class="text-xs text-gray-500">{staleness.label}</span>
+			<span class="text-xs text-gray-600">{staleness.label}</span>
 		{/if}
 		<div class="flex gap-1">
 			<button
 				type="button"
 				onclick={() => setFilter('all')}
 				class="bracket-link text-xs font-bold"
-				class:text-green-700={filter === 'all'}
+				class:text-green-800={filter === 'all'}
 			>
 				All
 			</button>
@@ -296,7 +296,7 @@ async function placeAtEnd() {
 				type="button"
 				onclick={() => setFilter('savings')}
 				class="bracket-link text-xs font-bold"
-				class:text-green-700={filter === 'savings'}
+				class:text-green-800={filter === 'savings'}
 			>
 				Savings
 			</button>
@@ -304,7 +304,7 @@ async function placeAtEnd() {
 				type="button"
 				onclick={() => setFilter('debt')}
 				class="bracket-link text-xs font-bold"
-				class:text-green-700={filter === 'debt'}
+				class:text-green-800={filter === 'debt'}
 			>
 				Debt
 			</button>

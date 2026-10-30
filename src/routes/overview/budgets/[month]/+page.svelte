@@ -328,7 +328,7 @@
 	{#if data.budget}
 		<div class="border-b border-black px-2 py-1 bg-gray-50 flex flex-wrap items-center gap-x-4 gap-y-1">
 			<span class="text-[10px] uppercase font-bold text-gray-600">Amendment options</span>
-			<span class="text-[10px] text-gray-400">— attach to your next config edit (target / filters) below</span>
+			<span class="text-[10px] text-gray-600">— attach to your next config edit (target / filters) below</span>
 			<label class="flex items-center gap-1 text-xs text-gray-600">
 				<span>Note</span>
 				<input

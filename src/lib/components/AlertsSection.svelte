@@ -41,14 +41,14 @@
 					<span class="text-amber-700 text-xs">[!{amberCount}]</span>
 				{/if}
 			</span>
-			<span class="text-xs text-zinc-400">{open ? '[-]' : '[+]'}</span>
+			<span class="text-xs text-zinc-600">{open ? '[-]' : '[+]'}</span>
 		</button>
 		{#if open}
 			{#each visible as group (group.title)}
 				<AlertGroup {group} />
 			{/each}
 			{#if truncated > 0 && viewAllHref}
-				<div class="px-2 py-1 text-xs text-zinc-500 flex justify-between border-b border-black">
+				<div class="px-2 py-1 text-xs text-zinc-600 flex justify-between border-b border-black">
 					<span>+{truncated} more alert type{truncated > 1 ? 's' : ''}</span>
 					<a href={viewAllHref} class="bracket-link">View All</a>
 				</div>

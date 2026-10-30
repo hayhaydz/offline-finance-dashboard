@@ -23,7 +23,7 @@
 	);
 
 	const severityBg     = $derived(alert.severity === 'red' ? 'bg-red-50' : alert.severity === 'amber' ? 'bg-amber-50' : 'bg-white');
-	const severityText   = $derived(alert.severity === 'red' ? 'text-red-700' : alert.severity === 'amber' ? 'text-amber-700' : 'text-zinc-500');
+	const severityText   = $derived(alert.severity === 'red' ? 'text-red-700' : alert.severity === 'amber' ? 'text-amber-700' : 'text-zinc-600');
 	const severityBorder = $derived(alert.severity === 'red' ? 'border-red-200' : alert.severity === 'amber' ? 'border-amber-200' : 'border-black/10');
 	const prefix         = $derived(alert.severity === 'red' ? '[!!]' : alert.severity === 'amber' ? '[!]' : '[i]');
 
@@ -72,16 +72,16 @@
 				{alert.title}
 			</span>
 			{#if typeLabel}
-				<span class="text-xs border border-current px-1 shrink-0 {alert.accountCategory === 'liability' ? 'text-red-600 border-red-300' : 'text-zinc-500 border-zinc-300'}">{typeLabel}</span>
+				<span class="text-xs border border-current px-1 shrink-0 {alert.accountCategory === 'liability' ? 'text-red-700 border-red-300' : 'text-zinc-600 border-zinc-300'}">{typeLabel}</span>
 			{/if}
 			{#if alert.accountName}
-				<span class="text-zinc-400 text-xs truncate">— {alert.accountName}</span>
+				<span class="text-zinc-600 text-xs truncate">— {alert.accountName}</span>
 			{/if}
 			{#if isAcked}
-				<span class="text-[10px] text-zinc-400 border border-zinc-300 px-1 shrink-0">ACKED</span>
+				<span class="text-[10px] text-zinc-600 border border-zinc-300 px-1 shrink-0">ACKED</span>
 			{/if}
 		</div>
-		<span class="text-xs text-zinc-400 shrink-0 ml-2">{expanded ? '[-]' : '[+]'}</span>
+		<span class="text-xs text-zinc-600 shrink-0 ml-2">{expanded ? '[-]' : '[+]'}</span>
 	</button>
 
 	<!-- Expanded detail row -->
@@ -90,7 +90,7 @@
 			<div class="min-w-0">
 				<span class="text-zinc-600 text-xs leading-relaxed">{alert.message}</span>
 				{#if ackedUntilLabel}
-					<div class="text-[10px] text-zinc-400 mt-0.5">{ackedUntilLabel}</div>
+					<div class="text-[10px] text-zinc-600 mt-0.5">{ackedUntilLabel}</div>
 				{/if}
 			</div>
 			<div class="flex gap-2 shrink-0">
