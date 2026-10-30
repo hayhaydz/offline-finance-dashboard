@@ -6,6 +6,7 @@ import {
 	accountTransactions,
 	expensesHistory,
 	incomeHistory,
+	snapshots,
 } from "$lib/db/schema";
 import {
 	cardSplitSummary,
@@ -110,6 +111,18 @@ const isoToday = () => new Date().toISOString().slice(0, 10);
 function pct(part: number, whole: number): string {
 	if (whole <= 0) return "—";
 	return `${((part / whole) * 100).toFixed(1)}%`;
+}
+
+/**
+ * Savings-rate flag by the REPORTED thresholds (≥20% green / 0–20% amber /
+ * negative red). Rank (best/worst) must not override the scale — a 59.6%
+ * "worst" month is still a green month (vision P1, sweep 9). Exported for
+ * the regression test that pins this.
+ */
+export function savingsRateFlag(rate: number): "green" | "amber" | "red" {
+	if (rate >= 0.2) return "green";
+	if (rate >= 0) return "amber";
+	return "red";
 }
 
 // ---------------------------------------------------------------------------
@@ -261,12 +274,36 @@ async function buildSavingsRate(userId: number): Promise<ReportDoc> {
 	const best = rates.reduce((a, b) => (b.rate > a.rate ? b : a));
 	const worst = rates.reduce((a, b) => (b.rate < a.rate ? b : a));
 	const totalSaved = rates.reduce((sum, r) => sum + r.income - r.expenses, 0);
+	const meanMonthlyExpenses = rates.reduce((sum, r) => sum + r.expenses, 0) / rates.length;
+
+	// Rate flags use the REPORTED thresholds (≥20% green / 0–20% amber /
+	// negative red) — rank (best/worst) must not override the scale a
+	// 59.6% "worst" month is still a green month (vision P1, sweep 9).
+	// savingsRateFlag is module-level + exported for the regression test.
+
+	// Runway: liquid (current-account) balances from the latest snapshot ÷
+	// mean declared monthly expenses — the number the title promises.
+	const latestSnapshot = await db
+		.select({
+			snapshotDate: snapshots.snapshotDate,
+			accountsBreakdown: snapshots.accountsBreakdown,
+		})
+		.from(snapshots)
+		.where(withUserFilter(userId, snapshots))
+		.orderBy(desc(snapshots.snapshotDate))
+		.limit(1);
+	const liquidCents =
+		(latestSnapshot[0]?.accountsBreakdown?.accounts ?? [])
+			.filter((a) => a.type === "current" && a.includedInTotal)
+			.reduce((sum, a) => sum + a.balanceInCents, 0) || 0;
+	const runwayMonths =
+		meanMonthlyExpenses > 0 ? liquidCents / meanMonthlyExpenses : null;
 
 	return {
 		slug: "savings-rate",
 		title: "Savings Rate & Runway",
 		date,
-		abstract: `Across ${rates.length} declared month${rates.length !== 1 ? "s" : ""}, the mean savings rate is ${pct(avgRate * 100, 100) === "—" ? "—" : `${(avgRate * 100).toFixed(1)}%`}, with a best of ${(best.rate * 100).toFixed(1)}% (${best.month}) and a worst of ${(worst.rate * 100).toFixed(1)}% (${worst.month}). Total declared surplus: ${formatCurrency(totalSaved)}.`,
+		abstract: `Across ${rates.length} declared month${rates.length !== 1 ? "s" : ""}, the mean savings rate is ${pct(avgRate * 100, 100) === "—" ? "—" : `${(avgRate * 100).toFixed(1)}%`}, with a best of ${(best.rate * 100).toFixed(1)}% (${best.month}) and a worst of ${(worst.rate * 100).toFixed(1)}% (${worst.month}). Total declared surplus: ${formatCurrency(totalSaved)}${runwayMonths === null ? "" : `. Runway at declared spend: ${runwayMonths.toFixed(1)} months.`}`,
 		method: [
 			`Data: income_history + expenses_history, ${rates.length} paired months of the last 12`,
 			"savings rate = (gross income − declared expenses) / gross income, per month",
@@ -281,20 +318,55 @@ async function buildSavingsRate(userId: number): Promise<ReportDoc> {
 					.map((r) => ({
 						label: r.month,
 						value: `${(r.rate * 100).toFixed(1)}% · ${formatCurrency(r.income - r.expenses)} saved`,
-						flag: r.rate >= 0.2 ? ("green" as const) : r.rate >= 0 ? ("amber" as const) : ("red" as const),
+						flag: savingsRateFlag(r.rate),
 					})),
 			},
 			{
 				heading: "Extremes",
 				rows: [
-					{ label: "mean rate", value: `${(avgRate * 100).toFixed(1)}%` },
-					{ label: `best ${best.month}`, value: `${(best.rate * 100).toFixed(1)}%`, flag: "green" },
-					{ label: `worst ${worst.month}`, value: `${(worst.rate * 100).toFixed(1)}%`, flag: "red" },
+					{ label: "mean rate", value: `${(avgRate * 100).toFixed(1)}%`, flag: savingsRateFlag(avgRate) },
+					{ label: `best ${best.month}`, value: `${(best.rate * 100).toFixed(1)}%`, flag: savingsRateFlag(best.rate) },
+					{ label: `worst ${worst.month}`, value: `${(worst.rate * 100).toFixed(1)}%`, flag: savingsRateFlag(worst.rate) },
 					{ label: "total surplus (declared)", value: formatCurrency(totalSaved) },
 				],
 				notes: [
 					"A negative month means declared expenses exceeded declared income — savings were drawn down.",
-					"Rate thresholds: ≥20% green, 0–20% amber, negative red.",
+					"Rate thresholds: ≥20% green, 0–20% amber, negative red — the same scale colours best/worst.",
+				],
+			},
+			{
+				heading: "Runway",
+				rows: [
+					{
+						label: "liquid balances (current accounts)",
+						value: latestSnapshot[0]
+							? `${formatCurrency(liquidCents)} · snapshot ${latestSnapshot[0].snapshotDate}`
+							: "no snapshot yet",
+					},
+					{
+						label: "mean declared monthly expenses",
+						value: formatCurrency(meanMonthlyExpenses),
+					},
+					{
+						label: "runway",
+						value:
+							runwayMonths === null
+								? "— (no declared expenses)"
+								: `${runwayMonths.toFixed(1)} months of cover`,
+						flag:
+							runwayMonths === null
+								? undefined
+								: runwayMonths >= 6
+									? ("green" as const)
+									: runwayMonths >= 3
+										? ("amber" as const)
+										: ("red" as const),
+					},
+				],
+				notes: [
+					"Runway = current-account balances from the latest snapshot ÷ mean declared monthly expenses.",
+					"Declared expenses only — debt payments tracked as transactions are not included.",
+					"Thresholds: ≥6 months green, 3–6 amber, <3 red.",
 				],
 			},
 		],
