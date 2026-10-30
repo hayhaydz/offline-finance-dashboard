@@ -59,7 +59,7 @@
                     <th class="pl-2 text-left">Tax Year</th>
                     <th class="text-right">ISA Interest</th>
                     <th class="text-right">Taxable Interest</th>
-                    <th class="text-left pl-4">Allowance Status</th>
+                    <th class="text-left pl-6">Allowance Status</th>
                 </tr>
             </thead>
             <tbody>
@@ -70,7 +70,7 @@
                         </td>
                         <td class="text-right py-2 text-sm tabular-nums text-green-700">{formatCurrency(year.isaInterest)}</td>
                         <td class="text-right py-2 text-sm tabular-nums text-green-700">{formatCurrency(year.nonIsaInterest)}</td>
-                        <td class="pl-4 py-2 text-sm">
+                        <td class="pl-6 py-2 text-sm">
                             {#if year.status.overAllowance}
                                 <span class="text-red-700 font-bold">Over by {formatCurrency(year.status.taxableAmount)}</span>
                                 <span class="text-xs text-gray-600">({formatCurrency(year.status.allowance)} allowance)</span>
