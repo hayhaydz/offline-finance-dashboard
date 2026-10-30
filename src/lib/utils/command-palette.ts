@@ -74,7 +74,7 @@ export const PALETTE_COMMANDS: readonly PaletteCommand[] = [
 	{ id: "tools", label: "Tools", href: "/tools", keywords: "simulators what-if", section: "Navigate" },
 	{ id: "reports", label: "Reports", href: "/overview/reports", keywords: "charts trends analysis", section: "Navigate" },
 	{ id: "settings-general", label: "Settings — General", href: "/settings/general", keywords: "categories preferences", section: "Navigate" },
-	{ id: "settings-security", label: "Settings — Session & Security", href: "/settings/profile", keywords: "session logout devices", section: "Navigate" },
+	{ id: "settings-security", label: "Settings — Profile & Session", href: "/settings/profile", keywords: "session logout devices user info", section: "Navigate" },
 	{ id: "settings-data", label: "Settings — Data Management", href: "/settings/data", keywords: "import export csv reimport queue bulk history", section: "Navigate" },
 ];
 

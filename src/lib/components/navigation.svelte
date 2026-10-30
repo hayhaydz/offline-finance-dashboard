@@ -82,7 +82,7 @@
       authRequired: true,
       children: [
         { href: '/settings/general', label: 'General' },
-        { href: '/settings/profile', label: 'Session & Security' },
+        { href: '/settings/profile', label: 'Profile & Session' },
         { href: '/settings/security', label: 'Security' },
         { href: '/settings/data', label: 'Data' }
       ]
@@ -158,7 +158,7 @@
         income: 'Income',
         settings: 'Settings',
         tools: 'Tools',
-        profile: 'Session & Security',
+        profile: 'Profile & Session',
         create: 'Create',
         isa: 'ISA',
         interest: 'Interest',
