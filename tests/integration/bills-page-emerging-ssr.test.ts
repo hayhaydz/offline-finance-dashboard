@@ -8,6 +8,14 @@
 import { describe, expect, it } from "vitest";
 import { render } from "svelte/server";
 import BillsPage from "../../src/routes/overview/bills/+page.svelte";
+import type { UserDto } from "../../src/lib/server/utils/auth-guard";
+
+const user: UserDto = {
+	id: 1,
+	username: "admin",
+	createdAt: new Date("2026-01-01T00:00:00.000Z"),
+	inactivityTimeout: 10,
+};
 
 type BillRow = {
 	description: string;
@@ -30,6 +38,9 @@ const base = (over: Partial<{
 }> = {}) => ({
 	props: {
 		data: {
+			// layout data comes along for the ride in PageData
+			user,
+			environment: { mode: "development", isProduction: false, hasEncryption: false },
 			patterns: [] as BillRow[],
 			emerging: [] as EmergingRow[],
 			monthlyTotalPence: 0,
