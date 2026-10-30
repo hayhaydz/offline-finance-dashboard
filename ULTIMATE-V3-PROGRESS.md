@@ -83,7 +83,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R29 | [x] (home) | ev: commit a9a0d92; home converted to 3/2 two-column rows, DOM-verified 936/622px, vision "conversion succeeds". App-wide R29 continues per-block (B03/B04 next) |
 | R30 | [x] | ev: commits 307e48d+9f458e0+e0a77b8; untitled bento grid live (trend col-span-2 1041px / allocation col-span-1 517px, panels aligned 269/269), wide-aspect 900×180 chart, [+] expand cycle verified, vision re-review clean of prior P1s |
 | R31 | [x] | AUDIT COMPLETE 2026-10-30: layerchart 2.8.1 confirmed the interactive layer (HistoryTrendChart pattern: client-only, mono-wrapped, series/tick config) and stays the designated library for new interactive axis charts. The 12 terminal charts stay hand-rolled BY DESIGN: print-safe static SSR SVG, deterministic, test-pinned, aesthetic-locked — migrating to a client-only measuring library would regress print+SSR for hover alone. Deferred chart P2s fixed in-unit (commit 720f033): all-point ticks ≤6 snapshots (no skipped months), marker-colour legend (■rise/■fall/■latest), wide-mode right padding. ev: 1052/1052 green incl. 17 chart tests |
-| R-H* | 10 done (5 required) | R-H2 ✓ R-H3 ✓ R-H4 ✓ R-H5 ✓ R-H8 ✓; R-H10 headings ✓ edbf515; R-H11 palette ✓ ae8aab9; R-H12 report prev/next ✓ 3963794; R-H13 doc titles ✓ c76cd3c; R-H14 lighthouse a11y 100/27 routes ✓ 36ba9ba; R-H15 emerging-bills watchlist ✓ 7784e4b |
+| R-H* | 13 done (5 required) | R-H2 ✓ R-H3 ✓ R-H4 ✓ R-H5 ✓ R-H8 ✓; R-H10 headings ✓; R-H11 palette ✓; R-H12 report prev/next ✓; R-H13 doc titles ✓; R-H14 lighthouse a11y 100 all routes ✓; R-H15 emerging-bills watchlist ✓; R-H16 overpay-or-save tool ✓ a3b30ef; R-H17 rate-shop report ✓ fc520cb; R-H18 seasonality report ✓ a70c3b1; R-H1 CLOSED not-built (decision table) |
 
 ## Block registry
 | Block | Last sweep | BLOCK CYCLE stage | Notes |
@@ -103,7 +103,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | B13 ROUTINE | 5 | COMPLETE (sweep 5) | R17(routine) ✓; strip + checklist grid |
 | B14 BILLS & PAYSLIPS | 6 | COMPLETE (sweep 6) | R24 ✓ R25 ✓; bills derived-pattern page + income-vs-deposits report |
 | B15 DX & AGENT TOOLING | 6 | COMPLETE (sweep 6) | R27 ✓ R28 ✓; anonymiser verified; runbook §9 |
-| B16 CROSS-CUTTING | 7 | ACTIVE | harvest sweep 7 running: 5 R-H implemented ≥ gate; a11y pass done; next: fresh full-app vision audit + P2 triage |
+| B16 CROSS-CUTTING | 9 | ACTIVE | sweep 9 evening: 13 R-H total; a11y 100 all routes; 55/55 full-app audit clean; perf + security pass; flake investigated (correlates w/ first-run-after-CDP, self-heals) |
 
 ## Per-block research & judgments
 ### B01 SHELL & VIEWPORT (Sweep 1)
