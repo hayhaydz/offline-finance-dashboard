@@ -46,6 +46,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-30 21:49:50 GMT | 2026-10-30 21:53:17 GMT | 0h 04m | R-H19 transaction text search (live: "transfer"→1 match, clear restores); bracket net hardened for =>-in-attribute hole — immediately caught 4 hidden relapses ([Prev]/[Next]/[Reset All Sliders]/[{monthKey}]) all fixed; chip contrast zinc-500→700 |
 | 2026-10-30 21:53:17 GMT | 2026-10-30 21:54:51 GMT | 0h 02m | Full gate 1091/1091 + a11y 100 on search surface; alerts engines read (clean aggregation, typed checkers) |
 | 2026-10-30 21:54:51 GMT | 2026-10-30 22:03:53 GMT | 0h 09m | Vision round 8 (search PASS, debt invariant CONFIRMED by vision); deep-link chip regression ok; goal-add preview contrast; docs counts current; dev-login ok; history-csv read (rigorous); CONSOLIDATED a11y: 24/24 routes 100 |
+| 2026-10-30 22:03:53 GMT | 2026-10-30 22:10:04 GMT | 0h 06m | csv-format parser read (RFC-4180 correct); snapshot goals caption; hint spacing; gate: 1091/1091 + build green + 55/55 routes clean (0 console err, 0 text bugs) |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
