@@ -22,6 +22,7 @@ export const REPORT_MIRROR: readonly { slug: string; title: string }[] = [
 	{ slug: "spending-profile", title: "Spending Profile — Where the Money Goes" },
 	{ slug: "debt-horizon", title: "Debt Horizon" },
 	{ slug: "income-vs-deposits", title: "Income vs Deposit Evidence" },
+	{ slug: "rate-shop", title: "Rate Shop — Your Own Best Rates" },
 ];
 
 export interface PaletteCommand {

@@ -6,6 +6,7 @@ import {
 	accountTransactions,
 	expensesHistory,
 	incomeHistory,
+	interestRates,
 	snapshots,
 } from "$lib/db/schema";
 import {
@@ -796,6 +797,145 @@ async function buildIncomeVsDeposits(userId: number): Promise<ReportDoc> {
 }
 
 // ---------------------------------------------------------------------------
+// Report: rate-shop (R-H17) — deposits earning below your OWN best rate
+// ---------------------------------------------------------------------------
+
+async function buildRateShop(userId: number): Promise<ReportDoc> {
+	const date = isoToday();
+
+	// Open savings accounts (rates live on interest_rates; balances from
+	// the latest snapshot breakdown — the same point-in-time source the
+	// runway section uses).
+	const rows = await db
+		.select({
+			id: accounts.id,
+			name: accounts.name,
+			taxWrapper: accounts.taxWrapper,
+			liquidity: accounts.liquidity,
+			rateBps: interestRates.rate,
+			effectiveFrom: interestRates.effectiveFrom,
+		})
+		.from(accounts)
+		.leftJoin(
+			interestRates,
+			and(
+				eq(interestRates.accountId, accounts.id),
+				eq(
+					interestRates.effectiveFrom,
+					db
+						.select({ max: sql`max(${interestRates.effectiveFrom})` })
+						.from(interestRates)
+						.where(eq(interestRates.accountId, accounts.id)),
+				),
+			),
+		)
+		.where(
+			and(
+				withUserFilter(userId, accounts),
+				isNull(accounts.deletedAt),
+				isNull(accounts.closedAt),
+				eq(accounts.category, "asset"),
+				eq(accounts.type, "savings"),
+			),
+		);
+
+	const latestSnapshot = await db
+		.select({ accountsBreakdown: snapshots.accountsBreakdown })
+		.from(snapshots)
+		.where(withUserFilter(userId, snapshots))
+		.orderBy(desc(snapshots.snapshotDate))
+		.limit(1);
+	const balanceBySlug = new Map(
+		(latestSnapshot[0]?.accountsBreakdown?.accounts ?? []).map((a) => [a.accountSlug, a.balanceInCents]),
+	);
+	// name → balance (slug not selected above; names are unique enough for report prose)
+	const balanceByName = new Map(
+		(latestSnapshot[0]?.accountsBreakdown?.accounts ?? []).map((a) => [a.name, a.balanceInCents]),
+	);
+
+	const withData = rows
+		.map((r) => ({
+			name: r.name,
+			wrapper: r.taxWrapper === "isa" ? ("isa" as const) : ("taxable" as const),
+			rateBps: r.rateBps ?? 0,
+			liquidity: r.liquidity,
+			balanceInCents: balanceByName.get(r.name) ?? 0,
+		}))
+		.filter((r) => r.balanceInCents > 0);
+
+	const bestByWrapper = new Map<string, number>();
+	for (const r of withData) {
+		if (r.rateBps > (bestByWrapper.get(r.wrapper) ?? 0)) {
+			bestByWrapper.set(r.wrapper, r.rateBps);
+		}
+	}
+
+	if (withData.length === 0) {
+		return {
+			slug: "rate-shop",
+			title: "Rate Shop — Your Own Best Rates",
+			date,
+			abstract:
+				"No open savings accounts with a balance in the latest snapshot — nothing to shop.",
+			method: ["Data: open savings accounts × latest snapshot balances × current rates"],
+			findings: [{ heading: "Findings", rows: [{ label: "accounts", value: "0" }] }],
+		};
+	}
+
+	const lagging = withData.filter(
+		(r) => r.rateBps < (bestByWrapper.get(r.wrapper) ?? 0),
+	);
+	const leftOnTable = lagging.reduce(
+		(sum, r) =>
+			sum + Math.round((r.balanceInCents * ((bestByWrapper.get(r.wrapper) ?? 0) - r.rateBps)) / 10_000),
+		0,
+	);
+
+	return {
+		slug: "rate-shop",
+		title: "Rate Shop — Your Own Best Rates",
+		date,
+		abstract: lagging.length
+			? `${lagging.length} of ${withData.length} savings ${lagging.length === 1 ? "account holds" : "accounts hold"} deposits below your own best same-wrapper rate — moving them inside accounts you already hold would add ~${formatCurrency(leftOnTable)} a year.`
+			: `Every savings deposit already earns its wrapper's best recorded rate — ${withData.length} account${withData.length !== 1 ? "s" : ""} checked, nothing left on the table.`,
+		method: [
+			"Data: open savings accounts, current effective rate per account (latest interest_rates row), balances from the latest snapshot breakdown",
+			"best rate = the highest current rate among your own accounts within the same tax treatment (ISA vs taxable — money cannot switch wrappers for free)",
+			"left on the table = balance × (best − current rate), simple yearly figure, no compounding",
+		],
+		findings: [
+			{
+				heading: "Rates vs your best",
+				rows: withData
+					.slice()
+					.sort((a, b) => a.balanceInCents - b.balanceInCents)
+					.reverse()
+					.map((r) => {
+						const best = bestByWrapper.get(r.wrapper) ?? 0;
+						const gapBps = best - r.rateBps;
+						return {
+							label: `${r.name} (${r.wrapper})`,
+							value: `${(r.rateBps / 100).toFixed(2)}% vs best ${(best / 100).toFixed(2)}% · ${formatCurrency(r.balanceInCents)}`,
+							flag: gapBps > 25 ? ("red" as const) : gapBps > 0 ? ("amber" as const) : ("green" as const),
+						};
+					}),
+			},
+			{
+				heading: "Left on the table",
+				rows: [
+					{ label: "accounts below best", value: `${lagging.length} of ${withData.length}` },
+					{ label: "yearly interest forgone (approx)", value: formatCurrency(leftOnTable), flag: leftOnTable > 0 ? ("amber" as const) : ("green" as const) },
+				],
+				notes: [
+					"Fixed-term accounts cannot be switched mid-term — liquidity is shown per account; treat locked rows as 'at next renewal'.",
+					"Rates are the ones you recorded; the shop only compares against products you already hold (no market data).",
+				],
+			},
+		],
+	};
+}
+
+// ---------------------------------------------------------------------------
 // Registry
 // ---------------------------------------------------------------------------
 
@@ -841,6 +981,12 @@ export const REPORTS: ReportDefinition[] = [
 		title: "Income vs Deposit Evidence",
 		blurb: "Does the declared income actually land in the accounts? The derived payslip review.",
 		build: buildIncomeVsDeposits,
+	},
+	{
+		slug: "rate-shop",
+		title: "Rate Shop — Your Own Best Rates",
+		blurb: "Deposits earning below your own best same-wrapper rate, and what moving them adds.",
+		build: buildRateShop,
 	},
 ];
 
