@@ -53,7 +53,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R14 | [x] (B06) | ev: overhaul = unified DATA PIPELINE surface (export selection → history CSV → bulk bank import → reimport → jobs queue, one page, one engine) + ADR .docs/design/2026-10-29-2040-data-pipeline.md; no rewrite of v2's tested engine (100+ tests kept, 30+ added) |
 | R15 | [x] | ev: DECISION recorded (round-trip replace via import, NOT inline edit — Matrixify DROP/CREATE model) + imports-roundtrip.test.ts 7 tests pin cross-account DROP+CREATE/MOVE; in-file reimport hints shipped in every export header |
 | R16 | [x] | ev: DOM proof single-bracket `[⌘K]`/`[?]` (text + pseudo-elements); top bar de-crowded (right-clustered controls, gap-4); a11y names `[⌘K]` `[?]`; palette open/close live-verified |
-| R17 | [x] | ev: ALL five legs done — tax (B10 cards+bars), snapshots (B12 strip), accounts/liabilities (B04 first pass R5+R29), routine (B13 strip+grid), budget (B09 strip+two-col); commits 32df8b4+ca24496+5f10731+e09a288 |
+| R17 | [x] | ev: ALL five legs done — tax (B10 cards+bars), snapshots (B12 strip), accounts/liabilities (B04: R5+R29 pass + closed/open presentation verified live 2026-10-30: [Show 1 closed] per-type toggle, closed counts in summary, maturing row, strikethrough rows, ?closed=1 banner), routine (B13 strip+grid), budget (B09 strip+two-col); commits 32df8b4+ca24496+5f10731+e09a288 |
 | R18 | [x] | ev: self-describing export header (ts/scope/account legend) + ExportPanel with per-account type/rows/coverage context + filters; commit d476211; live legend verified |
 | R19 | [x] | ev: round-trip verified across 2 accounts from real exports (drop/create/move) — imports-roundtrip.test.ts 7/7 |
 | R20 | [x] | ev: engine statement-delay horizon (confirmed-through last month-end) + 3-month targets + waterfall payment allocation; 13 hand-computed tests; live tracker rows with on-track/behind |
@@ -326,6 +326,8 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 
 - R29 year pages: interest 2026-27 projection+integrity paired 3/2; ISA pacing+integrity paired 3/2 (integrity renders exactly once). ev: commit `35a7ed6`; live grids [936,622] both, console 0 err / 0 5xx
 - R29 goals detail JUDGMENT: no grid — allocation (savings) and linked-debt (debt) sections are mutually exclusive by goalType (never co-render), and the page is card+accordion shaped; forcing pairing adds nothing. R29 now dispositioned across ALL major surfaces: home, accounts list+detail, goals list, interest+ISA years, budgets, tax, reports, tools.
+
+- B04 closed/open R17 leg: verified live (no new build needed — already complete: per-type localStorage-persisted toggles, status filters, strikethrough+labels, summary counts, ?closed=1 banner). ev: CDP [Show 1 closed] toggle + summary row
 
 ## Notes for next iteration
 - **STATE: R1–R28 ALL [x] · 5/5 R-H implemented · 8 sweeps (0–7) done · check 0/0 · 1052/1052 · build green.** Remaining for Definition-of-v3: (a) ledger ≥12h genuine work — currently ~3h (CORRECT, date-anchored rows only) — the gate CANNOT be met yet, so NO stop file; (b) final full-app audit finding zero open P0/P1 (tonight's surfaces are clean; re-audit everything fresh next blocks); (c) docs/dev/ultimate-3.0-release.md changelog+runbook (final-gate item).
