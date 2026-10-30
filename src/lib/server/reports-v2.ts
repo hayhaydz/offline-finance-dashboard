@@ -939,6 +939,141 @@ async function buildRateShop(userId: number): Promise<ReportDoc> {
 }
 
 // ---------------------------------------------------------------------------
+// Report: net-worth-seasonality (R-H18) — which calendar months move the
+// number, from the user's own snapshot history
+// ---------------------------------------------------------------------------
+
+export interface SeasonalityMonth {
+	/** 0 = Jan … 11 = Dec */
+	monthOfYear: number;
+	meanDeltaPence: number;
+	samples: number;
+}
+
+export interface SeasonalityResult {
+	status: "ok" | "too-little";
+	steps: number;
+	months: SeasonalityMonth[];
+	weakest: SeasonalityMonth | null;
+	strongest: SeasonalityMonth | null;
+}
+
+/** Pure seasonality math (exported for hand-computed tests): consecutive
+ *  monthly deltas (25–40d gaps only) grouped by the calendar month they
+ *  end in; months need ≥2 observations to report. */
+export function seasonalityFromHistory(
+	history: { date: string; netWorthInCents: number }[],
+): SeasonalityResult {
+	const deltas: { monthOfYear: number; delta: number }[] = [];
+	for (let i = 1; i < history.length; i++) {
+		const prev = new Date(`${history[i - 1].date}T00:00:00.000Z`);
+		const curr = new Date(`${history[i].date}T00:00:00.000Z`);
+		const days = (curr.getTime() - prev.getTime()) / 86_400_000;
+		if (days < 25 || days > 40) continue;
+		deltas.push({
+			monthOfYear: curr.getUTCMonth(),
+			delta: history[i].netWorthInCents - history[i - 1].netWorthInCents,
+		});
+	}
+
+	const byMonth = new Map<number, number[]>();
+	for (const d of deltas) {
+		const list = byMonth.get(d.monthOfYear) ?? [];
+		list.push(d.delta);
+		byMonth.set(d.monthOfYear, list);
+	}
+
+	const months = [...byMonth.entries()]
+		.filter(([, list]) => list.length >= 2)
+		.map(([month, list]) => ({
+			monthOfYear: month,
+			meanDeltaPence: Math.round(list.reduce((s, d) => s + d, 0) / list.length),
+			samples: list.length,
+		}))
+		.sort((a, b) => a.monthOfYear - b.monthOfYear);
+
+	if (history.length < 13 || months.length < 4) {
+		return { status: "too-little", steps: deltas.length, months, weakest: null, strongest: null };
+	}
+
+	const sorted = months.slice().sort((a, b) => a.meanDeltaPence - b.meanDeltaPence);
+	return {
+		status: "ok",
+		steps: deltas.length,
+		months,
+		weakest: sorted[0],
+		strongest: sorted[sorted.length - 1],
+	};
+}
+
+async function buildSeasonality(userId: number): Promise<ReportDoc> {
+	const date = isoToday();
+	const history = await getNetWorthHistory(userId);
+	const result = seasonalityFromHistory(history);
+	const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+	if (result.status !== "ok" || !result.weakest || !result.strongest) {
+		return {
+			slug: "net-worth-seasonality",
+			title: "Net-Worth Seasonality",
+			date,
+			abstract:
+				history.length < 13
+					? "Seasonality needs at least 13 monthly snapshots (a full year plus one repeat month) — record more snapshots to unlock the pattern view."
+					: "Seasonality needs several calendar months with repeat observations — the history so far has too many gaps or single observations per month.",
+			method: [
+				"Data: net worth snapshot history (user-scoped)",
+				"method: month-over-month deltas grouped by calendar month",
+			],
+			findings: [
+				{
+					heading: "Findings",
+					rows: [
+						{ label: "snapshots recorded", value: String(history.length) },
+						{ label: "consecutive monthly steps", value: String(result.steps) },
+					],
+				},
+			],
+		};
+	}
+
+	const worst = result.weakest;
+	const best = result.strongest;
+
+	return {
+		slug: "net-worth-seasonality",
+		title: "Net-Worth Seasonality",
+		date,
+		abstract: `Across ${result.steps} month-over-month steps, ${MONTHS[worst.monthOfYear]} is historically the weakest month (mean ${formatCurrency(worst.meanDeltaPence)}) and ${MONTHS[best.monthOfYear]} the strongest (mean ${formatCurrency(best.meanDeltaPence)}). Budget the calendar, not just the categories.`,
+		method: [
+			`Data: ${history.length} snapshots; ${result.steps} consecutive monthly steps (25–40d gaps only — longer gaps excluded)`,
+			"mean net-worth delta per calendar month, at least two observations per month reported",
+			"small histories make this noisy — treat single-month means as anecdotes, not laws",
+		],
+		findings: [
+			{
+				heading: "Mean monthly delta by calendar month",
+				rows: result.months.map((m) => ({
+					label: `${MONTHS[m.monthOfYear]} (n=${m.samples})`,
+					value: formatCurrency(m.meanDeltaPence),
+					flag: m.meanDeltaPence > 0 ? ("green" as const) : m.meanDeltaPence < 0 ? ("red" as const) : undefined,
+				})),
+			},
+			{
+				heading: "Extremes",
+				rows: [
+					{ label: `weakest ${MONTHS[worst.monthOfYear]}`, value: formatCurrency(worst.meanDeltaPence), flag: "red" as const },
+					{ label: `strongest ${MONTHS[best.monthOfYear]}`, value: formatCurrency(best.meanDeltaPence), flag: "green" as const },
+				],
+				notes: [
+					"Calendar effects often reflect routine rhythms: annual renewals, holiday spend, or bonus months — cross-check with the spending-profile report.",
+				],
+			},
+		],
+	};
+}
+
+// ---------------------------------------------------------------------------
 // Registry
 // ---------------------------------------------------------------------------
 
@@ -990,6 +1125,12 @@ export const REPORTS: ReportDefinition[] = [
 		title: "Rate Shop — Your Own Best Rates",
 		blurb: "Deposits earning below your own best same-wrapper rate, and what moving them adds.",
 		build: buildRateShop,
+	},
+	{
+		slug: "net-worth-seasonality",
+		title: "Net-Worth Seasonality",
+		blurb: "Which calendar months historically shrink the number, and which grow it.",
+		build: buildSeasonality,
 	},
 ];
 
