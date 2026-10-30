@@ -75,6 +75,7 @@
 			<input class="border border-black w-24 px-1" type="number" min="0" max="50" step="0.1" bind:value={revertAprPct} /></label>
 	</div>
 
+	{#if promoEnd}
 	<div class="border border-black">
 		<table class="w-full">
 			<tbody>
@@ -109,6 +110,15 @@
 			</tbody>
 		</table>
 	</div>
+	{:else}
+	<!-- empty promo date: zeros would read as a confident verdict (vision
+	     P1, sweep 9) — model nothing until the window is defined -->
+	<div class="border border-black p-2 text-gray-600">
+		Set a promo end date to project the 0% window — without it there is no
+		stooze window to model. Savings interest, revert cost and the pay-by
+		date all hang off that deadline.
+	</div>
+	{/if}
 
 	<p class="text-gray-600">
 		The stooze only wins while savings rates stay put and the balance clears
