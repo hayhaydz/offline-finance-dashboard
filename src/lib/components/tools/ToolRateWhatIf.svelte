@@ -134,7 +134,7 @@
 				type="button"
 				class="bracket-link self-start"
 				onclick={() => (rateDeltas = {})}
-			>[Reset All Sliders]</button>
+			>Reset All Sliders</button>
 		{/if}
 	{/if}
 </div>

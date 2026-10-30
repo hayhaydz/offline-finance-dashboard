@@ -50,7 +50,7 @@
 									onclick={() => onMonthSelect?.(balance.monthKey)}
 									title="Show this month in the ledger"
 								>
-									[{balance.monthKey}]
+									{balance.monthKey}
 								</button>
 							{:else}
 								{balance.monthKey}

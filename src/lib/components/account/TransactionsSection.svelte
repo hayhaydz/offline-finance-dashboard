@@ -176,6 +176,24 @@
 		filterGroupsByType(transactionGroups, typeFilter ?? null)
 	);
 
+	// R-H19: free-text search over decrypted descriptions — display-only,
+	// composes after the type filter; month totals stay full-month (the
+	// "shown" marker in the month header carries the meaning).
+	let searchQuery = $state("");
+	const normalizedQuery = $derived(searchQuery.trim().toLowerCase());
+	const searchedGroups = $derived(
+		normalizedQuery
+			? displayedGroups
+					.map((g) => ({
+						...g,
+						transactions: g.transactions.filter((tx) =>
+							(tx.description ?? "").toLowerCase().includes(normalizedQuery),
+						),
+					}))
+					.filter((g) => g.transactions.length > 0)
+			: displayedGroups,
+	);
+
 	function formatDate(date: Date): string {
 		return formatDateShorthand(date);
 	}
@@ -411,11 +429,28 @@
 		<div class="border-b border-black px-2 py-1 bg-amber-100 text-xs flex items-center gap-2">
 			<span class="font-bold">[Type: {typeFilter}]</span>
 			<button type="button" class="bracket-link" onclick={() => onClearTypeFilter?.()}>
-				[Clear]
+				Clear
 			</button>
-			<span class="text-zinc-500">month totals include all rows</span>
+			<span class="text-zinc-700">month totals include all rows</span>
 		</div>
 	{/if}
+
+	<!-- R-H19: free-text search over descriptions (display-only, like the
+	     type chip; month headers mark their row counts "shown") -->
+	<div class="border-b border-black px-2 py-1 bg-gray-50 text-xs flex items-center gap-2">
+		<label for="tx-search" class="text-gray-600 shrink-0">SEARCH</label>
+		<input
+			id="tx-search"
+			type="search"
+			bind:value={searchQuery}
+			placeholder="description contains…"
+			class="border border-black px-1 py-0.5 w-64 bg-white"
+		/>
+		{#if normalizedQuery}
+			<span class="text-zinc-700">{searchedGroups.reduce((n, g) => n + g.transactions.length, 0)} match{searchedGroups.reduce((n, g) => n + g.transactions.length, 0) === 1 ? '' : 'es'}</span>
+			<button type="button" class="bracket-link" onclick={() => (searchQuery = '')}>Clear</button>
+		{/if}
+	</div>
 
 	{#if transactions.length === 0}
 		<p class="text-gray-600 text-xs p-2">No transactions recorded yet.</p>
@@ -435,11 +470,11 @@
 					</tr>
 				</thead>
 				<tbody>
-				{#each displayedGroups as group}
+				{#each searchedGroups as group}
 					<!-- Month header row — totals always full-month, even when rows are prefiltered -->
 					<tr class="bg-gray-100 border-b border-gray-300">
 						<td colspan={editMode ? 7 : 6} class="pl-2 py-1 text-xs font-bold">
-							{group.monthLabel} — {group.transactions.length} transaction{group.transactions.length !== 1 ? 's' : ''}{#if typeFilter} shown{/if}
+							{group.monthLabel} — {group.transactions.length} transaction{group.transactions.length !== 1 ? 's' : ''}{#if typeFilter || normalizedQuery} shown{/if}
 							<span class="text-gray-600 font-normal"> · Net: </span>
 							<span class="{group.net >= 0 ? 'text-green-800' : 'text-red-800'}">{group.net >= 0 ? '+' : ''}{formatCurrency(group.net)}</span>
 							<span class="text-gray-600 font-normal"> ({formatCurrency(group.inflow)} in, {formatCurrency(group.outflow)} out)</span>
@@ -515,7 +550,7 @@
 						class="bracket-link"
 						onclick={() => goToMonth(adjacent.prev)}
 					>
-						[Prev]
+						Prev
 					</button>
 				{/if}
 				<select
@@ -534,7 +569,7 @@
 						class="bracket-link"
 						onclick={() => goToMonth(adjacent.next)}
 					>
-						[Next]
+						Next
 					</button>
 				{/if}
 			</div>

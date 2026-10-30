@@ -14,20 +14,24 @@ const CHECKBOX_GLYPHS = ["[X]", "[ ]", "[x]"];
 
 function scan(file: string): string[] {
 	const content = fs.readFileSync(file, "utf8");
+	// Sweep-9 hardening: arrow functions in attributes (onclick={() => …})
+	// contain ">" which truncated the tag-end match — neutralise them before
+	// the owning-tag scan so labels after the REAL tag close are still seen.
+	const neutralised = content.replace(/=>/g, "==");
 	const offenders: string[] = [];
 
 	// Form 1: owning tag carries the class AND the literal-bracket label
 	// (multiline: tag open ... > then optional whitespace, [label], close)
 	const owning =
 		/class="[^"]*bracket-link[^"]*"[^>]*>\s*\[([^\][\s][^\]]{0,80})\]\s*</g;
-	for (const m of content.matchAll(owning)) {
+	for (const m of neutralised.matchAll(owning)) {
 		if (CHECKBOX_GLYPHS.some((g) => `[${m[1]}]`.includes(g))) continue;
 		offenders.push(`owning-tag label: [${m[1]}]`);
 	}
 
 	// Form 2: a line contains bracket-link AND a >[label]< text node whose
 	// owning tag (nearest preceding class attr) is the bracket-link element
-	for (const line of content.split("\n")) {
+	for (const line of neutralised.split("\n")) {
 		if (!line.includes("bracket-link")) continue;
 		for (const m of line.matchAll(/>\[([^\][\s][^\]]{0,80})\]</g)) {
 			if (CHECKBOX_GLYPHS.some((g) => `[${m[1]}]`.includes(g))) continue;
@@ -44,7 +48,7 @@ function scan(file: string): string[] {
 	// toggle relapse). Window: 10 lines after a bracket-link tag open.
 	// Requires a space inside the brackets so glyph codes ([+], [-], [!!])
 	// and pure placeholders stay legal; comment lines are skipped.
-	const lines = content.split("\n");
+	const lines = neutralised.split("\n");
 	for (let i = 0; i < lines.length; i++) {
 		if (!/class="[^"]*bracket-link/.test(lines[i])) continue;
 		const window = lines.slice(i + 1, i + 11);
