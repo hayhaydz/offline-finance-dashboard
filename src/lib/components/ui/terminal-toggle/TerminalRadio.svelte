@@ -29,7 +29,7 @@
 
 <!-- Terminal-style radio toggle: [.] or [ ] -->
 <div
-	class="flex items-center gap-1 cursor-pointer select-none hover:bg-gray-100 focus:outline focus:outline-1 focus:outline-black focus:outline-offset-2"
+	class="flex items-center gap-1 cursor-pointer select-none hover:bg-gray-100 focus:outline focus:outline-1 focus:outline-black focus:outline-offset-2 min-h-6 px-0.5"
 	class:opacity-50={disabled}
 	class:cursor-not-allowed={disabled}
 	onclick={handleClick}
@@ -37,6 +37,7 @@
 	tabindex={disabled ? -1 : 0}
 	role="radio"
 	aria-checked={isSelected}
+	aria-disabled={disabled}
 >
 	<span class="font-bold font-terminal">{isSelected ? '[•]' : '[ ]'}</span>
 	<span>

@@ -63,6 +63,7 @@
 				name="snapshotDate"
 				value={data.defaultDate}
 				required
+				aria-label="Snapshot date"
 				class="border border-black p-1 text-sm focus:outline-none"
 			/>
 			<p class="text-xs text-gray-600 mt-1 mb-0">Default is today. Edit if needed.</p>
@@ -184,7 +185,7 @@
 		</div>
 		{#if interestBreakdown.actualInterest}
 		<div class="p-2">
-			<h4 class="font-bold text-xs mb-1">Actual Interest (This Tax Year)</h4>
+			<h3 class="font-bold text-xs mb-1">Actual Interest (This Tax Year)</h3>
 			<div class="text-sm mb-3">
 				<div class="flex justify-between py-1 border-b border-gray-200 last:border-0">
 					<span class="text-gray-600">Tax-Free:</span>
@@ -200,7 +201,7 @@
 				</div>
 			</div>
 
-			<h4 class="font-bold text-xs mb-1">Projected Interest (To Tax Year End)</h4>
+			<h3 class="font-bold text-xs mb-1">Projected Interest (To Tax Year End)</h3>
 			<div class="text-sm mb-3">
 				<div class="flex justify-between py-1 border-b border-gray-200 last:border-0">
 					<span class="text-gray-600">Tax-Free:</span>
@@ -216,7 +217,7 @@
 				</div>
 			</div>
 
-			<h4 class="font-bold text-xs mb-1">Expected Total (Actual + Projected)</h4>
+			<h3 class="font-bold text-xs mb-1">Expected Total (Actual + Projected)</h3>
 			<div class="text-sm mb-3">
 				<div class="flex justify-between py-1 border-b border-gray-200 last:border-0">
 					<span class="text-gray-600">Tax-Free:</span>
@@ -232,7 +233,7 @@
 				</div>
 			</div>
 
-			<h4 class="font-bold text-xs mb-1">Personal Savings Allowance ({interestBreakdown.taxPosition.taxBand} rate)</h4>
+			<h3 class="font-bold text-xs mb-1">Personal Savings Allowance ({interestBreakdown.taxPosition.taxBand} rate)</h3>
 			<div class="text-sm mb-3">
 				<div class="flex justify-between py-1 border-b border-gray-200 last:border-0">
 					<span class="text-gray-600">Allowance:</span>
@@ -251,7 +252,7 @@
 				</div>
 			</div>
 
-			<h4 class="font-bold text-xs mb-1">By Account</h4>
+			<h3 class="font-bold text-xs mb-1">By Account</h3>
 			<div class="text-xs">
 				{#each interestBreakdown.byAccount as account}
 					<div class="flex justify-between py-1 border-b border-gray-200 last:border-0">

@@ -348,6 +348,7 @@
           </div>
           <input
             type="range"
+						aria-label="Monthly contribution slider"
             min="5000"
             max="100000"
             step="1000"

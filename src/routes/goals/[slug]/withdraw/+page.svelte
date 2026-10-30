@@ -152,6 +152,7 @@
 							<div class="slider-shell">
 								<input
 									type="range"
+						aria-label="Amount slider"
 									class="terminal-slider"
 									min="0"
 									max={maxPounds(row)}
