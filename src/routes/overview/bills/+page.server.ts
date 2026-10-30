@@ -3,7 +3,7 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accountTransactions, accounts } from "$lib/db/schema";
-import { detectRecurringPatterns } from "$lib/server/recurring-patterns";
+import { detectEmergingPatterns, detectRecurringPatterns } from "$lib/server/recurring-patterns";
 import { requireAuth } from "$lib/server/utils/auth-guard";
 import { projectObligations } from "$lib/utils/surface-views";
 
@@ -38,6 +38,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		.orderBy(desc(accountTransactions.transactionDate));
 
 	const patterns = detectRecurringPatterns(txs);
+	const emerging = detectEmergingPatterns(txs);
 
 	const now = new Date();
 	const next60 = projectObligations(patterns, now, 60);
@@ -53,6 +54,12 @@ export const load: PageServerLoad = async ({ locals }) => {
 			lastDate: p.lastDate.toISOString().slice(0, 10),
 			nextDate:
 				next60.find((o) => o.description === p.description)?.date ?? null,
+		})),
+		emerging: emerging.map((p) => ({
+			description: p.description,
+			amountPence: Math.abs(Math.round(p.approximateAmount)),
+			firstDate: p.firstDate.toISOString().slice(0, 10),
+			lastDate: p.lastDate.toISOString().slice(0, 10),
 		})),
 		monthlyTotalPence,
 		yearlyTotalPence: monthlyTotalPence * 12,
