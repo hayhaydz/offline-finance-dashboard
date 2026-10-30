@@ -293,8 +293,23 @@
 	{today}
 />
 
-<!-- CREDIT STRATEGY (v3 B05 / R7): mode switcher + stooze reminders -->
-{#if data.account.type === 'credit-card' && data.credit}
+<!-- v3 R29: credit strategy + splits beside the payoff projection (panic
+     cards) — strategy on the left, projection machinery on the right -->
+{#if data.account.type === 'credit-card' && data.credit && data.credit.mode === 'panic'}
+	<div class="grid grid-cols-5 gap-2 border-b border-black p-2">
+		<div class="col-span-2 border border-black [&>*:last-child]:border-b-0">
+			<CreditModePanel
+				slug={data.account.slug}
+				mode={data.credit.mode}
+				stooze={data.credit.stooze}
+				splits={data.credit.splits}
+			/>
+		</div>
+		<div class="col-span-3 border border-black [&>*:last-child]:border-b-0">
+			<SplitsSection details={data.credit.chargeDetails} />
+		</div>
+	</div>
+{:else if data.account.type === 'credit-card' && data.credit}
 	<CreditModePanel
 		slug={data.account.slug}
 		mode={data.credit.mode}
@@ -328,24 +343,28 @@
 	/>
 {/if}
 
-<!-- MONTHLY BALANCE SUMMARY -->
-<MonthlyBalancesSection
-	balances={paginatedBalances}
-	pagination={{ page: balancesPagination.page, updatePage: balancesPagination.updatePage }}
-	totalPages={totalBalancesPages}
-	sectionRef={balancesSectionRef}
-	currentMonth={data.ledgerMonth?.monthKey ?? null}
-	onMonthSelect={(monthKey) => monthParam.updateMonth(monthKey)}
-/>
-
-<!-- NOTES SECTION -->
-<NotesSection
-	accountSlug={data.account.slug}
-	notes={data.notes}
-	closedAt={data.account.closedAt}
-	bind:addNoteOpen
-	{feedback}
-/>
+<!-- v3 R29: monthly balances + notes side-by-side (3/2) -->
+<div class="grid grid-cols-5 gap-2 items-start p-2">
+	<div class="col-span-3 border border-black [&>*:last-child]:border-b-0">
+		<MonthlyBalancesSection
+			balances={paginatedBalances}
+			pagination={{ page: balancesPagination.page, updatePage: balancesPagination.updatePage }}
+			totalPages={totalBalancesPages}
+			sectionRef={balancesSectionRef}
+			currentMonth={data.ledgerMonth?.monthKey ?? null}
+			onMonthSelect={(monthKey) => monthParam.updateMonth(monthKey)}
+		/>
+	</div>
+	<div class="col-span-2 border border-black [&>*:last-child]:border-b-0">
+		<NotesSection
+			accountSlug={data.account.slug}
+			notes={data.notes}
+			closedAt={data.account.closedAt}
+			bind:addNoteOpen
+			{feedback}
+		/>
+	</div>
+</div>
 
 <!-- TRANSACTIONS SECTION -->
 <TransactionsSection
