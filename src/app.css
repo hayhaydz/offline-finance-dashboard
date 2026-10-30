@@ -205,6 +205,17 @@ td {
 		display: none !important;
 	}
 
+	/* v3 R29 grids: multi-column cells collapse to one column on paper —
+	   paper is narrow; pairing is a screen affordance */
+	main .grid {
+		display: block !important;
+	}
+
+	main .grid > * {
+		border: 1px solid #000 !important;
+		margin-bottom: 4px;
+	}
+
 	/* Let long content flow across paper instead of the on-screen scroll area.
 	   The full-viewport flex shell (v3 R1) must release its pinned height too. */
 	.app-shell {
