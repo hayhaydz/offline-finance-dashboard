@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { listnav } from "$lib/utils/list-nav";
+
 	/**
 	 * Reports v2 index (R10): dated article list — each report is a
 	 * focused question, answered on its own page in the science-paper
@@ -36,10 +38,14 @@
 		and the method that produced them.
 	</p>
 
-	<div class="border border-black">
+	<!-- j/k list-nav (sweep 9): article rows are keyboard-walkable like
+	     accounts/goals/snapshots; Enter opens the selected paper -->
+	<div class="border border-black" use:listnav>
 		{#each data.reports as report, i (report.slug)}
 			<a
 				href="/overview/reports/{report.slug}"
+				data-nav-row
+				data-nav-primary
 				class="block {i > 0 ? 'border-t' : ''} border-black p-2 hover:bg-gray-50"
 			>
 				<div class="flex justify-between items-baseline gap-4">

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { TOOLS } from "$lib/utils/tool-registry";
+	import { listnav } from "$lib/utils/list-nav";
 	import { formatCurrency } from "$lib/utils/currency";
 
 	/**
@@ -26,10 +27,13 @@
 		PSA {formatCurrency(data.psaAllowanceInCents)}
 	</p>
 
-	<div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+	<!-- j/k list-nav (sweep 9): cards are keyboard-walkable; Enter opens -->
+	<div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3" use:listnav>
 		{#each TOOLS as tool (tool.slug)}
 			<a
 				href="/tools/{tool.slug}"
+				data-nav-row
+				data-nav-primary
 				class="border border-black p-2 hover:bg-gray-50 flex flex-col gap-1"
 			>
 				<span class="font-bold">{tool.name}</span>
