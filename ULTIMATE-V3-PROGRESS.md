@@ -25,6 +25,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 23:17:01 GMT | 2026-10-29 23:21:33 GMT | 0h 05m | Sweep 7 harvest: R-H2+R-H3 (report grid + ascii toggle), R-H5 (tax 3-up), R-H8 (amber AA); badge-count mismatch disproven |
 | 2026-10-29 23:21:34 GMT | 2026-10-29 23:27:09 GMT | 0h 06m | Sweep 7 vision re-audit: report grid P0 + monotonic-label P1 + ascii width fixed; suite 1052/1052; build green |
 | 2026-10-30 08:39:20 GMT | 2026-10-30 08:55:22 GMT | 0h 16m | Sweep 8 open: R31 audit+chart fixes, release doc, R29 account detail, double-bracket residue fixed |
+| 2026-10-30 08:55:22 GMT | 2026-10-30 09:01:56 GMT | 0h 07m | R29 year pages + goals-detail judgment; B04 closed/open verified; full-app re-audit 41/41 clean + skip-link fix + row-1 centering |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -328,6 +329,10 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 - R29 goals detail JUDGMENT: no grid — allocation (savings) and linked-debt (debt) sections are mutually exclusive by goalType (never co-render), and the page is card+accordion shaped; forcing pairing adds nothing. R29 now dispositioned across ALL major surfaces: home, accounts list+detail, goals list, interest+ISA years, budgets, tax, reports, tools.
 
 - B04 closed/open R17 leg: verified live (no new build needed — already complete: per-type localStorage-persisted toggles, status filters, strikethrough+labels, summary counts, ?closed=1 banner). ev: CDP [Show 1 closed] toggle + summary row
+
+- FULL-APP RE-AUDIT (Definition item): 41/41 routes CLEAN — 0 console errors, 0 5xx, zero text bugs, per-route CDP pass (findings record: .docs/reviews/2026-10-29-1916-ultimate-v3-audit/full-app-reaudit-2026-10-30.md). One real find FIXED: `[[Skip to content]]` layout skip link (R16-class, every page) — commit `d28c69a`. 4 false "crashes" adjudicated = audit's own wrong tool slugs (registry 404s correctly).
+- B02 P2 fixed: TaxYearProgress content vertically centres in stretched cells (flex-1 + justify-center; home cell is flex-col) — commit `ff42d7b`. Vision: top row "balanced… asymmetry looks deliberate", PASS.
+- Home re-audit vision: no [[ anywhere; 2 P1s REJECTED — `[%K]` = 4th documented ⌘-glyph misread (DOM: text ⌘K + one pseudo bracket); "chart ends 2026-02 vs as-of Oct" = dev-data snapshot gap (chart honestly plots snapshot rows; not a code defect).
 
 ## Notes for next iteration
 - **STATE: R1–R28 ALL [x] · 5/5 R-H implemented · 8 sweeps (0–7) done · check 0/0 · 1052/1052 · build green.** Remaining for Definition-of-v3: (a) ledger ≥12h genuine work — currently ~3h (CORRECT, date-anchored rows only) — the gate CANNOT be met yet, so NO stop file; (b) final full-app audit finding zero open P0/P1 (tonight's surfaces are clean; re-audit everything fresh next blocks); (c) docs/dev/ultimate-3.0-release.md changelog+runbook (final-gate item).
