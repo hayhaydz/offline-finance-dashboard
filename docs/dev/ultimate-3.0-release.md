@@ -8,7 +8,7 @@
 2. **Credit-card stoozing as a first-class citizen.** Per-card strategy modes (pay-off vs stooze), Monzo-method per-charge pay-off plans, a statement-delay-aware 0% split tracker, and revert-APR "what it costs if you're late" math — all in a pure-function engine with hand-computed tests.
 3. **A Matrixify-class data pipeline.** The unified reimport engine (insert/edit/delete in one file, preview → automatic before-backup → atomic commit) gained self-describing exports with per-account legends, expenses+income history CSV round-trips, a sealed-at-rest background job queue for large imports, and bulk bank-statement import with Monzo column auto-detection.
 4. **Reports v2.** Six dated, science-paper-structured reports (title/abstract/method/findings) generated from a registry — each a focused question with auto-written abstracts carrying real numbers, figures reusing the chart system, print + ASCII render modes.
-5. **A tools wing.** `/tools` became an index of six sub-pages (four deepened classics + stooze calculator + milestone projector), all sharing the parity-tested `tool-math.ts`.
+5. **A tools wing.** `/tools` became an index of sub-pages (four deepened classics + stooze calculator + milestone projector + overpay-or-save), all sharing the parity-tested `tool-math.ts`.
 
 ## Detailed change log
 
@@ -47,7 +47,7 @@
 
 ### Reports v2 (B07) & Tools (B08)
 - `src/lib/server/reports-v2.ts` registry: net-worth-trajectory, savings-rate, interest-vs-allowance, credit-strategy, spending-profile, debt-horizon. Index = dated article list; paper template with ABSTRACT/METHOD/findings; figures by key; print + [ASCII] toggle; findings 2-col grid with figure spans.
-- `src/lib/utils/tool-registry.ts`: 6 tools as sub-pages — rate what-if (per-account scenarios), overpayment (all-debts comparison), ISA optimiser (move-sources breakdown), compound projector (yearly milestones), stooze calculator (seeded from real cards), milestone projector (net-worth slope). New math parity-tested in `tool-math.ts`.
+- `src/lib/utils/tool-registry.ts`: 7 tools as sub-pages — rate what-if (per-account scenarios), overpayment (all-debts comparison), ISA optimiser (move-sources breakdown), compound projector (yearly milestones), stooze calculator (seeded from real cards), milestone projector (net-worth slope), overpay-or-save (debt APR vs net savings rate). New math parity-tested in `tool-math.ts`.
 
 ### Content digestibility (B09–B13)
 - Budget: 4-cell summary strip (status/spent/pace/remaining incl. per-day math) + two-column body (progress + category targets | config + pace + burn-down + filters + amendments + history).
@@ -88,7 +88,7 @@ npm run dev            # → http://127.0.0.1:5173  (admin / password)
 - **Schema:** migrations 0010 (credit engine) + 0011 (import_jobs) — both journaled (`__drizzle_migrations` hashes complete; `migration-journal-sync.test.ts` enforces). Dev DB path: `storage/dev-plain.db`. Re-seed: `npx tsx scripts/seed.ts --mode=standard` (fixtures include a panic card and a stooze card with promo window).
 - **Credit modes:** account detail of any credit card → CREDIT STRATEGY panel (`[Pay off]` / `[Stooze 0%]` + promo window form). Splits tracker below it.
 - **Data pipeline:** `/settings/data` (export w/ selection, reimport wizard, history import, job queue panel); bulk bank import from the data page.
-- **Reports/Tools:** `/overview/reports` (index → six dated papers) · `/tools` (index → six sub-pages).
+- **Reports/Tools:** `/overview/reports` (index → nine dated papers incl. rate-shop + seasonality) · `/tools` (index → seven sub-pages). · j/k walks both indexes.
 - **Architecture records:** `.docs/design/2026-10-29-2025-credit-engine.md` + `.docs/design/2026-10-29-2040-data-pipeline.md` · decisions ledger in `ULTIMATE-V3-PROGRESS.md`.
 - **Audit evidence:** `.docs/reviews/2026-10-29-1916-ultimate-v3-audit/` (screenshots + vision verdicts, misreads adjudicated with DOM proof).
 
