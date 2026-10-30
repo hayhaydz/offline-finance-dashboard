@@ -41,5 +41,6 @@ build/
 
 logs/
 .opencode/opencode-loop/
+storage/backups
 
 *.DS_STORE
