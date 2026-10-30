@@ -38,7 +38,8 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-30 20:31:00 GMT | 2026-10-30 20:44:20 GMT | 0h 13m | j/k list-nav on reports+tools indexes (live-verified walk+aria-current); Netflix emerging-candidate seed fixture; snapshot single-format committed |
 | 2026-10-30 20:44:20 GMT | 2026-10-30 20:51:11 GMT | 0h 07m | Vision round 4 (forms clean, 1 P1 rejected via DOM measurement); error-page back-link test; README v3 surfaces; import-jobs engine read (solid); R-H16 overpay-or-save tool (math+registry+route+8 tests); 1085/1085 |
 | 2026-10-30 20:51:11 GMT | 2026-10-30 21:13:49 GMT | 0h 23m | Vision round 5 (opz/home/accounts — all rejected w/ DOM+arithmetic evidence); bulk-import engine read (solid); j/k hints on indexes; R-H17 rate-shop report + vision-caught locked-funds abstract fix; build green; 1085/1085 |
-| 2026-10-30 21:13:49 GMT | 2026-10-30 21:24:10 GMT | 0h 10m | Bills if-all-confirm total; runbook palette/titles sections; prod perf verified (86KB login JS; layerchart route-split to its 2 pages); v3 API security pass (auth+RLS confirmed, jobs API no-store) |
+| 2026-10-30 21:13:49 GMT | 2026-10-30 21:17:14 GMT | 0h 04m | Bills if-all-confirm total; runbook palette/titles sections; prod perf verified (86KB login JS; layerchart route-split to its 2 pages); v3 API security pass (auth+RLS confirmed, jobs API no-store). CORRECTED: an earlier write of this row carried a projected end-time — replaced with the real commit-anchored 21:17:14 |
+| 2026-10-30 21:17:14 GMT | 2026-10-30 21:20:45 GMT | 0h 04m | R-H18 net-worth seasonality report (pure fn + honest <13-months degrade + 5 hand-computed tests); palette mirror synced; 1090/1090 |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
