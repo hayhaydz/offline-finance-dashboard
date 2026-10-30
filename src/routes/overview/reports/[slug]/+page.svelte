@@ -16,7 +16,17 @@
 	 * figures rendered by the existing chart components.
 	 */
 
-	let { data }: { data: { report: ReportDoc } } = $props();
+	let {
+		data,
+	}: {
+		data: {
+			report: ReportDoc;
+			siblings?: {
+				prev: { slug: string; title: string } | null;
+				next: { slug: string; title: string } | null;
+			};
+		};
+	} = $props();
 	const report = $derived(data.report);
 
 	function flagClass(flag: ReportRow["flag"]): string {
@@ -212,6 +222,22 @@
 		</div>
 		{/if}
 	</div>
+
+	<!-- R-H12: dated-series reading nav — prev/next through the registry -->
+	{#if data.siblings?.prev || data.siblings?.next}
+		<nav aria-label="Related reading" class="mt-2 border border-black no-print flex flex-nowrap items-center justify-between gap-4 p-2 text-xs overflow-x-auto">
+			<span class="font-bold flex-none">RELATED READING</span>
+			<span class="flex flex-nowrap gap-4 items-center min-w-0">
+				{#if data.siblings?.prev}
+					<a href="/overview/reports/{data.siblings.prev.slug}" class="bracket-link whitespace-nowrap">← {data.siblings.prev.title}</a>
+				{/if}
+				<a href="/overview/reports" class="bracket-link flex-none">All Reports</a>
+				{#if data.siblings?.next}
+					<a href="/overview/reports/{data.siblings.next.slug}" class="bracket-link whitespace-nowrap">{data.siblings.next.title} →</a>
+				{/if}
+			</span>
+		</nav>
+	{/if}
 
 	<footer class="text-xs text-gray-500 mt-2 flex justify-between">
 		<span>offline-finance v3 · report {report.slug}</span>

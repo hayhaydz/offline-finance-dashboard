@@ -149,4 +149,50 @@ describe("Report paper (science-paper template, R10)", () => {
 		expect(body).toContain("Net worth over time");
 		expect(body).toContain("Assets vs liabilities");
 	});
+
+	it("renders related-reading prev/next when siblings exist (R-H12)", () => {
+		const { body } = render(ReportPaperPage, {
+			props: {
+				data: {
+					report: {
+						slug: "test-report",
+						title: "A Focused Question",
+						date: "2026-10-29",
+						abstract: "abstract",
+						method: ["m"],
+						findings: [],
+					},
+					siblings: {
+						prev: { slug: "earlier-paper", title: "Earlier Paper" },
+						next: { slug: "later-paper", title: "Later Paper" },
+					},
+				},
+			},
+		});
+		expect(body).toContain("RELATED READING");
+		expect(body).toContain('href="/overview/reports/earlier-paper"');
+		expect(body).toContain("← Earlier Paper");
+		expect(body).toContain('href="/overview/reports/later-paper"');
+		expect(body).toContain("Later Paper →");
+		expect(body).toContain('aria-label="Related reading"');
+	});
+
+	it("omits the related-reading band when the paper is alone", () => {
+		const { body } = render(ReportPaperPage, {
+			props: {
+				data: {
+					report: {
+						slug: "test-report",
+						title: "A Focused Question",
+						date: "2026-10-29",
+						abstract: "abstract",
+						method: ["m"],
+						findings: [],
+					},
+					siblings: { prev: null, next: null },
+				},
+			},
+		});
+		expect(body).not.toContain("RELATED READING");
+	});
 });
