@@ -183,9 +183,20 @@
 	</StatGrid>
 </div>
 
-<!-- ISA PACING -->
+<!-- ISA PACING (v3 R29: pacing + system integrity side-by-side, 3/2) -->
 {#if data.pacing}
-	<IsaPacingSection pacing={data.pacing} />
+	<div class="grid grid-cols-5 gap-2 items-start border-b border-black p-2">
+		<div class="col-span-3 border border-black [&>*:last-child]:border-b-0">
+			<IsaPacingSection pacing={data.pacing} />
+		</div>
+		<div class="col-span-2 border border-black [&>*:last-child]:border-b-0">
+			<SystemIntegrityCheck checks={integrityChecks} flags={integrityFlags} flagColor="amber" />
+		</div>
+	</div>
+{:else}
+	<div class="border-b border-black">
+		<SystemIntegrityCheck checks={integrityChecks} flags={integrityFlags} flagColor="amber" />
+	</div>
 {/if}
 
 <!-- BREAKDOWNS -->
@@ -376,9 +387,6 @@
 		{/snippet}
 	</BreakdownPanel>
 </div>
-
-<!-- SYSTEM INTEGRITY CHECK -->
-<SystemIntegrityCheck checks={integrityChecks} flags={integrityFlags} flagColor="amber" />
 
 <!-- TRANSACTION LEDGER -->
 <TransactionFilterBar

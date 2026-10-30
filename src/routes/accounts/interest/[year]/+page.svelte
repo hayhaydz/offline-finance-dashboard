@@ -383,15 +383,19 @@
 	</BreakdownPanel>
 </div>
 
-<!-- PROJECTION ASSUMPTIONS -->
-<InterestProjectionTable
-	accounts={data.projected.byAccount}
-	totalProjected={data.projected.total}
-	totalAccountCount={data.projected.byAccount.length}
-/>
-
-<!-- SYSTEM INTEGRITY CHECK -->
-<SystemIntegrityCheck checks={integrityChecks} flags={integrityFlags} />
+<!-- v3 R29: projection assumptions + system integrity side-by-side (3/2) -->
+<div class="grid grid-cols-5 gap-2 items-start border-b border-black p-2">
+	<div class="col-span-3 border border-black [&>*:last-child]:border-b-0">
+		<InterestProjectionTable
+			accounts={data.projected.byAccount}
+			totalProjected={data.projected.total}
+			totalAccountCount={data.projected.byAccount.length}
+		/>
+	</div>
+	<div class="col-span-2 border border-black [&>*:last-child]:border-b-0">
+		<SystemIntegrityCheck checks={integrityChecks} flags={integrityFlags} />
+	</div>
+</div>
 
 <!-- TRANSACTION LEDGER -->
 <TransactionFilterBar
