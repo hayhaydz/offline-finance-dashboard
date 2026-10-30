@@ -85,7 +85,8 @@ describe("HelpOverlay (Phase 7)", () => {
 		expect(body).toContain("j / ↓");
 		expect(body).toContain("next row in the focused list");
 		expect(body).toContain("⌘K");
-		expect(body).toContain("[Close]");
+		// v3 bracket convention: brackets via CSS — text node is bare Close
+		expect(body).toContain(">Close</button>");
 		expect(body).toContain('role="dialog"');
 	});
 

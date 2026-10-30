@@ -388,7 +388,7 @@ async function placeAtEnd() {
 		{#if reorderMode && selectedSlug !== null}
 			<div class="border-t border-gray-300 p-2">
 				<button type="button" onclick={placeAtEnd} class="bracket-link text-xs text-amber-700">
-					[Move to End]
+					Move to End
 				</button>
 			</div>
 		{/if}

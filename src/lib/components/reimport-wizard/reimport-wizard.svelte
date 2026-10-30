@@ -398,7 +398,7 @@
 					class="bracket-link"
 					download
 				>
-					[Download Backup]
+					Download Backup
 				</a>
 			</p>
 			<p class="text-gray-600 mb-2">

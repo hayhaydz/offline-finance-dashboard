@@ -12,7 +12,7 @@
 			{data.account.name}
 		</h2>
 		<a href="/accounts/{data.account.slug}/notes" class="bracket-link text-xs">
-			[Notes]
+			Notes
 		</a>
 	</div>
 

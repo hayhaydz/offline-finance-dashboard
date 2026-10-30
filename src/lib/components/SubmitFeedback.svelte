@@ -22,7 +22,7 @@
 			)}
 		</div>
 		<button type="button" onclick={onDismiss} class="ml-2 text-xs bracket-link">
-			[Dismiss]
+			Dismiss
 		</button>
 	</div>
 {/if}

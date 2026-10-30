@@ -124,7 +124,7 @@
 							disabled={!confirmed}
 							class="bracket-link text-sm text-red-700 font-bold border border-red-700 px-1 disabled:opacity-50 disabled:cursor-not-allowed"
 						>
-							[Delete Account]
+							Delete Account
 						</button>
 					</div>
 				</form>

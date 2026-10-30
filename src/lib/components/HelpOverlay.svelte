@@ -76,7 +76,7 @@
 					type="button"
 					class="bracket-link text-xs"
 					bind:this={closeBtn}
-					onclick={close}>[Close]</button
+					onclick={close}>Close</button
 				>
 			</div>
 			<table class="w-full text-xs">

@@ -13,7 +13,7 @@
 			{data.account.name}
 		</h2>
 		<a href="/accounts/{data.account.slug}" class="bracket-link text-xs">
-			[Account]
+			Account
 		</a>
 	</div>
 

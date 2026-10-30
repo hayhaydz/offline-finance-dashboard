@@ -58,7 +58,7 @@
 				disabled={!confirmed}
 				class="bracket-link text-xs text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
 			>
-				[Confirm Archive]
+				Confirm Archive
 			</button>
 			<a href="/goals/{data.goal.slug}" class="bracket-link text-xs">Cancel</a>
 		</div>

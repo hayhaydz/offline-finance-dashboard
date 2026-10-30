@@ -316,7 +316,7 @@
 					class="bracket-link"
 					download
 				>
-					[Download Backup]
+					Download Backup
 				</a>
 				— reimport it to undo.
 			</p>
