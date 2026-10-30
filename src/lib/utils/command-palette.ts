@@ -1,16 +1,28 @@
 // src/lib/utils/command-palette.ts
 
-/**
- * ⌘K command palette (#19) — pure command registry + matching.
- * Navigation commands are static; dynamic ones (current-month budget,
- * uncategorised triage) are appended by the component. Matching is
- * case-insensitive substring across label + keywords; empty query
- * returns everything in registry order.
- */
+// ⌘K command palette (#19) — pure command registry + matching.
+// v3 R-H11: the palette mirrors the v3 registries — tools come straight
+// from tool-registry (client-safe pure data); reports are duplicated
+// here (the server registry pulls server-only engines) and pinned by a
+// sync test so the two can never drift.
+
+import { TOOLS } from "./tool-registry";
 
 /** Quick actions the component executes instead of navigating (#19's
  * "jump + quick actions" — actions landed in a Phase 9 polish cycle). */
 export type PaletteActionId = "toggle-ascii" | "open-help";
+
+/** Report mirror of src/lib/server/reports-v2.ts (slugs + titles only;
+ * kept in sync by tests/unit/palette-registry-sync.test.ts). */
+export const REPORT_MIRROR: readonly { slug: string; title: string }[] = [
+	{ slug: "net-worth-trajectory", title: "Net Worth Trajectory" },
+	{ slug: "savings-rate", title: "Savings Rate & Runway" },
+	{ slug: "interest-vs-allowance", title: "Interest vs the Personal Savings Allowance" },
+	{ slug: "credit-strategy", title: "Credit Strategy — Stoozing & Payoff Pressure" },
+	{ slug: "spending-profile", title: "Spending Profile — Where the Money Goes" },
+	{ slug: "debt-horizon", title: "Debt Horizon" },
+	{ slug: "income-vs-deposits", title: "Income vs Deposit Evidence" },
+];
 
 export interface PaletteCommand {
 	id: string;
@@ -23,6 +35,24 @@ export interface PaletteCommand {
 	/** When set, the palette runs this action instead of navigating. */
 	action?: PaletteActionId;
 }
+
+/** v3 R-H11: one command per report paper (reports registry mirror). */
+export const REPORT_COMMANDS: readonly PaletteCommand[] = REPORT_MIRROR.map((r) => ({
+	id: `report-${r.slug}`,
+	label: r.title,
+	href: `/overview/reports/${r.slug}`,
+	keywords: "report paper findings dated science",
+	section: "Reports",
+}));
+
+/** v3 R-H11: one command per tool sub-page (single source: tool-registry). */
+export const TOOL_COMMANDS: readonly PaletteCommand[] = TOOLS.map((t) => ({
+	id: `tool-${t.slug}`,
+	label: t.name,
+	href: `/tools/${t.slug}`,
+	keywords: `tool calculator ${t.blurb}`,
+	section: "Tools",
+}));
 
 export const PALETTE_COMMANDS: readonly PaletteCommand[] = [
 	{ id: "home", label: "Home", href: "/", keywords: "net worth dashboard summary", section: "Navigate" },
@@ -38,12 +68,14 @@ export const PALETTE_COMMANDS: readonly PaletteCommand[] = [
 	{ id: "overview-snapshots", label: "Snapshots", href: "/overview/snapshots", keywords: "net worth history monthly", section: "Navigate" },
 	{ id: "overview-routine", label: "Routine", href: "/overview/routine", keywords: "review monthly tasks", section: "Navigate" },
 	{ id: "overview-expenses", label: "Expenses", href: "/overview/expenses", keywords: "spending history", section: "Navigate" },
+	{ id: "overview-bills", label: "Bills", href: "/overview/bills", keywords: "regular payments direct debits next due", section: "Navigate" },
 	{ id: "overview-tax", label: "Tax", href: "/overview/tax", keywords: "allowances psa isa year", section: "Navigate" },
 	{ id: "alerts", label: "Alerts", href: "/alerts", keywords: "warnings ack snooze", section: "Navigate" },
 	{ id: "tools", label: "Tools", href: "/tools", keywords: "simulators what-if", section: "Navigate" },
 	{ id: "reports", label: "Reports", href: "/overview/reports", keywords: "charts trends analysis", section: "Navigate" },
 	{ id: "settings-general", label: "Settings — General", href: "/settings/general", keywords: "categories preferences", section: "Navigate" },
 	{ id: "settings-security", label: "Settings — Session & Security", href: "/settings/profile", keywords: "session logout devices", section: "Navigate" },
+	{ id: "settings-data", label: "Settings — Data Management", href: "/settings/data", keywords: "import export csv reimport queue bulk history", section: "Navigate" },
 ];
 
 /** Quick actions (executed by the component, not navigation). */

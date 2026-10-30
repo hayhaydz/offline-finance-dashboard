@@ -3,6 +3,8 @@
 	import {
 		PALETTE_ACTIONS,
 		PALETTE_COMMANDS,
+		REPORT_COMMANDS,
+		TOOL_COMMANDS,
 		dynamicPaletteCommands,
 		filterCommands,
 	} from '$lib/utils/command-palette';
@@ -21,6 +23,8 @@
 	const commands = $derived([
 		...dynamicPaletteCommands(),
 		...PALETTE_COMMANDS,
+		...REPORT_COMMANDS,
+		...TOOL_COMMANDS,
 		...PALETTE_ACTIONS,
 	]);
 	const results = $derived(filterCommands(commands, query));
