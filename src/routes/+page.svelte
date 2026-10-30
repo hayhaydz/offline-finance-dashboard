@@ -143,7 +143,7 @@
 
 	<!-- v3 R29: header widgets side-by-side (3/2 split) instead of stacked bands -->
 	<div class="grid grid-cols-5 gap-2 border-b border-black p-2">
-		<div class="col-span-3 border border-black [&>*:last-child]:border-b-0">
+		<div class="col-span-3 border border-black flex flex-col [&>*:last-child]:border-b-0">
 			<TaxYearProgress data={data.isaTracker} />
 		</div>
 		<div class="col-span-2 border border-black [&>*:last-child]:border-b-0">

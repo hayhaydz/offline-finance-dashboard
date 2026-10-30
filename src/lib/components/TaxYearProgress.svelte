@@ -37,7 +37,9 @@
 <div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 	<span>TAX YEAR: {taxYearLabel}</span>
 </div>
-<div class="border-b border-black p-2">
+<!-- v3 B02 P2 fix: vertically centre the content so a stretched bento
+     cell doesn't leave dead space under a short panel -->
+<div class="border-b border-black p-2 flex-1 flex flex-col justify-center min-h-24">
 	<div class="flex justify-between text-sm mb-1">
 		<span>Day {daysElapsed} of 365</span>
 		<span class="tabular-nums">Ends {endDateFormatted}</span>
