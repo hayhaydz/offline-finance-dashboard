@@ -207,14 +207,14 @@
           class="bracket-link text-xs"
           onclick={() => editMode = !editMode}
         >
-          {editMode ? '[Done]' : '[Edit]'}
+          {editMode ? '[Done]' : ''}
         </button>
         <button
           type="button"
           class="bracket-link text-xs"
           onclick={() => addTransactionOpen = !addTransactionOpen}
         >
-          {addTransactionOpen ? '[Cancel]' : '[Add Transaction]'}
+          {addTransactionOpen ? '' : '[Add Transaction]'}
         </button>
       {/if}
     </div>
@@ -470,7 +470,7 @@
 													class="bracket-link text-xs text-red-700"
 													onclick={() => { pendingDelete = transaction; }}
 												>
-													[Delete]
+													
 												</button>
 											</form>
 										{/if}
@@ -551,7 +551,7 @@
 		`Amount: ${formatCurrency(pendingDelete.amount)}`,
 		pendingDelete.description ? `Description: ${truncateDisplay(pendingDelete.description, DISPLAY_LIMITS.BALANCE_NOTES)}` : null
 	].filter((d): d is string => d !== null) : undefined}
-	confirmLabel="[Delete]"
+	confirmLabel="Delete"
 	onConfirm={confirmDelete}
 	onCancel={() => (pendingDelete = null)}
 />

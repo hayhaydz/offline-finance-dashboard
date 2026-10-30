@@ -10,8 +10,8 @@
 		title = 'CONFIRM ACTION',
 		message,
 		details,
-		confirmLabel = '[Delete]',
-		cancelLabel = '[Cancel]',
+		confirmLabel = 'Delete',
+		cancelLabel = 'Cancel',
 		onConfirm,
 		onCancel
 	}: {

@@ -107,7 +107,7 @@
 				class="bracket-link text-xs"
 				onclick={() => addRateOpen = !addRateOpen}
 			>
-				{addRateOpen ? '[Cancel]' : '[Add Rate]'}
+				{addRateOpen ? 'Cancel' : 'Add Rate'}
 			</button>
 		{/if}
 	</div>
@@ -327,7 +327,7 @@
 											class="bracket-link text-xs text-red-700"
 											onclick={(e) => { if (!confirm('Delete this rate?')) e.preventDefault(); }}
 										>
-											[Delete]
+											
 										</button>
 									</form>
 								{/if}
