@@ -28,6 +28,18 @@ Log in at `http://localhost:5173` with `admin` / `password`.
 
 **Interest tracking (UK)** — Personal Savings Allowance (PSA) limits, ISA allowance remaining, per-account interest projections with maturity awareness for fixed-term bonds. Tax year runs April 6 to April 5.
 
+**Credit cards with intent (v3)** — Each card is in *pay-off (panic)* or *stooze* mode. Panic shows payoff projection pressure; stooze shows friendly 0%-window reminders and what to have ready, with zero pressure. Per-charge plans (pay now vs over time) with a 3-month target tracker that respects statement delay (confirmed-through = last month-end).
+
+**A Matrixify-class data pipeline (v3)** — `/settings/data`: self-describing CSV export (per-account selection + context), round-trip reimport (drop/create/move across accounts by editing the export), expenses/income history CSV both ways, Monzo-preset bulk bank import with column mapping, and a background job queue for big files (sealed at rest).
+
+**Reports, dated like papers (v3)** — `/overview/reports`: separate dated reports in a science-paper structure (abstract/method/findings) — net-worth trajectory, savings rate & runway, interest vs PSA, credit strategy, spending profile, debt horizon, income vs deposits. ASCII render mode included.
+
+**A tools wing (v3)** — `/tools`: rate-change what-if, overpayment simulator, ISA optimiser, compound projector, stooze calculator, FI milestone projector — each a full sub-page over your live data.
+
+**Bills from evidence (v3)** — `/overview/bills`: recurring payments detected from actual transactions (≥3 occurrences, monthly cadence), with an *emerging* watchlist at two occurrences — no bill list to maintain.
+
+**Budgets, alerts, routine** — month budgets with pace/burn-down and amendments; severity-laned alerts; a monthly review routine with streaks.
+
 ---
 
 ## Project Structure
@@ -41,13 +53,16 @@ src/
 │   ├── utils/         # Shared utilities
 │   └── validation/    # Form validation rules
 ├── routes/
-│   ├── (auth)/        # Login, register, MFA setup
-│   ├── accounts/      # Account management
-│   ├── goals/         # Goal tracking
-│   ├── snapshots/     # Net worth snapshots
-│   └── settings/      # Profile, security, data
+│   ├── (auth)/        # Login, register, recovery
+│   ├── accounts/      # Accounts, interest, ISA, liabilities
+│   ├── goals/         # Goal tracking (savings + debt payoff)
+│   ├── overview/      # Snapshots, budgets, expenses, bills, reports, tax, routine
+│   ├── tools/         # Calculator sub-pages (registry-driven)
+│   └── settings/      # General, profile & session, security, data pipeline
 └── hooks.server.ts    # Auth middleware, rate limiting
 ```
+
+Extension surfaces (v3): reports live in `src/lib/server/reports-v2.ts` (one builder per paper), tools in `src/lib/utils/tool-registry.ts` — a new entry in either appears in the ⌘K palette automatically (a sync test pins the mirror).
 
 ---
 
