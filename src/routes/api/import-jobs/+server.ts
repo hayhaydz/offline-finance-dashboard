@@ -18,7 +18,12 @@ export const GET: RequestHandler = async ({ locals }) => {
 	try {
 		void runImportWorker();
 		const jobs = await listImportJobs(locals.user.id);
-		return json({ jobs });
+		// no-store: this is a polling endpoint — a cached list would show
+		// stale job states between polls
+		return json(
+			{ jobs },
+			{ headers: { "Cache-Control": "no-store" } },
+		);
 	} catch (err) {
 		logError("api:import-jobs", "Listing import jobs failed", err);
 		return json({ jobs: [], error: "Could not list jobs" }, { status: 500 });
