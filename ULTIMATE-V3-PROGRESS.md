@@ -36,6 +36,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-30 20:07:17 GMT | 2026-10-30 20:16:40 GMT | 0h 09m | R-H15 emerging-bills watchlist (detector + page + 9 tests); fixture typing lessons; VERSION_HISTORY save point |
 | 2026-10-30 20:16:40 GMT | 2026-10-30 20:31:00 GMT | 0h 14m | Perf/lighthouse navigation 100s; history-kind select labelled; release-doc sweep-9 section; R-H1 closed; vision round 3 (4 surfaces) + snapshot currency-format fix |
 | 2026-10-30 20:31:00 GMT | 2026-10-30 20:44:20 GMT | 0h 13m | j/k list-nav on reports+tools indexes (live-verified walk+aria-current); Netflix emerging-candidate seed fixture; snapshot single-format committed |
+| 2026-10-30 20:44:20 GMT | 2026-10-30 20:51:11 GMT | 0h 07m | Vision round 4 (forms clean, 1 P1 rejected via DOM measurement); error-page back-link test; README v3 surfaces; import-jobs engine read (solid); R-H16 overpay-or-save tool (math+registry+route+8 tests); 1085/1085 |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -367,6 +368,8 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 - R-H15 emerging-bills watchlist: detectEmergingPatterns (exactly-2 occurrence groups, ±10% pair mean, one 28–35d gap → "one more confirms") + EMERGING section on /overview/bills; emerging-only data shows a bridge message instead of the bare empty state. ev: 6 unit tests (incl. 3-occurrence NOT emerging, boundary ±10%) + 3 SSR render tests; live dev data has no qualifying pairs (patternCount/emerging both 0 via __data.json — honest classic empty state renders); re-seed deferred (would wipe live dev DB mid-session); commits `7784e4b`+`b5c3740`+`22c6400`
 - GOTCHA recorded: svelte/server render wants `{ props: … }` wrapping AND full PageData shape (layout user/environment ride along); `npm run check` printed errors while the shell chain still advanced — always grep for "Error", never trust chain continuation.
 - Full suite after R-H15: 1080/1080 expected — verify at next gate (bills 3 + emerging 6 + savings-flags 3 + palette-sync 6 + page-title 5 added since 1059 baseline… actual count at gate).
+
+- R-H16 "Overpay or save?" tool (7th): overpayVsSave math in tool-math (net savings rate = gross×(1−band) or gross in ISA; advantage = APR−net; per-£1k/yr + first-year-on-extra, simple no-compounding, stated in UI) + ToolOverpaySave component (seeded from best recorded savings rate + real debt goals) + registry + route + palette (auto via TOOL_COMMANDS). ev: 4 hand-computed tests (2 of MY expectations were 10× off — engine correct, B05 pattern repeats); live 7 rows, arithmetic exact (21.90% vs 3.00% net → +£189.00/£1k ✓; 0% Rewards Card → save wins −£30 ✓); commit `a3b30ef`; suite 1085/1085 (152 files)
 
 ## Notes for next iteration
 - **STATE: R1–R28 ALL [x] · 5/5 R-H implemented · 8 sweeps (0–7) done · check 0/0 · 1052/1052 · build green.** Remaining for Definition-of-v3: (a) ledger ≥12h genuine work — currently ~3h (CORRECT, date-anchored rows only) — the gate CANNOT be met yet, so NO stop file; (b) final full-app audit finding zero open P0/P1 (tonight's surfaces are clean; re-audit everything fresh next blocks); (c) docs/dev/ultimate-3.0-release.md changelog+runbook (final-gate item).
