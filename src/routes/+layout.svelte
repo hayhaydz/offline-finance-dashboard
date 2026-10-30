@@ -54,6 +54,7 @@
 <div class="app-shell border border-black max-w-none mx-0 w-full h-[calc(100vh-1rem)] flex flex-col overflow-hidden">
 	<!-- skip link: first tab stop, visible only on keyboard focus -->
 	<a href="#main-content" class="skip-link bracket-link text-xs">Skip to content</a>
+	<!-- v3 R16-class fix: text WITHOUT literal brackets — bracket-link CSS supplies them (was rendering [[Skip to content]]) -->
 	{#if user}
 		<!-- .no-print: chrome strip stays on screen only (print/PDF rule) -->
 		<div class="bg-black text-white p-1 font-bold text-xs flex items-center gap-4 no-print">
