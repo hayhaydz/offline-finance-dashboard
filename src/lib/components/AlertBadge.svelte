@@ -65,7 +65,7 @@
 	>
 		<div class="flex gap-2 items-center min-w-0">
 			<span class="font-bold shrink-0 {severityText}">{prefix}</span>
-			<span class="font-bold min-w-0 truncate">
+			<span class="font-bold min-w-0 truncate" title={alert.title}>
 				{#if directionIcon}
 					<span class="{severityText} mr-0.5">{directionIcon}</span>
 				{/if}
@@ -75,7 +75,7 @@
 				<span class="text-xs border border-current px-1 shrink-0 {alert.accountCategory === 'liability' ? 'text-red-700 border-red-300' : 'text-zinc-600 border-zinc-300'}">{typeLabel}</span>
 			{/if}
 			{#if alert.accountName}
-				<span class="text-zinc-600 text-xs truncate">— {alert.accountName}</span>
+				<span class="text-zinc-600 text-xs truncate" title={alert.accountName}>— {alert.accountName}</span>
 			{/if}
 			{#if isAcked}
 				<span class="text-[10px] text-zinc-600 border border-zinc-300 px-1 shrink-0">ACKED</span>

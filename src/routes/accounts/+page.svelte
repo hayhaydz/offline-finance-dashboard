@@ -417,7 +417,7 @@
 					<tr class="border-b border-black">
 						<th colspan="9" scope="colgroup" class="pl-3 py-1 bg-gray-100 font-bold text-xs uppercase text-left">
 							{formatAccountType(section.type)}
-							<span class="font-normal text-gray-600"> ({section.open.length + section.closed.length})</span>
+							<span class="font-normal text-gray-600"> ({section.open.length} open{section.closed.length > 0 ? ` + ${section.closed.length} closed` : ''})</span>
 						</th>
 					</tr>
 					{#each section.open as account (account.id)}
