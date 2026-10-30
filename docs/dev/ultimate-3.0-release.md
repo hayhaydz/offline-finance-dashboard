@@ -63,6 +63,18 @@
 - Amber contrast pass app-wide (amber-600 → 700, 4.19:1 → 5.13:1 AA).
 - Chart audit (R31): layerchart 2.8.1 remains the interactive layer (HistoryTrendChart); the 12 terminal charts stay hand-rolled print-safe SSR SVG by design; deferred chart P2s fixed (all-point ticks ≤6 snapshots, marker legend, wide-mode padding).
 
+### Cross-cutting (sweep 9, 2026-10-30 evening) — harvest + accessibility closure
+- Semantic headings: section bands are h2s, NET WORTH the page h1 (a11y tree gains structure; visuals unchanged).
+- K-palette mirrors the v3 registries: one command per report paper and tool sub-page, plus Bills and Data Management entries; a sync test pins the report mirror (caught two title drifts on its first run).
+- Report papers gain prev/next related-reading nav; registry 404 pages gain a contextual way back ([All Tools]/[All Reports]).
+- Per-page document titles (`OFFLINE-FINANCE — SECTION · ...`) via a pure path→title util + static meta description; the title-less app was a lighthouse document-title failure.
+- Lighthouse accessibility swept to **100 on every audited route**: unnamed buttons/selects/sliders fixed (including two empty-label state buttons and a button with no label in any state), heatmap + accounts-group table header semantics (th/scope), zinc-on-tinted contrast bumps, TerminalRadio aria-disabled + 24px targets, snapshot-create heading order.
+- Bills watchlist (emerging patterns): exactly-two-occurrence monthly pairs render as `EMERGING — one more confirms` candidates — the page is useful before the 3-occurrence threshold.
+- Savings-rate report: worst/best flags follow the legend's threshold scale (was rank-based red), plus the promised RUNWAY section (liquid ÷ declared spend).
+- Bracket-convention regression net hardened twice (template-literal labels, always-empty ternaries) — each new form caught real relapses on first run.
+- Vision rounds with DOM adjudication: glyph misreads + contrast claims + one hallucinated table row rejected with source/computed-style evidence; real finds fixed (alert hover titles, group counts, expenses fund values, stooze empty state, routine CTA dedupe).
+- Fresh full-app audit: **55/55 routes clean** (0 console errors, 0 5xx, zero text bugs); navigation-mode lighthouse 100 across a11y/best-practices/SEO/agentic on home and the data page.
+
 ## Runbook
 
 ```bash
