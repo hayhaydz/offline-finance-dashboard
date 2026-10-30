@@ -397,6 +397,20 @@
         "daysAgo": 10,
         "description": "Internet",
         "categoryKey": "bills"
+      },
+      {
+        "type": "withdrawal",
+        "amount": -999,
+        "daysAgo": 40,
+        "description": "Netflix",
+        "categoryKey": "entertainment"
+      },
+      {
+        "type": "withdrawal",
+        "amount": -999,
+        "daysAgo": 10,
+        "description": "Netflix",
+        "categoryKey": "entertainment"
       }
     ]
   },
