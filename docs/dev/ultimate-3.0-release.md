@@ -74,6 +74,7 @@
 - Bracket-convention regression net hardened twice (template-literal labels, always-empty ternaries) — each new form caught real relapses on first run.
 - Vision rounds with DOM adjudication: glyph misreads + contrast claims + one hallucinated table row rejected with source/computed-style evidence; real finds fixed (alert hover titles, group counts, expenses fund values, stooze empty state, routine CTA dedupe).
 - Fresh full-app audit: **55/55 routes clean** (0 console errors, 0 5xx, zero text bugs); navigation-mode lighthouse 100 across a11y/best-practices/SEO/agentic on home and the data page.
+- Payoff-interest fix: both payoff engines and the debt page billed the final partial month as a whole payment (`payment × ceil(months) − balance`), overstating interest — and for large payments inverting "faster costs less" (£450 @ 21.9%: min-only £125 vs on-pace £187 before; £100.50 vs £10.76 after). Month-by-month simulation replaces the closed form; invariant regression test added.
 
 ## Runbook
 
