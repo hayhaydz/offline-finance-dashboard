@@ -71,7 +71,7 @@
 <!-- NET WORTH SECTION -->
 <div class="border-b border-black p-2">
 	<div class="flex justify-between my-1 items-center">
-		<span class="text-lg font-bold">NET WORTH</span>
+		<h1 class="text-lg font-bold m-0">NET WORTH</h1>
 		<div class="flex items-center gap-3">
 			{#if trend.length > 1}
 				<NetWorthSparkline points={trend} />
