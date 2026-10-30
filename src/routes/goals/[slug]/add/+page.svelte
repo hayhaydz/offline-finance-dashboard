@@ -204,7 +204,7 @@
 				{#each previewRows as row (row.accountId)}
 					<div class="flex justify-between text-xs mb-1">
 						<span>{row.name}</span>
-						<span class="text-green-700">+{formatCurrency(row.amountCents)}</span>
+						<span class="text-green-800">+{formatCurrency(row.amountCents)}</span>
 					</div>
 				{/each}
 			{:else}
@@ -212,7 +212,7 @@
 			{/if}
 			<div class="flex justify-between text-xs pt-1 mt-1 border-t border-dotted border-gray-500">
 				<strong>Total Adding</strong>
-				<strong class="text-green-700">+{formatCurrency(totalAddingCents)}</strong>
+				<strong class="text-green-800">+{formatCurrency(totalAddingCents)}</strong>
 			</div>
 		</div>
 	</div>
