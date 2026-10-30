@@ -24,6 +24,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 23:10:23 GMT | 2026-10-29 23:17:00 GMT | 0h 07m | Sweep 6 B14+B15 COMPLETE: bills page + income-vs-deposits report; anonymiser verified; runbook §9; suite 1051/1051 |
 | 2026-10-29 23:17:01 GMT | 2026-10-29 23:21:33 GMT | 0h 05m | Sweep 7 harvest: R-H2+R-H3 (report grid + ascii toggle), R-H5 (tax 3-up), R-H8 (amber AA); badge-count mismatch disproven |
 | 2026-10-29 23:21:34 GMT | 2026-10-29 23:27:09 GMT | 0h 06m | Sweep 7 vision re-audit: report grid P0 + monotonic-label P1 + ascii width fixed; suite 1052/1052; build green |
+| 2026-10-30 08:39:20 GMT | 2026-10-30 08:55:22 GMT | 0h 16m | Sweep 8 open: R31 audit+chart fixes, release doc, R29 account detail, double-bracket residue fixed |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -314,6 +315,14 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b01-home-1600.png | No P0/P1; "spans the full viewport width (no narrow centered column)". Claim of `[[⌘K]]` double-bracket REJECTED — DOM: text `⌘K` + one pseudo `[`/`]` (known vision glyph misread) |
 | 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b02-bento-1600.png | (zai-vision; vmodel 1305 ×2) P1: dead gap between cells (REAL — my max-w cap), [[SVG]]/[[PNG]] double brackets (REAL — ChartPanel literal brackets), caption delta wrong (REJECTED — vision misread padded y-max label as data point). P2s: ragged bottoms (REAL), chart too tall (REAL), tick spacing/markers (→ R31) |
 | 2026-10-29 | .docs/reviews/2026-10-29-1916-ultimate-v3-audit/v3-b02-bento-fixed-1600.png | (zai-vision; vmodel 1305 ×3 exhausted) 3/4 prior defects verified fixed; ragged-bottom claim re-checked via DOM: panels aligned 269/269 after h-full fix; P2-3 "goals" noun copy bug REAL → fixed same unit |
+
+### Sweep 8 (2026-10-30 morning session)
+- .gitignore storage/backups committed (overnight session's uncommitted tail). ev: check 0/0 + 1052/1052 re-verified on resume
+- R31 COMPLETE (audit disposition): layerchart stays the interactive layer; 12 terminal charts stay hand-rolled BY DESIGN (print-safe SSR + deterministic + test-pinned); deferred NetWorthChart P2s fixed (all-point ticks ≤6, marker legend, wide padding). ev: commit `720f033`; 17 chart tests green
+- docs/dev/ultimate-3.0-release.md written (changelog + runbook, v2 format, factual from block records). ev: commit `ee5b742`
+- R29 account detail: strategy+splits paired 2/3 (panic cards), balances+notes paired 3/2; transactions/interest rates stay full-width. ev: commit `c3c8ad7`; live grids [622,936]+[936,622], console 0 err / 0 5xx
+- Vision re-audit of account detail: strategy/splits row clean (equal heights, no doubling); balances/notes below-fold in shot (DOM-verified 936/622); amber contrast claim REJECTED (measured 5.13:1 AA in R-H8); `[[Add Rate]]`/`[[Delete]]` double brackets CONFIRMED REAL via DOM (R-H4 sweep misses) → fixed app-wide on account components (InterestRates/Notes/Transactions/ConfirmModal) + ConfirmModal labels restored correctly after over-reach (empty-button a11y warnings caught by check and fixed same unit). ev: commits `53f0b3d`+`c614ae8`; live doubleBracketButtons:[] 
+- Gotcha: after dev-server restart the keyring seals — expect /unlock ceremony before CDP verification (password unlock flow verified working).
 
 ## Notes for next iteration
 - **STATE: R1–R28 ALL [x] · 5/5 R-H implemented · 8 sweeps (0–7) done · check 0/0 · 1052/1052 · build green.** Remaining for Definition-of-v3: (a) ledger ≥12h genuine work — currently ~3h (CORRECT, date-anchored rows only) — the gate CANNOT be met yet, so NO stop file; (b) final full-app audit finding zero open P0/P1 (tonight's surfaces are clean; re-audit everything fresh next blocks); (c) docs/dev/ultimate-3.0-release.md changelog+runbook (final-gate item).
