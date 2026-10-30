@@ -249,6 +249,22 @@ background jobs.
    (`scripts/anonymise.ts`) — it aborts on drift by design.
 5. Update `scripts/seed.ts` in the same unit if the seed data is affected.
 
+### Command palette mirror (⌘K)
+
+- Tools enter the palette automatically (`TOOL_COMMANDS` derives from the
+  tool registry — single source).
+- Reports are mirrored by hand in `src/lib/utils/command-palette.ts`
+  (`REPORT_MIRROR`) because the server registry imports server-only
+  engines; `tests/unit/palette-registry-sync.test.ts` fails the suite on
+  any drift (slug or title) in either direction. Caught two real drifts
+  on its first run.
+
+### Document titles
+
+- `src/lib/utils/page-title.ts` maps pathnames → `OFFLINE-FINANCE — …`
+  titles (root layout renders them). New route segments need a label in
+  `SEGMENT_LABELS` or long unknown segments render as `DETAIL`.
+
 ### Gotchas recorded by the v3 loop
 
 - SQLite `CURRENT_TIMESTAMP` defaults are TEXT — drizzle's integer
