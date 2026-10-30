@@ -3,6 +3,7 @@ import {
 	BAND_RATE_PCT,
 	compoundSeries,
 	isaMoveTaxSavedPence,
+	overpayVsSave,
 	projectMilestones,
 	simulatePayoff,
 	stoozeCalculation,
@@ -336,5 +337,62 @@ describe("projectMilestones", () => {
 			}),
 		).toEqual([]);
 		expect(projectMilestones({ history: [{ date: "2026-01-01", netWorthInCents: 1 }] })).toEqual([]);
+	});
+});
+
+describe("overpayVsSave (R-H16)", () => {
+	it("taxable basic-band saving nets 80% of gross", () => {
+		// £1,000 debt at 5% vs 4.5% gross savings taxed at 20% → net 3.6%
+		// advantage 140bps → £14/yr per £1,000; £100/mo extra → £168 first year
+		const r = overpayVsSave({
+			aprBasisPoints: 500,
+			savingsRateBasisPoints: 450,
+			inIsa: false,
+			bandRatePercent: 20,
+			extraMonthlyPence: 10_000,
+		});
+		expect(r.netSavingsBasisPoints).toBe(360);
+		expect(r.advantageBasisPoints).toBe(140);
+		expect(r.benefitPer1000Pence).toBe(1400);
+		expect(r.firstYearBenefitPence).toBe(1_680);
+	});
+
+	it("ISA keeps the gross rate", () => {
+		const r = overpayVsSave({
+			aprBasisPoints: 350,
+			savingsRateBasisPoints: 450,
+			inIsa: true,
+			bandRatePercent: 40,
+			extraMonthlyPence: 0,
+		});
+		expect(r.netSavingsBasisPoints).toBe(450);
+		expect(r.advantageBasisPoints).toBe(-100);
+		expect(r.benefitPer1000Pence).toBe(-1000);
+	});
+
+	it("higher band: 40% tax on interest", () => {
+		const r = overpayVsSave({
+			aprBasisPoints: 400,
+			savingsRateBasisPoints: 400,
+			inIsa: false,
+			bandRatePercent: 40,
+			extraMonthlyPence: 50_000,
+		});
+		expect(r.netSavingsBasisPoints).toBe(240);
+		expect(r.advantageBasisPoints).toBe(160);
+		expect(r.firstYearBenefitPence).toBe(9_600);
+	});
+
+	it("degrades on negative inputs", () => {
+		const r = overpayVsSave({
+			aprBasisPoints: -5,
+			savingsRateBasisPoints: -4,
+			inIsa: false,
+			bandRatePercent: 20,
+			extraMonthlyPence: -1,
+		});
+		expect(r.netSavingsBasisPoints).toBe(0);
+		expect(r.advantageBasisPoints).toBe(0);
+		expect(r.firstYearBenefitPence).toBe(0);
 	});
 });

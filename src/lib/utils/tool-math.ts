@@ -282,3 +282,45 @@ export function projectMilestones(params: {
 	}
 	return out;
 }
+
+export interface OverpayVsSaveResult {
+	/** savings rate after tax on interest (bps); ISA = gross */
+	netSavingsBasisPoints: number;
+	/** debt APR minus net savings rate (bps) — positive means overpaying wins */
+	advantageBasisPoints: number;
+	/** yearly benefit of overpaying vs saving, per £1,000 (pence, simple, no compounding) */
+	benefitPer1000Pence: number;
+	/** first-year benefit of directing `extraMonthlyPence` to the debt instead of savings (pence) */
+	firstYearBenefitPence: number;
+}
+
+/**
+ * Overpay-or-save (v3 R-H16): overpaying a debt "earns" the APR
+ * risk-free and tax-free (interest never charged); saving earns the
+ * gross rate taxed as interest at the marginal band (unless ISA).
+ * Simple one-year approximation, no compounding — stated in the UI.
+ */
+export function overpayVsSave(params: {
+	aprBasisPoints: number;
+	savingsRateBasisPoints: number;
+	inIsa: boolean;
+	/** marginal income-tax rate as a percent (20/40/45) */
+	bandRatePercent: number;
+	extraMonthlyPence: number;
+}): OverpayVsSaveResult {
+	const apr = Math.max(0, finite(params.aprBasisPoints));
+	const gross = Math.max(0, finite(params.savingsRateBasisPoints));
+	const net = params.inIsa
+		? gross
+		: Math.round(gross * (1 - Math.min(100, Math.max(0, finite(params.bandRatePercent))) / 100));
+	const advantage = apr - net;
+	const benefitPer1000 = Math.round((advantage / 10_000) * 100_000);
+	const extraYear = Math.max(0, finite(params.extraMonthlyPence)) * 12;
+	const firstYear = Math.round((advantage / 10_000) * extraYear);
+	return {
+		netSavingsBasisPoints: net,
+		advantageBasisPoints: advantage,
+		benefitPer1000Pence: benefitPer1000,
+		firstYearBenefitPence: firstYear,
+	};
+}

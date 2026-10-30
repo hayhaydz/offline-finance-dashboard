@@ -1,6 +1,7 @@
 <script lang="ts">
 	import ToolCompound from "$lib/components/tools/ToolCompound.svelte";
 	import ToolFiProjector from "$lib/components/tools/ToolFiProjector.svelte";
+	import ToolOverpaySave from "$lib/components/tools/ToolOverpaySave.svelte";
 	import ToolIsaOptimiser from "$lib/components/tools/ToolIsaOptimiser.svelte";
 	import ToolOverpayment from "$lib/components/tools/ToolOverpayment.svelte";
 	import ToolRateWhatIf from "$lib/components/tools/ToolRateWhatIf.svelte";
@@ -56,6 +57,8 @@
 			<ToolStooze cards={data.cards} />
 		{:else if data.tool.slug === "fi-projector"}
 			<ToolFiProjector history={data.netWorthHistory} />
+		{:else if data.tool.slug === "overpay-or-save"}
+			<ToolOverpaySave data={data.toolsData} />
 		{/if}
 	</div>
 </div>

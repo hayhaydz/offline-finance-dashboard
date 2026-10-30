@@ -37,7 +37,7 @@ describe("Tools index (R13)", () => {
 				},
 			},
 		});
-		expect(body).toContain("6 TOOLS");
+		expect(body).toContain("7 TOOLS");
 		for (const tool of TOOLS) {
 			expect(body).toContain(tool.name);
 			expect(body).toContain(`href="/tools/${tool.slug}"`);

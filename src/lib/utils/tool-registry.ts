@@ -37,6 +37,11 @@ export const TOOLS: ToolMeta[] = [
 		name: "Milestone projector",
 		blurb: "When the next £10k…£1M net-worth crossings happen at the current slope.",
 	},
+	{
+		slug: "overpay-or-save",
+		name: "Overpay or save?",
+		blurb: "Whether extra money beats the debt's APR or the net (after-tax) savings rate.",
+	},
 ];
 
 export function findTool(slug: string): ToolMeta | undefined {
