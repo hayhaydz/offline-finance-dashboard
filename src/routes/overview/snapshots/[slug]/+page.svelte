@@ -111,6 +111,10 @@
 		GOALS ({goalsBreakdown.goals.length})
 	</div>
 	<div class="p-2">
+		<p class="text-[10px] text-gray-600 mb-2">
+			Allocations are money assigned to goals — not account balances. A goal
+			and an account can share a name without their figures matching.
+		</p>
 		{#each goalsBreakdown.goals as goal}
 			<div class="text-xs flex justify-between py-1 border-b border-gray-200 last:border-0">
 				<span>{truncateDisplay(goal.name, DISPLAY_LIMITS.GOAL_NAME)}{goal.goalType === 'debt' ? ' [DEBT]' : ''}</span>
