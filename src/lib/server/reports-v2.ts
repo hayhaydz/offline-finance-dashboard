@@ -885,18 +885,20 @@ async function buildRateShop(userId: number): Promise<ReportDoc> {
 	const lagging = withData.filter(
 		(r) => r.rateBps < (bestByWrapper.get(r.wrapper) ?? 0),
 	);
-	const leftOnTable = lagging.reduce(
-		(sum, r) =>
-			sum + Math.round((r.balanceInCents * ((bestByWrapper.get(r.wrapper) ?? 0) - r.rateBps)) / 10_000),
-		0,
-	);
+	const forgone = (r: (typeof withData)[number]) =>
+		Math.round((r.balanceInCents * ((bestByWrapper.get(r.wrapper) ?? 0) - r.rateBps)) / 10_000);
+	const leftOnTable = lagging.reduce((sum, r) => sum + forgone(r), 0);
+	// Actionable now: instant/delayed liquidity only — locked terms wait
+	// for renewal (vision P1: the abstract must not promise locked money).
+	const movable = lagging.filter((r) => r.liquidity !== "locked");
+	const movableTotal = movable.reduce((sum, r) => sum + forgone(r), 0);
 
 	return {
 		slug: "rate-shop",
 		title: "Rate Shop — Your Own Best Rates",
 		date,
 		abstract: lagging.length
-			? `${lagging.length} of ${withData.length} savings ${lagging.length === 1 ? "account holds" : "accounts hold"} deposits below your own best same-wrapper rate — moving them inside accounts you already hold would add ~${formatCurrency(leftOnTable)} a year.`
+			? `${lagging.length} of ${withData.length} savings ${lagging.length === 1 ? "account holds" : "accounts hold"} deposits below your own best same-wrapper rate — ~${formatCurrency(movableTotal)} a year is movable today${leftOnTable - movableTotal > 0 ? `, plus ~${formatCurrency(leftOnTable - movableTotal)} more when fixed terms renew` : ""}.`
 			: `Every savings deposit already earns its wrapper's best recorded rate — ${withData.length} account${withData.length !== 1 ? "s" : ""} checked, nothing left on the table.`,
 		method: [
 			"Data: open savings accounts, current effective rate per account (latest interest_rates row), balances from the latest snapshot breakdown",
@@ -924,10 +926,11 @@ async function buildRateShop(userId: number): Promise<ReportDoc> {
 				heading: "Left on the table",
 				rows: [
 					{ label: "accounts below best", value: `${lagging.length} of ${withData.length}` },
-					{ label: "yearly interest forgone (approx)", value: formatCurrency(leftOnTable), flag: leftOnTable > 0 ? ("amber" as const) : ("green" as const) },
+					{ label: "movable now (instant/delayed)", value: `${movable.length} · ~${formatCurrency(movableTotal)}/yr`, flag: movableTotal > 0 ? ("amber" as const) : ("green" as const) },
+					{ label: "yearly interest forgone (approx, all)", value: formatCurrency(leftOnTable) },
 				],
 				notes: [
-					"Fixed-term accounts cannot be switched mid-term — liquidity is shown per account; treat locked rows as 'at next renewal'.",
+					"Fixed-term (locked) accounts cannot be switched mid-term — their share arrives at next renewal, which is why movable-now is split out above.",
 					"Rates are the ones you recorded; the shop only compares against products you already hold (no market data).",
 				],
 			},
