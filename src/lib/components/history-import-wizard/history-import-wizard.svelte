@@ -138,7 +138,7 @@
 			<div class="border border-black bg-gray-50 p-2 mb-2">
 				<div class="flex flex-nowrap items-center gap-2 mb-2">
 					<span>target</span>
-					<select bind:value={kind} class="border border-black px-1">
+					<select bind:value={kind} aria-label="History kind" class="border border-black px-1">
 						<option value="expenses">expenses history</option>
 						<option value="income">income history</option>
 					</select>
