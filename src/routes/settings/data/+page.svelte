@@ -7,6 +7,8 @@
 	import ImportJobsPanel from "$lib/components/import-jobs-panel/import-jobs-panel.svelte";
 	import ImportWizard from "$lib/components/import-wizard/import-wizard.svelte";
 	import ReimportWizard from "$lib/components/reimport-wizard/reimport-wizard.svelte";
+	import SectionHeader from "$lib/components/SectionHeader.svelte";
+	import { SettingsSectionNav } from "$lib/components/ui/index";
 	import { formatCurrency } from "$lib/utils/currency";
 
 	type RefundCandidate = {
@@ -86,10 +88,20 @@
 </script>
 
 <main>
-	<section>
-		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-			<span>SETTINGS / DATA MANAGEMENT</span>
-		</div>
+	<!-- v3 R-H12-adjacent: anchor nav across the pipeline sections
+	     (same affordance as /settings/profile) -->
+	<SettingsSectionNav sections={[
+		{ id: 'data-import', label: 'Import' },
+		{ id: 'data-export', label: 'Export' },
+		{ id: 'data-history', label: 'History' },
+		{ id: 'data-reimport', label: 'Reimport' },
+		{ id: 'data-bulk', label: 'Bulk' },
+		{ id: 'data-jobs', label: 'Jobs' },
+		{ id: 'data-refunds', label: 'Refunds' }
+	]} />
+
+	<section id="data-import" style="scroll-margin-top: 2.5rem;">
+		<SectionHeader title="SETTINGS / DATA MANAGEMENT" />
 
 		<ImportWizard
 			accounts={data.accounts}
@@ -98,45 +110,33 @@
 		/>
 	</section>
 
-	<section class="border-t border-black">
-		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-			<span>CSV EXPORT — SELECT WHAT TO EXPORT</span>
-		</div>
+	<section id="data-export" class="border-t border-black" style="scroll-margin-top: 2.5rem;">
+		<SectionHeader title="CSV EXPORT — SELECT WHAT TO EXPORT" />
 		<ExportPanel accounts={data.accounts} />
 	</section>
 
-	<section class="border-t border-black">
-		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-			<span>HISTORY CSV — EXPENSES / INCOME MONTHS</span>
-		</div>
+	<section id="data-history" class="border-t border-black" style="scroll-margin-top: 2.5rem;">
+		<SectionHeader title="HISTORY CSV — EXPENSES / INCOME MONTHS" />
 		<HistoryImportWizard {form} />
 	</section>
 
-	<section class="border-t border-black">
-		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-			<span>CSV REIMPORT — EDIT / DELETE / RESTORE</span>
-		</div>
+	<section id="data-reimport" class="border-t border-black" style="scroll-margin-top: 2.5rem;">
+		<SectionHeader title="CSV REIMPORT — EDIT / DELETE / RESTORE" />
 		<ReimportWizard {form} />
 	</section>
 
-	<section class="border-t border-black">
-		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-			<span>BULK BANK IMPORT — MONZO / MAPPED COLUMNS</span>
-		</div>
+	<section id="data-bulk" class="border-t border-black" style="scroll-margin-top: 2.5rem;">
+		<SectionHeader title="BULK BANK IMPORT — MONZO / MAPPED COLUMNS" />
 		<BulkImportWizard accounts={data.accounts} {form} />
 	</section>
 
-	<section class="border-t border-black">
-		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-			<span>IMPORT JOBS — BACKGROUND QUEUE</span>
-		</div>
+	<section id="data-jobs" class="border-t border-black" style="scroll-margin-top: 2.5rem;">
+		<SectionHeader title="IMPORT JOBS — BACKGROUND QUEUE" />
 		<ImportJobsPanel />
 	</section>
 
-	<section class="border-t border-black">
-		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-			<span>REFUND RECLASSIFICATION</span>
-		</div>
+	<section id="data-refunds" class="border-t border-black" style="scroll-margin-top: 2.5rem;">
+		<SectionHeader title="REFUND RECLASSIFICATION" />
 		<div class="p-2 text-xs">
 			<p class="text-gray-600 mb-2">
 				Historical card refunds were recorded as <span class="font-mono">value_change</span> before the
