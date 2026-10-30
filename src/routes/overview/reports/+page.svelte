@@ -24,7 +24,9 @@
 	}
 </script>
 
-<div class="p-3 max-w-6xl">
+<!-- R-H3/R29 consistency: full-width like the papers (was max-w-6xl —
+     left a 27% dead zone at 1600px) -->
+<div class="p-3">
 	<header class="flex justify-between items-baseline mb-1">
 		<h1 class="text-lg font-bold">Reports</h1>
 		<span class="text-xs text-gray-500">{displayDate(data.today)} · {data.reports.length} PIECES</span>
