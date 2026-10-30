@@ -57,4 +57,5 @@
 			</a>
 		{/each}
 	</div>
+	<p class="text-[10px] text-gray-600 mt-1">j / k walks the list · Enter opens the selected report · Esc clears</p>
 </div>
