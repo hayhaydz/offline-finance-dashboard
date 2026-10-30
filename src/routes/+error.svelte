@@ -28,6 +28,16 @@
 		};
 	});
 
+	// Contextual way back for registry 404s ("No such tool/report") —
+	// generic [Go Home] works, but the index link is what the user wants
+	const contextualBack = $derived.by(() => {
+		const p = page.url.pathname;
+		if (p.startsWith("/tools")) return { href: "/tools", label: "All Tools" };
+		if (p.startsWith("/overview/reports")) return { href: "/overview/reports", label: "All Reports" };
+		if (p.startsWith("/overview/snapshots")) return { href: "/overview/snapshots", label: "All Snapshots" };
+		return null;
+	});
+
 	// Function to reload the page
 	function reload() {
 		window.location.reload();
@@ -60,6 +70,11 @@
 	{/if}
 
 	<div class="flex gap-2">
+		{#if contextualBack}
+			<a href={contextualBack.href} class="bracket-link">
+				{contextualBack.label}
+			</a>
+		{/if}
 		<button onclick={reload} class="bracket-link">
 			Reload Page
 		</button>
