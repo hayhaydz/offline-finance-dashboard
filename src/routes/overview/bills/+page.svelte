@@ -112,6 +112,12 @@
 							<td class="px-1 py-0.5 text-amber-700 font-bold">watching</td>
 						</tr>
 					{/each}
+					<tr class="bg-gray-50 border-t border-gray-300">
+						<td class="px-1 py-0.5 font-bold" colspan="3">if all confirm</td>
+						<td class="px-1 py-0.5 text-right tabular-nums font-bold">
+							+{formatCurrency(data.emerging.reduce((s, c) => s + c.amountPence, 0))}/mo
+						</td>
+					</tr>
 				</tbody>
 			</table>
 		</div>
