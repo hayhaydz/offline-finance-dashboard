@@ -9,11 +9,29 @@ import { describe, expect, it } from "vitest";
 import { render } from "svelte/server";
 import BillsPage from "../../src/routes/overview/bills/+page.svelte";
 
-const base = (over: Record<string, unknown> = {}) => ({
+type BillRow = {
+	description: string;
+	amountPence: number;
+	lastDate: string;
+	nextDate: string | null;
+};
+type EmergingRow = {
+	description: string;
+	amountPence: number;
+	firstDate: string;
+	lastDate: string;
+};
+
+const base = (over: Partial<{
+	patterns: BillRow[];
+	emerging: EmergingRow[];
+	monthlyTotalPence: number;
+	yearlyTotalPence: number;
+}> = {}) => ({
 	props: {
 		data: {
-			patterns: [],
-			emerging: [],
+			patterns: [] as BillRow[],
+			emerging: [] as EmergingRow[],
 			monthlyTotalPence: 0,
 			yearlyTotalPence: 0,
 			...over,
