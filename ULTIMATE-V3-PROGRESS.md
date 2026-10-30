@@ -66,7 +66,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | R28 | [x] | ev: runbook §9 v3 extension surfaces (registries, pipeline, schema path, gotchas); commit 3310fec |
 | R29 | [x] (home) | ev: commit a9a0d92; home converted to 3/2 two-column rows, DOM-verified 936/622px, vision "conversion succeeds". App-wide R29 continues per-block (B03/B04 next) |
 | R30 | [x] | ev: commits 307e48d+9f458e0+e0a77b8; untitled bento grid live (trend col-span-2 1041px / allocation col-span-1 517px, panels aligned 269/269), wide-aspect 900×180 chart, [+] expand cycle verified, vision re-review clean of prior P1s |
-| R31 | [ ] | ADDENDUM §9: all visualisations on best svelte viz packages (layerchart first; new deps need approval) |
+| R31 | [x] | AUDIT COMPLETE 2026-10-30: layerchart 2.8.1 confirmed the interactive layer (HistoryTrendChart pattern: client-only, mono-wrapped, series/tick config) and stays the designated library for new interactive axis charts. The 12 terminal charts stay hand-rolled BY DESIGN: print-safe static SSR SVG, deterministic, test-pinned, aesthetic-locked — migrating to a client-only measuring library would regress print+SSR for hover alone. Deferred chart P2s fixed in-unit (commit 720f033): all-point ticks ≤6 snapshots (no skipped months), marker-colour legend (■rise/■fall/■latest), wide-mode right padding. ev: 1052/1052 green incl. 17 chart tests |
 | R-H* | 5/5 done | R-H2 ascii toggle ✓ R-H3 findings grid+full-width ✓ R-H4 bracket sweep+net ✓ R-H5 tax 3-up ✓ R-H8 amber contrast ✓ (commits de46c48+1fe28c8+e09a288); R-H1 statement-backfill stays logged (speculative) |
 
 ## Block registry
