@@ -90,7 +90,7 @@
 			</div>
 			<div class="flex justify-between py-1 last:border-0">
 				<span class="text-gray-600">Total Allocated:</span>
-				<span>{formatCurrencyShorthand(data.preview.totalAllocated)}</span>
+				<span>{formatCurrencyShorthand(data.preview.totalAllocated, false)}</span>
 			</div>
 		</div>
 	</div>

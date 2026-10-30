@@ -247,11 +247,17 @@ export function formatDateRange(oldest: Date, newest: Date): string {
  * formatCurrencyShorthand(100000)  // => "£1k"
  * formatCurrencyShorthand(100)     // => "£1"
  */
-export function formatCurrencyShorthand(amountInPence: number): string {
+export function formatCurrencyShorthand(
+	amountInPence: number,
+	/** Compact "£Nk" collapse for exact thousands. Snapshot summary rows
+	 *  pass false — mixing "£4k" with "£246,749" in one table reads
+	 *  inconsistent (sweep-9 vision find, adjudicated real). */
+	compactThousands = true,
+): string {
 	const pounds = amountInPence / 100;
 
 	// Round thousands without pence: 200000 pence (£2,000) -> "£2k"
-	if (pounds >= 1000 && pounds % 1000 === 0) {
+	if (compactThousands && pounds >= 1000 && pounds % 1000 === 0) {
 		return `£${Math.floor(pounds / 1000)}k`;
 	}
 

@@ -78,7 +78,7 @@
       </div>
       <div class="flex justify-between py-1 last:border-0">
         <span class="text-gray-600">Total Allocated:</span>
-        <span>{formatCurrencyShorthand(data.snapshot.totalAllocatedInCents)}</span>
+        <span>{formatCurrencyShorthand(data.snapshot.totalAllocatedInCents, false)}</span>
       </div>
     </div>
   </div>
