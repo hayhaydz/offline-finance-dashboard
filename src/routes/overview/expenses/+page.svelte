@@ -175,7 +175,7 @@
 											{selectedMonth === cell.month ? 'bg-black text-white border-black' :
 												cell.amountInCents === null ? 'text-gray-500 border-transparent hover:border-black' :
 												'border-gray-300 hover:border-black'}"
-										title={cell.note ?? cell.month}
+										title={cell.amountInCents === null ? `${cell.month} — unknown (click to record)` : (cell.note ?? cell.month)}
 									>
 										{#if cell.amountInCents === null}
 											&middot;
@@ -195,6 +195,9 @@
 					{/each}
 				</tbody>
 			</table>
+			<p class="text-[10px] text-gray-600 mt-1">
+				&middot; = unknown month (click to record it) &middot; bold 0 = a known zero-expenses month
+			</p>
 		</div>
 
 		<!-- Single-month edit panel (sparse entry) -->
@@ -267,10 +270,17 @@
 			</div>
 
 			<ul class="text-gray-700 ml-4 mt-2">
-				<li><strong>1 month:</strong> expenses / 12</li>
-				<li><strong>3 months:</strong> expenses &times; 3 / 12</li>
-				<li><strong>6 months:</strong> expenses &times; 6 / 12</li>
-				<li><strong>12 months:</strong> expenses (full year)</li>
+				{#if data.latest}
+					<li><strong>1 month cover:</strong> {formatCurrency(data.latest.amountInCents)}</li>
+					<li><strong>3 months:</strong> {formatCurrency(data.latest.amountInCents * 3)}</li>
+					<li><strong>6 months:</strong> {formatCurrency(data.latest.amountInCents * 6)}</li>
+					<li><strong>12 months:</strong> {formatCurrency(data.latest.amountInCents * 12)}</li>
+				{:else}
+					<li><strong>1 month cover:</strong> latest monthly expenses</li>
+					<li><strong>3 months:</strong> latest &times; 3</li>
+					<li><strong>6 months:</strong> latest &times; 6</li>
+					<li><strong>12 months:</strong> latest &times; 12</li>
+				{/if}
 			</ul>
 
 			<p class="text-[10px] text-gray-600 mt-2 mb-0">

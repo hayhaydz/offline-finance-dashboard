@@ -14,9 +14,6 @@
 <!-- Header -->
 <div class="font-bold flex justify-between items-center bg-gray-100 border-b border-black p-2">
 	<span>MONTHLY REVIEW</span>
-	<a href="/overview/routine/{thisMonth}" class="bracket-link text-xs">
-		{thisMonth === (history[0]?.yearMonth ?? '') ? 'Continue' : 'Start'} {formatYearMonth(thisMonth)}
-	</a>
 </div>
 
 <!-- Streak banner -->
@@ -30,7 +27,7 @@
 		{/if}
 	</div>
 	{#if streak.lastActiveMonth}
-		<span class="text-xs text-gray-500">Last active: {formatYearMonth(streak.lastActiveMonth)}</span>
+		<span class="text-xs text-gray-500" title="A month counts as active when at least one item is ticked — partial months keep the streak alive">Last active: {formatYearMonth(streak.lastActiveMonth)}</span>
 	{/if}
 </div>
 

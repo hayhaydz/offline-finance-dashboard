@@ -4,6 +4,7 @@ import ToolsPage from "../../src/routes/tools/+page.svelte";
 import ToolSubPage from "../../src/routes/tools/[slug]/+page.svelte";
 import ToolRateWhatIf from "$lib/components/tools/ToolRateWhatIf.svelte";
 import ToolOverpayment from "$lib/components/tools/ToolOverpayment.svelte";
+import ToolStooze from "$lib/components/tools/ToolStooze.svelte";
 import { TOOLS } from "$lib/utils/tool-registry";
 import type { ToolsData } from "$lib/server/tools";
 
@@ -68,11 +69,21 @@ describe("Tool sub-pages (R13)", () => {
 		expect(body).toContain("Monzo Instant"); // component rendered
 	});
 
-	it("stooze sub-page renders the calculator", () => {
+	it("stooze sub-page asks for a promo date before projecting (sweep-9 empty state)", () => {
 		const { body } = renderSub("stooze");
 		expect(body).toContain("savings rate");
 		expect(body).toContain("revert APR");
-		expect(body).toContain("pay everything by");
+		// no promo date seeded (cards: []) → honest empty state, no zero table
+		expect(body).toContain("Set a promo end date");
+		expect(body).not.toContain("pay everything by");
+	});
+
+	it("stooze calculator exposes the date input that gates projection", () => {
+		const result = render(ToolStooze, { props: { cards: [] } });
+		// the date input drives the table client-side (live-verified);
+		// SSR pins that the input + empty state render
+		expect(result.body).toContain('type="date"');
+		expect(result.body).toContain("Set a promo end date");
 	});
 
 	it("fi-projector sub-page asks for more history when there is none", () => {
