@@ -43,6 +43,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-30 21:20:45 GMT | 2026-10-30 21:37:52 GMT | 0h 17m | Goals-engine code-read (clean); flake investigated (self-heals, documented); registry housekeeping; vision round 6 (4 index surfaces — 3 rejects w/ DOM+formula evidence, 1 density nudge); ledger row corrected to real timestamps |
 | 2026-10-30 21:37:52 GMT | 2026-10-30 21:48:43 GMT | 0h 11m | Vision round 7: debt-detail "inverted interest" P1 REAL — ceil-of-whole-payment overstatement in BOTH payoff engines + debt page; fixed w/ month-by-month sim + regression pin; interest-all gutter nudge; 1091/1091 |
 | 2026-10-30 21:48:43 GMT | 2026-10-30 21:49:50 GMT | 0h 01m | Post-fix propagation check (overpayment tool + debt-horizon live); FRESH 57-route sweep clean (0 text bugs / 0 console errors) incl. all 9 reports + 7 tools |
+| 2026-10-30 21:49:50 GMT | 2026-10-30 21:53:17 GMT | 0h 04m | R-H19 transaction text search (live: "transfer"→1 match, clear restores); bracket net hardened for =>-in-attribute hole — immediately caught 4 hidden relapses ([Prev]/[Next]/[Reset All Sliders]/[{monthKey}]) all fixed; chip contrast zinc-500→700 |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -385,6 +386,9 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 
 - R-H18 "Net-Worth Seasonality" report (9th): pure seasonalityFromHistory (consecutive-month deltas 25–40d only, grouped by ending calendar month, ≥2 observations/month, ≥13 snapshots + ≥4 repeat months else honest degrade) + builder + palette mirror. ev: 5 hand-computed tests (my FIRST fixture was the wrong one — 1 year can't contain repeat months; the 2-year generator pins Oct +50/+60→mean 55k, Nov weakest −80k, Jan strongest +60k); live degrade path renders on dev data (4 snapshots); 1090/1090; commit `a70c3b1`
 - LEDGER DISCIPLINE correction logged: one row end-time was written from projection not `date` — corrected down to the commit-anchored time and flagged in-row.
+
+- R-H19 transaction search: SEARCH bar in TransactionsSection (display-only like the type chip; composes after typeFilter; month rows marked "shown"; live count + [Clear]). ev: live "transfer"→"1 match"→cleared; commit `b8d04fc`
+- NET HARDENING (bracket convention): arrow functions in attributes (`onclick={() => …}`) contain `>` which truncated Form 1/2's tag-end match — scan() neutralises `=>` before matching, and the hardened net IMMEDIATELY caught 4 real relapses the hole was hiding: TransactionsSection [Prev]/[Next], ToolRateWhatIf [Reset All Sliders], MonthlyBalancesSection [{balance.monthKey}]. All stripped; CSS supplies single brackets (live-verified ::before). Also: type-chip helper text zinc-500 on amber-100 (3.9:1) → zinc-700.
 
 ## Notes for next iteration
 - **STATE: R1–R28 ALL [x] · 5/5 R-H implemented · 8 sweeps (0–7) done · check 0/0 · 1052/1052 · build green.** Remaining for Definition-of-v3: (a) ledger ≥12h genuine work — currently ~3h (CORRECT, date-anchored rows only) — the gate CANNOT be met yet, so NO stop file; (b) final full-app audit finding zero open P0/P1 (tonight's surfaces are clean; re-audit everything fresh next blocks); (c) docs/dev/ultimate-3.0-release.md changelog+runbook (final-gate item).
