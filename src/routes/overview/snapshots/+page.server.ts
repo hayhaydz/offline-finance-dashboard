@@ -63,6 +63,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		snapshots: snapshotsList,
 		page: safePage,
 		totalPages,
+		totalSnapshots: total,
 		staleness,
 	};
 };

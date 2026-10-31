@@ -36,6 +36,7 @@ const data = {
 	],
 	page: 1,
 	totalPages: 1,
+	totalSnapshots: 2,
 	staleness: null,
 };
 

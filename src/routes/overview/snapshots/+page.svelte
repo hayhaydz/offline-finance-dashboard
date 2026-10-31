@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
 	import { listnav } from '$lib/utils/list-nav';
-	import { formatCurrencyShorthand } from '$lib/utils/currency';
+	import { formatCurrency, formatCurrencyShorthand } from '$lib/utils/currency';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
 
 	let { data } = $props();
@@ -65,7 +65,9 @@
 					—
 				{/if}
 			</div>
-			<div class="text-[10px] text-gray-500">page {data.page} of {data.totalPages}</div>
+			<!-- v3.1: "page 0 of 1" (zero-indexed, and pagination is not a
+			     freshness fact) → snapshot count; the pager sits under the grid -->
+			<div class="text-[10px] text-gray-500">{data.totalSnapshots} snapshot{data.totalSnapshots !== 1 ? 's' : ''} recorded</div>
 		</div>
 		<div class="px-2 py-1.5">
 			<div class="text-[10px] uppercase font-bold text-gray-600">Action</div>
@@ -105,26 +107,29 @@
 							<span class="text-[10px] text-gray-500">first record</span>
 						{/if}
 					</div>
-					<!-- the headline -->
-					<div class="px-2 pt-2 pb-1">
-						<div class="text-[10px] uppercase font-bold text-gray-500">net worth</div>
-						<div class="text-lg font-bold tabular-nums {snapshot.netWorthInCents >= 0 ? 'text-green-700' : 'text-red-700'}">
-							{formatCurrencyShorthand(snapshot.netWorthInCents)}
-						</div>
+				<!-- the headline -->
+				<div class="px-2 pt-2 pb-1">
+					<div class="text-[10px] uppercase font-bold text-gray-500">net worth</div>
+					<div class="text-lg font-bold tabular-nums {snapshot.netWorthInCents >= 0 ? 'text-green-700' : 'text-red-700'}">
+						<!-- v3.1: full precision — shorthand drops .00 only on whole
+						     pounds, so 4 of 18 cards read "£253,790" beside "£253,790.16"
+						     (same class as the sweep-9 summary-row find) -->
+						{formatCurrency(snapshot.netWorthInCents)}
 					</div>
-					<!-- assets vs liabilities composition bar -->
-					<div class="px-2 pb-2 mt-auto">
-						<div class="flex h-2 border border-black" title="Assets {formatCurrencyShorthand(snapshot.totalAssetsInCents)} vs liabilities {formatCurrencyShorthand(snapshot.totalLiabilitiesInCents)}">
-							{#if total > 0}
-								<div class="h-full bg-green-700" style="width: {(assetsAbs / total) * 100}%"></div>
-								<div class="h-full bg-red-700 flex-1"></div>
-							{/if}
-						</div>
-						<div class="flex justify-between text-[10px] mt-1 tabular-nums">
-							<span class="text-green-700 font-bold">A {formatCurrencyShorthand(snapshot.totalAssetsInCents)}</span>
-							<span class="text-red-700 font-bold">L {formatCurrencyShorthand(snapshot.totalLiabilitiesInCents)}</span>
-						</div>
+				</div>
+				<!-- assets vs liabilities composition bar -->
+				<div class="px-2 pb-2 mt-auto">
+					<div class="flex h-2 border border-black" title="Assets {formatCurrency(snapshot.totalAssetsInCents)} vs liabilities {formatCurrency(snapshot.totalLiabilitiesInCents)}">
+						{#if total > 0}
+							<div class="h-full bg-green-700" style="width: {(assetsAbs / total) * 100}%"></div>
+							<div class="h-full bg-red-700 flex-1"></div>
+						{/if}
 					</div>
+					<div class="flex justify-between text-[10px] mt-1 tabular-nums">
+						<span class="text-green-700 font-bold">A {formatCurrency(snapshot.totalAssetsInCents)}</span>
+						<span class="text-red-700 font-bold">L {formatCurrency(snapshot.totalLiabilitiesInCents)}</span>
+					</div>
+				</div>
 				</div>
 			{/each}
 		</div>
