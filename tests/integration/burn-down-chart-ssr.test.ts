@@ -28,7 +28,7 @@ const renderChart = () =>
 describe("BurnDownChart (A13 interactive migration)", () => {
 	it("renders the ChartPanel frame with title and text summary", () => {
 		const { body } = renderChart();
-		expect(body).toContain("Spend burn-down");
+		expect(body).toContain("Spend vs pace");
 		expect(body).toContain("£98.00 spent of £1500.00 target"); // stub label; live page uses formatCurrency
 		expect(body).toContain("day 5 of 31");
 	});

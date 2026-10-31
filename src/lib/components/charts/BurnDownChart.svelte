@@ -71,7 +71,7 @@
 	);
 </script>
 
-<ChartPanel title="Spend burn-down" {summary}>
+<ChartPanel title="Spend vs pace" {summary}>
 	{#if points.length === 0}
 		<div class="text-xs text-gray-500 p-2 text-center">[no spend recorded yet]</div>
 	{:else if browser}

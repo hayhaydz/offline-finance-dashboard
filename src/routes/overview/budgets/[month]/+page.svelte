@@ -39,6 +39,8 @@
 
 	// Editing state for category targets
 	let editingCategoryId = $state<number | null>(null);
+	// v3.1 A08: zero-spend untargeted categories hidden by default
+	let showUntargetedZero = $state(false);
 	let editAmount = $state("");
 
 	// Budget creation scoping (task 3.1): explicit choice, no silent default
@@ -303,10 +305,16 @@
 			</div>
 			<div class="px-2 py-1.5">
 				<div class="text-[10px] uppercase font-bold text-gray-600">Pace</div>
-				<div class="text-sm font-bold {spentPercent > pacePercent ? 'text-amber-700' : 'text-green-700'}">
-					{spentPercent > pacePercent ? "over pace" : "on pace"}
-				</div>
-				<div class="text-[10px] text-gray-500">spend {spentPercent}% · time {pacePercent}%</div>
+				{#if data.status.daysElapsed >= data.status.totalDays}
+					<!-- v3.1 A08: pace is meaningless once the month is complete -->
+					<div class="text-sm font-bold text-gray-500">month complete</div>
+					<div class="text-[10px] text-gray-500">spend {spentPercent}% · time 100%</div>
+				{:else}
+					<div class="text-sm font-bold {spentPercent > pacePercent ? 'text-amber-700' : 'text-green-700'}">
+						{spentPercent > pacePercent ? "over pace" : "on pace"}
+					</div>
+					<div class="text-[10px] text-gray-500">spend {spentPercent}% · time {pacePercent}%</div>
+				{/if}
 			</div>
 			<div class="px-2 py-1.5">
 				<div class="text-[10px] uppercase font-bold text-gray-600">{remaining >= 0 ? "Remaining" : "Over"}</div>
@@ -316,6 +324,8 @@
 				<div class="text-[10px] text-gray-500">
 					{#if remaining > 0 && data.status.totalDays > data.status.daysElapsed}
 						{formatCurrency(Math.round(remaining / (data.status.totalDays - data.status.daysElapsed)))}/day for {data.status.totalDays - data.status.daysElapsed} days
+					{:else if data.status.daysElapsed >= data.status.totalDays}
+						final — no more days to spend
 					{:else}
 						projected {formatCurrency(Math.round(data.status.projectedTotal))}
 					{/if}
@@ -359,8 +369,9 @@
 	{#if data.budget && data.budget.totalTargetInCents > 0}
 		<div class="border-b border-black px-2 py-2">
 			<div class="flex items-center gap-1 text-xs leading-none mb-1">
-				<span>[</span>
-				<div class="flex-1 h-3 relative border-y border-gray-100">
+				<!-- v3.1 A08: decorative brackets removed — brackets mean ACTION in
+				     this app; a status bar is not a control. Border + legend instead. -->
+				<div class="flex-1 h-3 relative border border-black bg-white">
 					{#if spentPercent > 100}
 						<!-- #7: solid = target's share of spend, hatch = overflow -->
 						<div class="h-full {progressColor}" style="width: {(100 / spentPercent) * 100}%"></div>
@@ -369,13 +380,14 @@
 						<div class="h-full {progressColor}" style="width: {Math.min(spentPercent, 100)}%"></div>
 					{/if}
 				</div>
-				<span>]</span>
 				<span class="min-w-8 font-bold {progressTextColor}">{spentPercent}%</span>
 			</div>
 			{#if spentPercent > 100}
 				<div class="text-xs text-red-700 font-bold">
 					[!] {formatCurrency(data.status.totalSpent - data.budget.totalTargetInCents)} over {formatCurrency(data.budget.totalTargetInCents)} target
 				</div>
+				<!-- v3.1 A08: the solid/hatched split was a guess for first-timers -->
+				<div class="text-[10px] text-gray-500">solid = within target · hatched = over</div>
 			{/if}
 			<div class="flex justify-between text-xs">
 				<span class="text-gray-500">Spent so far</span>
@@ -470,8 +482,10 @@
 		{/if}
 
 		{#if untargetedCategories.length > 0}
+			{@const untargetedWithSpend = untargetedCategories.filter((c) => c.spent > 0)}
+			{@const untargetedZero = untargetedCategories.filter((c) => c.spent <= 0)}
 			<div class="text-gray-500 font-bold text-xs py-1 {targetedCategories.length > 0 ? 'mt-1' : ''}">WITHOUT TARGETS</div>
-			{#each untargetedCategories as cat (cat.id)}
+			{#each untargetedWithSpend as cat (cat.id)}
 				{#if editingCategoryId === cat.id}
 					<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200 bg-amber-50 px-1">
 						<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
@@ -500,6 +514,27 @@
 					</div>
 				{/if}
 			{/each}
+			<!-- v3.1 A08: zero-spend untargeted rows say nothing about this
+			     month (D6) — they collapse behind a toggle -->
+			{#if untargetedZero.length > 0}
+				{#if showUntargetedZero}
+					{#each untargetedZero as cat (cat.id)}
+						<div class="flex items-center gap-2 py-1 border-b border-dotted border-gray-200">
+							<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
+							<span class="text-xs w-32 shrink-0">{cat.name}</span>
+							<span class="text-xs text-gray-500 min-w-[70px] text-right">£0.00 spent</span>
+							<button class="bracket-link text-xs" onclick={() => startEdit(cat.id, null)}>Set Target</button>
+						</div>
+					{/each}
+				{/if}
+				<button
+					type="button"
+					class="bracket-link text-xs text-gray-500 py-0.5"
+					onclick={() => (showUntargetedZero = !showUntargetedZero)}
+				>
+					{showUntargetedZero ? `Hide ${untargetedZero.length} with no spend` : `Show ${untargetedZero.length} with no spend`}
+				</button>
+			{/if}
 		{/if}
 
 		{#if editingCategoryId && !targetedCategories.find(c => c.id === editingCategoryId) && !untargetedCategories.find(c => c.id === editingCategoryId)}
