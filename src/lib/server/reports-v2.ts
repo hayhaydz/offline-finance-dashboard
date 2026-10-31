@@ -545,7 +545,7 @@ async function buildCreditStrategy(userId: number): Promise<ReportDoc> {
 				.slice(0, 3)
 				.map(
 					(s) =>
-						`A charge with ${formatCurrency(s.remainingPence)} remaining is behind its ${s.deadline.toISOString().slice(0, 10)} deadline — ${formatCurrency(s.requiredPerMonthPence)}/mo is now required.`,
+						`A charge with ${formatCurrency(s.remainingPence)} remaining is behind its ${s.deadline.toISOString().slice(0, 10)} 3-month target — ${formatCurrency(s.requiredPerMonthPence)}/mo would hit it${stooze.stoozing ? `; the stooze plan needs no monthly payments, only ${formatCurrency(stooze.clearAmountPence ?? s.remainingPence)} by ${stooze.clearBy?.toISOString().slice(0, 10)}` : ""}.`,
 				),
 		});
 		totalBehind += summary.behindCount;
