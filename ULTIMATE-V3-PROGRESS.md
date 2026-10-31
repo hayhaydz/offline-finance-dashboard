@@ -465,6 +465,21 @@ The user ruled the v3 run delivered mechanisms without spirit: "the design still
 - **First v3.1 block:** reseed dev DB (as queued below), then A13+A02 together (home regeneration consumes the new interactive chart components), then A03/A04, then the spirit audits (A05 credit friendly-ness, A08 budget 5-second test).
 - Ledger continues HERE (6h55m banked; 12h gate carried). Definition-of-done now ALSO requires all dossiers `audited` + gap register closed (v3.1 §8).
 
+## V3.1 SECOND MANDATE (2026-10-31 ~13:00 GMT, user direction — SUPERSEDES the close plan above)
+
+The user adjudicated the §1–§9 output: "this end result does not look good… rate heat map looks
+really bad, also doesn't seem interactive… home allocation graph looks bad, is the same as another
+graph that looks bad. generally everything looks bad. you need to use a UX/UI design skill to
+improve everything." ALL dossiers reopened at needs-rework (see _index). Plan §10 + doctrine D8 +
+gap-register rows 31–35 are the new constitution. Verbatim text appended to plan Appendix C.
+
+- MANDATORY per iteration: load the `ui-ux-pro-max` skill before wireframing.
+- First targets (user named them): RateHeatmap redesign + interactivity; AllocationBar redesign +
+  de-duplication (home vs goals); then A02/A03 design-quality, then the ALL-routes viewport sweep
+  (forms + sub-pages included — row 33), then remaining areas.
+- Ledger CONTINUES from 10h06m; runtime budget 8h this invocation; stop file only when every
+  dossier's design-quality re-audit + rows 31–35 + runtime all hold.
+
 ## Notes for next iteration
 - **SESSION STATE 2026-10-31 12:47 GMT: all 13 dossiers audited · gap register closed (30 rows) · §8 gates ALL hold EXCEPT ledger — 10h04m banked, needs ~1h56m more. NO stop file yet (§9).** Final gate green: 159 files/1104 tests ×2 + build ✔.
 - **NEXT SESSION = ledger-closing deepens + then stop:** run spaced verification sweeps (~10 real checks each: route sweeps, hover rotations, density re-measures — see sweeps 39-44 for the pattern), ~1h54m of recorded rows; then re-verify gates, finalize the FINAL REPORT ledger line, and ONLY THEN write `.opencode/opencode-loop/ULTIMATE-V3-DONE`.
