@@ -192,8 +192,8 @@
 				</div>
 				<div class="px-2 py-1.5">
 					<div class="text-[10px] uppercase font-bold text-gray-600">Verdict</div>
-					<div class="text-sm font-bold {yearStats.over === 0 && yearStats.met === yearStats.months ? 'text-green-700' : 'text-amber-700'}">
-						{yearStats.over === 0 && yearStats.met === yearStats.months ? 'year met' : 'mixed year'}
+					<div class="text-sm font-bold {yearStats.met === yearStats.months && yearStats.over === 0 ? 'text-green-700' : yearStats.over >= yearStats.met ? 'text-red-700' : 'text-amber-700'}">
+						{yearStats.met === yearStats.months && yearStats.over === 0 ? 'year met' : yearStats.over >= yearStats.met ? 'over budget year' : 'mixed year'}
 					</div>
 					<div class="text-[10px] text-gray-500">vs statement months</div>
 				</div>
@@ -208,7 +208,7 @@
 							x="month"
 							series={[{ key: 'spent', label: 'spent', value: 'spent', props: { stroke: '#111827', strokeWidth: 0.5 } }]}
 							c="verdict"
-							cRange={['met', 'near', 'over', 'none'].map((v) => VERDICT_COLOUR[v])}
+							cRange={[...new Set(chartRows.map((r) => r.verdict))].map((v) => VERDICT_COLOUR[v])}
 							height={220}
 							bandPadding={0.35}
 							padding={{ top: 8, right: 16, bottom: 26, left: 52 }}
