@@ -1,0 +1,37 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permissions": [
+    { "action": "external_directory", "resource": "*", "effect": "deny" },
+    { "action": "external_directory", "resource": "/private/var/folders/*", "effect": "allow" },
+    { "action": "external_directory", "resource": "$HOME/personal-coding/offline-finance-dashboard/*", "effect": "allow" },
+
+    { "action": "edit", "resource": "$HOME/personal-coding/offline-finance-dashboard/*", "effect": "deny" },
+    { "action": "edit", "resource": "$HOME/*", "effect": "deny" },
+    { "action": "edit", "resource": "/*", "effect": "deny" },
+
+    { "action": "shell", "resource": "sudo *", "effect": "deny" },
+    { "action": "shell", "resource": "rm -rf *", "effect": "deny" },
+    { "action": "shell", "resource": "rm -fr *", "effect": "deny" },
+    { "action": "shell", "resource": "rm -r *", "effect": "deny" },
+
+    { "action": "shell", "resource": "git config --global *", "effect": "deny" },
+    { "action": "shell", "resource": "git config --system *", "effect": "deny" },
+    { "action": "shell", "resource": "git -C *", "effect": "deny" },
+    { "action": "shell", "resource": "git --git-dir *", "effect": "deny" },
+    { "action": "shell", "resource": "git --work-tree *", "effect": "deny" },
+    { "action": "shell", "resource": "git worktree add *", "effect": "deny" },
+    { "action": "shell", "resource": "git worktree remove *", "effect": "deny" },
+    { "action": "shell", "resource": "git worktree prune *", "effect": "deny" },
+    { "action": "shell", "resource": "git reset --hard *", "effect": "deny" },
+    { "action": "shell", "resource": "git clean *", "effect": "deny" },
+    { "action": "shell", "resource": "git filter-branch *", "effect": "deny" },
+    { "action": "shell", "resource": "git reflog expire *", "effect": "deny" },
+
+    { "action": "shell", "resource": "chmod -R *", "effect": "deny" },
+    { "action": "shell", "resource": "chown *", "effect": "deny" },
+    { "action": "shell", "resource": "dd *", "effect": "deny" },
+    { "action": "shell", "resource": "diskutil *", "effect": "deny" },
+    { "action": "shell", "resource": "osascript *", "effect": "deny" },
+    { "action": "shell", "resource": "launchctl *", "effect": "deny" }
+  ]
+}

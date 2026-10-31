@@ -68,7 +68,10 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<!-- NET WORTH SECTION -->
+<!-- NET WORTH SECTION — v3.1 A02 design-quality: one band, structured
+     stat row (no justify-between dead middles at wide viewports). Content
+     model unchanged from the user-mandated revert: title + value, no
+     sparkline in the header, same facts in the same order. -->
 <div class="border-b border-black p-2">
 	<div class="flex justify-between my-1 items-center">
 		<h1 class="text-lg font-bold m-0">NET WORTH</h1>
@@ -79,55 +82,46 @@
 			<span class="text-lg font-bold {netWorthColor}">{formatCurrency(summary.netWorth)}</span>
 		</div>
 	</div>
-	<div class="flex justify-between my-1 text-gray-600 text-xs">
-		<button
-			type="button"
-			class="bracket-link"
-			onclick={openModal}
-			onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(); } }}
-		>
-			Exclusions: {summary.exclusionCount}
-		</button>
-		<span>{formattedDateRange}</span>
-	</div>
-	{#if summary.hasStaleData}
-		<div class="flex justify-between my-1 text-amber-700 text-xs">
-			<span></span>
-			<span>Some balances >30 days old</span>
+	<div class="grid grid-cols-3 border-t border-gray-200 mt-1 pt-1">
+		<div class="border-r border-black pr-2">
+			<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Total Assets</div>
+			<div class="text-lg font-bold {totalAssetsColor}">{formatCurrency(summary.totalAssets)}</div>
+			{#if summary.excludedAssets > 0}
+				<div class="text-[10px] text-gray-600 mt-1">+ {formatCurrency(summary.excludedAssets)} excluded ({summary.excludedTypeNames.join(', ')})</div>
+			{/if}
 		</div>
-	{/if}
+		<div class="border-r border-black px-2">
+			<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">Total Liabilities</div>
+			<div class="text-lg font-bold text-red-700">{formatCurrency(Math.abs(summary.totalLiabilities))}</div>
+			{#if Math.abs(summary.excludedLiabilities) > 0}
+				<div class="text-[10px] text-gray-600 mt-1">+ {formatCurrency(Math.abs(summary.excludedLiabilities))} excluded</div>
+			{/if}
+		</div>
+		<div class="pl-2">
+			<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">As of</div>
+			<div class="text-sm font-bold text-gray-700 leading-6">{formattedDateRange}</div>
+			<div class="text-[10px] text-gray-600 mt-1 flex items-center gap-2">
+				<button
+					type="button"
+					class="bracket-link"
+					onclick={openModal}
+					onkeydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(); } }}
+				>
+					Exclusions: {summary.exclusionCount}
+				</button>
+				{#if summary.hasStaleData}
+					<span class="text-amber-700 font-bold">· some balances &gt;30 days old</span>
+				{/if}
+			</div>
+		</div>
+	</div>
 	{#if showNeutralColor}
-		<div class="flex justify-between my-1 text-gray-600 text-xs">
-			<span></span>
+		<div class="text-gray-600 text-xs mt-1">
 			{#if allExcluded}
 				<span>All account types excluded</span>
 			{:else}
 				<span>Include account types to see net worth</span>
 			{/if}
-		</div>
-	{/if}
-</div>
-
-<!-- BREAKDOWN SECTION -->
-<div class="border-b border-black p-2">
-	<div class="flex justify-between my-1">
-		<span>Total Assets</span>
-		<span class="{totalAssetsColor} font-bold">{formatCurrency(summary.totalAssets)}</span>
-	</div>
-	{#if summary.excludedAssets > 0}
-		<div class="flex justify-between my-1 text-gray-600 text-xs">
-			<span>Assets excluded ({summary.excludedTypeNames.join(', ')})</span>
-			<span>{formatCurrency(summary.excludedAssets)}</span>
-		</div>
-	{/if}
-	<div class="flex justify-between my-1">
-		<span>Total Liabilities</span>
-		<span class="text-red-700 font-bold">{formatCurrency(Math.abs(summary.totalLiabilities))}</span>
-	</div>
-	{#if Math.abs(summary.excludedLiabilities) > 0}
-		<div class="flex justify-between my-1 text-gray-600 text-xs">
-			<span>Liabilities excluded ({summary.excludedTypeNames.join(', ')})</span>
-			<span>{formatCurrency(Math.abs(summary.excludedLiabilities))}</span>
 		</div>
 	{/if}
 </div>

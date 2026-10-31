@@ -5,12 +5,9 @@
 	import TaxYearTimeline from '$lib/components/TaxYearTimeline.svelte';
 	import GoalCard from '$lib/components/GoalCard.svelte';
 	import DebtCard from '$lib/components/DebtCard.svelte';
-	import PaginationClient from '$lib/components/PaginationClient.svelte';
 	import HomeVizGallery from '$lib/components/charts/HomeVizGallery.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import { formatCurrency, formatCurrencyShorthand, formatAccountType, formatDateShorthand } from '$lib/utils/currency';
-	import { page as pageState } from '$app/state';
-	import { useUrlPagination } from '$lib/utils/use-url-pagination.svelte';
 
 	let { data } = $props();
 	let { user, environment: env, goals } = $derived(data);
@@ -18,17 +15,9 @@
 	// Accordion state for interest section
 	let interestExpanded = $state(false);
 
-	// Pagination state with scroll targets
-	let goalsSectionRef: HTMLElement | null = $state(null);
+	// Goals preview filter (v3.1 A02: home shows a capped preview — /goals
+	// owns pagination; no URL pagination wiring here anymore)
 	let goalsFilter = $state<'all' | 'savings' | 'debt'>('all');
-
-	// URL pagination for goals
-	const pagination = useUrlPagination('goalsPage');
-
-	// Sync from server data (initial + navigation)
-	$effect(() => {
-		pagination.page = data.goalsPagination.page;
-	});
 
 	// Current tax year slug for interest link
 	const currentYearSlug = $derived(
@@ -163,6 +152,14 @@
 	{#snippet interestAction()}
 		<div class="flex items-center gap-2">
 			<a href="/accounts/interest/{currentYearSlug}" class="bracket-link text-xs">View Breakdown</a>
+			<button
+				type="button"
+				class="bracket-link text-xs cursor-pointer"
+				aria-expanded={interestExpanded}
+				onclick={() => interestExpanded = !interestExpanded}
+			>
+				{interestExpanded ? '− Explain' : '+ Explain'}
+			</button>
 		</div>
 	{/snippet}
 	<div class="col-span-3 border border-black [&>*:last-child]:border-b-0">
@@ -172,26 +169,18 @@
 			<KpiCard label="Posted (Actual)" value={formatCurrency(posted)} color="text-green-700" />
 			<KpiCard label="Estimated (Projected)" value={formatCurrency(estimated)} color="text-amber-700" />
 			<KpiCard label="Forecast (Total)" value={formatCurrency(forecast)} />
-			<div class="p-2">
-				<div class="text-[10px] font-bold text-gray-600 mb-1 uppercase">PSA Remaining</div>
-				{#if data.interestSummary.taxFreeStatusProjected.overAllowance}
-					<div class="text-sm font-bold text-red-700">Over</div>
-				{:else}
-					<div class="text-sm font-bold text-green-700">{formatCurrency(data.interestSummary.taxFreeStatusProjected.remaining)}</div>
-				{/if}
-			</div>
+			<KpiCard
+				label="PSA Remaining"
+				value={data.interestSummary.taxFreeStatusProjected.overAllowance ? 'Over' : formatCurrency(data.interestSummary.taxFreeStatusProjected.remaining)}
+				color={data.interestSummary.taxFreeStatusProjected.overAllowance ? 'text-red-700' : 'text-green-700'}
+				detail="of {formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} · {data.interestSummary.taxBand} rate"
+			/>
 		</div>
 	</div>
 
-	<!-- Accordion: Interest Explanation -->
+	<!-- Accordion: Interest Explanation (v3.1 A02: toggle lives in the header
+	     action area — the full-width expand row was a dead row) -->
 	<div>
-		<button
-			type="button"
-			class="w-full p-2 text-left font-bold flex justify-between items-center hover:bg-gray-50"
-			onclick={() => interestExpanded = !interestExpanded}
-		>
-			<span class="text-xs uppercase">{interestExpanded ? '[-] Collapse' : '[+] Expand'}</span>
-		</button>
 		{#if interestExpanded}
 			<div class="p-2 border-t border-black text-xs text-gray-700 space-y-2">
 				<div>
@@ -256,7 +245,7 @@
 						<td colspan="4" class="pl-1 text-xs font-bold text-gray-500 uppercase tracking-wider border-y border-gray-200 py-2">Assets</td>
 					</tr>
 					{#each cappedAssetGroups as group}
-						<tr class:line-through={group.excluded} class:text-gray-500={group.excluded}>
+						<tr class="hover:bg-gray-50 transition-colors duration-150 class:line-through={group.excluded} class:text-gray-500={group.excluded}">
 							<td class="text-center tabular-nums border-r border-gray-200 text-gray-500 text-xs py-2">
 								{group.count}
 							</td>
@@ -279,7 +268,7 @@
 						<td colspan="4" class="pl-1 text-xs font-bold text-gray-500 uppercase tracking-wider border-y border-gray-200 py-2">Liabilities</td>
 					</tr>
 					{#each cappedLiabilityGroups as group}
-						<tr class:line-through={group.excluded} class:text-gray-500={group.excluded}>
+						<tr class="hover:bg-gray-50 transition-colors duration-150 class:line-through={group.excluded} class:text-gray-500={group.excluded}">
 							<td class="text-center tabular-nums border-r border-gray-200 text-gray-500 text-xs py-2">
 								{group.count}
 							</td>
@@ -310,28 +299,27 @@
 	<!-- GOALS PREVIEW -->
 	{#if goals && goals.length > 0}
 	<div class="col-span-2 border border-black [&>*:last-child]:border-b-0">
-	<div bind:this={goalsSectionRef}>
+	<div>
 		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 			<div class="flex items-center gap-2">
 				<span>GOALS ({goalsFilter === 'all' ? goals.length : filteredGoals.length})</span>
-				<span class="text-xs font-bold text-gray-500">{data.staleness?.label ?? ''}</span>
 				<div class="flex gap-1">
 					<button
 						type="button"
 						onclick={() => goalsFilter = 'all'}
-						class="bracket-link text-xs font-bold"
+						class="bracket-link text-xs font-bold cursor-pointer"
 						class:text-green-700={goalsFilter === 'all'}
 					>All</button>
 					<button
 						type="button"
 						onclick={() => goalsFilter = 'savings'}
-						class="bracket-link text-xs font-bold"
+						class="bracket-link text-xs font-bold cursor-pointer"
 						class:text-green-700={goalsFilter === 'savings'}
 					>Savings</button>
 					<button
 						type="button"
 						onclick={() => goalsFilter = 'debt'}
-						class="bracket-link text-xs font-bold"
+						class="bracket-link text-xs font-bold cursor-pointer"
 						class:text-green-700={goalsFilter === 'debt'}
 					>Debt</button>
 				</div>
@@ -348,7 +336,7 @@
 				     10 cards (1058px) stretched the neighbouring ACCOUNTS cell to
 				     27% content-fill (D2 pairing violation). Full list lives on /goals. -->
 				{#each filteredGoals.slice(0, 3) as goal}
-					<div class="p-2 border-b border-black last:border-0 mb-2 last:mb-0">
+					<div class="p-2 border-b border-black last:border-0">
 						{#if goal.goalType === 'debt' && goal.progress}
 							<DebtCard
 								name={goal.name}
@@ -371,14 +359,9 @@
 				{/if}
 			{/if}
 		</div>
-		{#if goalsFilter === 'all'}
-			<PaginationClient
-				page={pagination.page}
-				totalPages={data.goalsPagination.totalPages}
-				onPageChange={pagination.updatePage}
-				scrollTarget={goalsSectionRef}
-			/>
-		{/if}
+		<!-- v3.1 A02 design-quality: no 3-at-a-time pagination on home — the
+		     "+N more — view all" link is the single nav model; /goals owns
+		     full pagination. -->
 	</div>
 	</div>
 	{/if}
