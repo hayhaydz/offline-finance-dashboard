@@ -134,7 +134,13 @@
 	}
 </script>
 
-<div class="border-b border-black p-2">
+<!-- v3.1 third mandate (border doctrine): auth pages join the inset-panel
+     system — one boxed panel per page, header as its title band, forms as
+     internal ruled sections (was: stacked full-bleed border-b bands). -->
+<div class="p-2">
+<div class="border border-black">
+
+<div class="bg-gray-100 border-b border-black p-2">
 	<h1 class="text-lg font-bold mb-2 mt-0">UNLOCK</h1>
 	<p class="text-gray-600 my-1">
 		Data is sealed. Enter your password{data?.deviceEnrolled ? ' and complete the device step' : ''} to
@@ -169,7 +175,7 @@
 				await update();
 			};
 		}}
-		class="border-b border-black p-2"
+		class="border-b border-gray-200 p-2"
 	>
 		{#if data?.deviceEnrolled}
 			<div class="border border-black p-2 mb-2">
@@ -225,7 +231,7 @@
 	</form>
 
 	{#if data?.hasRecovery}
-		<div class="border-b border-black p-2">
+		<div class="p-2">
 			Lost your password? <a href="?mode=recovery" class="bracket-link">Use recovery passphrase</a>
 			<span class="text-gray-600 text-xs block mt-1">
 				Paper break-glass slot — unlocks alone and forces credential re-enrollment.
@@ -243,7 +249,7 @@
 				await update();
 			};
 		}}
-		class="border-b border-black p-2"
+		class="p-2"
 	>
 		<p class="text-gray-600 my-1 text-xs">
 			Recovery unlock is single-factor (wallet semantics): it works, but you
@@ -276,3 +282,6 @@
 		</div>
 	</form>
 {/if}
+
+</div>
+</div>

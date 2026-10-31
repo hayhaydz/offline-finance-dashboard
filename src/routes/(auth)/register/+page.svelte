@@ -62,12 +62,17 @@
 	});
 </script>
 
-<div class="border-b border-black p-2">
+<!-- v3.1 third mandate (border doctrine): auth pages join the inset-panel
+     system — one boxed panel, header as title band (was: full-bleed bands). -->
+<div class="p-2">
+<div class="border border-black">
+
+<div class="bg-gray-100 border-b border-black p-2">
 	<h1 class="text-lg font-bold mb-2 mt-0">CREATE ACCOUNT</h1>
 	<p class="text-gray-600 my-1">Register with username and password</p>
 </div>
 
-<form method="POST" use:enhance class="border-b border-black p-2">
+<form method="POST" use:enhance class="p-2">
 	<FormField
 		bind:this={usernameField}
 		label="Username"
@@ -118,6 +123,9 @@
 	</div>
 </form>
 
-<div class="border-b border-black p-2">
+<div class="border-t border-gray-200 p-2">
 	Already have an account? <a href="/login" class="bracket-link">Log in</a>
+</div>
+
+</div>
 </div>

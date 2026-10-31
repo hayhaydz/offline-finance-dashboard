@@ -20,7 +20,12 @@
 	});
 </script>
 
-<div class="border-b border-black p-2">
+<!-- v3.1 third mandate (border doctrine): auth pages join the inset-panel
+     system — one boxed panel, header as title band (was: full-bleed bands). -->
+<div class="p-2">
+<div class="border border-black">
+
+<div class="bg-gray-100 border-b border-black p-2">
 	<h1 class="text-lg font-bold mb-2 mt-0">DATA ENVELOPE MIGRATION</h1>
 	<p class="text-gray-600 my-1">
 		Your data is moving to per-user envelope encryption: a new random data key
@@ -44,7 +49,7 @@
 		</div>
 	</div>
 {:else}
-	<form method="POST" action="?/migrate" use:enhance class="border-b border-black p-2">
+	<form method="POST" action="?/migrate" use:enhance class="p-2">
 		<p class="text-gray-600 my-1 text-xs">
 			Confirm your password to generate the envelope. Nothing changes on disk
 			that could unseal your data without it.
@@ -71,3 +76,6 @@
 		</div>
 	</form>
 {/if}
+
+</div>
+</div>

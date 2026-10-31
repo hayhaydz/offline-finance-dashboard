@@ -46,8 +46,13 @@
 	const isRecoveryMode = $derived(data?.mode === 'recovery');
 </script>
 
+<!-- v3.1 third mandate (border doctrine): auth pages join the inset-panel
+     system — one boxed panel, headers as title bands (was: full-bleed bands). -->
+<div class="p-2">
+<div class="border border-black">
+
 {#if isRecoveryMode}
-	<div class="border-b border-black p-2">
+	<div class="bg-gray-100 border-b border-black p-2">
 		<h1 class="text-lg font-bold mb-2 mt-0">RECOVERY UNLOCK — NEW PASSWORD</h1>
 		<p class="text-gray-600 my-1">
 			You unlocked with the paper passphrase. Set a new password before the app
@@ -55,7 +60,7 @@
 		</p>
 	</div>
 
-	<form method="POST" action="?/setNewPassword" class="border-b border-black p-2">
+	<form method="POST" action="?/setNewPassword" class="p-2">
 		<FormField
 			bind:this={currentField}
 			label="Previous password OR recovery passphrase"
@@ -102,7 +107,7 @@
 		</div>
 	</form>
 {:else if data?.passphrase}
-	<div class="border-b border-black p-2">
+	<div class="bg-gray-100 border-b border-black p-2">
 		<h1 class="text-lg font-bold mb-2 mt-0">RECOVERY PASSPHRASE — WRITE IT DOWN NOW</h1>
 		<p class="text-red-700 font-bold my-1">
 			Shown exactly once. The server cannot display it again.
@@ -122,7 +127,7 @@
 		</ul>
 	</div>
 
-	<form method="POST" action="?/done" class="border-b border-black p-2">
+	<form method="POST" action="?/done" class="p-2">
 		<label class="flex items-start gap-2 my-2 cursor-pointer">
 			<input type="checkbox" bind:checked={confirmed} class="mt-1" />
 			<span class="text-sm">
@@ -137,7 +142,7 @@
 		</div>
 	</form>
 {:else}
-	<div class="border-b border-black p-2">
+	<div class="bg-gray-100 border-b border-black p-2">
 		<h1 class="text-lg font-bold mb-2 mt-0">RECOVERY PASSPHRASE (REQUIRED)</h1>
 		<p class="text-gray-600 my-1">
 			Your data key is sealed by your password. This generated 12-word paper
@@ -154,7 +159,7 @@
 		</ul>
 	</div>
 
-	<form method="POST" action="?/enroll" class="border-b border-black p-2">
+	<form method="POST" action="?/enroll" class="p-2">
 		<label class="flex items-start gap-2 my-2 cursor-pointer">
 			<input type="checkbox" bind:checked={acknowledged} class="mt-1" />
 			<span class="text-sm">
@@ -174,3 +179,6 @@
 		</div>
 	</form>
 {/if}
+
+</div>
+</div>
