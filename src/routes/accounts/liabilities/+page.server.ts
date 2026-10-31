@@ -60,13 +60,18 @@ export const load: PageServerLoad = async ({ locals }) => {
 			const utilization = account.creditLimit
 				? ((Math.abs(balance) / account.creditLimit) * 100).toFixed(1)
 				: null;
+			// v3.1 A03 judgment fix: a zero balance IS paid off — 100%
+			// regardless of whether originalPrincipal was ever recorded
+			// (Tesco at £0.00 rendered "-" in the Progress column)
 			const progress = account.originalPrincipal
 				? (
 						((account.originalPrincipal - balance) /
 							account.originalPrincipal) *
 						100
 					).toFixed(1)
-				: null;
+				: balance === 0
+					? "100.0"
+					: null;
 
 			return {
 				...account,
