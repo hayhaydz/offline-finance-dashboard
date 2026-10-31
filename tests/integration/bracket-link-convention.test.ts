@@ -73,6 +73,25 @@ function scan(file: string): string[] {
 			}
 		}
 	}
+	// Form 5 (v3.1 A03): single/double-quoted bracketed labels in
+	// expressions within the bracket-link window — e.g. the balances
+	// submit ternary `cond ? 'Working…' : '[Update Balances]'` (Forms 3/4
+	// only scan backticks and empty ternaries). Same space guard so
+	// glyph codes stay legal; checkbox glyph pairs ([X]/[ ]) are state
+	// marks on non-bracket elements and stay legal too.
+	for (let i = 0; i < lines.length; i++) {
+		if (!/class="[^"]*bracket-link/.test(lines[i])) continue;
+		const window = lines.slice(i + 1, i + 11);
+		for (const w of window) {
+			const trimmed = w.trim();
+			if (trimmed.startsWith("//") || trimmed.startsWith("*") || trimmed.startsWith("/*")) continue;
+			for (const m of trimmed.matchAll(/(['"])(\[[^\]'"]{0,80}\])\1/g)) {
+				if (!m[2].includes(" ")) continue; // glyph codes stay legal
+				if (CHECKBOX_GLYPHS.includes(m[2])) continue; // state marks
+				offenders.push(`quoted-label: ${m[2]}`);
+			}
+		}
+	}
 	return offenders.map((o) => `${path.relative(".", file)}: ${o}`);
 }
 
@@ -132,6 +151,37 @@ describe("bracket-link text convention (R-H4, hardened)", () => {
 			expect(found.join("\n")).toContain("template-literal label: [Hide ${n} closed]");
 			// the bracket-free branch must NOT be flagged
 			expect(found.join("\n")).not.toContain("Show ${n} closed`}");
+		} finally {
+			fs.rmSync(tmp, { force: true });
+		}
+	});
+
+	it("self-test: quoted-string ternary labels are flagged (Form 5)", () => {
+		const tmp = path.join(
+			path.resolve("tests/integration"),
+			".bracket-self-test.svelte",
+		);
+		try {
+			fs.writeFileSync(
+				tmp,
+				[
+					'<button type="submit" class="bracket-link text-sm">',
+					"	{busy ? 'Working…' : '[Update Things]'}",
+					"</button>",
+				].join("\n"),
+			);
+			const found = scan(tmp);
+			expect(found.join("\n")).toContain("quoted-label: [Update Things]");
+			// bracket-free branch and glyph codes stay legal
+			fs.writeFileSync(
+				tmp,
+				[
+					'<button type="submit" class="bracket-link text-sm">',
+					"	{busy ? 'Working…' : 'Update Things'}",
+					"</button>",
+				].join("\n"),
+			);
+			expect(scan(tmp)).toEqual([]);
 		} finally {
 			fs.rmSync(tmp, { force: true });
 		}

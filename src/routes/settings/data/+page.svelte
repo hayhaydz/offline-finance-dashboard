@@ -157,7 +157,7 @@
 			use:enhance={scanEnhance}
 		>
 			<button type="submit" class="bracket-link" disabled={scanning}>
-				{scanning ? 'Scanning...' : '[Scan For Candidates]'}
+				{scanning ? 'Scanning...' : 'Scan For Candidates'}
 			</button>
 		</form>
 

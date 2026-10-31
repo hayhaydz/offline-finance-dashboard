@@ -164,7 +164,7 @@
 				disabled={isSubmitting || csvText === ""}
 				class="bracket-link {isSubmitting || csvText === '' ? 'opacity-50 pointer-events-none' : ''}"
 			>
-				{isSubmitting ? "Checking file..." : "[Preview Changes]"}
+				{isSubmitting ? "Checking file..." : "Preview Changes"}
 			</button>
 		</form>
 	{:else if step === "preview" && preview}
@@ -285,7 +285,7 @@
 					disabled={isSubmitting}
 					class="bracket-link {isSubmitting ? 'opacity-50 pointer-events-none' : ''}"
 				>
-					{isSubmitting ? "Applying..." : "[Confirm Import]"}
+					{isSubmitting ? "Applying..." : "Confirm Import"}
 				</button>
 			</div>
 		</form>

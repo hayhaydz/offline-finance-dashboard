@@ -177,7 +177,7 @@
 				disabled={isSubmitting || csvText === ""}
 				class="bracket-link {isSubmitting || csvText === '' ? 'opacity-50 pointer-events-none' : ''}"
 			>
-				{isSubmitting ? "Analyzing..." : "[Analyze File]"}
+				{isSubmitting ? "Analyzing..." : "Analyze File"}
 			</button>
 		</form>
 	{:else if step === "map"}
@@ -264,7 +264,7 @@
 					disabled={isSubmitting || accountSlug === ""}
 					class="bracket-link {isSubmitting || accountSlug === '' ? 'opacity-50 pointer-events-none' : ''}"
 				>
-					{isSubmitting ? "Transforming..." : "[Transform & Preview]"}
+					{isSubmitting ? "Transforming..." : "Transform & Preview"}
 				</button>
 			</div>
 		</form>
@@ -316,7 +316,7 @@
 						disabled={isSubmitting}
 						class="bracket-link {isSubmitting ? 'opacity-50 pointer-events-none' : ''}"
 					>
-						{isSubmitting ? "Importing..." : "[Confirm Import]"}
+						{isSubmitting ? "Importing..." : "Confirm Import"}
 					</button>
 				</div>
 			</form>
@@ -331,7 +331,7 @@
 						disabled={isSubmitting}
 						class="bracket-link {isSubmitting ? 'opacity-50 pointer-events-none' : ''}"
 					>
-						{isSubmitting ? "Checking..." : "[Preview Import]"}
+						{isSubmitting ? "Checking..." : "Preview Import"}
 					</button>
 				</div>
 			</form>

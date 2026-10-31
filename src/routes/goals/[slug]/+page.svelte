@@ -140,7 +140,7 @@
   <div class="font-bold p-2 bg-gray-100 border-b border-black flex justify-between items-center">
     <span>EDIT GOAL</span>
     <button type="button" class="bracket-link text-xs font-normal" onclick={() => (editOpen ? (editOpen = false) : openEdit())}>
-      {editOpen ? '[Cancel]' : '[Edit Name/Target]'}
+      {editOpen ? 'Cancel' : 'Edit Name/Target'}
     </button>
   </div>
   {#if editSuccess}

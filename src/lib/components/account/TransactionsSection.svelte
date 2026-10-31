@@ -300,7 +300,7 @@
 								class="bracket-link text-xs ml-1"
 								onclick={() => (newCategoryOpen = !newCategoryOpen)}
 							>
-								{newCategoryOpen ? '[Close]' : '[+ New category]'}
+								{newCategoryOpen ? 'Close' : '+ New category'}
 							</button>
 						</label>
 						<select

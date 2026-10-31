@@ -12,7 +12,7 @@
 	const staleCount = $derived(data.accounts.filter((a) => a.stale).length);
 </script>
 
-<div class="max-w-4xl mx-auto p-4 font-mono">
+<div class="p-2 font-mono">
 	<div class="border border-black">
 		<div class="border-b border-black bg-gray-100 p-2 font-bold flex justify-between items-center">
 			<span>BULK BALANCE UPDATE</span>
@@ -100,7 +100,7 @@
 
 			<div class="p-2 border-t border-black flex items-center gap-2">
 				<button type="submit" class="bracket-link text-sm" disabled={feedback.isSubmitting}>
-					{feedback.isSubmitting ? 'Updating…' : '[Update Balances]'}
+					{feedback.isSubmitting ? 'Updating…' : 'Update Balances'}
 				</button>
 				<span class="text-xs text-gray-500">blank rows are skipped</span>
 			</div>
