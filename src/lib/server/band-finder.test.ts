@@ -160,7 +160,8 @@ describe("Band finder verdict states (pure computation)", () => {
 
 		expect(result.state).toBe("BOUNDED");
 		expect(result.overRegardless).toBe(true); // ≥ higher regardless
-		expect(result.targetThresholdInCents).toBe(150_000_00);
+		// v3.1: additional-rate threshold corrected to £125,140 (2023/24+)
+		expect(result.targetThresholdInCents).toBe(125_140_00);
 		expect(result.suggestedBand).toBe("additional");
 	});
 
@@ -262,14 +263,15 @@ describe("Band finder verdict states (pure computation)", () => {
 		const result = computeFinderYear({
 			taxYear: "2025/26",
 			incomeByMonth: incomeMap(entries),
-			taxableInterestInCents: 90_500_00, // pushes over £150,000
+			taxableInterestInCents: 90_500_00, // pushes well over £125,140
 			interestIncludesProjection: false,
 			now: NOW,
 		});
 
 		expect(result.assessmentTotalInCents).toBe(150_500_00);
 		expect(result.suggestedBand).toBe("additional");
-		expect(result.marginInCents).toBe(500_00);
+		// v3.1: margin vs the corrected £125,140 additional threshold
+		expect(result.marginInCents).toBe(25_360_00);
 	});
 
 	it("bounded math rounds up to the cent", () => {
