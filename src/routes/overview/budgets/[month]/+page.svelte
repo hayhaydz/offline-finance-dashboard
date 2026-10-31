@@ -356,6 +356,7 @@
 				<span>Note</span>
 				<input
 					type="text"
+					name="amendNote"
 					bind:value={amendNote}
 					maxlength="200"
 					placeholder="optional — why is this changing?"
@@ -375,9 +376,10 @@
 		</div>
 	{/if}
 
-	<!-- R9/R29: two-column body — the month at a glance, config out of the way -->
-	<div class="grid lg:grid-cols-3">
-		<div class="lg:col-span-2 lg:border-r border-black">
+	<!-- v3.1 A08 design-quality: single full-width flow — verdict → progress
+	     → [pace | burn-down] pair → history → config accordions. (Was a
+	     grid-cols-3 whose 2/3 column held 19% content — the row-38 collapse
+	     aftermath; pairing lives in the pace|chart pair, not the page.) -->
 	<!-- PROGRESS BAR (always visible if budget set) -->
 	{#if data.budget && data.budget.totalTargetInCents > 0}
 		<div class="border-b border-black px-2 py-2">
@@ -428,6 +430,102 @@
 		</div>
 	{/if}
 
+	<!-- v3.1 A08 design-quality: pace facts + burn-down as an honest
+	     same-height pair (was: everything crammed in a 1/3 column beside
+	     a 19%-filled 2/3 column — the row-38 collapse aftermath) -->
+	<div class="grid lg:grid-cols-2 border-b border-black">
+		<div class="lg:border-r border-black">
+	<!-- SPENDING PACE -->
+	{#if data.budget && data.budget.totalTargetInCents > 0}
+		<div class="font-bold text-xs px-2 py-1 bg-gray-50 border-t border-black">SPENDING PACE <span class="{statusLabel.class}">{statusLabel.text}</span></div>
+		<div class="px-2 py-2 border-b border-gray-300">
+			<div class="flex justify-between text-xs">
+				<span class="text-gray-500">Avg/day</span>
+				<span>{formatCurrency(Math.round(data.status.avgPerDay))}</span>
+			</div>
+			<div class="flex justify-between text-xs">
+				<span class="text-gray-500">Projected total</span>
+				<span class="{spentPercent > 100 ? 'text-red-700' : ''}">{formatCurrency(Math.round(data.status.projectedTotal))}</span>
+			</div>
+			<div class="flex justify-between text-xs">
+				<span class="text-gray-500">Days left</span>
+				<span>{Math.max(0, data.status.totalDays - data.status.daysElapsed)} of {data.status.totalDays}</span>
+			</div>
+			<div class="flex justify-between text-xs">
+				<span class="text-gray-500">Allowance/day left</span>
+				<span class="{data.budget.totalTargetInCents - data.status.totalSpent < 0 ? 'text-red-700 font-bold' : ''}">
+					{formatCurrency(Math.round((data.budget.totalTargetInCents - data.status.totalSpent) / Math.max(1, data.status.totalDays - data.status.daysElapsed)))}
+				</span>
+			</div>
+			<div class="flex justify-between text-xs">
+				<span class="text-gray-500">Target</span>
+				<span>{formatCurrency(data.budget.totalTargetInCents)}</span>
+			</div>
+			<div class="mt-2">
+				<div class="flex h-1.5 border border-gray-300 relative">
+					<div class="h-full bg-black" style="width: {Math.min(spentPercent, 100)}%"></div>
+					<div class="absolute -top-0.5 -bottom-0.5 w-0.5 bg-green-700" style="left: {pacePercent}%"></div>
+				</div>
+				<div class="text-xs text-gray-500 mt-1">
+					Spending {spentPercent}% | Time {pacePercent}% — <span class="{statusLabel.class}">{statusLabel.text}</span>
+				</div>
+			</div>
+		</div>
+	{/if}
+
+		</div>
+		<div>
+	<!-- Phase 4 V1 #2: burn-down chart (spend curve vs even pace, today marker) -->
+	{#if data.budget && data.budget.totalTargetInCents > 0}
+		<div class="px-2 py-2 border-b border-gray-300">
+			<BurnDownChart
+				points={data.burnDown}
+				totalDays={data.status.totalDays}
+				targetPence={data.budget.totalTargetInCents}
+				todayDay={data.isCurrentMonth ? data.status.daysElapsed : data.status.totalDays}
+				spendLabel={(pence) => formatCurrency(pence)}
+			/>
+		</div>
+	{/if}
+
+		</div>
+	</div>
+	<!-- HISTORY -->
+	<div class="font-bold text-xs px-2 py-1 bg-gray-50 border-t border-black">HISTORY <span class="text-gray-500">{data.history.months.length} months</span></div>
+	<div class="px-2 py-1 border-b border-gray-300" bind:this={historyRef}>
+		{#if data.history.months.length > 0}
+			<table class="w-full border-collapse text-xs">
+				<thead>
+					<tr>
+						<th class="text-left p-0.5 border-b border-gray-300 text-gray-500 font-normal">Month</th>
+						<th class="text-right p-0.5 border-b border-gray-300 text-gray-500 font-normal">Target</th>
+						<th class="text-right p-0.5 border-b border-gray-300 text-gray-500 font-normal">Actual</th>
+						<th class="text-right p-0.5 border-b border-gray-300 text-gray-500 font-normal">Status</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each data.history.months as h (h.month)}
+						{@const status = getHistoryStatus(h.totalTarget, h.actualSpent)}
+						<tr class="border-b border-dotted border-gray-200">
+							<td class="p-0.5"><a href="/overview/budgets/{h.month}" class="bracket-link">{getMonthLabel(h.month)}</a></td>
+							<td class="p-0.5 text-right">{formatCurrency(h.totalTarget)}</td>
+							<td class="p-0.5 text-right">{formatCurrency(h.actualSpent)}</td>
+							<td class="p-0.5 text-right {status.class}">{status.label}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		<PaginationClient
+			page={historyPagination.page}
+			totalPages={data.history.pagination.totalPages}
+			onPageChange={historyPagination.updatePage}
+			scrollTarget={historyRef}
+		/>
+		{:else}
+			<div class="text-xs text-gray-500 py-1">No history yet.</div>
+		{/if}
+	</div>
+		</div>
 	<!-- CATEGORY TARGETS (v3.1 row 38: collapsed by default — categories
 	     created negative space; the strip + charts lead, config on demand) -->
 	<button
@@ -609,8 +707,6 @@
 	</div>
 	{/if}
 
-		</div>
-		<div>
 	<!-- TARGET ACCORDION -->
 	<button
 		class="w-full font-bold flex justify-between items-center cursor-pointer px-2 py-1.5 text-sm bg-white border-b border-black"
@@ -713,43 +809,6 @@
 		{/if}
 	{/if}
 
-	<!-- SPENDING PACE -->
-	{#if data.budget && data.budget.totalTargetInCents > 0}
-		<div class="font-bold text-xs px-2 py-1 bg-gray-50 border-t border-black">SPENDING PACE <span class="{statusLabel.class}">{statusLabel.text}</span></div>
-		<div class="px-2 py-2 border-b border-gray-300">
-			<div class="flex justify-between text-xs">
-				<span class="text-gray-500">Avg/day</span>
-				<span>{formatCurrency(Math.round(data.status.avgPerDay))}</span>
-			</div>
-			<div class="flex justify-between text-xs">
-				<span class="text-gray-500">Projected total</span>
-				<span class="{spentPercent > 100 ? 'text-red-700' : ''}">{formatCurrency(Math.round(data.status.projectedTotal))}</span>
-			</div>
-			<div class="mt-2">
-				<div class="flex h-1.5 border border-gray-300 relative">
-					<div class="h-full bg-black" style="width: {Math.min(spentPercent, 100)}%"></div>
-					<div class="absolute -top-0.5 -bottom-0.5 w-0.5 bg-green-700" style="left: {pacePercent}%"></div>
-				</div>
-				<div class="text-xs text-gray-500 mt-1">
-					Spending {spentPercent}% | Time {pacePercent}% — <span class="{statusLabel.class}">{statusLabel.text}</span>
-				</div>
-			</div>
-		</div>
-	{/if}
-
-	<!-- Phase 4 V1 #2: burn-down chart (spend curve vs even pace, today marker) -->
-	{#if data.budget && data.budget.totalTargetInCents > 0}
-		<div class="px-2 py-2 border-b border-gray-300">
-			<BurnDownChart
-				points={data.burnDown}
-				totalDays={data.status.totalDays}
-				targetPence={data.budget.totalTargetInCents}
-				todayDay={data.isCurrentMonth ? data.status.daysElapsed : data.status.totalDays}
-				spendLabel={(pence) => formatCurrency(pence)}
-			/>
-		</div>
-	{/if}
-
 	<!-- FILTERS ACCORDION -->
 	{#if data.budget}
 		<button
@@ -818,41 +877,3 @@
 		{/if}
 	{/if}
 
-	<!-- HISTORY -->
-	<div class="font-bold text-xs px-2 py-1 bg-gray-50 border-t border-black">HISTORY <span class="text-gray-500">{data.history.months.length} months</span></div>
-	<div class="px-2 py-1 border-b border-gray-300" bind:this={historyRef}>
-		{#if data.history.months.length > 0}
-			<table class="w-full border-collapse text-xs">
-				<thead>
-					<tr>
-						<th class="text-left p-0.5 border-b border-gray-300 text-gray-500 font-normal">Month</th>
-						<th class="text-right p-0.5 border-b border-gray-300 text-gray-500 font-normal">Target</th>
-						<th class="text-right p-0.5 border-b border-gray-300 text-gray-500 font-normal">Actual</th>
-						<th class="text-right p-0.5 border-b border-gray-300 text-gray-500 font-normal">Status</th>
-					</tr>
-				</thead>
-				<tbody>
-					{#each data.history.months as h (h.month)}
-						{@const status = getHistoryStatus(h.totalTarget, h.actualSpent)}
-						<tr class="border-b border-dotted border-gray-200">
-							<td class="p-0.5"><a href="/overview/budgets/{h.month}" class="bracket-link">{getMonthLabel(h.month)}</a></td>
-							<td class="p-0.5 text-right">{formatCurrency(h.totalTarget)}</td>
-							<td class="p-0.5 text-right">{formatCurrency(h.actualSpent)}</td>
-							<td class="p-0.5 text-right {status.class}">{status.label}</td>
-						</tr>
-					{/each}
-				</tbody>
-			</table>
-		<PaginationClient
-			page={historyPagination.page}
-			totalPages={data.history.pagination.totalPages}
-			onPageChange={historyPagination.updatePage}
-			scrollTarget={historyRef}
-		/>
-		{:else}
-			<div class="text-xs text-gray-500 py-1">No history yet.</div>
-		{/if}
-	</div>
-		</div>
-	</div>
-</div>

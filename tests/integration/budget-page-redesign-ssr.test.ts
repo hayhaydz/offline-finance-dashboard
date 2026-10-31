@@ -52,15 +52,19 @@ describe("Budget page redesign (R9 + R29)", () => {
 		expect(body).toContain("Over");
 	});
 
-	it("renders the two-column grid with categories left and config right", () => {
+	it("renders the full-width flow with the pace|burn-down pair (v3.1 A08)", () => {
 		const { body } = renderPage();
-		expect(body).toContain('class="grid lg:grid-cols-3"');
-		expect(body).toContain("lg:col-span-2");
-		expect(body).toContain("CATEGORY TARGETS");
+		// v3.1 design-quality: the old grid-cols-3 (19%-filled 2/3 column)
+		// was replaced by a single flow: progress → [pace | burn] pair →
+		// history → config accordions
+		expect(body).not.toContain('class="grid lg:grid-cols-3"');
+		expect(body).toContain('class="grid lg:grid-cols-2 border-b border-black"');
 		expect(body).toContain("SPENDING PACE");
+		expect(body).toContain("Spend vs pace");
+		expect(body).toContain("HISTORY");
+		expect(body).toContain("CATEGORY TARGETS");
 		expect(body).toContain("TARGET / MO");
 		expect(body).toContain("AMENDMENTS");
-		expect(body).toContain("HISTORY");
 	});
 
 	it("categories collapse by default with over-budget chips visible (row 38)", () => {
