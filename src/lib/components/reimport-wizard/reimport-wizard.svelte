@@ -143,7 +143,8 @@
 </script>
 
 <div class="p-2 text-xs">
-	<h2 class="font-bold text-base mb-1">CSV Reimport — Edit / Delete / Restore</h2>
+	<!-- v3.1: inner h2 removed — the section band header directly above carries
+	     the same title; stacked duplicates read as a rendering error -->
 	<p class="text-gray-600 mb-2">
 		One spreadsheet for every account. Rows with an <span class="font-mono">id</span> are edited
 		(or deleted when <span class="font-mono">_delete=1</span>); rows without an
@@ -187,7 +188,7 @@
 						type="file"
 						accept=".csv"
 						onchange={handleFile}
-						class="text-xs"
+						class="text-xs w-full max-w-xl"
 						aria-label="Upload transactions CSV file"
 					/>
 				</label>
@@ -215,6 +216,7 @@
 			<button
 				type="submit"
 				disabled={isSubmitting || csvText === ""}
+				title={csvText === "" && !isSubmitting ? "Choose a CSV file first — the preview reads it locally" : "Parse the file and preview every change before anything is written"}
 				class="bracket-link {isSubmitting || csvText === '' ? 'opacity-50 pointer-events-none' : ''}"
 			>
 				{isSubmitting ? "Checking file..." : "Preview Changes"}

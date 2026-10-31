@@ -109,7 +109,7 @@
 						<td class="px-1 py-0.5 text-gray-600">{a.type}</td>
 						<td class="px-1 py-0.5 text-right tabular-nums">{a.txCount}</td>
 						<td class="px-1 py-0.5 text-gray-600 whitespace-nowrap">
-							{a.firstDate && a.lastDate ? `${a.firstDate} → ${a.lastDate}` : "no transactions"}
+							{#if a.firstDate && a.lastDate}{a.firstDate} &rarr; {a.lastDate}{:else}<span title="This account has no transactions yet">— none yet</span>{/if}
 						</td>
 					</tr>
 				{:else}
