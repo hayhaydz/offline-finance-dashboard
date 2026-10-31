@@ -69,7 +69,9 @@
 				padding={{ top: 6, right: 20, bottom: 24, left: 150 }}
 				xDomain={[0, maxV * 1.05]}
 				props={{
-					xAxis: { format: (v: number) => compactPence(v) },
+					// v3.1 A09 chart craft: ~5 ticks — the default step over-ticked
+					// (£500 steps → 17 labels under a single bar)
+					xAxis: { ticks: 5, format: (v: number) => compactPence(v) },
 					tooltip: {
 						header: { format: (n: string) => String(n) },
 						item: { format: (v: number) => `${formatCurrency(v)}${total > 0 ? ` · ${Math.round((v / total) * 100)}% of ${month}` : ""}` },
