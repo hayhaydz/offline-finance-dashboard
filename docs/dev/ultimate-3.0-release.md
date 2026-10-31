@@ -76,6 +76,33 @@
 - Fresh full-app audit: **55/55 routes clean** (0 console errors, 0 5xx, zero text bugs); navigation-mode lighthouse 100 across a11y/best-practices/SEO/agentic on home and the data page.
 - Payoff-interest fix: both payoff engines and the debt page billed the final partial month as a whole payment (`payment × ceil(months) − balance`), overstating interest — and for large payments inverting "faster costs less" (£450 @ 21.9%: min-only £125 vs on-pace £187 before; £100.50 vs £10.76 after). Month-by-month simulation replaces the closed form; invariant regression test added.
 
+## v3.1 — UX wireframe rethink (2026-10-31)
+
+The v3.1 loop re-thought every page's wireframe for the wide terminal
+desktop, area by area, with per-area design dossiers as the durable
+record (`.docs/plans/2026-10-31-0854-ultimate-v3-1-dossiers/`).
+
+- **All axis graphs are now interactive** (layerchart, matching the
+  expenses trend chart): the six report figures, allocation (per-goal
+  bars), and the budget spend-vs-pace chart — hover everywhere, ASCII
+  toggle preserved on reports. Meters/grids (goal bars, cashflow
+  calendar, rate heatmap) stay deterministic table-shapes by decision.
+- **Accounts**: facts strip replaces the dead-space summary band;
+  liabilities became a terminal table; balances full width.
+- **Goals**: context trio (assignable | alerts | allocation) + paired
+  detail panels.
+- **Overview wing**: routine strip de-duplicated, expenses panels
+  paired, alerts lanes verified + chip truncation fixed.
+- **Credit spirit**: stooze mode is friendly-only (planning pressure
+  behind a toggle); panic verdicts carry their evidence inline; a v1-era
+  liability delta-colour inversion fixed.
+- **Budget**: the 5-second test passes; pace/final states, zero-spend
+  collapse, target-source naming.
+- **Home**: goals preview capped (flagship metric fix), day-counter
+  polish.
+- Tooling: bracket-convention net Form 5 (16 more relapses flushed);
+  seed carries credit limits + 9 goals.
+
 ## Runbook
 
 ```bash
