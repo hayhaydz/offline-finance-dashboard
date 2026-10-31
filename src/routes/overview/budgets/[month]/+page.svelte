@@ -434,11 +434,14 @@
 	     same-height pair (was: everything crammed in a 1/3 column beside
 	     a 19%-filled 2/3 column — the row-38 collapse aftermath) -->
 	<div class="grid lg:grid-cols-2 border-b border-black">
-		<div class="lg:border-r border-black">
+		<!-- v3.1 A08 craft: the pace cell is a bordered panel so its bottom
+		     rule stretches with the grid row — flush with the chart panel
+		     (was an unbordered void below the facts) -->
+		<div class="border-l border-t lg:border-r border-black flex flex-col">
 	<!-- SPENDING PACE -->
 	{#if data.budget && data.budget.totalTargetInCents > 0}
 		<div class="font-bold text-xs px-2 py-1 bg-gray-50 border-t border-black">SPENDING PACE <span class="{statusLabel.class}">{statusLabel.text}</span></div>
-		<div class="px-2 py-2 border-b border-gray-300">
+		<div class="px-2 py-2 border-b border-gray-300 flex-1">
 			<div class="flex justify-between text-xs">
 				<span class="text-gray-500">Avg/day</span>
 				<span>{formatCurrency(Math.round(data.status.avgPerDay))}</span>
