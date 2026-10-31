@@ -301,7 +301,16 @@
 			<div class="px-2 py-1.5">
 				<div class="text-[10px] uppercase font-bold text-gray-600">Spent / target</div>
 				<div class="text-sm font-bold">{formatCurrency(data.status.totalSpent)}</div>
-				<div class="text-[10px] text-gray-500">of {formatCurrency(data.budget.totalTargetInCents)}</div>
+				<div class="text-[10px] text-gray-500">
+					of {formatCurrency(data.budget.totalTargetInCents)}
+					<!-- v3.1 A08 harvest: name the target's source so a first-timer
+					     can trace £X to its config -->
+					{#if (data.categoryBreakdown ?? []).filter((c) => c.target).length > 0}
+						· sum of category targets
+					{:else}
+						· month-level target (no category targets set)
+					{/if}
+				</div>
 			</div>
 			<div class="px-2 py-1.5">
 				<div class="text-[10px] uppercase font-bold text-gray-600">Pace</div>
