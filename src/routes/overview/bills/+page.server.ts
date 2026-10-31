@@ -3,6 +3,7 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accountTransactions, accounts } from "$lib/db/schema";
+import { decryptTxDescription } from "$lib/server/crypto/protected-fields";
 import { detectEmergingPatterns, detectRecurringPatterns } from "$lib/server/recurring-patterns";
 import { requireAuth } from "$lib/server/utils/auth-guard";
 import { projectObligations } from "$lib/utils/surface-views";
@@ -20,8 +21,9 @@ import { projectObligations } from "$lib/utils/surface-views";
 export const load: PageServerLoad = async ({ locals }) => {
 	const user = requireAuth(locals);
 
-	const txs = await db
+	const txRows = await db
 		.select({
+			slug: accountTransactions.slug,
 			description: accountTransactions.description,
 			amount: accountTransactions.amount,
 			transactionDate: accountTransactions.transactionDate,
@@ -36,6 +38,14 @@ export const load: PageServerLoad = async ({ locals }) => {
 			),
 		)
 		.orderBy(desc(accountTransactions.transactionDate));
+
+	// v3.1 fix: descriptions are encrypted at rest — decrypt BEFORE
+	// grouping or the detector matches ciphertext against itself and
+	// finds nothing (silently empty bills page on encrypted dev data).
+	const txs = txRows.map((t) => ({
+		...t,
+		description: decryptTxDescription(user.id, t.slug, t.description),
+	}));
 
 	const patterns = detectRecurringPatterns(txs);
 	const emerging = detectEmergingPatterns(txs);
