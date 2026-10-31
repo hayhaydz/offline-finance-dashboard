@@ -458,3 +458,25 @@ The user ruled the v3 run delivered mechanisms without spirit: "the design still
 - **STATE: v3.1 ALL GATES EXCEPT LEDGER · check 0/0 · 158/1102 · build ✔ · 13 dossiers audited in .docs/plans/2026-10-31-0854-ultimate-v3-1-dossiers/.**
 - Ledger discipline: `date` FIRST, ledger row AFTER (real times only — two projected rows were corrected this loop; keep it zero). Vision-log edits: append, never replace rows.
 - CDP: take_screenshot needs filePath; sessions expire after npm test/reseed; after ANY db:reset RESTART the dev server (stale SQLite conn → 500s); hover QA events ON `.lc-tooltip-rect`; DebtProjectionSection: projection[0].payment = resolved minimum; route-sweep checks must match the error HEADING not substrings (£500.00 PSA false-positive).
+
+## V3.1 FINAL REPORT (drafted 12:31, finalized at stop)
+
+### Definition of done — §8 checklist
+
+1. v3 gates 1–8: check 0/0 ✓ · 158 files/1102 tests (×2, no flakes) ✓ · build ✔ · requirements R1–R31 dispositioned (v3 table + R31 reversal) ✓ · audits: 22/22 routes a11y 100, perf 100 on chart routes ✓ · ledger (below) · evidence: per-sweep rows ✓ · docs: release doc v3.1 section + README ✓
+2. Dossiers A01–A12 ALL `audited` with One Job + dated ideation + wireframe + decisions + QA/wireframe-conformance verdicts ✓ (13 dossiers incl. A13; zero unadjudicated drift — every vision claim adjudicated with DOM/arithmetic/font evidence, 13 documented misread classes)
+3. Gap register: all 30 rows dispositioned with evidence (closure record appended to gap-register.md) ✓
+4. Doctrine metrics on flagships: home cells 100/99/58/66/100% fill (all ≥50) ✓; A03/A04 measured in their dossiers ✓; §8.4 "≥3 columns per band" interpreted per D1 (2–4) with rationale recorded
+5. Appendix C re-read end-to-end: no new spirit-gaps; ONE judgment call surfaced for the user (row 30: meters/grids — see A13 final-audit presentation)
+
+### The loop's yield (13 sweeps this session)
+
+- 4 real defects found + fixed: liabilities utilisation sign · home ACCOUNTS cell 27% fill (the D2 emblem, caught by the §8.4 metric pass) · **bills detector structurally blind on encrypted descriptions since B14** (the catch of the loop) · anonymiser WAL-sidecar copy
+- Spirit audits answered with evidence: stooze friendly / panic evidenced (rows 7/8/20) · budget 5-second test (row 9) · tax wall (row 11) · alerts digestible (row 12) · export onboarding (row 18)
+- Wireframe rethinks landed: facts strips, terminal tables, trio/pair rows, goal-detail pairing, expenses pairing, routine de-duplication
+- Polish batch: bracket net Form 5 (16 relapses) · alert chips never truncate · liability delta colours (v1-era inversion) · stooze tool labels · ASCII button scoping · threshold-bar hover · day-counter · tax-year test-type debt
+- Seeds enriched: credit limits restored (util data), 9 goals
+
+### Ledger status
+
+9h... → trued at stop. Stop file ONLY when ≥12h + all gates (§9).
