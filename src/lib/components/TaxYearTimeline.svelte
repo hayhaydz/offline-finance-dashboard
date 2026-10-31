@@ -93,7 +93,8 @@
 	<div class="font-bold flex justify-between items-center bg-gray-100 border-b border-black p-2 gap-4">
 		<span class="whitespace-nowrap">TAX YEAR: {taxYearLabel}</span>
 		<span class="text-xs font-normal text-gray-600 tabular-nums whitespace-nowrap flex gap-3 flex-wrap">
-			<span>Day {daysElapsed} of 365 · {daysRemaining} days remaining</span>
+			<span>Day {daysElapsed} of 365</span>
+			<span>{daysRemaining} days remaining</span>
 			<span>ends {endDateFormatted}</span>
 			<span class="hidden sm:inline text-gray-400">{Math.round(percentComplete)}% elapsed</span>
 		</span>
@@ -124,10 +125,12 @@
 		{/each}
 	</div>
 
-	<!-- lane 2: ISA allowance + pacing in the same width -->
+	<!-- lane 2: ISA allowance + pacing in the same width (v3.1 A02 D8: the
+	     meter flexes with the lane and the pacing facts right-align — no
+	     left-packed run with a dead right margin) -->
 	<div class="p-2 flex items-center gap-3 text-xs flex-wrap">
 		<span class="font-bold whitespace-nowrap">ISA ALLOWANCE</span>
-		<div class="h-2 border border-black bg-white w-48 shrink-0">
+		<div class="h-2 border border-black bg-white flex-1 min-w-24 max-w-md">
 			<div class="h-full bg-green-700" style={`width: ${isaPercentUsed}%`}></div>
 		</div>
 		<span class="tabular-nums whitespace-nowrap">
@@ -137,15 +140,17 @@
 			{data.remaining > 0 ? `${formatCurrency(data.remaining)} remaining` : "allowance fully used"}
 		</span>
 		{#if pacing && pacing.status !== "full"}
-			<span class="font-bold {pacingClass} whitespace-nowrap">{pacingLabel}</span>
-			{#if pacing.status !== "no-data"}
-				<span class="text-gray-600 tabular-nums whitespace-nowrap">
-					avg {formatCurrencyShorthand(pacing.actualMonthlyAvgInCents)}/mo ·
-					target {formatCurrencyShorthand(pacing.requiredMonthlyInCents)}/mo
-				</span>
-			{:else}
-				<span class="text-gray-500 whitespace-nowrap">no ISA deposits this tax year yet</span>
-			{/if}
+			<span class="ml-auto flex items-center gap-3 whitespace-nowrap">
+				<span class="font-bold {pacingClass}">{pacingLabel}</span>
+				{#if pacing.status !== "no-data"}
+					<span class="text-gray-600 tabular-nums">
+						avg {formatCurrencyShorthand(pacing.actualMonthlyAvgInCents)}/mo ·
+						target {formatCurrencyShorthand(pacing.requiredMonthlyInCents)}/mo
+					</span>
+				{:else}
+					<span class="text-gray-500">no ISA deposits this tax year yet</span>
+				{/if}
+			</span>
 		{/if}
 	</div>
 </div>

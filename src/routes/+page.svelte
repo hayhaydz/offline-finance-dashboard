@@ -149,6 +149,10 @@
 	{@const posted = data.interestSummary.actualInterestIsa + data.interestSummary.actualInterestNonIsa}
 	{@const estimated = data.interestSummary.projectedInterestIsa + data.interestSummary.projectedInterestNonIsa}
 	{@const forecast = posted + estimated}
+	{@const isaPosted = data.interestSummary.actualInterestIsa}
+	{@const isaProjected = data.interestSummary.projectedInterestIsa}
+	{@const taxablePosted = data.interestSummary.actualInterestNonIsa}
+	{@const taxableProjected = data.interestSummary.projectedInterestNonIsa}
 	{#snippet interestAction()}
 		<div class="flex items-center gap-2">
 			<a href="/accounts/interest/{currentYearSlug}" class="bracket-link text-xs">View Breakdown</a>
@@ -175,6 +179,29 @@
 				color={data.interestSummary.taxFreeStatusProjected.overAllowance ? 'text-red-700' : 'text-green-700'}
 				detail="of {formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} · {data.interestSummary.taxBand} rate"
 			/>
+		</div>
+	</div>
+
+	<!-- v3.1 A02 D2/D8: wrapper split — the PSA story is ISA-vs-taxable;
+	     this ledger fills the stretched cell with data that belongs here -->
+	<div class="border-t border-gray-200 text-xs">
+		<div class="grid grid-cols-[1fr_repeat(3,minmax(0,9rem))] bg-gray-50 border-b border-gray-200">
+			<div class="pl-2 py-1 text-[10px] font-bold text-gray-600 uppercase">Wrapper</div>
+			<div class="py-1 text-right text-[10px] font-bold text-gray-600 uppercase">Posted</div>
+			<div class="py-1 text-right text-[10px] font-bold text-gray-600 uppercase">Projected</div>
+			<div class="py-1 pr-2 text-right text-[10px] font-bold text-gray-600 uppercase">Forecast</div>
+		</div>
+		<div class="grid grid-cols-[1fr_repeat(3,minmax(0,9rem))] border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors duration-150">
+			<div class="pl-2 py-1.5">ISA / LISA <span class="text-gray-500">tax-free</span></div>
+			<div class="py-1.5 text-right tabular-nums">{formatCurrency(isaPosted)}</div>
+			<div class="py-1.5 text-right tabular-nums text-gray-600">{formatCurrency(isaProjected)}</div>
+			<div class="py-1.5 pr-2 text-right tabular-nums font-bold">{formatCurrency(isaPosted + isaProjected)}</div>
+		</div>
+		<div class="grid grid-cols-[1fr_repeat(3,minmax(0,9rem))] border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors duration-150">
+			<div class="pl-2 py-1.5">Taxable <span class="text-gray-500">counts towards PSA</span></div>
+			<div class="py-1.5 text-right tabular-nums">{formatCurrency(taxablePosted)}</div>
+			<div class="py-1.5 text-right tabular-nums text-gray-600">{formatCurrency(taxableProjected)}</div>
+			<div class="py-1.5 pr-2 text-right tabular-nums font-bold">{formatCurrency(taxablePosted + taxableProjected)}</div>
 		</div>
 	</div>
 
