@@ -73,6 +73,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-31 12:18:40 GMT | 2026-10-31 12:19:48 GMT | 0h 01m | v3.1 sweep 24 deepen: exports live-verified (tx + both history kinds 200, self-describing legend intact); chart-dashed CSS still used (not dead); stooze pay-by date now reads 10 Jan 2027 style |
 | 2026-10-31 12:19:48 GMT | 2026-10-31 12:21:45 GMT | 0h 01m | v3.1 sweep 25: full gate after polish batch (158/1102 + build ✔); tools full-width conversion vision-graded PASS ("ship it" — balanced columns, no new dead space); [✳K] = 13th glyph-misread variant |
 | 2026-10-31 12:21:45 GMT | 2026-10-31 12:22:59 GMT | 0h 01m | v3.1 sweep 26: A07 threshold-bar hover tooltip shipped (exact £ gap to higher-rate + additional threshold on hover); A13 final-audit presentation written (interactive 8 vs deterministic 3, user ruling invited); finder pins 4/4 |
+| 2026-10-31 12:22:59 GMT | 2026-10-31 12:25:34 GMT | 0h 02m | v3.1 sweep 27: ASCII parity adjudicated (savings-rate has no line figures — toggle was a no-op there) → ASCII button now renders only on papers with netWorth/stackedArea figures; reports pins 8/8; goal-form renders verified by suite |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
