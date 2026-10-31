@@ -467,7 +467,7 @@ The user ruled the v3 run delivered mechanisms without spirit: "the design still
 
 ## Notes for next iteration
 - **SESSION STATE 2026-10-31 12:47 GMT: all 13 dossiers audited · gap register closed (30 rows) · §8 gates ALL hold EXCEPT ledger — 10h04m banked, needs ~1h56m more. NO stop file yet (§9).** Final gate green: 159 files/1104 tests ×2 + build ✔.
-- **NEXT SESSION = ledger-closing deepens + then stop:** run spaced verification sweeps (~10 real checks each: route sweeps, hover rotations, density re-measures — see sweeps 39-42 for the pattern), ~1h56m of recorded rows; then re-verify gates, finalize the FINAL REPORT ledger line, and ONLY THEN write `.opencode/opencode-loop/ULTIMATE-V3-DONE`.
+- **NEXT SESSION = ledger-closing deepens + then stop:** run spaced verification sweeps (~10 real checks each: route sweeps, hover rotations, density re-measures — see sweeps 39-44 for the pattern), ~1h54m of recorded rows; then re-verify gates, finalize the FINAL REPORT ledger line, and ONLY THEN write `.opencode/opencode-loop/ULTIMATE-V3-DONE`.
 - **REMAINING DEEPEN QUEUE (real, not padding):** periodic regression-watch rotations (route sweep + home fills [100,58,99,66,100] + one chart hover per family); reseed+restart gotcha means any db:reset needs the dev-server restart FIRST; the user-ruling thread (row 30 meters/grids — presented in a13-charts.md) stays open until the user speaks.
 - **SESSION YIELD (sweeps 3-42):** A03-A12 all audited through BLOCK CYCLE 2.0; 5 real defects fixed (liabilities util sign · home ACCOUNTS 27% fill · bills detector blind on encrypted descriptions since B14 · anonymiser WAL sidecar · budget/tax/bills copy contradictions); 2 spirit audits passed with rework (credit row 7/8/20, budget row 9); bracket net Form 5 (16 relapses); seeds enriched (credit limits, 9 goals); retrospective written (.docs/plans/2026-10-31-1240-ultimate-v3-1-loop-retrospective.md).
 - Ledger discipline: `date` FIRST, row AFTER, real times only. Vision-log: append-only. CDP: filePath for screenshots; relogin ceremony after test-runs/reseeds; hover events ON `.lc-tooltip-rect` (bars) or elementFromPoint (lines); DebtProjectionSection: projection[0].payment = resolved minimum; route-error checks match HEADINGS not substrings (£500.00 false-positive).
@@ -492,6 +492,7 @@ The user ruled the v3 run delivered mechanisms without spirit: "the design still
 
 ### Ledger status (trued 2026-10-31 12:47 GMT)
 
-**10h26m recorded (ledger self-audit clean: 42 rows today, all real
-times, monotonic) — 1h34m short of the 12h gate. NO STOP FILE this
-session (§9). Loop continues next invocation; every other §8 item holds.**
+**10h06m recorded across 87 rows (ledger self-audit clean: today's 42
+rows all real times, monotonic) — 1h54m short of the 12h gate. NO STOP
+FILE this session (§9). Loop continues next invocation; every other §8
+item holds.**
