@@ -35,11 +35,11 @@ describe("RateHeatmap", () => {
 		expect(body).toContain('aria-label="Monzo Instant May: 4.10%"');
 	});
 
-	it("summary states the range and the hover affordance", () => {
+	it("summary states the range; the hover hint lives in the panel", () => {
 		const { body } = render(RateHeatmap, { props: { rows, months } });
 		expect(body).toContain("1 accounts × 3 months");
 		expect(body).toContain("4.10%–4.55%");
-		expect(body).toContain("hover a cell for detail");
+		expect(body).toContain("hover a cell for account · month · rate · change");
 	});
 
 	it("row header carries the current rate and rise marker", () => {

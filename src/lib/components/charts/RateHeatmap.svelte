@@ -69,7 +69,7 @@
 	const summary = $derived(
 		!withAnyData
 			? "No rate history recorded yet — add interest rates to see the heatmap"
-			: `${rows.length} accounts × ${months.length} months · rates ${pct(minRate)}–${pct(maxRate)} · hover a cell for detail`,
+			: `${rows.length} accounts × ${months.length} months · rates ${pct(minRate)}–${pct(maxRate)}`,
 	);
 
 	function onCell(account: string, i: number, rate: number | null) {
@@ -131,7 +131,7 @@
 												onmouseleave={() => (hover = null)}
 												onblur={() => (hover = null)}
 											>
-												{(v.rate / 100).toFixed(v.rate % 100 === 0 ? 1 : 2)}
+												{(v.rate / 100).toFixed(2)}
 											</button>
 										{/if}
 									</td>

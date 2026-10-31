@@ -1,7 +1,7 @@
 <script lang="ts">
 	import NetWorthChart from './NetWorthChart.svelte';
 	import CashflowCalendar from './CashflowCalendar.svelte';
-	import AllocationBar from './AllocationBar.svelte';
+	import AllocationStrip from './AllocationStrip.svelte';
 	import { formatCurrency } from '$lib/utils/currency';
 	import type { Obligation } from '$lib/utils/surface-views';
 
@@ -81,9 +81,9 @@
 							{#snippet controls()}{@render expandControl()}{/snippet}
 						</CashflowCalendar>
 					{:else if cell.id === 'allocation'}
-						<AllocationBar items={assetGroups} label="held" noun="asset classes">
+						<AllocationStrip items={assetGroups} label="held" noun="asset classes">
 							{#snippet controls()}{@render expandControl()}{/snippet}
-						</AllocationBar>
+						</AllocationStrip>
 					{/if}
 				</div>
 			{/each}

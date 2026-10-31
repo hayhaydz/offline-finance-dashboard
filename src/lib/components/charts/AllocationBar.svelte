@@ -39,12 +39,17 @@
 	// unbounded (10+ goals collapse into 9 rows)
 	const rows = $derived.by(() => {
 		const top = shares.slice(0, TOP_N);
+		// direct labelling (skill craft): band names carry £ so each bar
+		// reads without the tooltip
+		const row = (s: { name: string; value: number }) => ({
+			name: `${s.name} — ${formatCurrency(s.value)}`,
+			value: s.value,
+		});
 		if (shares.length > TOP_N) {
 			const restValue = shares.slice(TOP_N).reduce((s, r) => s + r.value, 0);
-			const restPercent = shares.slice(TOP_N).reduce((s, r) => s + r.percent, 0);
-			return [...top.map((s) => ({ name: s.name, value: s.value, percent: s.percent })), { name: `Other (${shares.length - TOP_N} more)`, value: restValue, percent: restPercent }];
+			return [...top.map(row), { name: `Other (${shares.length - TOP_N} more) — ${formatCurrency(restValue)}`, value: restValue }];
 		}
-		return top.map((s) => ({ name: s.name, value: s.value, percent: s.percent }));
+		return top.map(row);
 	});
 
 	// deterministic ink-density palette, darkest first (biggest share)
@@ -85,7 +90,7 @@
 				{series}
 				orientation="horizontal"
 				height={Math.max(rows.length * 26 + 24, 90)}
-				padding={{ top: 6, right: 20, bottom: 24, left: 130 }}
+				padding={{ top: 6, right: 20, bottom: 24, left: 170 }}
 				xDomain={[0, maxV * 1.05]}
 				props={{
 					xAxis: { format: (v: number) => compactPence(v) },
