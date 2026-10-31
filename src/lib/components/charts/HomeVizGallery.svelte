@@ -55,7 +55,9 @@
 </script>
 
 {#if cells.length > 0}
-	<div class="border-b border-black p-2">
+	<!-- v3.1 border system: ChartPanels self-border; wrapper rule removed
+	     (was drawing a parallel rule 8px below the cells) -->
+	<div class="p-2">
 		<div class="grid grid-cols-3 gap-2">
 			{#each cells as cell (cell.id)}
 				<div class={spanFor(cell.id)} data-viz-cell={cell.id}>

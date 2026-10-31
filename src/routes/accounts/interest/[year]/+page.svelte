@@ -384,7 +384,7 @@
 </div>
 
 <!-- v3 R29: projection assumptions + system integrity side-by-side (3/2) -->
-<div class="grid grid-cols-5 gap-2 items-start border-b border-black p-2">
+<div class="grid grid-cols-5 gap-2 items-start p-2">
 	<div class="col-span-3 border border-black [&>*:last-child]:border-b-0">
 		<InterestProjectionTable
 			accounts={data.projected.byAccount}

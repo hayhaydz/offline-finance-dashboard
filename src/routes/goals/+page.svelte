@@ -5,6 +5,8 @@
 	import { formatCurrency } from '$lib/utils/currency';
 	import { getProgressColor as getProgressColorFromPercent } from '$lib/utils/formatting';
 	import { getStaleness } from '$lib/utils/staleness';
+	import { formatCurrencyShorthand, formatDate } from '$lib/utils/currency';
+	import GoalBulletBar from '$lib/components/charts/GoalBulletBar.svelte';
 	import GoalRow from '$lib/components/GoalRow.svelte';
 	import { listnav } from '$lib/utils/list-nav';
 	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
@@ -226,7 +228,7 @@ async function placeAtEnd() {
      (debt tracking promoted to its own cell — no more mixed domains),
      then the ranked allocation bars at full width (wider bars = roomier
      direct labels). -->
-<div class="grid grid-cols-1 md:grid-cols-3 gap-2 border-b border-black p-2">
+<div class="grid grid-cols-1 md:grid-cols-3 gap-2 p-2"> <!-- v3.1 border system: cells own boxes, wrapper rule off -->
 	<!-- READY TO ASSIGN -->
 	<div class="border border-black [&>*:last-child]:border-b-0">
 		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
@@ -273,7 +275,8 @@ async function placeAtEnd() {
 </div>
 
 {#if goals.length > 0}
-<div class="border-b border-black p-2">
+<!-- v3.1 border system: ChartPanel self-borders — no outer box -->
+<div class="p-2">
 	<AllocationBar
 		items={goals.map((g) => ({ name: g.name, value: Math.max(0, g.currentAllocation ?? 0) }))}
 		label="allocated"
@@ -351,52 +354,92 @@ async function placeAtEnd() {
 			{/if}
 		</p>
 	{:else}
-		<div class="overflow-x-auto" bind:this={tableRef}>
-		<table class="w-full">
-			<thead>
-				<tr>
-					<th class="pl-2 text-left whitespace-nowrap">Goal</th>
-					<th class="text-right pr-4 whitespace-nowrap min-w-55">Progress</th>
-					<th class="text-right pr-1 whitespace-nowrap min-w-30">
-						{data.goals.find(g => g.goalType === 'debt') ? 'Starting/Deadline' : 'Target'}
-					</th>
-				</tr>
-			</thead>
-			<tbody use:listnav>
-				{#each goals as goal, index}
-					{@const progress = getProgress(goal)}
-					{@const progressColor = getProgressColor(goal)}
-					{@const isDebtGoal = goal.goalType === 'debt'}
-					<!-- Phase 4 V1 #3: debt rows carry DB milestones (thresholds → bar ticks);
-					     emergency funds keep their derived month labels -->
-					{@const milestones = isDebtGoal
-						? ((goal as any).milestones ?? []).map((m: any) => ({
-								label: m.label as string,
-								thresholdInCents: m.thresholdInCents as number,
-								reachedAt: m.reachedAt ?? null
-							}))
-						: getEmergencyFundMilestones(goal)}
-					<GoalRow
-						{goal}
-						{progress}
-						{progressColor}
-						{milestones}
-						{isDebtGoal}
-						startingBalanceInCents={goal.startingBalanceInCents}
-						currentBalanceInCents={'currentBalance' in goal ? goal.currentBalance : undefined}
-						linkedAccountName={goal.linkedAccount?.name ?? null}
-						paidInCents={'progress' in goal && typeof goal.progress === 'object' && 'paidInCents' in goal.progress ? goal.progress.paidInCents : undefined}
-						remainingInCents={'progress' in goal && typeof goal.progress === 'object' && 'remainingInCents' in goal.progress ? goal.progress.remainingInCents : undefined}
-						reorderMode={reorderMode}
-						isSelected={selectedSlug === goal.slug}
-						isOtherSelected={selectedSlug !== null && selectedSlug !== goal.slug}
-						onSelect={() => selectGoal(goal.slug)}
-						onPlaceHere={() => placeAt(goal.slug)}
-						nextMilestone={getNextMilestone(goal)}
-					/>
-				{/each}
-			</tbody>
-		</table>
+		<!-- v3.1 third-mandate: the goals LIST is a CARD GRID (3-wide at
+		     desktop) — the old 3-column table never used the viewport and
+		     read as a boring vertical ledger. Reorder, meters, milestones
+		     and debt context all preserved on the cards. -->
+		<div class="p-2 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2" bind:this={tableRef} use:listnav>
+			{#each goals as goal, index}
+				{@const progress = getProgress(goal)}
+				{@const progressColor = getProgressColor(goal)}
+				{@const isDebtGoal = goal.goalType === 'debt'}
+				{@const milestones = isDebtGoal
+					? ((goal as any).milestones ?? []).map((m: any) => ({
+							label: m.label as string,
+							thresholdInCents: m.thresholdInCents as number,
+							reachedAt: m.reachedAt ?? null
+						}))
+					: getEmergencyFundMilestones(goal)}
+				{@const paidInCents = 'progress' in goal && typeof goal.progress === 'object' && 'paidInCents' in goal.progress ? goal.progress.paidInCents : undefined}
+				{@const remainingInCents = 'progress' in goal && typeof goal.progress === 'object' && 'remainingInCents' in goal.progress ? goal.progress.remainingInCents : undefined}
+				{@const stalenessDot = getStaleness(goal.updatedAt)}
+				{@const savingsOver = !isDebtGoal && goal.currentAllocation > goal.targetAmountInCents ? goal.currentAllocation - goal.targetAmountInCents : null}
+				{@const nextMs = getNextMilestone(goal)}
+				<div
+					class="border border-black p-2 flex flex-col gap-1 hover:bg-gray-50 transition-colors duration-150 {selectedSlug === goal.slug ? 'bg-amber-50' : ''}"
+					data-nav-row
+				>
+					<div class="flex items-center gap-1 font-bold text-sm min-w-0">
+						<span class={stalenessDot ? stalenessDot.cssClass : 'text-gray-500'}>●</span>
+						{#if reorderMode}
+							<span class="text-gray-500 select-none mr-0.5">⋮⋮</span>
+						{/if}
+						<a href="/goals/{goal.slug}" class="bracket-link truncate" data-nav-primary>{goal.name}</a>
+						{#if isDebtGoal}
+							<span class="text-[9px] font-bold text-gray-500 border border-gray-300 px-0.5 shrink-0">DEBT</span>
+						{/if}
+					</div>
+
+					<!-- meter + headline numbers -->
+					<div class="flex items-center gap-1 text-xs leading-none">
+						<span class="sr-only">{isDebtGoal && paidInCents !== undefined ? `£${paidInCents} of £${(paidInCents ?? 0) + (remainingInCents ?? 0)} paid off` : `£${goal.currentAllocation} of £${goal.targetAmountInCents}`}</span>
+						<GoalBulletBar percent={isDebtGoal && paidInCents !== undefined && remainingInCents !== undefined ? Math.max(0, Math.round((Math.max(0, paidInCents) / (Math.max(0, paidInCents) + remainingInCents)) * 100)) : progress} bgClass={progressColor.bg} />
+						{#if savingsOver !== null}
+							<span class="font-bold text-green-700 whitespace-nowrap">REACHED +{formatCurrencyShorthand(savingsOver)}</span>
+						{:else}
+							<span class="min-w-8 font-bold text-right whitespace-nowrap">{progress}%</span>
+						{/if}
+					</div>
+					<div class="text-sm font-bold tabular-nums {progressColor.text} flex justify-between">
+						<span>{isDebtGoal && paidInCents !== undefined ? `${formatCurrencyShorthand(paidInCents)} paid` : formatCurrencyShorthand(goal.currentAllocation)}</span>
+						<span class="text-gray-500 font-normal">
+							{#if isDebtGoal && remainingInCents !== undefined}
+								{formatCurrencyShorthand(remainingInCents)} left
+							{:else}
+								of {formatCurrencyShorthand(goal.targetAmountInCents)}
+							{/if}
+						</span>
+					</div>
+
+					<!-- context lines -->
+					<div class="text-[10px] text-gray-600 mt-auto flex flex-col gap-0.5">
+						{#if isDebtGoal && goal.linkedAccount?.name}
+							<div class="truncate">→ {goal.linkedAccount.name}</div>
+						{/if}
+						{#if nextMs}
+							<div class="truncate">next: {nextMs.label} ({formatCurrencyShorthand(nextMs.remainingInCents)} more)</div>
+						{/if}
+						<div class="flex justify-between gap-2">
+							<span>{goal.targetDate ? `by ${formatDate(new Date(goal.targetDate))}` : 'no deadline'}</span>
+							<span class="text-gray-400">{formatDate(new Date(goal.updatedAt))}</span>
+						</div>
+					</div>
+
+					<!-- reorder controls -->
+					{#if reorderMode}
+						<div class="border-t border-gray-200 pt-1">
+							{#if selectedSlug === goal.slug}
+								<span class="text-xs text-amber-700 font-bold">MOVING —</span>
+								<button type="button" onclick={() => selectGoal(goal.slug)} class="bracket-link text-xs ml-1">Cancel</button>
+							{:else if selectedSlug !== null}
+								<button type="button" onclick={() => placeAt(goal.slug)} class="bracket-link text-xs text-amber-700">Move Here</button>
+							{:else}
+								<button type="button" onclick={() => selectGoal(goal.slug)} class="bracket-link text-xs">Select</button>
+							{/if}
+						</div>
+					{/if}
+				</div>
+			{/each}
 		</div>
 		{#if reorderMode && selectedSlug !== null}
 			<div class="border-t border-gray-300 p-2">

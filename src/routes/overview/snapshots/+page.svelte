@@ -75,7 +75,9 @@
 	</div>
 {/if}
 
-<!-- SNAPSHOTS LIST SECTION -->
+<!-- SNAPSHOTS LIST SECTION (v3.1 third-mandate: the old vertical table
+     never used the viewport — snapshots are RECORDS, so render them as a
+     grid of statement cards, 4-wide at desktop) -->
 <div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
 	<span class="text-xs text-gray-600">
 			{#if data.staleness}
@@ -87,52 +89,56 @@
 	<a href="/overview/snapshots/create" class="bracket-link text-xs">+ Create Snapshot</a>
 </div>
 
-<div class="p-0">
+<div class="p-2">
 	{#if data.snapshots.length === 0}
-		<p class="text-gray-600 text-xs p-2">
+		<p class="text-gray-600 text-xs">
 			No snapshots yet. Create your first snapshot to start tracking your net worth over time.
 		</p>
 	{:else}
-		<table bind:this={tableRef}>
-			<thead>
-				<tr>
-					<th class="w-8 text-center border-r border-gray-200">T</th>
-					<th class="pl-2 text-left">Date</th>
-					<th class="text-right pr-1">Net Worth</th>
-					<th class="text-right pr-1">Assets</th>
-					<th class="text-right pr-1">Liabilities</th>
-					<th class="text-right pr-1">MoM Change</th>
-				</tr>
-			</thead>
-			<tbody use:listnav>
-				{#each snapshotsWithTrends as snapshot}
-					<tr class="border-b border-gray-200 last:border-b-0" data-nav-row>
-						<td class="text-center border-r border-gray-200 text-sm py-2">
-							{#if snapshot.trends}
-								<span class="text-xl {getTrendColor(snapshot.trends.netWorthChange)}">
-									{getTrendArrow(snapshot.trends.netWorthChange)}
-								</span>
-							{:else}
-								<span class="text-gray-600 text-xl">→</span>
-							{/if}
-						</td>
-						<td class="pl-2 text-sm py-2">
-							<a href="/overview/snapshots/{snapshot.slug}" class="bracket-link text-xs" data-nav-primary>{snapshot.snapshotDate}</a>
-						</td>
-						<td class="text-right pr-1 text-sm tabular-nums py-2">{formatCurrencyShorthand(snapshot.netWorthInCents)}</td>
-						<td class="text-right pr-1 text-sm tabular-nums py-2">{formatCurrencyShorthand(snapshot.totalAssetsInCents)}</td>
-						<td class="text-right pr-1 text-sm tabular-nums py-2">{formatCurrencyShorthand(snapshot.totalLiabilitiesInCents)}</td>
-						<td class="text-right pr-1 text-sm tabular-nums py-2">
-							{#if snapshot.trends}
+		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2" use:listnav>
+			{#each snapshotsWithTrends as snapshot (snapshot.slug)}
+				{@const assetsAbs = Math.abs(snapshot.totalAssetsInCents)}
+				{@const liabAbs = Math.abs(snapshot.totalLiabilitiesInCents)}
+				{@const total = assetsAbs + liabAbs}
+				<div
+					class="border border-black flex flex-col hover:bg-gray-50 transition-colors duration-150"
+					data-nav-row
+				>
+					<!-- date band + MoM chip -->
+					<div class="flex justify-between items-center bg-gray-100 border-b border-black px-2 py-1">
+						<a href="/overview/snapshots/{snapshot.slug}" class="bracket-link text-xs font-bold" data-nav-primary>{snapshot.snapshotDate}</a>
+						{#if snapshot.trends}
+							<span class="text-[10px] font-bold tabular-nums {getTrendColor(snapshot.trends.netWorthChange)}">
+								{getTrendArrow(snapshot.trends.netWorthChange)}
 								{snapshot.trends.netWorthChange >= 0 ? '+' : ''}{formatCurrencyShorthand(snapshot.trends.netWorthChange)}
-							{:else}
-								<span class="text-gray-600">N/A</span>
+							</span>
+						{:else}
+							<span class="text-[10px] text-gray-500">first record</span>
+						{/if}
+					</div>
+					<!-- the headline -->
+					<div class="px-2 pt-2 pb-1">
+						<div class="text-[10px] uppercase font-bold text-gray-500">net worth</div>
+						<div class="text-lg font-bold tabular-nums {snapshot.netWorthInCents >= 0 ? 'text-green-700' : 'text-red-700'}">
+							{formatCurrencyShorthand(snapshot.netWorthInCents)}
+						</div>
+					</div>
+					<!-- assets vs liabilities composition bar -->
+					<div class="px-2 pb-2 mt-auto">
+						<div class="flex h-2 border border-black" title="Assets {formatCurrencyShorthand(snapshot.totalAssetsInCents)} vs liabilities {formatCurrencyShorthand(snapshot.totalLiabilitiesInCents)}">
+							{#if total > 0}
+								<div class="h-full bg-green-700" style="width: {(assetsAbs / total) * 100}%"></div>
+								<div class="h-full bg-red-700 flex-1"></div>
 							{/if}
-						</td>
-					</tr>
-				{/each}
-			</tbody>
-		</table>
+						</div>
+						<div class="flex justify-between text-[10px] mt-1 tabular-nums">
+							<span class="text-green-700 font-bold">A {formatCurrencyShorthand(snapshot.totalAssetsInCents)}</span>
+							<span class="text-red-700 font-bold">L {formatCurrencyShorthand(snapshot.totalLiabilitiesInCents)}</span>
+						</div>
+					</div>
+				</div>
+			{/each}
+		</div>
 	{/if}
 </div>
 

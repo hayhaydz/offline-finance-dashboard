@@ -313,7 +313,7 @@
 <!-- v3 R29: credit strategy + splits beside the payoff projection (panic
      cards) — strategy on the left, projection machinery on the right -->
 {#if data.account.type === 'credit-card' && data.credit && data.credit.mode === 'panic'}
-	<div class="grid grid-cols-5 gap-2 border-b border-black p-2">
+	<div class="grid grid-cols-5 gap-2 p-2">
 		<div class="col-span-2 border border-black [&>*:last-child]:border-b-0">
 			<CreditModePanel
 				slug={data.account.slug}

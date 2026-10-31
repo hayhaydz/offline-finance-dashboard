@@ -130,8 +130,9 @@
 	/>
 
 	<!-- v3.1 A02/D3: the emblem row rebuilt — one full-width tax-year timeline
-	     strip (month cells + ISA lane) replaces the 3/2 TaxYear|ISA pair -->
-	<div class="border-b border-black p-2">
+	     strip (month cells + ISA lane) replaces the 3/2 TaxYear|ISA pair.
+	     v3.1 border system: the panel owns its border; wrapper carries none -->
+	<div class="p-2">
 		<TaxYearTimeline data={data.isaTracker} />
 	</div>
 
@@ -142,8 +143,10 @@
 		assetGroups={assetGroups.map(g => ({ name: g.type, value: Math.max(0, g.balance) }))}
 	/>
 
-	<!-- v3 R29: INTEREST + ALERTS side-by-side (3/2 split) -->
-	<div class="grid grid-cols-5 gap-2 border-b border-black p-2">
+	<!-- v3 R29: INTEREST + ALERTS side-by-side (3/2 split). v3.1 border
+	     system: cells own complete boxes; the wrapper carries NO border-b
+	     (wrapper+cell borders drew parallel rules 8px apart) -->
+	<div class="grid grid-cols-5 gap-2 p-2">
 	<!-- INTEREST SUMMARY SECTION -->
 	{#if data.interestSummary}
 	{@const posted = data.interestSummary.actualInterestIsa + data.interestSummary.actualInterestNonIsa}
