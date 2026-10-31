@@ -48,8 +48,10 @@ describe("HomeVizGallery (bento)", () => {
 		expect(body).toContain('class="col-span-2" data-viz-cell="trend"');
 		expect(body).toContain('class="col-span-3" data-viz-cell="cashflow"');
 		expect(body).toContain('class="col-span-1" data-viz-cell="allocation"');
-		// wide aspect: compact 900x180 canvas, no width caps inside cells
-		expect(body).toContain('viewBox="0 0 900 180"');
+		// A13: the trend cell mounts an interactive layerchart client-side
+		// (aspect=wide → 180px band); no static svg may leak server-side,
+		// and no width caps live inside cells
+		expect(body).not.toContain("<path");
 		expect(body).not.toContain("max-w-[");
 		// single-bracket export buttons (ChartPanel renders brackets via CSS)
 		expect(body).not.toContain("[[SVG]]");
