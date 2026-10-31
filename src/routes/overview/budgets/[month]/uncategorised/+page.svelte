@@ -24,7 +24,7 @@
 	});
 </script>
 
-<div class="max-w-4xl mx-auto p-4 font-mono">
+<div class="p-2 font-mono">
 	<div class="border border-black">
 		<div class="border-b border-black bg-gray-100 p-2 font-bold flex justify-between items-center">
 			<span>UNCATEGORISED — {monthLabel.toUpperCase()}</span>

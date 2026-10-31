@@ -34,7 +34,7 @@
 	});
 </script>
 
-<div class="p-3 max-w-2xl">
+<div class="p-3">
 	<h1 class="text-xl font-bold mb-4">Create Debt Payoff Goal</h1>
 
 	{#if form?.error}
