@@ -915,6 +915,15 @@ export async function runAnonymise(
 	const passwordHash = await placeholderPasswordHash();
 
 	copyFileSync(sourceAbs, outAbs);
+	// v3.1 fix: a live source may hold recent writes (incl. DDL) in its
+	// -wal sidecar — copy it (and -shm) too or the copy misses them
+	// ("no such table" on freshly-reset DBs whose schema is still in WAL).
+	for (const suffix of ["-wal", "-shm"]) {
+		const sidecar = `${sourceAbs}${suffix}`;
+		if (existsSync(sidecar)) {
+			copyFileSync(sidecar, `${outAbs}${suffix}`);
+		}
+	}
 	let db: Database.Database;
 	try {
 		db = new Database(outAbs);
