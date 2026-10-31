@@ -22,21 +22,30 @@ describe("RateHeatmap", () => {
 		new Date("2026-07-01"),
 	];
 
-	it("renders one row per account with rate cells + legend", () => {
+	it("renders one row per account with rate cells + numeric legend", () => {
 		const { body } = render(RateHeatmap, { props: { rows, months } });
 		expect(body).toContain("Rate heatmap");
 		expect(body).toContain("Monzo Instant");
 		expect(body).toContain("4.10");
 		expect(body).toContain("4.55");
-		expect(body).toContain("low");
-		expect(body).toContain("high");
+		// numeric legend endpoints (second-mandate redesign)
+		expect(body).toContain("4.10%");
+		expect(body).toContain("4.55%");
+		// interactive cells are buttons with full aria labels
+		expect(body).toContain('aria-label="Monzo Instant May: 4.10%"');
 	});
 
-	it("summary states the range and the ink-density semantics", () => {
+	it("summary states the range and the hover affordance", () => {
 		const { body } = render(RateHeatmap, { props: { rows, months } });
 		expect(body).toContain("1 accounts × 3 months");
 		expect(body).toContain("4.10%–4.55%");
-		expect(body).toContain("ink density = rate level, not semantic");
+		expect(body).toContain("hover a cell for detail");
+	});
+
+	it("row header carries the current rate and rise marker", () => {
+		const { body } = render(RateHeatmap, { props: { rows, months } });
+		// 4.10 → 4.55 across the window = changed (green current chip)
+		expect(body.match(/text-green-700 font-bold">4\.55%/g)?.length ?? 0).toBeGreaterThanOrEqual(1);
 	});
 
 	it("empty state when no rate history", () => {
