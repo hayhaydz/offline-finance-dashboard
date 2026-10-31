@@ -64,7 +64,9 @@
 
 <ChartPanel title="Cashflow calendar — {monthName}" {summary} {controls}>
 	<div class="p-2">
-		<table class="w-full text-xs border-collapse">
+		<!-- v3.1 fix: table-fixed — auto layout let due-day content (truncated
+		     labels) widen Tue/Fri columns 3× vs empty days -->
+		<table class="w-full table-fixed text-xs border-collapse">
 			<thead>
 				<tr>
 					{#each DOW as dw (dw)}
