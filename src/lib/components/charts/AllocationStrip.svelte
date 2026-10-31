@@ -55,10 +55,11 @@
 	{#if shares.length === 0}
 		<div class="text-xs text-gray-500 p-2 text-center">[no {label} money]</div>
 	{:else}
-		<div class="p-2">
-			<!-- the composition band -->
+		<div class="p-2 flex flex-col gap-2">
+			<!-- the composition band (v3.1 third mandate: h-12 — a 36px band left
+			     a 66px void under the legend; the strip earns its cell) -->
 			<div
-				class="flex h-9 border border-black w-full overflow-hidden"
+				class="flex h-12 border border-black w-full overflow-hidden"
 				role="img"
 				aria-label="Allocation composition. {summary}"
 			>
@@ -84,7 +85,7 @@
 			</div>
 
 			<!-- hover detail panel -->
-			<div class="text-xs tabular-nums min-h-5 mt-1.5" aria-live="polite">
+			<div class="text-xs tabular-nums min-h-5" aria-live="polite">
 				{#if hoverIdx !== null}
 					{@const s = shares[hoverIdx]}
 					<span class="font-bold">{s.name}</span>
@@ -99,11 +100,11 @@
 			</div>
 
 			<!-- sorted legend: every share, £ + %, swatch tied to the band -->
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-0.5 mt-1.5 border-t border-gray-200 pt-1.5">
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 border-t border-gray-200 pt-2">
 				{#each shares as s, i (s.name)}
 					<div
 						role="presentation"
-						class="flex items-center gap-1.5 text-[10px] leading-5 cursor-default {hoverIdx === i ? 'bg-gray-100 -mx-1 px-1' : ''}"
+						class="flex items-center gap-1.5 text-[10px] leading-6 cursor-default {hoverIdx === i ? 'bg-gray-100 -mx-1 px-1' : ''}"
 						onmouseenter={() => (hoverIdx = i)}
 						onmouseleave={() => (hoverIdx = null)}
 					>
