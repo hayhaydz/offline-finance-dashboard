@@ -126,16 +126,26 @@
 		{#if splits && splits.chargesTracked > 0}
 			<div class="border-t border-gray-200 pt-1 mt-1 flex flex-nowrap gap-4 justify-between">
 				<span>
-					Splits tracked: {splits.chargesTracked}
-					<span class="text-green-700 font-bold">· {splits.onTrackCount} on track</span>
-					{#if splits.behindCount > 0}
-						<span class="text-amber-700 font-bold">· {splits.behindCount} behind</span>
-					{/if}
-					{#if splits.clearedCount > 0}
-						<span class="text-gray-500">· {splits.clearedCount} cleared</span>
+					{#if mode === 'stooze'}
+						<!-- v3.1 A05: neutral count only — on-track/behind colouring and
+						     deadlines are payoff pressure; they live inside the toggle -->
+						Splits tracked: {splits.chargesTracked}
+						{#if splits.clearedCount > 0}
+							<span class="text-gray-500">· {splits.clearedCount} cleared</span>
+						{/if}
+						<span class="text-gray-500">· detail below</span>
+					{:else}
+						Splits tracked: {splits.chargesTracked}
+						<span class="text-green-700 font-bold">· {splits.onTrackCount} on track</span>
+						{#if splits.behindCount > 0}
+							<span class="text-amber-700 font-bold">· {splits.behindCount} behind</span>
+						{/if}
+						{#if splits.clearedCount > 0}
+							<span class="text-gray-500">· {splits.clearedCount} cleared</span>
+						{/if}
 					{/if}
 				</span>
-				{#if splits.nextDeadline}
+				{#if splits.nextDeadline && mode !== 'stooze'}
 					<span>Next target: <span class="font-bold">{formatDateShorthand(splits.nextDeadline)}</span></span>
 				{/if}
 			</div>

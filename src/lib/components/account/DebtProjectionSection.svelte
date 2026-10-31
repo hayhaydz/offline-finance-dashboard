@@ -76,6 +76,11 @@
 	let projectionExpanded = $state(false);
 	const paginatedProjection = $derived(projection?.slice(0, projectionLength) ?? []);
 
+	// v3.1 A05: make the CRITICAL verdict self-evidencing — the engine's
+	// own first projection row carries the resolved minimum payment and
+	// the month's interest (no rule re-derivation needed)
+	const minMonthlyPayment = $derived(projection && projection[0] ? projection[0].payment : null);
+
 	const periodTotalInterest = $derived(paginatedProjection.reduce((s, r) => s + r.interest, 0));
 	const periodTotalPayments = $derived(paginatedProjection.reduce((s, r) => s + r.payment, 0));
 	const periodEndBalance = $derived(paginatedProjection.at(-1)?.balance ?? null);
@@ -217,6 +222,11 @@
 					<a href="/accounts/{accountSlug}/edit" class="bracket-link ml-1">Set rule →</a>
 				{:else}
 					<span class="text-red-700">Payment below interest — CRITICAL</span>
+					{#if minMonthlyPayment !== null && projection && projection[0]}
+						<span class="text-xs font-normal text-gray-600">
+							(min £{(minMonthlyPayment / 100).toFixed(2)}/mo vs £{(projection[0].interest / 100).toFixed(2)}/mo interest)
+						</span>
+					{/if}
 				{/if}
 			</div>
 

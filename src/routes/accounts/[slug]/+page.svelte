@@ -316,7 +316,9 @@
 		stooze={data.credit.stooze}
 		splits={data.credit.splits}
 	/>
-	<SplitsSection details={data.credit.chargeDetails} />
+	<!-- v3.1 A05: stooze/null mode collapses the planning table (the
+	     strategy panel keeps the counts) — zero pressure by default -->
+	<SplitsSection details={data.credit.chargeDetails} initiallyExpanded={false} />
 {/if}
 
 <!-- DEBT PROJECTION SECTION — payoff assistance ONLY in panic mode

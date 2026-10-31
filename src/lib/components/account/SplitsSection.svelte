@@ -9,6 +9,10 @@
 	 * last month-end (statement-delay reality), the per-month requirement
 	 * to hit the 3-month target, and what going past the interest-free
 	 * deadline costs at the revert APR.
+	 *
+	 * v3.1 A05 (register row 7): in non-panic modes the planning table is
+	 * pressure — it collapses behind a toggle; the strategy panel's
+	 * summary line keeps the glance. Panic mode expands it (it IS the plan).
 	 */
 	type ChargeDetail = {
 		slug: string;
@@ -18,17 +22,43 @@
 		status: ChargePlanStatus;
 	};
 
-	let { details }: { details: ChargeDetail[] } = $props();
+	let {
+		details,
+		initiallyExpanded = true
+	}: {
+		details: ChargeDetail[];
+		/** false = stooze/null mode: header + toggle only */
+		initiallyExpanded?: boolean;
+	} = $props();
+
+	let userToggle = $state<boolean | null>(null);
+	// null = follow the mode default; clicking overrides for this visit
+	const expanded = $derived(userToggle ?? initiallyExpanded);
 </script>
 
 <div class="border-b border-black">
 	<div class="font-bold flex justify-between items-center bg-gray-100 border-b border-black p-2">
 		<span>SPLITS — 0% PAY-OFF TRACKER</span>
-		<span class="text-xs font-normal text-gray-600">confirmed through {details.length ? formatDateShorthand(details[0].status.confirmedThrough) : ''}</span>
+		<span class="text-xs font-normal text-gray-600 flex items-center gap-2">
+			{#if details.length && !expanded}
+				<span title="Planning detail hidden in stooze mode — the strategy panel keeps the summary. Toggle to plan a charge.">{details.length} charge{details.length === 1 ? '' : 's'} tracked</span>
+			{/if}
+			<span>confirmed through {details.length ? formatDateShorthand(details[0].status.confirmedThrough) : ''}</span>
+			{#if details.length > 0}
+				<button
+					type="button"
+					class="bracket-link"
+					aria-expanded={expanded}
+					onclick={() => (userToggle = !expanded)}
+				>
+					{expanded ? 'Hide charges' : `Show ${details.length} charge${details.length === 1 ? '' : 's'}`}
+				</button>
+			{/if}
+		</span>
 	</div>
 	{#if details.length === 0}
 		<div class="p-2 text-xs text-gray-500">No card charges yet — purchases appear here to plan.</div>
-	{:else}
+	{:else if expanded}
 		<div class="overflow-x-auto">
 			<table>
 				<thead>
