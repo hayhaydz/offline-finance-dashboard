@@ -92,10 +92,19 @@
 		</p>
 	{:else}
 		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2" use:listnav>
-			{#each snapshotsWithTrends as snapshot (snapshot.slug)}
+			{#each snapshotsWithTrends as snapshot, i (snapshot.slug)}
 				{@const assetsAbs = Math.abs(snapshot.totalAssetsInCents)}
 				{@const liabAbs = Math.abs(snapshot.totalLiabilitiesInCents)}
 				{@const total = assetsAbs + liabAbs}
+				<!-- v3.1 harvest: trailing 6-month sparkline — the card grid's
+				     figures are near-identical month to month (vision: "add a
+				     signal that actually varies"); the shape is the signal -->
+				{@const window = snapshotsWithTrends.slice(i, i + 6).map((s) => s.netWorthInCents).reverse()}
+				{@const wMin = Math.min(...window)}
+				{@const wMax = Math.max(...window)}
+				{@const sparkPts = window.length > 1 && wMax > wMin
+					? window.map((v, k) => `${(4 + (k / (window.length - 1)) * 92).toFixed(1)},${(16 - ((v - wMin) / (wMax - wMin)) * 14).toFixed(1)}`).join(' ')
+					: null}
 				<div
 					class="border border-black flex flex-col hover:bg-gray-50 transition-colors duration-150"
 					data-nav-row
@@ -112,16 +121,21 @@
 							<span class="text-[10px] text-gray-500">first record</span>
 						{/if}
 					</div>
-				<!-- the headline -->
-				<div class="px-2 pt-2 pb-1">
-					<div class="text-[10px] uppercase font-bold text-gray-500">net worth</div>
-					<div class="text-lg font-bold tabular-nums {snapshot.netWorthInCents >= 0 ? 'text-green-700' : 'text-red-700'}">
-						<!-- v3.1: full precision — shorthand drops .00 only on whole
-						     pounds, so 4 of 18 cards read "£253,790" beside "£253,790.16"
-						     (same class as the sweep-9 summary-row find) -->
-						{formatCurrency(snapshot.netWorthInCents)}
-					</div>
+			<!-- the headline -->
+			<div class="px-2 pt-2 pb-1">
+				<div class="text-[10px] uppercase font-bold text-gray-500">net worth</div>
+				<div class="text-lg font-bold tabular-nums {snapshot.netWorthInCents >= 0 ? 'text-green-700' : 'text-red-700'}">
+					<!-- v3.1: full precision — shorthand drops .00 only on whole
+					     pounds, so 4 of 18 cards read "£253,790" beside "£253,790.16"
+					     (same class as the sweep-9 summary-row find) -->
+					{formatCurrency(snapshot.netWorthInCents)}
 				</div>
+				{#if sparkPts}
+					<svg viewBox="0 0 100 18" class="w-full h-3.5 mt-0.5" role="img" aria-label="Trailing 6-month net worth trend ending at this snapshot">
+						<polyline points={sparkPts} fill="none" stroke="#111827" stroke-width="1.5" />
+					</svg>
+				{/if}
+			</div>
 				<!-- assets vs liabilities composition bar -->
 				<div class="px-2 pb-2 mt-auto">
 					<div class="flex h-2 border border-black" title="Assets {formatCurrency(snapshot.totalAssetsInCents)} vs liabilities {formatCurrency(snapshot.totalLiabilitiesInCents)}">
