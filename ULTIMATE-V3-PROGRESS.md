@@ -75,6 +75,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-31 12:21:45 GMT | 2026-10-31 12:22:59 GMT | 0h 01m | v3.1 sweep 26: A07 threshold-bar hover tooltip shipped (exact £ gap to higher-rate + additional threshold on hover); A13 final-audit presentation written (interactive 8 vs deterministic 3, user ruling invited); finder pins 4/4 |
 | 2026-10-31 12:22:59 GMT | 2026-10-31 12:25:34 GMT | 0h 02m | v3.1 sweep 27: ASCII parity adjudicated (savings-rate has no line figures — toggle was a no-op there) → ASCII button now renders only on papers with netWorth/stackedArea figures; reports pins 8/8; goal-form renders verified by suite |
 | 2026-10-31 12:25:34 GMT | 2026-10-31 12:28:28 GMT | 0h 02m | v3.1 sweep 28: anonymiser re-verified END-TO-END on current data (16 accts/114 tx/16 goals/18 snapshots, self-check PASS) after REAL robustness fix — copy now carries the -wal sidecar (live DBs hold recent rows/DDL in WAL); usage gotcha recorded: real DB lives at storage/dev-plain.db, sources inside storage/ are refused by design; stray 0-byte root dev-plain.db noted (ignored, harmless) |
+| 2026-10-31 12:28:28 GMT | 2026-10-31 12:29:44 GMT | 0h 01m | v3.1 sweep 29: notes surfaces live-verified (account notes page renders with context, console clean; notes live per-account by design); temp artifacts cleaned |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
