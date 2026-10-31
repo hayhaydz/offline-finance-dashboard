@@ -206,9 +206,48 @@
   {/if}
 </div>
 
-<!-- ACCOUNT ALLOCATION BREAKDOWN -->
-{#if data.goal.goalType !== 'debt' && data.accountAllocations.length > 0}
-  <div class="border-t border-black">
+<!-- v3.1 A04: mid-band pairing — the ~130-170px context panels sit
+     side by side at desktop (D1); history stays full-width below -->
+<div class="grid grid-cols-1 lg:grid-cols-2 border-t border-black">
+  {#if data.goal.goalType === 'debt' && data.debtData}
+  <div>
+    <div class="font-bold p-2 bg-gray-100 border-b border-black">
+      LINKED DEBT ACCOUNT
+    </div>
+    <div class="p-2">
+      <div class="grid grid-cols-2 gap-2 text-sm">
+        <div>
+          <span class="text-gray-600">Account:</span>
+          <a href="/accounts/{data.debtData.linkedAccount.slug}" class="bracket-link ml-1">
+            {data.debtData.linkedAccount.name}
+          </a>
+        </div>
+        <div>
+          <span class="text-gray-600">Type:</span>
+          <span class="ml-1">{formatAccountType(data.debtData.linkedAccount.type)}</span>
+        </div>
+        <div>
+          <span class="text-gray-600">Balance:</span>
+          <span class="ml-1">{formatCurrency(data.debtData.linkedAccount.currentBalance)}</span>
+        </div>
+        <div>
+          <span class="text-gray-600">APR:</span>
+          <span class="ml-1">
+            {data.debtData.linkedAccount.apr
+              ? `${(data.debtData.linkedAccount.apr / 100).toFixed(2)}%`
+              : "-"}
+          </span>
+        </div>
+        <div>
+          <span class="text-gray-600">Min Payment:</span>
+          <span class="ml-1">{formatMinimumPayment(data.debtData.linkedAccount)}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
+  {#if data.goal.goalType !== 'debt' && data.accountAllocations.length > 0}
+  <div>
     <div class="font-bold p-2 bg-gray-100 border-b border-black">
       SOURCE ACCOUNTS ({data.srcTotalAccounts})
     </div>
@@ -266,53 +305,13 @@
     />
   </div>
 {:else if data.goal.currentAllocation > 0}
-  <div class="border-t border-black p-2 text-xs text-gray-600">
+  <div class="p-2 text-xs text-gray-600">
     Allocation data missing — goal shows {formatCurrency(data.goal.currentAllocation)} but no source accounts found
   </div>
 {/if}
-
-<!-- LINKED DEBT ACCOUNT (debt goals only) -->
-{#if data.goal.goalType === 'debt' && data.debtData}
-  <div class="border-t border-black">
-    <div class="font-bold p-2 bg-gray-100 border-b border-black">
-      LINKED DEBT ACCOUNT
-    </div>
-    <div class="p-2">
-      <div class="grid grid-cols-2 gap-2 text-sm">
-        <div>
-          <span class="text-gray-600">Account:</span>
-          <a href="/accounts/{data.debtData.linkedAccount.slug}" class="bracket-link ml-1">
-            {data.debtData.linkedAccount.name}
-          </a>
-        </div>
-        <div>
-          <span class="text-gray-600">Type:</span>
-          <span class="ml-1">{formatAccountType(data.debtData.linkedAccount.type)}</span>
-        </div>
-        <div>
-          <span class="text-gray-600">Balance:</span>
-          <span class="ml-1">{formatCurrency(data.debtData.linkedAccount.currentBalance)}</span>
-        </div>
-        <div>
-          <span class="text-gray-600">APR:</span>
-          <span class="ml-1">
-            {data.debtData.linkedAccount.apr
-              ? `${(data.debtData.linkedAccount.apr / 100).toFixed(2)}%`
-              : "-"}
-          </span>
-        </div>
-        <div>
-          <span class="text-gray-600">Min Payment:</span>
-          <span class="ml-1">{formatMinimumPayment(data.debtData.linkedAccount)}</span>
-        </div>
-      </div>
-    </div>
-  </div>
-{/if}
-
-{#if data.goal.goalType === 'debt' && data.debtData}
-  <!-- Debt Metrics -->
-  <div class="border-t border-black">
+  <div class="border-t lg:border-t-0 border-black">
+  {#if data.goal.goalType === 'debt' && data.debtData}
+  <div class="h-full">
     <div class="font-bold p-2 bg-gray-100 border-b border-black">
       DEBT METRICS
     </div>
@@ -469,7 +468,9 @@
       </div>
     </div>
   </div>
-{/if}
+  {/if}
+  </div>
+</div>
 
 {#if data.goal.goalType === 'debt' && data.debtData}
   <!-- Payoff History -->
