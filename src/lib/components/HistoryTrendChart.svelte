@@ -113,6 +113,6 @@
 		/>
 	</div>
 	<p class="text-[10px] text-gray-600 px-1 pt-1">
-		— known &middot; dashed gray = future entries &middot; line break = unknown month
+		— known &middot; dashed gray = future entries &middot; line break = unknown month &middot; hover for month + &pound;
 	</p>
 {/if}
