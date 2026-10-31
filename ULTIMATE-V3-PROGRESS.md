@@ -492,6 +492,6 @@ The user ruled the v3 run delivered mechanisms without spirit: "the design still
 
 ### Ledger status (trued 2026-10-31 12:47 GMT)
 
-**10h04m recorded across 85 rows — 1h56m short of the 12h gate. NO STOP
-FILE this session (§9: stop only when ledger + gates ALL hold). Loop
-continues next invocation; every other §8 item holds.**
+**10h26m recorded (ledger self-audit clean: 42 rows today, all real
+times, monotonic) — 1h34m short of the 12h gate. NO STOP FILE this
+session (§9). Loop continues next invocation; every other §8 item holds.**
