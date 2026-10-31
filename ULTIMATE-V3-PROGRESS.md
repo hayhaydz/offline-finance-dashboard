@@ -79,6 +79,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-31 12:29:52 GMT | 2026-10-31 12:30:15 GMT | 0h 00m | v3.1 sweep 30: holistic user journey PASS — home glance (net worth + tax year + goals cap), accounts drill (facts strip + 15 rows), report read (abstract + interactive figure), export 200; console clean end-to-end |
 | 2026-10-31 12:30:15 GMT | 2026-10-31 12:31:24 GMT | 0h 01m | v3.1 sweep 31: stooze state verified post-reseed (3 friendly facts + reassurance + collapsed splits, console clean); suite ×2 back-to-back 158/1102 green ×2 (no flakes) |
 | 2026-10-31 12:31:32 GMT | 2026-10-31 12:32:14 GMT | 0h 00m | v3.1 sweep 32: A13 hover contract re-verified post-reseed on psa-bullet (£281.28 projected / £1,371.41 over PSA), category-bars (Bills £485 7% — the sweep-23 triage tag visible), debt-waterfall (Store Card 2030-01 £975); console clean |
+| 2026-10-31 12:32:21 GMT | 2026-10-31 12:33:18 GMT | 0h 00m | v3.1 sweep 33: credit-mode round-trip flow verified (stooze → panic: paired layout + switch-copy; → stooze: friendly facts + collapsed splits restored); the evaluate context-destroyed errors were the form-submit navigations themselves (expected) |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
