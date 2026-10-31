@@ -102,10 +102,12 @@
 
 		<!-- Findings: full-width paper (R1/R29); table sections pair up in a
 		     2-col grid ONLY when two or more tables exist (a lone table
-		     spans full width — no empty quadrant); figures always span -->
+		     spans full width — no empty quadrant); figures always span.
+		     A13: the layerchart panels grow after mount — neutralise the
+		     bento h-full stretch here so grid rows reflow with content. -->
 		{#if report.findings}
 			{@const tableSections = report.findings.filter((s) => !s.figure && (s.rows?.length ?? 0) > 0).length}
-			<div class="grid md:grid-cols-2 md:divide-x md:divide-gray-300">
+			<div class="grid md:grid-cols-2 md:divide-x md:divide-gray-300 [&_figure.chart-panel]:h-auto">
 			{#each report.findings as section, i (section.heading)}
 				<section
 					class="{i > 0 ? 'border-t' : ''} {section.figure || tableSections < 2 ? 'md:col-span-2 md:border-t' : ''} border-black p-2"
