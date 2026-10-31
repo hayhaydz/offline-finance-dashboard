@@ -39,11 +39,16 @@
 
 	// cumulative remaining AFTER each goal (snowball order): the step's
 	// left edge — stacking a transparent base of that size floats each
-	// step so right edges descend from total toward zero
+	// step so right edges descend from total toward zero.
+	// v3.1 third mandate: paid-off goals (£0 remaining) render as an empty
+	// lane with a label and no bar — they are not payoff STEPS, so they
+	// leave the chart (counted in the summary note instead).
+	const activeGoals = $derived(goals.filter((g) => g.remainingInCents > 0));
+	const paidOff = $derived(goals.length - activeGoals.length);
 	type Row = { label: string; base: number; step: number };
 	const rows = $derived.by(() => {
 		let acc = totalDebtInCents;
-		return goals.map((g): Row => {
+		return activeGoals.map((g): Row => {
 			const right = acc;
 			acc = Math.max(0, acc - g.remainingInCents);
 			return {
@@ -73,11 +78,11 @@
 
 	const maxV = $derived(Math.max(totalDebtInCents, 1) * 1.05);
 
-	const n = $derived(goals.length);
+	const n = $derived(activeGoals.length);
 	const summary = $derived(
-		n === 0
+		n === 0 && paidOff === 0
 			? "No tracked debt goals"
-			: `${formatPence(totalDebtInCents)} across ${n} goals (snowball order, smallest first) · projected debt-free ${projectedDebtFreeDate ? dateShort(projectedDebtFreeDate) : "unknown (below-minimum payments on some goals)"}`,
+			: `${formatPence(totalDebtInCents)} across ${n} goal${n !== 1 ? "s" : ""} (snowball order, smallest first)${paidOff > 0 ? ` · ${paidOff} already paid off` : ""} · each bar's date = payoff at its own minimum · projected debt-free ${projectedDebtFreeDate ? dateShort(projectedDebtFreeDate) : "unknown (below-minimum payments on some goals)"}`,
 	);
 </script>
 
@@ -111,7 +116,7 @@
 			/>
 		</div>
 		<p class="text-[10px] text-gray-600 px-1 pt-1">
-			steps descend from total debt toward zero (snowball) · label = goal · projected payoff · hover for amounts
+			steps descend from total debt toward zero (snowball) · each date = that goal at its own minimum — freed minimums are not rolled forward · hover for amounts
 		</p>
 	{/if}
 </ChartPanel>

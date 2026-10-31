@@ -22,6 +22,7 @@ import {
 	getNetWorthHistory,
 } from "$lib/server/reports";
 import { formatCurrency } from "$lib/utils/currency";
+import { MS_PER_MONTH } from "$lib/utils/time-constants";
 
 /**
  * Reports v2 (v3 B07, R10): separate dated reports, each a focused
@@ -648,20 +649,29 @@ async function buildDebtHorizon(userId: number): Promise<ReportDoc> {
 		};
 	}
 
-	const monthsOfMinimums =
-		debt.totalMonthlyMinimumInCents > 0
-			? Math.ceil(debt.totalDebtInCents / debt.totalMonthlyMinimumInCents)
-			: null;
+	// months until the LAST goal clears (the engine's actual model: each
+	// goal projected at its own minimum — no snowball rolling). v3.1
+	// third mandate: the abstract used to juxtapose the POOLED figure
+	// (total/total-mins) with the per-goal max date — two different models
+	// read as a contradiction ("20 months" vs "2034"). State one model.
+	const payoffDates = debt.goals
+		.map((g) => g.projectedPayoffDate)
+		.filter((d): d is Date => d !== null);
+	const monthsToDebtFree = payoffDates.length
+		? Math.max(
+				...payoffDates.map((d) => Math.ceil((d.getTime() - Date.now()) / MS_PER_MONTH)),
+			)
+		: null;
 
 	return {
 		slug: "debt-horizon",
 		title: "Debt Horizon",
 		date,
-		abstract: `${formatCurrency(debt.totalDebtInCents)} of debt across ${debt.goals.length} tracked goal${debt.goals.length !== 1 ? "s" : ""}, with minimum payments of ${formatCurrency(debt.totalMonthlyMinimumInCents)}/mo${monthsOfMinimums ? ` — ${monthsOfMinimums} months of minimums to clear` : ""}. ${debt.projectedDebtFreeDate ? `Projected debt-free: ${debt.projectedDebtFreeDate.toISOString().slice(0, 10)}.` : "No projection until payment schedules are set."}`,
+		abstract: `${formatCurrency(debt.totalDebtInCents)} of debt across ${debt.goals.length} tracked goal${debt.goals.length !== 1 ? "s" : ""}, with minimum payments of ${formatCurrency(debt.totalMonthlyMinimumInCents)}/mo. ${debt.projectedDebtFreeDate ? `Paying minimums only, the last goal clears ${debt.projectedDebtFreeDate.toISOString().slice(0, 10)} (${monthsToDebtFree} months) — no snowball rolling.` : "No projection until payment schedules are set."}`,
 		method: [
 			"Data: debt goals with linked accounts (balances, minimum payment rules)",
 			"Waterfall order: smallest balance first (snowball)",
-			"projection = minimum-payment schedule unless a strategy overrides it",
+			"projection = each goal at its OWN minimum payment (independent schedules — freed minimums are NOT rolled forward)",
 		],
 		findings: [
 			{
@@ -673,8 +683,8 @@ async function buildDebtHorizon(userId: number): Promise<ReportDoc> {
 				rows: [
 					{ label: "total debt", value: formatCurrency(debt.totalDebtInCents), flag: "amber" },
 					{ label: "monthly minimums", value: `${formatCurrency(debt.totalMonthlyMinimumInCents)}/mo` },
-					...(monthsOfMinimums
-						? [{ label: "months at minimums", value: String(monthsOfMinimums), flag: "amber" as const }]
+					...(monthsToDebtFree
+						? [{ label: "months to debt-free (at minimums)", value: String(monthsToDebtFree), flag: "amber" as const }]
 						: []),
 					{ label: "projected debt-free", value: debt.projectedDebtFreeDate ? debt.projectedDebtFreeDate.toISOString().slice(0, 10) : "—", flag: debt.projectedDebtFreeDate ? "green" : null },
 					...debt.goals.map((g) => ({
