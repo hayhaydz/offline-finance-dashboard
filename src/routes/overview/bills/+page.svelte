@@ -14,8 +14,8 @@
 <!-- v3.1 border unification: inset panel frame -->
 <div class="p-2 flex flex-col gap-2">
 
-<div class="font-bold flex justify-between items-center border border-black p-2 bg-gray-100">
-	<span>BILLS — RECURRING MONEY OUT</span>
+<div class="flex justify-between items-center border border-black p-2 bg-gray-100">
+	<h1 class="text-base font-bold m-0">BILLS — RECURRING MONEY OUT</h1>
 	<a href="/overview" class="bracket-link text-xs">Overview</a>
 </div>
 

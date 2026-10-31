@@ -86,7 +86,7 @@
 	<!-- HEADER -->
 	<div class="border border-black bg-gray-100">
 		<div class="flex justify-between items-center gap-4 p-2">
-			<span class="font-bold">EXPENSES HISTORY</span>
+			<h1 class="text-base font-bold m-0">EXPENSES HISTORY</h1>
 			<span class="flex gap-3 text-xs">
 				<a href="/api/history/export?kind=expenses" download class="bracket-link">Export CSV</a>
 				<a href="/settings/data" class="bracket-link">Import CSV</a>

@@ -65,7 +65,7 @@
 <main>
 	<!-- HEADER -->
 	<div class="flex justify-between items-center border border-black p-2 bg-gray-100">
-		<span class="font-bold">TAX</span>
+		<h1 class="text-base font-bold m-0">TAX</h1>
 		<div class="flex gap-2">
 			<a href="/overview/tax/income" class="bracket-link text-xs">Income History</a>
 			<a href="/accounts/interest/all" class="bracket-link text-xs">Interest Years</a>

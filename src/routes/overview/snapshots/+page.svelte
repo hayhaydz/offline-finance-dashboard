@@ -37,9 +37,13 @@
 </script>
 
 <!-- SUMMARY STRIP (R17/B12): the state of the snapshot record, at a glance -->
+<h1 class="sr-only">Snapshots</h1>
 {#if data.snapshots.length > 0}
 	{@const latest = snapshotsWithTrends[0]}
-	<div class="border-b border-black grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-300">
+	<!-- v3.1 border doctrine: boxed panel inside the page frame (was a
+	     full-bleed border-b band) -->
+	<div class="p-2">
+	<div class="border border-black grid grid-cols-2 md:grid-cols-4 divide-x divide-black">
 		<div class="px-2 py-1.5">
 			<div class="text-[10px] uppercase font-bold text-gray-600">Latest net worth</div>
 			<div class="text-sm font-bold">{formatCurrencyShorthand(latest.netWorthInCents)}</div>
@@ -74,6 +78,7 @@
 			<a href="/overview/snapshots/create" class="bracket-link text-xs">+ Create Snapshot</a>
 			<div class="text-[10px] text-gray-500">locks today's balances</div>
 		</div>
+	</div>
 	</div>
 {/if}
 

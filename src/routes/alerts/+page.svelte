@@ -28,7 +28,7 @@
 <!-- v3.1 border unification: inset panel frame -->
 <div class="p-2 flex flex-col gap-2">
 	<div class="border border-black p-2 font-bold flex justify-between items-center gap-4 bg-white text-sm">
-		<span>ALERTS ({data.total}){#if data.total > 0}<span class="text-xs text-gray-500 font-normal">· {affectedAccounts()} account{affectedAccounts() !== 1 ? 's' : ''} affected</span>{/if}</span>
+		<h1 class="text-base font-bold m-0">ALERTS ({data.total}){#if data.total > 0}<span class="text-xs text-gray-500 font-normal">· {affectedAccounts()} account{affectedAccounts() !== 1 ? 's' : ''} affected</span>{/if}</h1>
 		<a href="/" class="bracket-link text-xs">Homepage</a>
 	</div>
 
