@@ -71,7 +71,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-31 12:14:48 GMT | 2026-10-31 12:17:38 GMT | 0h 02m | v3.1 sweep 22 deepen: encrypted-description blindness class swept (budgets + ISA already decrypt — bills was the only miss); stooze tool vision PASS w/ real label nit ("net gain −£35" read as stoozing losing) → on-time vs late relabel; [*K] = 12th glyph misread; 42 tool tests green |
 | 2026-10-31 12:17:38 GMT | 2026-10-31 12:18:40 GMT | 0h 01m | v3.1 sweep 23 deepen: end-to-end triage flow verified — uncategorised row tagged Bills via the page action (14→13 rows), budget month reflects the category, console clean; the "bucket" A08 promised works through the real flow |
 | 2026-10-31 12:18:40 GMT | 2026-10-31 12:19:48 GMT | 0h 01m | v3.1 sweep 24 deepen: exports live-verified (tx + both history kinds 200, self-describing legend intact); chart-dashed CSS still used (not dead); stooze pay-by date now reads 10 Jan 2027 style |
-| 2026-10-31 12:19:48 GMT | 2026-10-31 12:22:10 GMT | 0h 02m | v3.1 sweep 25: full gate after polish batch (158/1102 + build ✔); tools full-width conversion vision-graded PASS ("ship it" — balanced columns, no new dead space); [✳K] = 13th glyph-misread variant |
+| 2026-10-31 12:19:48 GMT | 2026-10-31 12:21:45 GMT | 0h 01m | v3.1 sweep 25: full gate after polish batch (158/1102 + build ✔); tools full-width conversion vision-graded PASS ("ship it" — balanced columns, no new dead space); [✳K] = 13th glyph-misread variant |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
