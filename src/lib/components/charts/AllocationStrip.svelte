@@ -34,8 +34,9 @@
 	const shares = $derived(allocationShares(items));
 	const total = $derived(items.reduce((s, i) => s + Math.max(0, i.value), 0));
 
-	// ink density, darkest = biggest share (magnitude, not semantic)
-	const SEG_BG = ["#111827", "#374151", "#4b5563", "#6b7280", "#9ca3af", "#d1d5db", "#e5e7eb"];
+	// ink density with alternating contrast (v3.1 A13: adjacent first-two
+	// shades were near-identical — a 3% sliver between them vanished)
+	const SEG_BG = ["#111827", "#6b7280", "#374151", "#9ca3af", "#4b5563", "#d1d5db", "#e5e7eb"];
 	const bg = (i: number) => SEG_BG[i % SEG_BG.length];
 
 	let hoverIdx: number | null = $state(null);

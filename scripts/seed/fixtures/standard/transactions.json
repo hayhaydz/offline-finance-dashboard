@@ -401,16 +401,44 @@
       {
         "type": "withdrawal",
         "amount": -999,
-        "daysAgo": 40,
+        "daysAgo": 60,
         "description": "Netflix",
         "categoryKey": "entertainment"
       },
       {
         "type": "withdrawal",
         "amount": -999,
-        "daysAgo": 10,
+        "daysAgo": 30,
         "description": "Netflix",
         "categoryKey": "entertainment"
+      },
+      {
+        "amount": -999,
+        "categoryKey": "entertainment",
+        "daysAgo": 90,
+        "description": "Netflix",
+        "type": "withdrawal"
+      },
+      {
+        "amount": -1099,
+        "categoryKey": "entertainment",
+        "daysAgo": 93,
+        "description": "Spotify",
+        "type": "withdrawal"
+      },
+      {
+        "amount": -1099,
+        "categoryKey": "entertainment",
+        "daysAgo": 63,
+        "description": "Spotify",
+        "type": "withdrawal"
+      },
+      {
+        "amount": -1099,
+        "categoryKey": "entertainment",
+        "daysAgo": 33,
+        "description": "Spotify",
+        "type": "withdrawal"
       }
     ]
   },

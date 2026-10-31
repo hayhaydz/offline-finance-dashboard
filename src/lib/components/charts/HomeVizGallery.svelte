@@ -29,10 +29,13 @@
 	const hasCashflow = $derived((cashflow?.obligations?.length ?? 0) > 0);
 	const hasAllocation = $derived(assetGroups.some((g) => g.value > 0));
 
+	// v3.1: order matters for grid flow — trend(2)+allocation(1) share row
+	// 1, cashflow(3) takes row 2 full-width. (cashflow before allocation
+	// left row 1's right third empty and orphaned allocation on row 3.)
 	const cells = $derived([
 		{ id: 'trend' as ViewId, available: hasTrend },
-		{ id: 'cashflow' as ViewId, available: hasCashflow },
-		{ id: 'allocation' as ViewId, available: hasAllocation }
+		{ id: 'allocation' as ViewId, available: hasAllocation },
+		{ id: 'cashflow' as ViewId, available: hasCashflow }
 	].filter((c) => c.available));
 
 	// Bento spans per cell (relative grid of 3 columns):
