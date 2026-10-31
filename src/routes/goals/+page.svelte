@@ -234,8 +234,8 @@ async function placeAtEnd() {
 			<span class="text-gray-900">{formatCurrency(data.readyToAssign)}</span>
 		</div>
 		<div class="p-2 text-xs text-gray-600">
-			<div class="mb-1">
-				{formatCurrency(data.liquidAssets)} instant-access cash - {formatCurrency(data.totalSavingsAllocated)} allocated to savings
+			<div class="mb-1 tabular-nums">
+				{formatCurrency(data.liquidAssets)} instant-access cash &minus; {formatCurrency(data.totalSavingsAllocated)} already allocated to savings
 			</div>
 			{#if data.totalUnallocatedAssets !== data.readyToAssign}
 				<div class="text-[10px] text-gray-500">
