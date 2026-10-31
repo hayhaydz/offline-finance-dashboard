@@ -226,10 +226,12 @@
 {/if}
 
 <!-- NET WORTH SECTION -->
-<NetWorthDisplay
-	summary={data.netWorthSummary}
-	accounts={data.accounts}
-/>
+<div class="p-2"><!-- v3.1 border system: boxed hero in the inset frame -->
+	<NetWorthDisplay
+		summary={data.netWorthSummary}
+		accounts={data.accounts}
+	/>
+</div>
 
 <!-- v3.1 A03: ACCOUNTS FACTS strip (was SUMMARY|ALERTS 3/2 grid — measured
      40% content-fill, D2 defect; alert counts + link replace the wall) -->

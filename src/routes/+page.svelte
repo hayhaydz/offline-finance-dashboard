@@ -123,15 +123,16 @@
 	</div>
 {:else}
 	<!-- v3 R3: header reverted to pre-v2 form — the trend chart moved into
-	     the visualisation gallery below (HomeVizGallery). -->
-	<NetWorthDisplay
-		summary={data.netWorthSummary}
-		accounts={data.accounts}
-	/>
+	     the visualisation gallery below (HomeVizGallery). v3.1 border
+	     system: hero is a boxed panel in the shared inset frame -->
+	<div class="p-2">
+		<NetWorthDisplay
+			summary={data.netWorthSummary}
+			accounts={data.accounts}
+		/>
+	</div>
 
-	<!-- v3.1 A02/D3: the emblem row rebuilt — one full-width tax-year timeline
-	     strip (month cells + ISA lane) replaces the 3/2 TaxYear|ISA pair.
-	     v3.1 border system: the panel owns its border; wrapper carries none -->
+	<!-- v3.1 border system: the tax strip panel sits in the same inset frame -->
 	<div class="p-2">
 		<TaxYearTimeline data={data.isaTracker} />
 	</div>

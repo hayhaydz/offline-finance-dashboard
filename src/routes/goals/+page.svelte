@@ -217,10 +217,12 @@ async function placeAtEnd() {
 </script>
 
 <!-- NET WORTH SECTION -->
-<NetWorthDisplay
-	summary={data.netWorthSummary}
-	accounts={data.accounts}
-/>
+<div class="p-2"><!-- v3.1 border system: boxed hero in the inset frame -->
+	<NetWorthDisplay
+		summary={data.netWorthSummary}
+		accounts={data.accounts}
+	/>
+</div>
 
 <!-- v3.1 A04 design-quality: was a 3-col trio where ALLOCATION (263px)
      stretched READY TO ASSIGN (55% fill) and GOAL ALERTS (32% — D2

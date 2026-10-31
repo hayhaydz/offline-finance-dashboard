@@ -71,8 +71,11 @@
 <!-- NET WORTH SECTION — v3.1 A02 design-quality: one band, structured
      stat row (no justify-between dead middles at wide viewports). Content
      model unchanged from the user-mandated revert: title + value, no
-     sparkline in the header, same facts in the same order. -->
-<div class="border-b border-black p-2">
+     sparkline in the header, same facts in the same order.
+     v3.1 border system: a BOXED panel (border all round) — the page
+     unifies on inset panels; full-bleed bands and boxed cells no longer
+     mix. -->
+<div class="border border-black p-2">
 	<div class="flex justify-between my-1 items-center">
 		<h1 class="text-lg font-bold m-0">NET WORTH</h1>
 		<div class="flex items-center gap-3">
