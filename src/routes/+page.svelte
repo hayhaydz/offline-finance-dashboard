@@ -344,7 +344,10 @@
 					No {goalsFilter} goals.
 				</p>
 			{:else}
-				{#each filteredGoals as goal}
+				<!-- v3.1 A12 flagship metric: cap the home preview at 3 cards —
+				     10 cards (1058px) stretched the neighbouring ACCOUNTS cell to
+				     27% content-fill (D2 pairing violation). Full list lives on /goals. -->
+				{#each filteredGoals.slice(0, 3) as goal}
 					<div class="p-2 border-b border-black last:border-0 mb-2 last:mb-0">
 						{#if goal.goalType === 'debt' && goal.progress}
 							<DebtCard
@@ -361,6 +364,11 @@
 						{/if}
 					</div>
 				{/each}
+				{#if filteredGoals.length > 3}
+					<a href="/goals" class="bracket-link text-xs block p-2 border-t border-black bg-gray-50">
+						+ {filteredGoals.length - 3} more goal{filteredGoals.length - 3 === 1 ? '' : 's'} — view all
+					</a>
+				{/if}
 			{/if}
 		</div>
 		{#if goalsFilter === 'all'}
