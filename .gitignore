@@ -43,4 +43,4 @@ logs/
 .opencode/opencode-loop/
 storage/backups
 
-*.DS_STORE
+*.DS_STORE.opencode/probe_subpages.js
