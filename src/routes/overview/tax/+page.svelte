@@ -56,7 +56,7 @@
 
 <main>
 	<!-- HEADER -->
-	<div class="flex justify-between items-center border-b border-black p-2 bg-gray-100">
+	<div class="flex justify-between items-center border border-black p-2 bg-gray-100">
 		<span class="font-bold">TAX</span>
 		<div class="flex gap-2">
 			<a href="/overview/tax/income" class="bracket-link text-xs">Income History</a>
@@ -65,7 +65,7 @@
 	</div>
 
 	<!-- ═══ BAND FINDER (headline) ═══ -->
-	<section class="border-b border-black">
+	<section class="border border-black">
 		<div class="font-bold flex justify-between bg-gray-50 border-b border-gray-300 p-2">
 			<span>BAND FINDER</span>
 			<span class="text-xs text-gray-600 font-normal">income + non-ISA interest vs thresholds</span>
@@ -207,7 +207,7 @@
 	</section>
 
 	<!-- ═══ BAND HISTORY ═══ -->
-	<section class="border-b border-black">
+	<section class="border border-black">
 		<div class="font-bold flex justify-between bg-gray-50 border-b border-gray-300 p-2">
 			<span>BAND HISTORY</span>
 			<span class="text-xs text-gray-600 font-normal">{data.bandHistory.length} row(s)</span>
