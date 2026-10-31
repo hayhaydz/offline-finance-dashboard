@@ -1,12 +1,16 @@
 <script lang="ts">
+	import { browser } from "$app/environment";
+	import { BarChart } from "layerchart";
 	import ChartPanel from "$lib/components/charts/ChartPanel.svelte";
 
 	/**
-	 * Debt balance waterfall (Phase 5 line 2, Variant B): snowball-ordered
-	 * balances as descending steps from total debt toward zero — each step
-	 * is one goal's remaining balance (soft fill, ink outline), a dashed
-	 * connector runs to zero at the projected debt-free horizon, and each
-	 * step carries a projected-payoff tooltip. Print-safe viewBox.
+	 * Debt payoff waterfall — A13 layerchart migration (2026-10-31):
+	 * floating descending steps preserved as stacked horizontal bars
+	 * (transparent "debt below" base + visible "this goal" segment), so
+	 * each bar's right edge still walks the cumulative remaining balance
+	 * down from total debt toward zero. Payoff dates ride the band labels;
+	 * hover tooltip shows this-goal + debt-below per step. Frame +
+	 * summary unchanged; client-only mount.
 	 */
 	let {
 		goals,
@@ -25,33 +29,46 @@
 		formatPence: (pence: number) => string;
 	} = $props();
 
-	const W = 600;
-	const H = 200;
-	const PAD = { l: 8, r: 8, t: 16, b: 34 };
-	const GAP = 4;
-
-	const n = $derived(goals.length);
-	const maxV = $derived(Math.max(totalDebtInCents, 1) * 1.05);
-	const stepW = $derived(n > 0 ? (W - PAD.l - PAD.r - GAP * (n + 1)) / n : 0);
-	const x = $derived((i: number) => PAD.l + GAP + i * (stepW + GAP));
-	const y = $derived(
-		(v: number) => H - PAD.b - (v / maxV) * (H - PAD.t - PAD.b),
-	);
-
-	// cumulative balance BEFORE each goal (steps descend toward zero)
-	const cumBefore = $derived(() => {
-		let acc = totalDebtInCents;
-		const out: number[] = [];
-		for (const g of goals) {
-			out.push(acc);
-			acc = Math.max(0, acc - g.remainingInCents);
-		}
-		return out;
-	});
-
 	const dateShort = (d: Date | null) =>
 		d ? `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}` : "—";
 
+	// cumulative remaining AFTER each goal (snowball order): the step's
+	// left edge — stacking a transparent base of that size floats each
+	// step so right edges descend from total toward zero
+	type Row = { label: string; base: number; step: number };
+	const rows = $derived.by(() => {
+		let acc = totalDebtInCents;
+		return goals.map((g): Row => {
+			const right = acc;
+			acc = Math.max(0, acc - g.remainingInCents);
+			return {
+				label: `${g.name} · ${dateShort(g.projectedPayoffDate)}`,
+				base: acc,
+				step: g.remainingInCents,
+			};
+		});
+	});
+
+	const series = [
+		{
+			key: "base",
+			label: "debt below (later goals)",
+			value: "base",
+			color: "transparent",
+			props: { stroke: "transparent" },
+		},
+		{
+			key: "step",
+			label: "this goal remaining",
+			value: "step",
+			color: "#e5e7eb",
+			props: { stroke: "#111827", strokeWidth: 1 },
+		},
+	];
+
+	const maxV = $derived(Math.max(totalDebtInCents, 1) * 1.05);
+
+	const n = $derived(goals.length);
 	const summary = $derived(
 		n === 0
 			? "No tracked debt goals"
@@ -60,61 +77,30 @@
 </script>
 
 <ChartPanel title="Debt payoff waterfall" {summary}>
-	{#if n > 0}
-		<svg
-			viewBox="0 0 {W} {H}"
-			class="w-full"
-			role="img"
-			aria-label="Debt balances as descending waterfall steps in snowball order with projected payoff dates. {summary}"
-		>
-			<!-- zero baseline -->
-			<line x1="{PAD.l}" y1="{y(0)}" x2="{W - PAD.r}" y2="{y(0)}" stroke="var(--chart-grid)" stroke-width="1" />
-			{#each goals as g, i (g.slug)}
-				{@const top = cumBefore()[i] - g.remainingInCents}
-				<rect
-					x="{x(i).toFixed(1)}"
-					y="{y(cumBefore()[i]).toFixed(1)}"
-					width="{stepW.toFixed(1)}"
-					height="{Math.max(y(top) - y(cumBefore()[i]), 1).toFixed(1)}"
-					fill="var(--chart-fill)"
-					stroke="var(--chart-ink)"
-					stroke-width="1"
-				>
-					<title>{g.name}: {formatPence(g.remainingInCents)} remaining · payoff ~{dateShort(g.projectedPayoffDate)}</title>
-				</rect>
-				<!-- step label: name truncated to fit step width (full name in tooltip) -->
-				{@const maxChars = Math.max(8, Math.floor(stepW / 6.2))}
-				<text
-					x="{(x(i) + stepW / 2).toFixed(1)}"
-					y="{H - 20}"
-					font-size="9"
-					text-anchor="middle"
-					fill="var(--chart-ink-soft)"
-				>{g.name.length > maxChars ? g.name.slice(0, maxChars - 1) + "…" : g.name}</text>
-				<text
-					x="{(x(i) + stepW / 2).toFixed(1)}"
-					y="{H - 8}"
-					font-size="9"
-					text-anchor="middle"
-					fill="var(--chart-ink-soft)"
-				>{dateShort(g.projectedPayoffDate)}</text>
-			{/each}
-			<!-- dashed connector to the debt-free horizon -->
-			<line
-				class="chart-dashed"
-				x1="{(x(n - 1) + stepW + 1).toFixed(1)}"
-				y1="{y(0).toFixed(1)}"
-				x2="{W - PAD.r}"
-				y2="{y(0).toFixed(1)}"
-				stroke="var(--chart-ink)"
-				stroke-width="1.5"
-			>
-				<title>debt-free horizon</title>
-			</line>
-			<!-- total label at the tallest step -->
-			<text x="{PAD.l}" y="{PAD.t}" font-size="10" fill="var(--chart-ink-soft)">total {formatPence(totalDebtInCents)}</text>
-		</svg>
-	{:else}
+	{#if n === 0}
 		<div class="text-xs text-gray-500 p-2 text-center">[no debt goals]</div>
+	{:else if browser}
+		<div class="font-mono text-[10px]" data-interactive-chart="debt-waterfall">
+			<BarChart
+				data={rows}
+				y="label"
+				orientation="horizontal"
+				{series}
+				seriesLayout="stack"
+				height={Math.max(n * 34 + 28, 100)}
+				padding={{ top: 6, right: 20, bottom: 24, left: 220 }}
+				xDomain={[0, maxV]}
+				props={{
+					xAxis: { format: (v: number) => formatPence(v) },
+					tooltip: {
+						header: { format: (l: string) => String(l) },
+						item: { format: (v: number) => formatPence(v) },
+					},
+				}}
+			/>
+		</div>
+		<p class="text-[10px] text-gray-600 px-1 pt-1">
+			steps descend from total debt toward zero (snowball) · label = goal · projected payoff · hover for amounts
+		</p>
 	{/if}
 </ChartPanel>

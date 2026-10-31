@@ -3,8 +3,10 @@ import { render } from "svelte/server";
 import type { ComponentProps } from "svelte";
 import PsaBulletChart from "$lib/components/charts/PsaBulletChart.svelte";
 
-// Phase 5 line 2: PSA bullet chart — actual vs projected taxable interest
-// against the band-aware personal savings allowance.
+// A13 layerchart migration: the bullet is a stacked horizontal bar with
+// colour-coded segments (within=ink, over=red, projected=gray) and the
+// PSA marker as a labelled x tick/gridline. The server payload ships the
+// frame + summary + legend; the interactive layer mounts client-side.
 
 const fmt = (p: number) => `£${(p / 100).toFixed(2)}`;
 
@@ -20,27 +22,24 @@ const renderBullet = (props: Partial<ComponentProps<typeof PsaBulletChart>>) => 
 	return render(PsaBulletChart, { props: { ...defaults, ...props } });
 };
 
-describe("PsaBulletChart (Phase 5 line 2)", () => {
-	it("renders allowance zone, measure, projected extension, and marker", () => {
+describe("PsaBulletChart (A13 layerchart migration)", () => {
+	it("summarises allowance, actual, projection, and forecast", () => {
 		const { body } = renderBullet({
 			allowancePence: 100000,
 			actualPence: 60000,
 			projectedPence: 30000,
 		});
 		expect(body).toContain("Personal savings allowance");
-		expect(body).toContain("psa-over-hatch");
 		expect(body).toContain("PSA £1000.00"); // stub formatter (live uses formatCurrency)
-		expect(body).toMatch(/Projected additional taxable £300\.00/);
 		expect(body).toContain("forecast £900.00");
 	});
 
-	it("turns the over-allowance portion of the measure red + says OVER", () => {
+	it("says OVER and by how much when the measure crosses the allowance", () => {
 		const { body } = renderBullet({
 			allowancePence: 50000,
 			actualPence: 70000,
 			projectedPence: 0,
 		});
-		expect(body).toContain('fill="var(--chart-neg)"');
 		expect(body).toContain("OVER allowance by £200.00");
 	});
 
@@ -55,25 +54,27 @@ describe("PsaBulletChart (Phase 5 line 2)", () => {
 		expect(body).not.toContain("PSA £0.00");
 	});
 
-	it("is a print-safe viewBox SVG with role=img", () => {
+	it("SSR ships frame + summary + legend; the chart mounts client-side", () => {
 		const { body } = renderBullet({
 			allowancePence: 100000,
 			actualPence: 60000,
 			projectedPence: 30000,
 		});
-		expect(body).toMatch(/viewBox="0 0 600 120"/);
-		expect(body).toContain('role="img"');
+		expect(body).toContain("chart-panel");
+		expect(body).toContain("chart-panel-summary");
+		expect(body).toContain("[chart loads in browser]");
+		expect(body).not.toContain("<rect"); // no static geometry server-side
 	});
 
-	it("renders the segment legend for the four zones", () => {
+	it("renders the segment legend incl. the PSA gridline marker note", () => {
 		const { body } = renderBullet({
 			allowancePence: 100000,
 			actualPence: 60000,
 			projectedPence: 30000,
 		});
-		expect(body).toContain("allowance zone");
 		expect(body).toContain(">actual</span>");
 		expect(body).toContain(">projected</span>");
 		expect(body).toContain("over allowance");
+		expect(body).toContain("gridline = PSA £1000.00");
 	});
 });

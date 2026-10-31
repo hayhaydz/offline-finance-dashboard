@@ -15,7 +15,7 @@ const nwPoints = [
 
 const fmt = (p: number) => `£${(p / 100).toFixed(2)}`;
 
-describe("NetWorthChart (Phase 4 V1 #1)", () => {
+describe("NetWorthChart (A13 layerchart migration)", () => {
 	it("renders the ChartPanel frame with a trend summary", () => {
 		const { body } = render(NetWorthChart, {
 			props: { points: nwPoints, formatPence: fmt },
@@ -25,58 +25,40 @@ describe("NetWorthChart (Phase 4 V1 #1)", () => {
 		expect(body).toContain("-£2040.75"); // delta in summary
 	});
 
-	it("draws the line path, area fill, and square markers", () => {
+	it("SSR ships frame + summary only — interactive layer mounts client-side", () => {
 		const { body } = render(NetWorthChart, {
 			props: { points: nwPoints, formatPence: fmt },
 		});
 		expect(body).toContain("chart-panel");
-		expect(body).toMatch(/<path d="M\d/); // series line
-		expect(body).toContain("fill=\"var(--chart-fill)\""); // area fill
-		expect((body.match(/<rect/g) || []).length).toBe(nwPoints.length); // one square per point
+		expect(body).toContain("chart-panel-summary");
+		// no static svg geometry in the server payload (HistoryTrendChart
+		// client-only mount contract); hover tooltip arrives with mount
+		expect(body).not.toContain("<path");
+		expect(body).not.toContain("<rect");
 	});
 
-	it("is a print-safe viewBox SVG with an accessible label", () => {
-		const { body } = render(NetWorthChart, {
-			props: { points: nwPoints, formatPence: fmt },
-		});
-		expect(body).toMatch(/viewBox="0 0 600 220"/);
-		expect(body).toContain('role="img"');
-		expect(body).toContain("aria-label");
-	});
-
-	it("labels first/mid/last dates and y range; dashed zero line when straddling", () => {
-		// range crossing zero → the dashed zero reference must render
-		const straddle = [
-			{ date: "2026-07-15", netWorthInCents: -300000 },
-			{ date: "2026-08-15", netWorthInCents: -100000 },
-			{ date: "2026-09-15", netWorthInCents: 50000 },
-			{ date: "2026-10-28", netWorthInCents: 200000 },
-		];
-		const { body } = render(NetWorthChart, {
-			props: { points: straddle, formatPence: fmt },
-		});
-		expect(body).toContain(">2026-07<");
-		expect(body).toContain(">2026-10<");
-		expect(body).toContain("chart-dashed"); // zero reference
-	});
-
-	it("renders an explicit empty state with zero points", () => {
-		const { body } = render(NetWorthChart, {
+	it("single-point and empty states are honest server-rendered text", () => {
+		const one = render(NetWorthChart, {
+			props: { points: [nwPoints[0]], formatPence: fmt },
+		}).body;
+		expect(one).toContain("One snapshot");
+		expect(one).toContain("Record another to draw a line");
+		const none = render(NetWorthChart, {
 			props: { points: [], formatPence: fmt },
-		});
-		expect(body).toContain("[no snapshot data]");
-		expect(body).toContain("No snapshots yet");
+		}).body;
+		expect(none).toContain("[no snapshot data]");
+		expect(none).toContain("No snapshots yet");
 	});
 });
 
 describe("GoalBulletBar (Phase 4 V1 #3)", () => {
-	it("tags the last point with a bold value label", () => {
+	it("the latest value rides the summary line (client chart draws the tag)", () => {
 		const { body } = render(NetWorthChart, {
 			props: { points: nwPoints, formatPence: fmt },
 		});
-		// bold ink tag carrying the latest value (-£7040.75)
-		expect(body).toContain('font-weight="bold"');
-		expect(body.match(/<text[^>]*font-weight="bold"[^>]*>([^<]*)</)?.[1]).toBe("£-7040.75");
+		// A13: the interactive layerchart tooltip/axis carries values on
+		// hover; the always-visible latest value lives in the summary
+		expect(body).toContain("(latest £-7040.75)");
 	});
 
 	it("renders the bracketed fill bar with width from percent", () => {

@@ -15,44 +15,40 @@ const pts = [
 ];
 const fmt = (p: number) => `£${(p / 100).toFixed(2)}`;
 
-describe("StackedAreaChart (Phase 5 line 1)", () => {
+describe("StackedAreaChart (A13 layerchart migration)", () => {
 	it("renders the ChartPanel with a composition summary", () => {
 		const { body } = render(StackedAreaChart, {
 			props: { points: pts, formatPence: fmt },
 		});
 		expect(body).toContain("Assets vs liabilities");
 		expect(body).toContain("4 snapshots");
-		expect(body).toContain("assets");
+		expect(body).toContain("Assets"); // summary carries all three readings
 		expect(body).toContain("liabilities");
+		expect(body).toContain("net"); // net worth rides the summary line
 	});
 
-	it("draws both bands, the hatch pattern, and the net worth line", () => {
+	it("SSR ships the frame + summary only — the interactive layer mounts client-side", () => {
 		const { body } = render(StackedAreaChart, {
 			props: { points: pts, formatPence: fmt },
 		});
-		expect(body).toContain("liab-hatch");
-		expect(body).toMatch(/fill="url\(#liab-hatch\)"/);
-		expect(body).toContain("fill=\"var(--chart-fill)\"");
-		// 2 bands + 1 net line = 3 paths with drawn geometry
-		expect((body.match(/<path d="M/g) || []).length).toBe(3);
+		// HistoryTrendChart contract: layerchart renders after mount; no
+		// static svg geometry may leak into the server payload
+		expect(body).not.toContain("<path");
+		expect(body).not.toContain("liab-hatch");
+		// the summary is real visible text (a11y invariant)
+		expect(body).toContain("chart-panel-summary");
 	});
 
-	it("includes the dashed zero reference and prefixed axis labels", () => {
-		const { body } = render(StackedAreaChart, {
-			props: { points: pts, formatPence: fmt },
-		});
-		expect(body).toContain("chart-dashed");
-		expect(body).toContain(">max £");
-		expect(body).toContain(">min £");
-	});
-
-	it("is a print-safe viewBox SVG with an accessible label", () => {
-		const { body } = render(StackedAreaChart, {
-			props: { points: pts, formatPence: fmt },
-		});
-		expect(body).toMatch(/viewBox="0 0 600 240"/);
-		expect(body).toContain('role="img"');
-		expect(body).toContain("aria-label");
+	it("renders an honest single-snapshot and empty state server-side", () => {
+		const one = render(StackedAreaChart, {
+			props: { points: [pts[0]], formatPence: fmt },
+		}).body;
+		expect(one).toContain("One snapshot");
+		const none = render(StackedAreaChart, {
+			props: { points: [], formatPence: fmt },
+		}).body;
+		expect(none).toContain("[no snapshot data]");
+		expect(none).toContain("No snapshots yet");
 	});
 });
 

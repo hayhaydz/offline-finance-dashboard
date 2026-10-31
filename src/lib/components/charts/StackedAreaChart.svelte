@@ -1,18 +1,21 @@
 <script lang="ts">
+	import { browser } from "$app/environment";
+	import { AreaChart } from "layerchart";
 	import ChartPanel from "$lib/components/charts/ChartPanel.svelte";
 
 	/**
-	 * Assets-vs-liabilities stacked area (Phase 5 line 1, Variant B).
-	 * Assets band rises above zero (soft gray fill); liabilities band
-	 * sinks below zero (diagonal hatch — same idiom as overspend bars);
-	 * the net worth boundary between them is the solid ink line. Zero
-	 * reference dashed when the range straddles it. Print-safe viewBox.
+	 * Assets-vs-liabilities composition — A13 layerchart migration
+	 * (2026-10-31): stacked-about-zero areas (assets band above zero in
+	 * light gray, liabilities band below zero in darker gray — the data is
+	 * already negative), hover crosshair + per-date tooltip for both
+	 * bands. ChartPanel frame + summary + export unchanged; client-only
+	 * mount (layerchart measures + SSR module cycle).
 	 */
 	let {
 		points,
 		formatPence,
 	}: {
-		/** Oldest → newest snapshots */
+		/** Oldest → newest snapshots (liabilities already negative) */
 		points: Array<{
 			date: string;
 			totalAssetsInCents: number;
@@ -21,9 +24,34 @@
 		formatPence: (pence: number) => string;
 	} = $props();
 
-	const W = 600;
-	const H = 240;
-	const PAD = { l: 8, r: 8, t: 14, b: 20 };
+	type Row = { date: Date; assets: number; liabilities: number };
+	const rows = $derived(
+		points.map((p): Row => {
+			const [y, m, d] = p.date.split("-").map(Number);
+			return {
+				date: new Date(y, (m || 1) - 1, d || 1),
+				assets: p.totalAssetsInCents,
+				liabilities: p.totalLiabilitiesInCents,
+			};
+		}),
+	);
+
+	const series = [
+		{
+			key: "assets",
+			label: "assets",
+			value: "assets",
+			color: "#e5e7eb",
+			props: { stroke: "#6b7280", strokeWidth: 1 },
+		},
+		{
+			key: "liabilities",
+			label: "liabilities",
+			value: "liabilities",
+			color: "#d1d5db",
+			props: { stroke: "#6b7280", strokeWidth: 1 },
+		},
+	];
 
 	const assets = $derived(points.map((p) => p.totalAssetsInCents));
 	const liabilities = $derived(points.map((p) => p.totalLiabilitiesInCents));
@@ -32,32 +60,13 @@
 	const yHi = $derived(maxAssets * 1.05 || 1);
 	const yLo = $derived(minLiab * 1.05 || -1);
 
-	const x = $derived(
-		points.length > 1
-			? (i: number) => PAD.l + (i / (points.length - 1)) * (W - PAD.l - PAD.r)
-			: () => W / 2,
-	);
-	const y = $derived(
-		(v: number) => H - PAD.b - ((v - yLo) / (yHi - yLo)) * (H - PAD.t - PAD.b),
-	);
-	const y0 = $derived(y(0));
-
-	const band = $derived(
-		(values: number[]) =>
-			values.length > 0
-				? `${values.map((v, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ")} L${x(values.length - 1).toFixed(1)},${y0.toFixed(1)} L${x(0).toFixed(1)},${y0.toFixed(1)} Z`
-				: "",
+	const yearTicks = $derived(
+		rows
+			.filter((r, i) => i === 0 || r.date.getFullYear() !== rows[i - 1].date.getFullYear())
+			.map((r) => r.date),
 	);
 
-	const netWorthPath = $derived(
-		points
-			.map((p, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p.totalAssetsInCents + p.totalLiabilitiesInCents).toFixed(1)}`)
-			.join(" "),
-	);
-
-	const midIndex = $derived(Math.floor((points.length - 1) / 2));
 	const lastPt = $derived(points[points.length - 1]);
-	const dateLabel = (d: string) => d.slice(0, 7);
 
 	const summary = $derived(
 		points.length === 0
@@ -69,56 +78,36 @@
 </script>
 
 <ChartPanel title="Assets vs liabilities" {summary}>
-	{#if points.length > 0}
-		<svg
-			viewBox="0 0 {W} {H}"
-			class="w-full"
-			role="img"
-			aria-label="Assets band above zero versus liabilities band below zero, with the net worth boundary between them. {summary}"
-		>
-			<defs>
-				<pattern id="liab-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-					<rect width="6" height="6" fill="none" />
-					<line x1="0" y1="0" x2="0" y2="6" stroke="var(--chart-ink)" stroke-width="1" opacity="0.35" />
-				</pattern>
-			</defs>
-
-			<!-- zero reference -->
-			<line
-				class="chart-dashed"
-				x1="{PAD.l}"
-				y1="{y0.toFixed(1)}"
-				x2="{W - PAD.r}"
-				y2="{y0.toFixed(1)}"
-				stroke="var(--chart-grid)"
-				stroke-width="1"
-			/>
-
-			<!-- liabilities band (below zero, hatched) -->
-			<path d={band(liabilities)} fill="url(#liab-hatch)" stroke="var(--chart-ink-soft)" stroke-width="0.5" />
-			<!-- assets band (above zero, soft fill) -->
-			<path d={band(assets)} fill="var(--chart-fill)" stroke="var(--chart-ink-soft)" stroke-width="0.5" />
-			<!-- net worth boundary -->
-			<path d={netWorthPath} fill="none" stroke="var(--chart-ink)" stroke-width="1.5" />
-
-			<!-- legend -->
-			<g font-size="10" fill="var(--chart-ink-soft)">
-				<rect x="{PAD.l + 4}" y="{PAD.t}" width="8" height="8" fill="var(--chart-fill)" stroke="var(--chart-ink-soft)" stroke-width="0.5" />
-				<text x="{PAD.l + 15}" y="{PAD.t + 7}">assets</text>
-				<rect x="{PAD.l + 58}" y="{PAD.t}" width="8" height="8" fill="url(#liab-hatch)" stroke="var(--chart-ink-soft)" stroke-width="0.5" />
-				<text x="{PAD.l + 69}" y="{PAD.t + 7}">liabilities</text>
-			</g>
-
-			<!-- axis labels: £ values prefixed (Phase 4 gate lesson) -->
-			<text x="{PAD.l}" y="{PAD.t + 24}" font-size="10" fill="var(--chart-ink-soft)">max {formatPence(yHi)}</text>
-			<text x="{PAD.l}" y="{H - PAD.b - 2}" font-size="10" fill="var(--chart-ink-soft)">min {formatPence(yLo)}</text>
-			<text x="{x(0)}" y="{H - 6}" font-size="10" text-anchor="start" fill="var(--chart-ink-soft)">{dateLabel(points[0].date)}</text>
-			{#if points.length > 2}
-				<text x="{x(midIndex)}" y="{H - 6}" font-size="10" text-anchor="middle" fill="var(--chart-ink-soft)">{dateLabel(points[midIndex].date)}</text>
-			{/if}
-			<text x="{x(points.length - 1)}" y="{H - 6}" font-size="10" text-anchor="end" fill="var(--chart-ink-soft)">{dateLabel(points[points.length - 1].date)}</text>
-		</svg>
-	{:else}
+	{#if points.length === 0}
 		<div class="text-xs text-gray-500 p-2 text-center">[no snapshot data]</div>
+	{:else if points.length === 1}
+		<div class="text-xs text-gray-600 p-2 text-center">
+			One snapshot ({points[0].date}) — two or more draw the bands.
+		</div>
+	{:else if browser}
+		<div class="font-mono text-[10px]" data-interactive-chart="assets-liabilities">
+			<AreaChart
+				data={rows}
+				x="date"
+				{series}
+				seriesLayout="stack"
+				height={240}
+				padding={{ top: 10, right: 16, bottom: 26, left: 52 }}
+				yDomain={[yLo, yHi]}
+				xDomain={rows.length ? [rows[0].date, rows[rows.length - 1].date] : undefined}
+				xNice={false}
+				props={{
+					xAxis: { ticks: yearTicks, format: (d: Date) => String(d.getFullYear()), tickLabelProps: { dy: "1.3em" } },
+					yAxis: { format: (v: number) => formatPence(v) },
+					tooltip: {
+						header: { format: (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` },
+						item: { format: (v: number) => formatPence(Math.abs(v)) },
+					},
+				}}
+			/>
+		</div>
+		<p class="text-[10px] text-gray-600 px-1 pt-1">
+			light band above zero = assets · darker band below zero = liabilities · hover for both
+		</p>
 	{/if}
 </ChartPanel>

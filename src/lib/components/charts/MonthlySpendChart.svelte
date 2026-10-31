@@ -1,10 +1,14 @@
 <script lang="ts">
+	import { browser } from "$app/environment";
+	import { BarChart } from "layerchart";
 	import ChartPanel from "$lib/components/charts/ChartPanel.svelte";
 
 	/**
-	 * Spending by month (Phase 5 line 2, Variant B): one column per month
-	 * (soft fill, ink outline), value label above each column, dashed
-	 * 6-month average reference, month labels below. Print-safe viewBox.
+	 * Spending by month — A13 layerchart migration (2026-10-31): one
+	 * column per month (gray fill, ink outline), hover tooltip per column
+	 * (month + total), the 6-month average drawn as a labelled y tick
+	 * ("avg £…") so the reference survives the migration. ChartPanel
+	 * frame + summary + export unchanged; client-only mount.
 	 */
 	let {
 		points,
@@ -15,30 +19,36 @@
 		formatPence: (pence: number) => string;
 	} = $props();
 
-	const W = 600;
-	const H = 200;
-	const PAD = { l: 8, r: 8, t: 18, b: 18 };
-	const GAP = 10; // px between columns
+	const shortLabel = (pence: number) => {
+		const units = pence / 100;
+		return units >= 1000 ? `£${(units / 1000).toFixed(1)}k` : `£${Math.round(units)}`;
+	};
+
+	type Row = { month: string; total: number };
+	const rows = $derived(
+		points.map((p): Row => ({ month: `${p.month.slice(5)}/${p.month.slice(2, 4)}`, total: p.totalPence })),
+	);
+
+	const series = [
+		{
+			key: "spend",
+			label: "spend",
+			value: "total",
+			color: "#d1d5db",
+			props: { stroke: "#111827", strokeWidth: 1 },
+		},
+	];
 
 	const maxV = $derived(Math.max(...points.map((p) => p.totalPence), 1) * 1.1);
-	const colW = $derived(
-		points.length > 0 ? (W - PAD.l - PAD.r - GAP * (points.length - 1)) / points.length : 0,
-	);
-	const x = $derived((i: number) => PAD.l + i * (colW + GAP));
-	const colH = $derived((v: number) => (v / maxV) * (H - PAD.t - PAD.b));
-	const yTop = $derived((v: number) => H - PAD.b - colH(v));
-
 	const avg = $derived(
 		points.length > 0
 			? points.reduce((s, p) => s + p.totalPence, 0) / points.length
 			: 0,
 	);
-	const avgY = $derived(H - PAD.b - (avg / maxV) * (H - PAD.t - PAD.b));
-
-	const shortLabel = $derived((pence: number) => {
-		const units = pence / 100;
-		return units >= 1000 ? `£${(units / 1000).toFixed(1)}k` : `£${Math.round(units)}`;
-	});
+	// y ticks: 0, the average (labelled), and the padded top — the avg
+	// tick carries the dashed-reference role the static chart drew
+	const avgRounded = $derived(Math.round(avg));
+	const yTicks = $derived([0, avgRounded, Math.round(maxV)]);
 
 	const last = $derived(points[points.length - 1]);
 	const summary = $derived(
@@ -49,65 +59,31 @@
 </script>
 
 <ChartPanel title="Spending by month" {summary}>
-	{#if points.length > 0}
-		<svg
-			viewBox="0 0 {W} {H}"
-			class="w-full"
-			role="img"
-			aria-label="Total spending per month as columns with a dashed average line. {summary}"
-		>
-			{#each points as p, i (p.month)}
-				<rect
-					x="{x(i).toFixed(1)}"
-					y="{yTop(p.totalPence).toFixed(1)}"
-					width="{colW.toFixed(1)}"
-					height="{Math.max(colH(p.totalPence), 1).toFixed(1)}"
-					fill="var(--chart-fill)"
-					stroke="var(--chart-ink)"
-					stroke-width="1"
-				>
-					<title>{p.month}: {formatPence(p.totalPence)}</title>
-				</rect>
-				{#if p.totalPence > 0}
-					<text
-						x="{(x(i) + colW / 2).toFixed(1)}"
-						y="{(yTop(p.totalPence) - 4).toFixed(1)}"
-						font-size="10"
-						text-anchor="middle"
-						fill="var(--chart-ink-soft)"
-					>{shortLabel(p.totalPence)}</text>
-				{:else}
-					<!-- zero months: label below the axis to avoid the average line (P5 gate) -->
-					<text
-						x="{(x(i) + colW / 2).toFixed(1)}"
-						y="{H - PAD.b + 10}"
-						font-size="9"
-						text-anchor="middle"
-						fill="var(--chart-grid)"
-					>£0</text>
-				{/if}
-				<text
-					x="{(x(i) + colW / 2).toFixed(1)}"
-					y="{H - 5}"
-					font-size="10"
-					text-anchor="middle"
-					fill="var(--chart-ink-soft)"
-				>{p.month.slice(5)}/{p.month.slice(2, 4)}</text>
-			{/each}
-			<!-- dashed monthly-average reference -->
-			<line
-				class="chart-dashed"
-				x1="{PAD.l}"
-				y1="{avgY.toFixed(1)}"
-				x2="{W - PAD.r}"
-				y2="{avgY.toFixed(1)}"
-				stroke="var(--chart-ink-soft)"
-				stroke-width="1"
-			>
-				<title>6-month average {formatPence(avg)}</title>
-			</line>
-		</svg>
-	{:else}
+	{#if points.length === 0}
 		<div class="text-xs text-gray-500 p-2 text-center">[no spending data]</div>
+	{:else if browser}
+		<div class="font-mono text-[10px]" data-interactive-chart="monthly-spend">
+			<BarChart
+				data={rows}
+				x="month"
+				{series}
+				height={200}
+				padding={{ top: 10, right: 16, bottom: 26, left: 56 }}
+				yDomain={[0, maxV]}
+				props={{
+					yAxis: {
+						ticks: yTicks,
+						format: (v: number) => (v === avgRounded && avgRounded > 0 ? `avg ${shortLabel(v)}` : shortLabel(v)),
+					},
+					tooltip: {
+						header: { format: (m: string) => String(m) },
+						item: { format: (v: number) => formatPence(v) },
+					},
+				}}
+			/>
+		</div>
+		<p class="text-[10px] text-gray-600 px-1 pt-1">
+			one column per month · hover for the exact total · avg = mean of the window
+		</p>
 	{/if}
 </ChartPanel>
