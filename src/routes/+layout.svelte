@@ -63,12 +63,18 @@
 	<!-- v3 R16-class fix: text WITHOUT literal brackets — bracket-link CSS supplies them (was rendering [[Skip to content]]) -->
 	{#if user}
 		<!-- .no-print: chrome strip stays on screen only (print/PDF rule) -->
+		<!-- v3.1 A01 craft: · delimiters rank the status run (identity ·
+		     session · mode · state) — flat equal gaps read as one
+		     undifferentiated string at 1600px -->
 		<div class="bg-black text-white p-1 font-bold text-xs flex items-center gap-4 no-print">
 			<span class="flex-none">OFFLINE-FINANCE-v0.exe</span>
-			<span class="flex-1 min-w-0 flex items-center gap-4">
+			<span class="flex-1 min-w-0 flex items-center gap-2">
+				<span class="text-gray-500 select-none" aria-hidden="true">·</span>
 				<span>USER: {user.username.toUpperCase()}</span>
+				<span class="text-gray-500 select-none" aria-hidden="true">·</span>
 				<span>{modeIndicator}</span>
 				{#if !environment.isProduction}
+					<span class="text-gray-500 select-none" aria-hidden="true">·</span>
 					<span class="text-amber-400">[!] DEV DATA [!]</span>
 				{/if}
 			</span>
