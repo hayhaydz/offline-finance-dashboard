@@ -107,5 +107,11 @@
 
 	<main id="main-content" class="scrollable-content flex-1 min-h-0" bind:this={scrollContainer}>
 		{@render children()}
+		<!-- v3.1 A01: the EOF line — the internal-scroll window ends content
+		     mid-frame on short pages and read as "broken" in 6+ vision
+		     rounds; terminal convention marks document end (less/man/vim) -->
+		<div class="no-print select-none border-t border-gray-200 py-1 text-center text-[9px] tracking-[0.5em] text-gray-400" aria-hidden="true">
+			EOF
+		</div>
 	</main>
 </div>
