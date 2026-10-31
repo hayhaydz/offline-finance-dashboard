@@ -35,7 +35,7 @@ export const TOOLS: ToolMeta[] = [
 	{
 		slug: "fi-projector",
 		name: "Milestone projector",
-		blurb: "When the next £10k…£1M net-worth crossings happen at the current slope.",
+		blurb: "When net worth crosses the next £10k milestones — rising or falling — at the current slope.",
 	},
 	{
 		slug: "overpay-or-save",

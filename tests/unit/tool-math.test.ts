@@ -340,7 +340,7 @@ describe("projectMilestones", () => {
 		);
 	});
 
-	it("returns nothing for flat or falling net worth", () => {
+	it("returns nothing for flat net worth or a single point", () => {
 		expect(
 			projectMilestones({
 				history: [
@@ -349,15 +349,51 @@ describe("projectMilestones", () => {
 				],
 			}),
 		).toEqual([]);
-		expect(
-			projectMilestones({
-				history: [
-					{ date: "2025-12-01", netWorthInCents: 400_000 },
-					{ date: "2026-12-01", netWorthInCents: 300_000 },
-				],
-			}),
-		).toEqual([]);
 		expect(projectMilestones({ history: [{ date: "2026-01-01", netWorthInCents: 1 }] })).toEqual([]);
+	});
+
+	it("v3.1: falling net worth projects the next six DOWNWARD £10k crossings", () => {
+		// 2025-12-01 → 2026-12-01 ≈ 12 months; 1,200,000p → 600,000p = −50,000p/mo
+		// latest £6,000 → next boundaries below on the £10k grid: £0 (the
+		// insolvency crossing), −£10k, −£20k… (6 rows)
+		const history = [
+			{ date: "2025-12-01", netWorthInCents: 1_200_000 },
+			{ date: "2026-12-01", netWorthInCents: 600_000 },
+		];
+		const milestones = projectMilestones({ history });
+		expect(milestones.length).toBe(6);
+		expect(milestones.every((m) => m.direction === "down")).toBe(true);
+		expect(milestones[0]?.targetPence).toBe(0);
+		// gap 600,000p at 50,000p/mo = 12 months
+		expect(milestones[0]?.monthsFromNow).toBe(12);
+		expect(milestones[1]?.targetPence).toBe(-1_000_000);
+		// descending targets
+		expect(milestones.map((m) => m.targetPence)).toEqual(
+			[...milestones.map((m) => m.targetPence)].sort((a, b) => b - a),
+		);
+	});
+
+	it("v3.1: falling into negatives crosses −£10k boundaries (dev-data shape)", () => {
+		// latest −£7,103.69 = −710,369p, drift 50,000p/mo → first target −£10k
+		const history = [
+			{ date: "2025-12-01", netWorthInCents: -710_369 + 600_000 },
+			{ date: "2026-12-01", netWorthInCents: -710_369 },
+		];
+		const milestones = projectMilestones({ history });
+		expect(milestones[0]?.targetPence).toBe(-1_000_000);
+		// gap 289,631p at 50,000p/mo → ceil = 6 months
+		expect(milestones[0]?.monthsFromNow).toBe(6);
+		expect(milestones[1]?.targetPence).toBe(-2_000_000);
+	});
+
+	it("v3.1: net worth exactly on a £10k boundary starts one step below", () => {
+		const history = [
+			{ date: "2025-12-01", netWorthInCents: 2_000_000 },
+			{ date: "2026-12-01", netWorthInCents: 1_000_000 }, // exactly £10k
+		];
+		const milestones = projectMilestones({ history });
+		// strictly below the boundary: £0, not £10k itself
+		expect(milestones[0]?.targetPence).toBe(0);
 	});
 });
 

@@ -242,13 +242,18 @@ export interface FiMilestone {
 	/** Months from the last history point until the target is crossed (null = never) */
 	monthsFromNow: number | null;
 	date: string | null;
+	/** v3.1 third mandate: falling slopes project DOWNWARD £10k crossings */
+	direction: "up" | "down";
 }
 
 /**
  * FI milestone projector: fit the mean monthly net-worth delta over the
- * history window, then project when each power-of-ten target (above the
- * current net worth, up to £1M) is crossed. Flat/negative slopes return
- * never. Uses the mean delta (robust to noisy months) over the window.
+ * history window, then project crossings. Rising slopes get the
+ * power-of-ten ladder above the current net worth (up to £1M); falling
+ * slopes (v3.1 third mandate) get the next six DOWNWARD £10k crossings —
+ * a falling window is exactly when drift readings matter most, and an
+ * honest tool should not render one gray line on a 1584px canvas. Flat
+ * slopes return never. Uses the mean delta (robust to noisy months).
  */
 export function projectMilestones(params: {
 	history: { date: string; netWorthInCents: number }[];
@@ -268,23 +273,49 @@ export function projectMilestones(params: {
 	);
 	const monthlyDelta =
 		(latest.netWorthInCents - first.netWorthInCents) / monthsInWindow;
-	if (monthlyDelta <= 0) return [];
+	if (monthlyDelta === 0) return [];
 
+	const STEP = 10_000 * 100; // £10k in pence
 	const out: FiMilestone[] = [];
-	let target = 10_000 * 100; // £10k in pence
-	while (target <= 100_000_000) {
-		if (target > latest.netWorthInCents) {
-			const gap = target - latest.netWorthInCents;
-			const months = Math.ceil(gap / monthlyDelta);
-			const date = new Date(latestMs + months * 30.44 * 86_400_000);
-			out.push({
-				targetPence: target,
-				monthsFromNow: months,
-				date: date.toISOString().slice(0, 10),
-			});
-			if (out.length >= 6) break;
+
+	if (monthlyDelta > 0) {
+		let target = STEP;
+		while (target <= 100_000_000) {
+			if (target > latest.netWorthInCents) {
+				const gap = target - latest.netWorthInCents;
+				const months = Math.ceil(gap / monthlyDelta);
+				const date = new Date(latestMs + months * 30.44 * 86_400_000);
+				out.push({
+					targetPence: target,
+					monthsFromNow: months,
+					date: date.toISOString().slice(0, 10),
+					direction: "up",
+				});
+				if (out.length >= 6) break;
+			}
+			target *= 10;
 		}
-		target *= 10;
+		return out;
+	}
+
+	// falling slope: the next £10k boundaries STRICTLY below current net
+	// worth, descending, six rows max. floor() already lands on the next
+	// boundary at-or-below; subtract a step only when exactly on one.
+	const drift = Math.abs(monthlyDelta);
+	let target = Math.floor(latest.netWorthInCents / STEP) * STEP;
+	if (target >= latest.netWorthInCents) target -= STEP;
+	while (target >= -100_000_000) {
+		const gap = latest.netWorthInCents - target;
+		const months = Math.ceil(gap / drift);
+		const date = new Date(latestMs + months * 30.44 * 86_400_000);
+		out.push({
+			targetPence: target,
+			monthsFromNow: months,
+			date: date.toISOString().slice(0, 10),
+			direction: "down",
+		});
+		if (out.length >= 6) break;
+		target -= STEP;
 	}
 	return out;
 }

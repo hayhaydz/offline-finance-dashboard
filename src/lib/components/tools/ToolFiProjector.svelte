@@ -13,6 +13,7 @@
 	} = $props();
 
 	const milestones = $derived(projectMilestones({ history }));
+	const falling = $derived(milestones.some((m) => m.direction === "down"));
 	const latest = $derived(history[history.length - 1]);
 	const window = $derived(
 		history.length >= 2 ? `${history[0].date} → ${latest?.date}` : "",
@@ -38,8 +39,10 @@
 			<span class="font-bold {monthlyDelta()! > 0 ? 'text-green-700' : 'text-red-700'}">
 				{monthlyDelta()! > 0 ? "+" : ""}{formatCurrency(monthlyDelta()!)}
 			</span>
-			{#if monthlyDelta()! <= 0}
-				— net worth is flat or falling; no milestone has a date.
+			{#if monthlyDelta()! < 0}
+				— net worth is falling; the crossings below are drift readings, not destiny.
+			{:else if monthlyDelta()! === 0}
+				— net worth is flat; no milestone has a date.
 			{/if}
 		</p>
 
@@ -50,17 +53,17 @@
 						<tr class="bg-gray-100 border-b border-black">
 							<th class="text-left px-1 py-0.5">Milestone</th>
 							<th class="text-right px-1 py-0.5">Gap from today</th>
-							<th class="text-right px-1 py-0.5">Projected crossing</th>
+							<th class="text-right px-1 py-0.5">{falling ? "Projected fall to" : "Projected crossing"}</th>
 						</tr>
 					</thead>
 					<tbody>
 						{#each milestones as m (m.targetPence)}
 							<tr class="border-b border-gray-200 last:border-b-0">
-								<td class="px-1 py-0.5 font-bold">{formatCurrency(m.targetPence)}</td>
+								<td class="px-1 py-0.5 font-bold {m.direction === 'down' ? 'text-red-700' : ''}">{formatCurrency(m.targetPence)}</td>
 								<td class="px-1 py-0.5 text-right tabular-nums">
 									{m.monthsFromNow} month{m.monthsFromNow !== 1 ? "s" : ""}
 								</td>
-								<td class="px-1 py-0.5 text-right tabular-nums font-bold text-green-700">
+								<td class="px-1 py-0.5 text-right tabular-nums font-bold {m.direction === 'down' ? 'text-red-700' : 'text-green-700'}">
 									{m.date}
 								</td>
 							</tr>
@@ -74,7 +77,7 @@
 			</p>
 		{:else}
 			<p class="text-gray-500 text-center py-2">
-				[slope is flat or negative — no upcoming milestones]
+				[slope is flat — no upcoming milestones]
 			</p>
 		{/if}
 	{/if}
