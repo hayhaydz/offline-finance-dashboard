@@ -121,18 +121,19 @@
 	{#if balanceDelta1m !== null}
 		{@const delta1mAbs = formatCurrency(Math.abs(balanceDelta1m))}
 		{@const delta1mUp = balanceDelta1m > 0}
-		{@const delta1mGood = isLiability ? !delta1mUp : delta1mUp}
-		{@const delta1mColour = delta1mGood ? 'text-green-700' : 'text-red-700'}
+		<!-- v3.1 A05 fix: for liabilities, balance rising toward zero IS the
+		     good direction (debt reduced) — the old isLiability inversion
+		     coloured repayment red and debt growth green -->
+		{@const delta1mColour = delta1mUp ? 'text-green-700' : 'text-red-700'}
 		<div class="text-xs mt-1 tabular-nums text-gray-600 flex gap-3 flex-wrap">
 			<span class={delta1mColour}>
 				{delta1mUp ? '▲' : '▼'} {delta1mAbs}
-				{isLiability && !delta1mUp ? 'repaid this month' : 'from last month'}
+				{isLiability && delta1mUp ? 'repaid this month' : 'from last month'}
 			</span>
 			{#if balanceDelta12m !== null}
 				{@const delta12mAbs = formatCurrency(Math.abs(balanceDelta12m))}
 				{@const delta12mUp = balanceDelta12m > 0}
-				{@const delta12mGood = isLiability ? !delta12mUp : delta12mUp}
-				{@const delta12mColour = delta12mGood ? 'text-green-700' : 'text-red-700'}
+				{@const delta12mColour = delta12mUp ? 'text-green-700' : 'text-red-700'}
 				<span class="text-gray-500">|</span>
 				<span class={delta12mColour}>
 					{delta12mUp ? '▲' : '▼'} {delta12mAbs} from 12 months ago
