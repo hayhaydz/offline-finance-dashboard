@@ -255,9 +255,10 @@
 	}
 </script>
 
-<div class="border-t border-black">
+<!-- v3.1 border unification: inset panel frame -->
+<div class="p-2 flex flex-col gap-2">
 	<!-- HEADER SECTION -->
-	<div class="border-b border-black p-2 flex justify-between items-start">
+	<div class="border border-black p-2 flex justify-between items-start">
 		<div>
 			<h1 class="text-lg font-bold m-0 uppercase">Monthly Budget</h1>
 			<div class="text-sm text-gray-600 mt-1">
@@ -296,7 +297,7 @@
 
 	<!-- SUMMARY STRIP (R9): the four numbers that answer the month, at a glance -->
 	{#if data.budget && data.budget.totalTargetInCents > 0}
-		<div class="border-b border-black grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-300">
+		<div class="border border-black grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-300">
 			<div class="px-2 py-1.5">
 				<div class="text-[10px] uppercase font-bold text-gray-600">Status</div>
 				<div class="text-sm font-bold {statusLabel.class}">{statusLabel.text}</div>
@@ -349,7 +350,7 @@
 
 	<!-- AMENDMENT OPTIONS (shared by every config form below) -->
 	{#if data.budget}
-		<div class="border-b border-black px-2 py-1 bg-gray-50 flex flex-wrap items-center gap-x-4 gap-y-1">
+		<div class="border border-black px-2 py-1 bg-gray-50 flex flex-wrap items-center gap-x-4 gap-y-1">
 			<span class="text-[10px] uppercase font-bold text-gray-600">Amendment options</span>
 			<span class="text-[10px] text-gray-600">— attach to your next config edit (target / filters) below</span>
 			<label class="flex items-center gap-1 text-xs text-gray-600">
@@ -382,7 +383,7 @@
 	     aftermath; pairing lives in the pace|chart pair, not the page.) -->
 	<!-- PROGRESS BAR (always visible if budget set) -->
 	{#if data.budget && data.budget.totalTargetInCents > 0}
-		<div class="border-b border-black px-2 py-2">
+		<div class="border border-black px-2 py-2">
 			<div class="flex items-center gap-1 text-xs leading-none mb-1">
 				<!-- v3.1 A08: decorative brackets removed — brackets mean ACTION in
 				     this app; a status bar is not a control. Border + legend instead. -->
@@ -417,7 +418,7 @@
 
 	<!-- SPENDING SUMMARY (when no budget) -->
 	{#if !data.budget}
-		<div class="border-b border-black px-2 py-2">
+		<div class="border border-black px-2 py-2">
 			<div class="flex justify-between font-bold">
 				<span>THIS MONTH</span>
 				<span>{formatCurrency(data.status.totalSpent)}</span>
@@ -730,7 +731,7 @@
 	</button>
 
 	{#if targetOpen}
-		<div class="border-b border-black px-2 py-2">
+		<div class="border border-black px-2 py-2">
 			{#if data.budget}
 				<div class="text-sm text-gray-500 mb-1">
 					Total (sum of category targets): <span class="font-bold text-black">{formatCurrency(data.budget.totalTargetInCents)}</span>
@@ -879,4 +880,3 @@
 			</div>
 		{/if}
 	{/if}
-
