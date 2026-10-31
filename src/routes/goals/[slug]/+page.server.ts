@@ -226,9 +226,14 @@ export const load: PageServerLoad = async ({ params, locals, url }) => {
 				goal.linkedAccountId,
 			);
 
-			// Filter to balance-reducing transactions (negative amounts = payments)
+			// Payments toward the debt. v3.1 third-mandate fix: the filter was
+			// `amount < 0` ("negative = payments") — INVERTED for liability
+			// accounts, where charges are negative (they deepen a negative
+			// balance) and PAYMENTS are positive. It showed charges under the
+			// "Payoff History" heading while hiding real payments (live card:
+			// 4 charge rows, zero payments — vision-caught, schema-confirmed).
 			const payoffHistory = transactions
-				.filter((t) => t.amount < 0)
+				.filter((t) => t.type === "payment" || (t.type !== "charge" && t.type !== "interest_charge" && t.amount > 0))
 				.slice(0, 20)
 				.map((t) => ({
 					id: t.id,

@@ -130,6 +130,12 @@
       startingBalanceInCents: data.goal.startingBalanceInCents,
       linkedAccountSlug: data.debtData?.linkedAccount.slug ?? null,
       milestones: null,
+      // v3.1 third-mandate: the stat row derived PAID/REMAINING from the
+      // static starting balance + goal allocations, contradicting the live
+      // linked balance the payoff engine actually uses (£2,500/£0 vs
+      // −£2,315). With the live balance the trio reconciles with the
+      // projection panel by construction.
+      liveBalanceInCents: data.debtData?.linkedAccount.currentBalance ?? null,
     }}
     showArchive={true}
   />

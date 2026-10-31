@@ -12,6 +12,9 @@
 		startingBalanceInCents?: number | null;
 		linkedAccountSlug?: string | null;
 		milestones?: Array<{ label: string; reached: boolean }> | null;
+		/** Live linked-account balance (negative for liabilities). When
+		 * present the debt trio derives from it — the payoff engine does. */
+		liveBalanceInCents?: number | null;
 	}
 
 	interface Props {
@@ -23,10 +26,21 @@
 
 	// Debt-specific calculations (declared first: `progress` and `overAmount`
 	// reference it inside derived callbacks — keep declaration order stable to
-	// avoid SSR temporal-dead-zone errors, see P0-1 in the 2026-10-27 audit)
+	// avoid SSR temporal-dead-zone errors, see P0-1 in the 2026-10-27 audit).
+	// v3.1 third mandate: when the linked account's LIVE balance is known,
+	// derive from it (paid = starting − live, remaining = live) — the goal's
+	// recorded allocations lag statement entry, and the payoff engine already
+	// projects from the live balance; the stat row must agree with it.
 	const debtValues = $derived.by(() => {
 		if (goal.goalType === 'debt' && goal.startingBalanceInCents) {
 			const starting = Math.abs(goal.startingBalanceInCents);
+			if (goal.liveBalanceInCents != null) {
+				const live = Math.abs(goal.liveBalanceInCents);
+				const paid = Math.max(0, starting - live);
+				const remaining = live;
+				const debtProgress = starting > 0 ? Math.max(0, Math.min(100, Math.round((paid / starting) * 100))) : 0;
+				return { starting, paid, remaining, progress: debtProgress };
+			}
 			const paid = Math.abs(goal.currentAllocation);
 			const debtRemaining = starting - paid;
 			const debtProgress = starting > 0 ? Math.round((paid / starting) * 100) : 0;
