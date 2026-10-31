@@ -179,9 +179,11 @@
 			<KpiCard label="Forecast (Total)" value={formatCurrency(forecast)} />
 			<KpiCard
 				label="PSA Remaining"
-				value={data.interestSummary.taxFreeStatusProjected.overAllowance ? 'Over' : formatCurrency(data.interestSummary.taxFreeStatusProjected.remaining)}
+				value={data.interestSummary.taxFreeStatusProjected.overAllowance
+					? `−${formatCurrency(data.interestSummary.taxFreeStatusProjected.taxableAmount)}`
+					: formatCurrency(data.interestSummary.taxFreeStatusProjected.remaining)}
 				color={data.interestSummary.taxFreeStatusProjected.overAllowance ? 'text-red-700' : 'text-green-700'}
-				detail="of {formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} · {data.interestSummary.taxBand} rate"
+				detail="{data.interestSummary.taxFreeStatusProjected.overAllowance ? `over the ${formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} allowance` : `of ${formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} allowance`} · {data.interestSummary.taxBand} rate"
 			/>
 		</div>
 	</div>
@@ -266,7 +268,7 @@
 				<tr>
 					<th class="w-8 text-center border-r border-gray-200">[#]</th>
 					<th class="pl-2 text-left">Type</th>
-					<th class="text-left pl-2">Balance</th>
+					<th class="text-right pr-2">Balance</th>
 					<th class="text-right pr-1">Updated</th>
 				</tr>
 			</thead>
@@ -285,9 +287,9 @@
 									{formatAccountType(group.type)}
 								</a>
 							</td>
-							<td class="text-left pl-2 tabular-nums py-2">
-								{formatCurrency(group.balance)}
-							</td>
+						<td class="text-right pr-2 tabular-nums py-2">
+							{formatCurrency(group.balance)}
+						</td>
 							<td class="text-right pr-1 tabular-nums py-2">
 								{formatDateShorthand(group.lastUpdated)}
 							</td>
@@ -308,12 +310,12 @@
 									{formatAccountType(group.type)}
 								</a>
 							</td>
-							<td class="text-left pl-2 tabular-nums py-2">
-								{formatCurrency(Math.abs(group.balance))}
-							</td>
-							<td class="text-right pr-1 tabular-nums py-2">
-								{formatDateShorthand(group.lastUpdated)}
-							</td>
+						<td class="text-right pr-2 tabular-nums py-2">
+							{formatCurrency(Math.abs(group.balance))}
+						</td>
+						<td class="text-right pr-1 tabular-nums py-2">
+							{formatDateShorthand(group.lastUpdated)}
+						</td>
 						</tr>
 					{/each}
 				{/if}

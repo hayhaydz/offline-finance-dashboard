@@ -40,13 +40,8 @@
       <div class="flex items-center gap-2 text-sm leading-none font-bold {colors.text} mb-3">
         <span>[</span>
         <div class="flex-1 h-8 relative border-y border-gray-100">
-          <div class="absolute inset-0 flex justify-between opacity-20">
-            {#each Array(40) as _}
-              <div class="w-px h-full bg-current"></div>
-            {/each}
-          </div>
           <div
-            class="h-full {colors.bg} transition-all duration-300 mix-blend-multiply"
+            class="h-full {colors.bg} transition-all duration-300"
             style="width: {Math.min(100, Math.max(0, data.progress.percent))}%"
           ></div>
         </div>

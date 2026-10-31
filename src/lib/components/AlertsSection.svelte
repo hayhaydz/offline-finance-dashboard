@@ -49,7 +49,7 @@
 			{/each}
 			{#if truncated > 0 && viewAllHref}
 				<div class="px-2 py-1 text-xs text-zinc-600 flex justify-between border-b border-black">
-					<span>+{truncated} more alert type{truncated > 1 ? 's' : ''}</span>
+					<span>+{truncated} more type{truncated > 1 ? 's' : ''} · {alerts.length} alert{alerts.length !== 1 ? 's' : ''} across {groups.length} type{groups.length !== 1 ? 's' : ''}</span>
 					<a href={viewAllHref} class="bracket-link">View All</a>
 				</div>
 			{/if}

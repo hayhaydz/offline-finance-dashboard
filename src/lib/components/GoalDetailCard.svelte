@@ -91,13 +91,8 @@
 <div class="flex items-center gap-2 text-sm leading-none font-bold {overAmount !== null ? 'text-green-700' : progressTextColor} mb-2">
 	<span>[</span>
 	<div class="flex-1 h-6 relative border-y border-gray-100">
-		<div class="absolute inset-0 flex justify-between opacity-20">
-			{#each Array(40) as _}
-				<div class="w-px h-full bg-current"></div>
-			{/each}
-		</div>
 		<div
-			class="h-full {overAmount !== null ? 'bg-green-700' : progressBgColor} transition-all duration-300 mix-blend-multiply"
+			class="h-full {overAmount !== null ? 'bg-green-700' : progressBgColor} transition-all duration-300"
 			style="width: {Math.min(100, progress)}%"
 		></div>
 	</div>

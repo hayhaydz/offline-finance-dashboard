@@ -95,17 +95,15 @@
 		{/if}
 	</div>
 
-	<!-- Progress Bar (ASSET_CONTAINER style; v3 R4: tick lines removed — pre-v2 form) -->
+	<!-- Progress Bar (ASSET_CONTAINER style; v3 R4: tick lines removed —
+	     pre-v2 form. v3.1 third mandate: a 40× w-px tick overlay had crept
+	     back in (the user's named R4 defect, vision-caught again) — removed;
+	     the bar is a plain filled track) -->
 	<div class="flex items-center gap-2 text-sm leading-none font-bold {progressTextColor} mb-1">
 		<span>[</span>
 		<div class="flex-1 h-5 relative mt-px border-y border-gray-100">
-			<div class="absolute inset-0 flex justify-between opacity-20">
-				{#each Array(40) as _}
-					<div class="w-px h-full bg-current"></div>
-				{/each}
-			</div>
 			<div
-				class="h-full {progressBgColor} transition-all duration-300 mix-blend-multiply"
+				class="h-full {progressBgColor} transition-all duration-300"
 				style="width: {progress}%"
 			></div>
 		</div>
