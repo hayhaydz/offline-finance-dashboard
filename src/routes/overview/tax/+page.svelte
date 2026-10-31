@@ -48,7 +48,9 @@
 		const fillPct = Math.min(100, Math.round((assessment / scale) * 100));
 		const higherPct = Math.min(100, Math.round((higher / scale) * 100));
 		const overHigher = assessment >= higher;
-		return { fillPct, higherPct, overHigher };
+		// v3.1 A07 harvest: the exact gap on hover (title tooltip)
+		const gapToHigher = assessment >= higher ? null : higher - assessment;
+		return { fillPct, higherPct, overHigher, gapToHigher };
 	}
 </script>
 
@@ -104,7 +106,9 @@
 							<!-- threshold bar (R11: show, don't narrate) -->
 							{@const geo = barGeometry(year.assessmentTotalInCents, year.higherThresholdInCents, year.additionalThresholdInCents)}
 							<div>
-								<div class="flex h-3 border border-black relative bg-white">
+								<div class="flex h-3 border border-black relative bg-white"
+								title="Assessment {formatCurrency(year.assessmentTotalInCents)}{geo.gapToHigher !== null ? ` · ${formatCurrency(geo.gapToHigher)} below the higher-rate threshold` : ' · at or above the higher-rate threshold'} · additional-rate threshold {formatCurrency(year.additionalThresholdInCents)}"
+							>
 									<div class="h-full {geo.overHigher ? 'bg-amber-600' : 'bg-green-700'}" style="width: {geo.fillPct}%"></div>
 									<!-- higher-rate crossing: labelled marker, not a mystery line -->
 									<div class="absolute top-0 bottom-0 border-l border-black" style="left: {geo.higherPct}%"></div>
