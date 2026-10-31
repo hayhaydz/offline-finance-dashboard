@@ -161,8 +161,9 @@
 								</div>
 							</div>
 
-							<!-- per-card controls -->
-							<div class="flex justify-between items-center gap-2">
+							<!-- per-card controls (v3.1 A07 craft: actions grouped left with a
+							     consistent gap — was justify-between, orphaning [Apply as X]) -->
+							<div class="flex flex-wrap items-center gap-4">
 								{#if year.state === 'EXPECTED' || (year.state === 'BOUNDED' && year.projectedMonths.length > 0)}
 									<form method="GET" action="/overview/tax" class="inline-flex gap-1 items-center">
 										<input type="hidden" name="assumptionYear" value={year.taxYear} />
