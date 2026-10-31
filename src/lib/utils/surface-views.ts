@@ -78,10 +78,16 @@ export function allocationShares(
 	const rounded = raw.map((p) => Math.floor(p));
 	let drift = 100 - rounded.reduce((s, p) => s + p, 0);
 
-	// hand the rounding drift to the biggest items (stable, deterministic)
+	// largest-remainder method (v3.1 A02 trust fix): hand rounding drift to
+	// the largest FRACTIONAL parts — giving it to the biggest item inflated
+	// it away from its true share (77.06% displayed as 78% while a 3.63%
+	// sliver showed 3%)
+	const byFraction = raw
+		.map((p, i) => ({ i, frac: p - Math.floor(p) }))
+		.sort((a, b) => b.frac - a.frac);
 	const out = sorted.map((item, i) => ({ ...item, percent: rounded[i] }));
-	for (let i = 0; i < out.length && drift > 0; i++, drift--) {
-		out[i].percent += 1;
+	for (let k = 0; k < byFraction.length && drift > 0; k++, drift--) {
+		out[byFraction[k].i].percent += 1;
 	}
 	return out.map((o) => ({ name: o.name, value: o.value, percent: o.percent }));
 }
