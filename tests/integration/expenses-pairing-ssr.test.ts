@@ -26,7 +26,7 @@ const data = {
 
 describe("Expenses layout (v3.1 A06)", () => {
 	it("renders all four sections in wireframe order", () => {
-		const { body } = render(ExpensesPage, { props: { data } });
+		const { body } = render(ExpensesPage, { props: { data, form: null } });
 		const order = ["TREND", "GRID", "RANGE FILL", "EMERGENCY FUND REFERENCE"].map(
 			(k) => body.indexOf(k),
 		);
@@ -35,7 +35,7 @@ describe("Expenses layout (v3.1 A06)", () => {
 	});
 
 	it("RANGE FILL and EFR share the 2-col pair grid", () => {
-		const { body } = render(ExpensesPage, { props: { data } });
+		const { body } = render(ExpensesPage, { props: { data, form: null } });
 		const pairOpen = body.indexOf('class="grid grid-cols-1 lg:grid-cols-2');
 		const rangeAt = body.indexOf("RANGE FILL");
 		const efrAt = body.indexOf("EMERGENCY FUND REFERENCE");
@@ -48,7 +48,7 @@ describe("Expenses layout (v3.1 A06)", () => {
 	});
 
 	it("emergency fund reference computes 1/3/6/12 cover from latest month", () => {
-		const { body } = render(ExpensesPage, { props: { data } });
+		const { body } = render(ExpensesPage, { props: { data, form: null } });
 		expect(body).toContain("£2,100.00");
 		expect(body).toContain("£6,300.00"); // 3 months
 		expect(body).toContain("£12,600.00"); // 6 months

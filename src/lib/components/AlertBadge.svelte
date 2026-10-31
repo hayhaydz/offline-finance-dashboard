@@ -75,7 +75,7 @@
 				<span class="text-xs border border-current px-1 shrink-0 {alert.accountCategory === 'liability' ? 'text-red-700 border-red-300' : 'text-zinc-600 border-zinc-300'}">{typeLabel}</span>
 			{/if}
 			{#if alert.accountName}
-				<span class="text-zinc-600 text-xs truncate" title={alert.accountName}>— {alert.accountName}</span>
+				<span class="text-zinc-600 text-xs shrink-0" title={alert.accountName}>— {alert.accountName}</span>
 			{/if}
 			{#if isAcked}
 				<span class="text-[10px] text-zinc-600 border border-zinc-300 px-1 shrink-0">ACKED</span>
