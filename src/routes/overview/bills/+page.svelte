@@ -124,10 +124,10 @@
 	</div>
 	{/if}
 	<p class="text-[10px] text-gray-600 px-2 py-1 border-t border-gray-200">
-		Derived from your actual payments — every row is backed by at least three real
-		withdrawals on a monthly cadence. No bill list to maintain; when a payment
-		changes, the pattern follows within a cycle. This is the direct-debit AND
-		billed-as-invoiced view unified: money that leaves regularly, whatever the
-		mechanism.
+		Derived from your actual payments — confirmed bills need three real withdrawals on a
+		monthly cadence; watchlist rows are provisional at two (one more confirms them). No bill
+		list to maintain; when a payment changes, the pattern follows within a cycle. This is the
+		direct-debit AND billed-as-invoiced view unified: money that leaves regularly, whatever
+		the mechanism.
 	</p>
 {/if}
