@@ -28,6 +28,8 @@ Log in at `http://localhost:5173` with `admin` / `password`.
 
 **Interest tracking (UK)** — Personal Savings Allowance (PSA) limits, ISA allowance remaining, per-account interest projections with maturity awareness for fixed-term bonds. Tax year runs April 6 to April 5.
 
+**Every axis chart is interactive (v3.1)** — layerchart hover (crosshair + mono tooltip) on the expenses/income trends, all report figures, goals allocation, and the budget spend-vs-pace chart. Pages were re-wired for the wide terminal desktop: facts strips, paired panels, terminal tables — no stretched widgets.
+
 **Credit cards with intent (v3)** — Each card is in *pay-off (panic)* or *stooze* mode. Panic shows payoff projection pressure; stooze shows friendly 0%-window reminders and what to have ready, with zero pressure. Per-charge plans (pay now vs over time) with a 3-month target tracker that respects statement delay (confirmed-through = last month-end).
 
 **A Matrixify-class data pipeline (v3)** — `/settings/data`: self-describing CSV export (per-account selection + context), round-trip reimport (drop/create/move across accounts by editing the export), expenses/income history CSV both ways, Monzo-preset bulk bank import with column mapping, and a background job queue for big files (sealed at rest).
