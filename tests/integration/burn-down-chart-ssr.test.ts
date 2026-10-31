@@ -2,8 +2,9 @@ import { describe, expect, it } from "vitest";
 import { render } from "svelte/server";
 import BurnDownChart from "$lib/components/charts/BurnDownChart.svelte";
 
-// Phase 4 V1 #2: budget burn-down — spend curve vs dashed even-pace line
-// with a today marker, inside a ChartPanel with a text summary.
+// A13 layerchart migration (2026-10-31): the burn-down is client-mounted
+// ({:if browser}); SSR pins the frame + summary + legend contract (the
+// a11y text path). Hover (day + £ for both lines) is live-verified.
 
 const points = [
 	{ day: 1, cumulativePence: 0 },
@@ -24,7 +25,7 @@ const renderChart = () =>
 		},
 	});
 
-describe("BurnDownChart (Phase 4 V1 #2)", () => {
+describe("BurnDownChart (A13 interactive migration)", () => {
 	it("renders the ChartPanel frame with title and text summary", () => {
 		const { body } = renderChart();
 		expect(body).toContain("Spend burn-down");
@@ -32,32 +33,29 @@ describe("BurnDownChart (Phase 4 V1 #2)", () => {
 		expect(body).toContain("day 5 of 31");
 	});
 
-	it("draws the spend polyline, dashed pace line, and today marker", () => {
+	it("the chart is client-mounted — no static SVG leaks into SSR", () => {
 		const { body } = renderChart();
-		expect(body).toContain("<polyline");
-		expect(body).toContain("chart-dashed"); // pace line + today line
-		expect(body).toContain("<rect"); // square marker on today
-	});
-
-	it("is a print-safe viewBox SVG with an accessible label", () => {
-		const { body } = renderChart();
-		expect(body).toMatch(/viewBox="0 0 600 200"/);
-		expect(body).toContain('role="img"');
-		expect(body).toContain("aria-label");
+		expect(body).not.toContain("<polyline");
+		expect(body).not.toContain("data-interactive-chart"); // mounts after hydration only
 	});
 
 	it("renders the line legend (final-audit P1: lines indistinguishable)", () => {
 		const { body } = renderChart();
 		expect(body).toContain("actual spend");
 		expect(body).toContain("even pace");
-		expect(body).toContain("today");
-		expect(body).toContain("target");
+		expect(body).toContain("target £1500.00");
 	});
 
-	it("axis labels show zero, the y-max, and day range", () => {
-		const { body } = renderChart();
-		expect(body).toContain(">£0<");
-		expect(body).toContain(">d1<");
-		expect(body).toContain(">d31<");
+	it("honest empty state when no spend recorded", () => {
+		const { body } = render(BurnDownChart, {
+			props: {
+				points: [],
+				totalDays: 31,
+				targetPence: 150000,
+				todayDay: 1,
+				spendLabel: (p: number) => `£${(p / 100).toFixed(2)}`,
+			},
+		});
+		expect(body).toContain("[no spend recorded yet]");
 	});
 });

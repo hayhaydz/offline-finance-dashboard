@@ -48,7 +48,9 @@ describe("RateHeatmap", () => {
 });
 
 describe("AllocationBar", () => {
-	it("renders a composition bar + legend with shares summing visually", () => {
+	// A13 migration: the chart is client-mounted ({:if browser}); SSR
+	// pins the frame + summary contract (the a11y text path).
+	it("renders frame + summary contract server-side", () => {
 		const { body } = render(AllocationBar, {
 			props: {
 				items: [
@@ -59,12 +61,9 @@ describe("AllocationBar", () => {
 			},
 		});
 		expect(body).toContain("Allocation");
-		expect(body).toContain("Emergency fund");
-		expect(body).toContain("50%");
-		expect(body).toContain("25%");
-		expect(body).toContain("£4,000.00");
 		expect(body).toContain("£8,000.00");
 		expect(body).toContain("largest: Emergency fund (50%)");
+		expect(body).not.toContain("data-interactive-chart"); // client-only mount
 	});
 
 	it("empty state when nothing allocated", () => {
