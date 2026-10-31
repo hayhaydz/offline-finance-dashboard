@@ -85,65 +85,7 @@
 		</div>
 	</section>
 
-	<!-- ═══ RANGE FILL ═══ -->
-	<section class="border-b border-black">
-		<div class="font-bold bg-gray-50 border-b border-gray-300 p-2">RANGE FILL</div>
-
-		<SubmitFeedback message={rangeFeedback.message} onDismiss={rangeFeedback.dismiss} />
-
-		<form
-			method="POST"
-			action="?/rangeFill"
-			use:enhance={rangeFeedback.createEnhanceHandler('Range filled.', { applyFailures: true })}
-			class="p-3 flex flex-wrap gap-2 items-end"
-		>
-			<div>
-				<label for="rf-from" class="block text-[10px] font-bold mb-1 uppercase">From</label>
-				<input id="rf-from" name="fromMonth" type="month" bind:value={rangeFrom}
-					class="border border-black px-1 py-1 text-xs font-mono" />
-			</div>
-			<div>
-				<label for="rf-to" class="block text-[10px] font-bold mb-1 uppercase">To</label>
-				<input id="rf-to" name="toMonth" type="month" bind:value={rangeTo}
-					class="border border-black px-1 py-1 text-xs font-mono" />
-			</div>
-			<div>
-				<label for="rf-amount" class="block text-[10px] font-bold mb-1 uppercase">&pound;/month</label>
-				<input id="rf-amount" name="amount" type="text" inputmode="numeric" placeholder="2000.00"
-					bind:value={rangeAmount} class="border border-black px-1 py-1 text-xs font-mono w-24" />
-			</div>
-			<button type="submit" class="bracket-link text-xs">Fill Range</button>
-		</form>
-
-		{#if confirmRangeFill}
-			<div class="bg-red-100 border-t border-black p-3 text-xs flex flex-wrap gap-2 items-center">
-				<span class="font-bold">
-					Overwrite {confirmRangeFill.count} existing entr{confirmRangeFill.count === 1 ? 'y' : 'ies'}
-					in {confirmRangeFill.fromMonth} &rarr; {confirmRangeFill.toMonth}?
-				</span>
-				<form
-					method="POST"
-					action="?/rangeFill"
-					use:enhance={rangeFeedback.createEnhanceHandler('Range filled (existing entries overwritten).', { applyFailures: true })}
-					class="flex gap-2"
-				>
-					<input type="hidden" name="fromMonth" value={confirmRangeFill.fromMonth} />
-					<input type="hidden" name="toMonth" value={confirmRangeFill.toMonth} />
-					<input type="hidden" name="amount" value={rangeAmount} />
-					<input type="hidden" name="confirmed" value="yes" />
-					<button type="submit" class="bracket-link text-xs text-red-700">Confirm Overwrite</button>
-				</form>
-				<span class="text-gray-600">(reload the page to cancel)</span>
-			</div>
-		{/if}
-
-		<p class="text-[10px] text-gray-600 px-3 py-2">
-			A present row means the month is known (including &pound;0). A missing row means unknown —
-			never zero by default.
-		</p>
-	</section>
-
-	<!-- ═══ YEAR × MONTH GRID ═══ -->
+		<!-- ═══ YEAR × MONTH GRID ═══ -->
 	<section class="border-b border-black">
 		<div class="font-bold bg-gray-50 border-b border-gray-300 p-2">
 			GRID <span class="text-xs text-gray-600 font-normal">(click a month to edit)</span>
@@ -252,8 +194,68 @@
 		{/if}
 	</section>
 
-	<!-- ═══ EMERGENCY FUND REFERENCE ═══ -->
-	<section class="border-b border-black">
+<!-- ═══ RANGE FILL | EMERGENCY FUND REFERENCE (v3.1 A06: paired —
+	     similar-volume utility/reference panels; TREND + GRID keep width) -->
+		<div class="grid grid-cols-1 lg:grid-cols-2 border-b border-black">
+		<section class="border-b lg:border-b-0 lg:border-r border-black">
+			<div class="font-bold bg-gray-50 border-b border-gray-300 p-2">RANGE FILL</div>
+
+		<SubmitFeedback message={rangeFeedback.message} onDismiss={rangeFeedback.dismiss} />
+
+		<form
+			method="POST"
+			action="?/rangeFill"
+			use:enhance={rangeFeedback.createEnhanceHandler('Range filled.', { applyFailures: true })}
+			class="p-3 flex flex-wrap gap-2 items-end"
+		>
+			<div>
+				<label for="rf-from" class="block text-[10px] font-bold mb-1 uppercase">From</label>
+				<input id="rf-from" name="fromMonth" type="month" bind:value={rangeFrom}
+					class="border border-black px-1 py-1 text-xs font-mono" />
+			</div>
+			<div>
+				<label for="rf-to" class="block text-[10px] font-bold mb-1 uppercase">To</label>
+				<input id="rf-to" name="toMonth" type="month" bind:value={rangeTo}
+					class="border border-black px-1 py-1 text-xs font-mono" />
+			</div>
+			<div>
+				<label for="rf-amount" class="block text-[10px] font-bold mb-1 uppercase">&pound;/month</label>
+				<input id="rf-amount" name="amount" type="text" inputmode="numeric" placeholder="2000.00"
+					bind:value={rangeAmount} class="border border-black px-1 py-1 text-xs font-mono w-24" />
+			</div>
+			<button type="submit" class="bracket-link text-xs">Fill Range</button>
+		</form>
+
+		{#if confirmRangeFill}
+			<div class="bg-red-100 border-t border-black p-3 text-xs flex flex-wrap gap-2 items-center">
+				<span class="font-bold">
+					Overwrite {confirmRangeFill.count} existing entr{confirmRangeFill.count === 1 ? 'y' : 'ies'}
+					in {confirmRangeFill.fromMonth} &rarr; {confirmRangeFill.toMonth}?
+				</span>
+				<form
+					method="POST"
+					action="?/rangeFill"
+					use:enhance={rangeFeedback.createEnhanceHandler('Range filled (existing entries overwritten).', { applyFailures: true })}
+					class="flex gap-2"
+				>
+					<input type="hidden" name="fromMonth" value={confirmRangeFill.fromMonth} />
+					<input type="hidden" name="toMonth" value={confirmRangeFill.toMonth} />
+					<input type="hidden" name="amount" value={rangeAmount} />
+					<input type="hidden" name="confirmed" value="yes" />
+					<button type="submit" class="bracket-link text-xs text-red-700">Confirm Overwrite</button>
+				</form>
+				<span class="text-gray-600">(reload the page to cancel)</span>
+			</div>
+		{/if}
+
+		<p class="text-[10px] text-gray-600 px-3 py-2">
+			A present row means the month is known (including &pound;0). A missing row means unknown —
+			never zero by default.
+		</p>
+	</section>
+
+	<!-- ═══ EMERGENCY FUND REFERENCE (right cell of the A06 pair) ═══ -->
+	<section>
 		<div class="font-bold bg-gray-50 border-b border-gray-300 p-2">EMERGENCY FUND REFERENCE</div>
 
 		<div class="p-3 text-xs">
@@ -289,4 +291,5 @@
 			</p>
 		</div>
 	</section>
+	</div>
 </main>

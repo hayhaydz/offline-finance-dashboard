@@ -3,12 +3,6 @@
 
 	let { data } = $props();
 	const { history, streak, thisMonth } = $derived(data);
-
-	const streakLabel = $derived(
-		streak.currentStreak > 0
-			? `STREAK: ${streak.currentStreak} month${streak.currentStreak === 1 ? '' : 's'}`
-			: 'NO STREAK'
-	);
 </script>
 
 <!-- Header -->
@@ -16,23 +10,10 @@
 	<span>MONTHLY REVIEW</span>
 </div>
 
-<!-- Streak banner -->
-<div class="border-b border-black p-2 flex justify-between items-center">
-	<div>
-		<span class="font-bold text-lg" class:text-green-700={streak.currentStreak > 0} class:text-gray-500={streak.currentStreak === 0}>
-			{streakLabel}
-		</span>
-		{#if streak.longestStreak > 0 && streak.longestStreak !== streak.currentStreak}
-			<span class="text-xs text-gray-500 ml-2">Longest: {streak.longestStreak} months</span>
-		{/if}
-	</div>
-	{#if streak.lastActiveMonth}
-		<span class="text-xs text-gray-500" title="A month counts as active when at least one item is ticked — partial months keep the streak alive">Last active: {formatYearMonth(streak.lastActiveMonth)}</span>
-	{/if}
-</div>
-
-<!-- SUMMARY STRIP (R17/B13): the habit, at a glance -->
-<div class="border-b border-black grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-300">
+<!-- SUMMARY STRIP (v3.1 A06: 5 cells; the old STREAK banner above was
+     killed — it duplicated these cells (banned-pattern #4 inverse) and
+     carried exactly one unique datum, now the Last active cell) -->
+<div class="border-b border-black grid grid-cols-2 md:grid-cols-5 divide-x divide-gray-300">
 	<div class="px-2 py-1.5">
 		<div class="text-[10px] uppercase font-bold text-gray-600">Current streak</div>
 		<div class="text-sm font-bold {streak.currentStreak > 0 ? 'text-green-700' : 'text-gray-400'}">
@@ -51,6 +32,16 @@
 				{#if history[0].isComplete}<span class="text-green-700">DONE</span>{/if}
 			{:else}
 				<span class="text-amber-700">not started</span>
+			{/if}
+		</div>
+	</div>
+	<div class="px-2 py-1.5">
+		<div class="text-[10px] uppercase font-bold text-gray-600">Last active</div>
+		<div class="text-sm font-bold">
+			{#if streak.lastActiveMonth}
+				<span title="A month counts as active when at least one item is ticked — partial months keep the streak alive">{formatYearMonth(streak.lastActiveMonth)}</span>
+			{:else}
+				<span class="text-gray-400">never</span>
 			{/if}
 		</div>
 	</div>
