@@ -93,8 +93,7 @@
 	<div class="font-bold flex justify-between items-center bg-gray-100 border-b border-black p-2 gap-4">
 		<span class="whitespace-nowrap">TAX YEAR: {taxYearLabel}</span>
 		<span class="text-xs font-normal text-gray-600 tabular-nums whitespace-nowrap flex gap-3 flex-wrap">
-			<span>Day {daysElapsed} of 365</span>
-			<span>{daysRemaining} days remaining</span>
+			<span>Day {daysElapsed} of 365 · {daysRemaining} days remaining</span>
 			<span>ends {endDateFormatted}</span>
 			<span class="hidden sm:inline text-gray-400">{Math.round(percentComplete)}% elapsed</span>
 		</span>
