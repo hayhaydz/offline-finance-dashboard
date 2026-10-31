@@ -88,6 +88,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-31 12:41:10 GMT | 2026-10-31 12:41:43 GMT | 0h 00m | v3.1 sweep 39 regression watch: 8 key routes clean; home cell fills hold at [100,58,99,66,100]% — flagship metrics stable |
 | 2026-10-31 12:41:43 GMT | 2026-10-31 12:45:16 GMT | 0h 03m | v3.1 sweep 40: bills-populated + heatmap vision PASSes; REAL copy defect — footer "three withdrawals" contradicted the two-occurrence watchlist (predated R-H15) → two-tier threshold copy; heatmap notes: blank May cell = honest no-rate marker, 4.25% range vs plotted 4.3 (rate outside month window — data truth), orange square = stale dot (by design) |
 | 2026-10-31 12:45:16 GMT | 2026-10-31 12:46:10 GMT | 0h 00m | v3.1 sweep 41: sweep-40 nits — bills strip accents unified (per-year no longer selectively amber), "adds if all confirm" phrasing, heatmap month headers centered over cells; pins 11/11 |
+| 2026-10-31 12:46:10 GMT | 2026-10-31 12:46:55 GMT | 0h 00m | v3.1 sweep 42: full gate — 159 files / 1104 tests green + build ✔ (goals-cap pin included) |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
