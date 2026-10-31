@@ -82,6 +82,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-31 12:32:21 GMT | 2026-10-31 12:33:18 GMT | 0h 00m | v3.1 sweep 33: credit-mode round-trip flow verified (stooze → panic: paired layout + switch-copy; → stooze: friendly facts + collapsed splits restored); the evaluate context-destroyed errors were the form-submit navigations themselves (expected) |
 | 2026-10-31 12:33:18 GMT | 2026-10-31 12:33:55 GMT | 0h 00m | v3.1 sweep 34: ASCII/interactive data parity verified on net-worth-trajectory (18 observations + identical date range in both modes; spark blocks render) |
 | 2026-10-31 12:33:55 GMT | 2026-10-31 12:34:58 GMT | 0h 01m | v3.1 sweep 35: filters modal verified (opens w/ 8 numbered sections + APPLY/CLEAR/CANCEL; account-type section expanded); deep apply-flow covered by account-filters-modal-search pin (green in suite) + v3 live records — not re-staged |
+| 2026-10-31 12:34:58 GMT | 2026-10-31 12:35:37 GMT | 0h 00m | v3.1 sweep 36: palette navigation live (search → item anchor click → /goals); snapshot create link present; console clean |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
