@@ -110,7 +110,9 @@
 				xNice={false}
 				props={{
 					xAxis: { ticks: yearTicks, format: (d: Date) => String(d.getFullYear()), tickLabelProps: { dy: "1.3em" } },
-					yAxis: { format: (v: number) => compactPence(v) },
+					// v3.1 A09 chart craft: 5 ticks so a £400k range reads
+					// (±100k gridlines appeared; default gave only 3)
+					yAxis: { ticks: 5, format: (v: number) => compactPence(v) },
 					tooltip: {
 						header: { format: (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` },
 						item: { format: (v: number) => formatPence(Math.abs(v)) },
