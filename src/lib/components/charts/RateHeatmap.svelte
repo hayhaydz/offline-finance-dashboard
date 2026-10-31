@@ -63,7 +63,7 @@
 					<tr>
 						<th class="text-left pr-2 font-bold" scope="col"><span class="sr-only">Account</span></th>
 						{#each months as m (m.toISOString())}
-							<th class="px-1 font-normal text-gray-500" scope="col">{monthLabel(m)}</th>
+							<th class="w-9 px-1 font-normal text-gray-500 text-center" scope="col">{monthLabel(m)}</th>
 						{/each}
 					</tr>
 				</thead>

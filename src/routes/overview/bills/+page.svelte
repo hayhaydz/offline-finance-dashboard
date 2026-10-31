@@ -28,7 +28,7 @@
 	</div>
 	<div class="px-2 py-1.5">
 		<div class="text-[10px] uppercase font-bold text-gray-600">Per year</div>
-		<div class="text-sm font-bold text-amber-700">{formatCurrency(data.yearlyTotalPence)}</div>
+		<div class="text-sm font-bold">{formatCurrency(data.yearlyTotalPence)}</div>
 	</div>
 	<div class="px-2 py-1.5">
 		<div class="text-[10px] uppercase font-bold text-gray-600">Next due</div>
@@ -113,7 +113,7 @@
 						</tr>
 					{/each}
 					<tr class="bg-gray-50 border-t border-gray-300">
-						<td class="px-1 py-0.5 font-bold" colspan="3">if all confirm</td>
+						<td class="px-1 py-0.5 font-bold" colspan="3">adds if all confirm</td>
 						<td class="px-1 py-0.5 text-right tabular-nums font-bold">
 							+{formatCurrency(data.emerging.reduce((s, c) => s + c.amountPence, 0))}/mo
 						</td>
