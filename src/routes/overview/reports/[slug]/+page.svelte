@@ -55,6 +55,12 @@
 	// R-H2: pure-terminal ASCII render mode for line figures (Variant A),
 	// remembered per browser — the toggle the old reports page had.
 	let asciiMode = $state(false);
+
+	// v3.1: only papers with a line figure (netWorth/stackedArea) have an
+	// ASCII variant — hide the toggle on papers where it would no-op
+	const hasAsciiFigures = $derived(
+		data.report.findings.some((s: { figure?: string }) => s.figure === "netWorth" || s.figure === "stackedArea")
+	);
 	$effect(() => {
 		if (localStorage.getItem("charts-ascii") === "1") asciiMode = true;
 	});
@@ -79,14 +85,16 @@
 			<div class="flex gap-3 mt-2 text-xs">
 				<a href="/overview/reports" class="bracket-link">All Reports</a>
 				<button type="button" class="bracket-link" onclick={printPage}>Print / PDF</button>
-				<button
-					type="button"
-					class="bracket-link font-bold"
-					class:text-green-700={asciiMode}
-					aria-pressed={asciiMode}
-					title="Pure-terminal ASCII render mode for line figures"
-					onclick={toggleAscii}>ASCII</button
-				>
+				{#if hasAsciiFigures}
+					<button
+						type="button"
+						class="bracket-link font-bold"
+						class:text-green-700={asciiMode}
+						aria-pressed={asciiMode}
+						title="Pure-terminal ASCII render mode for line figures"
+						onclick={toggleAscii}>ASCII</button
+					>
+				{/if}
 			</div>
 		</section>
 
