@@ -220,8 +220,12 @@ async function placeAtEnd() {
 	accounts={data.accounts}
 />
 
-<!-- v3.1 A04: context trio — READY TO ASSIGN | GOAL ALERTS | Allocation
-     in one 3-col row (volumes 139/84/149 pair honestly; D1 density) -->
+<!-- v3.1 A04 design-quality: was a 3-col trio where ALLOCATION (263px)
+     stretched READY TO ASSIGN (55% fill) and GOAL ALERTS (32% — D2
+     violation). Now: one SHORT context row of three equal-volume cells
+     (debt tracking promoted to its own cell — no more mixed domains),
+     then the ranked allocation bars at full width (wider bars = roomier
+     direct labels). -->
 <div class="grid grid-cols-1 md:grid-cols-3 gap-2 border-b border-black p-2">
 	<!-- READY TO ASSIGN -->
 	<div class="border border-black [&>*:last-child]:border-b-0">
@@ -234,45 +238,48 @@ async function placeAtEnd() {
 				{formatCurrency(data.liquidAssets)} instant-access cash - {formatCurrency(data.totalSavingsAllocated)} allocated to savings
 			</div>
 			{#if data.totalUnallocatedAssets !== data.readyToAssign}
-				<div class="text-[10px] text-gray-500 mb-1">
+				<div class="text-[10px] text-gray-500">
 					+ {formatCurrency(data.totalUnallocatedAssets - data.readyToAssign)} unallocated in delayed/locked accounts (bonds, investments)
-				</div>
-			{/if}
-			{#if data.totalLiabilities > 0}
-				<div class="border-t border-gray-300 pt-1">
-					<div class="flex justify-between items-center mb-1">
-						<span class="text-xs tracking-widest font-bold text-gray-700">DEBT TRACKING</span>
-					</div>
-					<div class="text-xs text-gray-600">
-						<div class="flex justify-between">
-							<span>Tracked by goals</span>
-							<span>{formatCurrency(data.totalDebtTracked)}</span>
-						</div>
-						<div class="flex justify-between">
-							<span>Untracked liabilities</span>
-							<span class="{data.totalDebtUntracked > 0 ? 'text-amber-700 font-bold' : ''}">{formatCurrency(data.totalDebtUntracked)}</span>
-						</div>
-					</div>
 				</div>
 			{/if}
 		</div>
 	</div>
+
+	<!-- DEBT TRACKING (own cell — was a sub-block inside RTA) -->
+	{#if data.totalLiabilities > 0}
+	<div class="border border-black [&>*:last-child]:border-b-0">
+		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
+			<span>DEBT TRACKING</span>
+			<span class="text-gray-900">{formatCurrency(data.totalLiabilities)}</span>
+		</div>
+		<div class="p-2 text-xs text-gray-600">
+			<div class="flex justify-between">
+				<span>Tracked by goals</span>
+				<span>{formatCurrency(data.totalDebtTracked)}</span>
+			</div>
+			<div class="flex justify-between">
+				<span>Untracked liabilities</span>
+				<span class="{data.totalDebtUntracked > 0 ? 'text-amber-700 font-bold' : ''}">{formatCurrency(data.totalDebtUntracked)}</span>
+			</div>
+		</div>
+	</div>
+	{/if}
 
 	{#if data.alerts.length > 0}
 		<div class="border border-black [&>*:last-child]:border-b-0">
 			<AlertsSection alerts={data.alerts} title="GOAL ALERTS" viewAllHref="/alerts" />
 		</div>
 	{/if}
-
-	{#if goals.length > 0}
-		<div class="border border-black">
-			<AllocationBar
-				items={goals.map((g) => ({ name: g.name, value: Math.max(0, g.currentAllocation ?? 0) }))}
-				label="allocated"
-			/>
-		</div>
-	{/if}
 </div>
+
+{#if goals.length > 0}
+<div class="border-b border-black p-2">
+	<AllocationBar
+		items={goals.map((g) => ({ name: g.name, value: Math.max(0, g.currentAllocation ?? 0) }))}
+		label="allocated"
+	/>
+</div>
+{/if}
 
 <!-- DEBT STRATEGY PANEL (shown when filtering by debt and strategy data exists) -->
 {#if filter === 'debt' && data.debtStrategyMetrics}
