@@ -101,7 +101,8 @@
 				padding={{ top: 6, right: 20, bottom: 24, left: 220 }}
 				xDomain={[0, maxV]}
 				props={{
-					xAxis: { format: (v: number) => compactPence(v) },
+					// v3.1 A09 chart craft: ~5 ticks (default over-ticked: 19 labels)
+					xAxis: { ticks: 5, format: (v: number) => compactPence(v) },
 					tooltip: {
 						header: { format: (l: string) => String(l) },
 						item: { format: (v: number) => formatPence(v) },
