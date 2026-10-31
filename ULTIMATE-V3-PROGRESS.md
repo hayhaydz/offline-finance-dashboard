@@ -86,6 +86,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-31 12:35:37 GMT | 2026-10-31 12:40:31 GMT | 0h 04m | v3.1 sweep 37: home goals cap pinned (2 SSR tests — ≤3 cards + "+6 more" link); fixture lesson: home load needs isaTracker + netWorthTrend + goalsPagination shapes |
 | 2026-10-31 12:40:31 GMT | 2026-10-31 12:41:10 GMT | 0h 00m | v3.1 sweep 38: loop retrospective written (.docs/plans/2026-10-31-1240-ultimate-v3-1-loop-retrospective.md) — what worked (dossiers, measured doctrine, adjudicated vision), what to change (sweep the class, true ledger ends), open threads for the user |
 | 2026-10-31 12:41:10 GMT | 2026-10-31 12:41:43 GMT | 0h 00m | v3.1 sweep 39 regression watch: 8 key routes clean; home cell fills hold at [100,58,99,66,100]% — flagship metrics stable |
+| 2026-10-31 12:41:43 GMT | 2026-10-31 12:45:16 GMT | 0h 03m | v3.1 sweep 40: bills-populated + heatmap vision PASSes; REAL copy defect — footer "three withdrawals" contradicted the two-occurrence watchlist (predated R-H15) → two-tier threshold copy; heatmap notes: blank May cell = honest no-rate marker, 4.25% range vs plotted 4.3 (rate outside month window — data truth), orange square = stale dot (by design) |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -406,6 +407,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-31 | (no vision — DOM/DB trace) | Bills emerging-bug hunt: page __data showed patterns:[] while synthetic detector input matched; DB dump showed v1\| ciphertext descriptions → detector structurally blind on encrypted data. Fixed decrypt-before-detect (matching home + account-detail precedent); live-verified Netflix + bridge |
 | 2026-10-31 | v31-a21-stooze-tool.png (zai-vision) | Stooze calculator PASS (math verified: £7.53 daily-compounded ✓, clear-by minus 5d ✓). REAL: "net gain of stoozing the window −£35.03" mislabels the if-late comparison as the stooze outcome → split into on-time (+£7.53 green) vs if-late rows. REJECTED: [*K] (12th glyph misread); date-format nit noted (input DD/MM vs output ISO — harvest) |
 | 2026-10-31 | v31-a24-tools-fullwidth.png (zai-vision) | Tools full-width conversion: PASS "ship it" — grid edge-to-edge, columns balanced, right margin consistent, no clipping/[[ ]]/new dead space. [✳K] = 13th glyph-misread variant (same adjudicated class) |
+| 2026-10-31 | v31-a40-bills-populated.png + v31-a40-heatmap.png (zai-vision) | Bills w/ data: PASS ("watchlist works, zeros/candidate split honest"; vision cross-checked +£459.99/mo = 9.99+450); REAL footer contradiction fixed (two-tier threshold copy). Heatmap: PASS (4 density levels distinguishable, legend+labels clear); blank-cell/4.25%-range/orange-square notes adjudicated (honest null / rate-outside-window / stale-dot by design) |
 
 ### Sweep 8 (2026-10-30 morning session)
 - .gitignore storage/backups committed (overnight session's uncommitted tail). ev: check 0/0 + 1052/1052 re-verified on resume
