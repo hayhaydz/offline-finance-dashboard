@@ -61,8 +61,10 @@
 				<tr class="bg-gray-100 border-b border-black">
 					<th class="text-left px-1 py-0.5">Bill</th>
 					<th class="text-right px-1 py-0.5">Amount</th>
-					<th class="text-right px-1 py-0.5">Yearly</th>
-					<th class="text-left px-1 py-0.5">Last paid</th>
+					<th class="text-right px-1 py-0.5 pr-2">Yearly</th>
+					<!-- v3.1 A06 craft: hairline rule at the numeric→date boundary —
+					     8px of padding read as one merged "Yearly Last paid" column -->
+					<th class="text-left px-1 py-0.5 border-l border-gray-300">Last paid</th>
 					<th class="text-left px-1 py-0.5">Next (60d)</th>
 				</tr>
 			</thead>
@@ -71,8 +73,8 @@
 					<tr class="border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors duration-150">
 						<td class="px-1 py-0.5">{bill.description}</td>
 						<td class="px-1 py-0.5 text-right tabular-nums font-bold">{formatCurrency(bill.amountPence)}</td>
-						<td class="px-1 py-0.5 text-right tabular-nums text-gray-600">{formatCurrency(bill.amountPence * 12)}</td>
-						<td class="px-1 py-0.5 tabular-nums text-gray-600">{bill.lastDate}</td>
+						<td class="px-1 py-0.5 text-right tabular-nums text-gray-600 pr-2">{formatCurrency(bill.amountPence * 12)}</td>
+						<td class="px-1 py-0.5 tabular-nums text-gray-600 border-l border-gray-300">{bill.lastDate}</td>
 						<td class="px-1 py-0.5 tabular-nums {bill.nextDate ? 'font-bold' : 'text-gray-400'}">{bill.nextDate ?? '—'}</td>
 					</tr>
 				{/each}
