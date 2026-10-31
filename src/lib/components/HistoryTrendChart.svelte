@@ -36,8 +36,15 @@
 		known: number | null;
 		future: number | null;
 	};
+	// v3.1 A06/A13 chart craft: LEADING unknown months carry no information —
+	// drop them so the plot width is spent on data, not on an empty approach
+	// (expenses trend had 10 blank months = ~45% dead plot). Trailing
+	// unknowns/future stay (gap-break + dashed semantics live there).
+	const firstSignal = $derived(
+		points.findIndex((p) => p.amountInCents !== null)
+	);
 	const rows = $derived(
-		points.map((p): Row => {
+		(firstSignal < 0 ? points : points.slice(Math.max(0, firstSignal - 1))).map((p): Row => {
 			const [y, m] = p.month.split('-').map(Number);
 			const future = p.month > currentMonth();
 			return {

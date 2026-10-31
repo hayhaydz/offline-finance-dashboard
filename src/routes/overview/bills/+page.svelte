@@ -68,7 +68,7 @@
 			</thead>
 			<tbody>
 				{#each sorted as bill (bill.description)}
-					<tr class="border-b border-gray-200 last:border-b-0">
+					<tr class="border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors duration-150">
 						<td class="px-1 py-0.5">{bill.description}</td>
 						<td class="px-1 py-0.5 text-right tabular-nums font-bold">{formatCurrency(bill.amountPence)}</td>
 						<td class="px-1 py-0.5 text-right tabular-nums text-gray-600">{formatCurrency(bill.amountPence * 12)}</td>
@@ -96,7 +96,7 @@
 		<div class="overflow-x-auto">
 			<table class="w-full text-xs">
 				<thead>
-					<tr class="border-b border-gray-200">
+					<tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-150">
 						<th class="text-left px-1 py-0.5" scope="col">Candidate</th>
 						<th class="text-right px-1 py-0.5" scope="col">Amount</th>
 						<th class="text-left px-1 py-0.5" scope="col">Seen</th>
@@ -105,7 +105,7 @@
 				</thead>
 				<tbody>
 					{#each data.emerging as c (c.description)}
-						<tr class="border-b border-gray-200 last:border-b-0">
+						<tr class="border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors duration-150">
 							<td class="px-1 py-0.5">{c.description}</td>
 							<td class="px-1 py-0.5 text-right tabular-nums text-gray-600">~{formatCurrency(c.amountPence)}</td>
 							<td class="px-1 py-0.5 tabular-nums text-gray-600">{c.firstDate} → {c.lastDate}</td>

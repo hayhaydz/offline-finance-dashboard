@@ -106,7 +106,7 @@
 				</thead>
 				<tbody>
 					{#each data.grid as year (year.year)}
-						<tr class="border-b border-gray-200">
+						<tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-150">
 							<td class="pl-3 py-1.5 text-xs font-mono whitespace-nowrap">{year.year}</td>
 							{#each year.months as cell (cell.month)}
 								<td class="py-1.5 text-center">

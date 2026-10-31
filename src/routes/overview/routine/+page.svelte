@@ -83,7 +83,7 @@
 		</thead>
 		<tbody>
 			{#each history as entry}
-				<tr class="border-t border-gray-100">
+				<tr class="border-t border-gray-100 hover:bg-gray-50 transition-colors duration-150">
 					<td class="pl-2 py-1 font-bold">
 						<a href="/overview/routine/{entry.yearMonth}" class="bracket-link">{entry.label}</a>
 					</td>
