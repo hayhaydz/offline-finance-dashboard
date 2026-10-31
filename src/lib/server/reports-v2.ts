@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import {
@@ -762,6 +762,43 @@ async function buildIncomeVsDeposits(userId: number): Promise<ReportDoc> {
 	const mismatches = rows.filter((r) => r.declared > 0 && Math.abs(r.gap) > 100_00);
 	const totalGap = rows.reduce((sum, r) => sum + r.gap, 0);
 
+	// v3.1 A09 (vision C+ finding): diagnose the LARGEST gap month — its
+	// biggest actual deposits, so the anomaly reads as evidence, not just a
+	// flag. Descriptions are encrypted at rest → decrypt before display.
+	const worstMonth = mismatches.length > 0
+		? mismatches.reduce((a, b) => (Math.abs(b.gap) > Math.abs(a.gap) ? b : a))
+		: null;
+	let worstMonthDeposits: Array<{ description: string; amount: number }> = [];
+	if (worstMonth) {
+		const [y, m] = worstMonth.month.split("-").map(Number);
+		const monthStart = new Date(Date.UTC(y, m - 1, 1));
+		const monthEnd = new Date(Date.UTC(y, m, 1));
+		const txRows = await db
+			.select({
+				slug: accountTransactions.slug,
+				description: accountTransactions.description,
+				amount: accountTransactions.amount,
+			})
+			.from(accountTransactions)
+			.innerJoin(accounts, eq(accountTransactions.accountId, accounts.id))
+			.where(
+				and(
+					withUserFilter(userId, accounts),
+					isNull(accounts.deletedAt),
+					eq(accountTransactions.type, "deposit"),
+					gte(accountTransactions.transactionDate, monthStart),
+					lt(accountTransactions.transactionDate, monthEnd),
+				),
+			);
+		worstMonthDeposits = txRows
+			.map((t) => ({
+				description: decryptTxDescription(userId, t.slug, t.description) ?? "(no description)",
+				amount: t.amount,
+			}))
+			.sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount))
+			.slice(0, 3);
+	}
+
 	return {
 		slug: "income-vs-deposits",
 		title: "Income vs Deposit Evidence",
@@ -784,6 +821,20 @@ async function buildIncomeVsDeposits(userId: number): Promise<ReportDoc> {
 							: null,
 				})),
 			},
+			...(worstMonth && worstMonthDeposits.length > 0
+				? [
+						{
+							heading: `Largest gap opened up — ${worstMonth.month}`,
+							rows: worstMonthDeposits.map((d) => ({
+								label: d.description,
+								value: formatCurrency(d.amount),
+							})),
+							notes: [
+								`The ${worstMonth.deposited > worstMonth.declared ? "excess" : "shortfall"} month's biggest deposits — compare each against what the payslip declared before hunting further.`,
+							],
+						},
+					]
+				: []),
 			{
 				heading: "Reading the gaps",
 				notes: [
