@@ -17,7 +17,7 @@
 	}>();
 </script>
 
-<div class="p-3 max-w-6xl">
+<div class="p-3">
 	<div class="flex justify-between items-baseline mb-1">
 		<h1 class="text-lg font-bold">Tools</h1>
 		<span class="text-xs text-gray-500">{TOOLS.length} TOOLS</span>
