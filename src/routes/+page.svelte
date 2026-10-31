@@ -2,8 +2,7 @@
 	import AlertsSection from '$lib/components/AlertsSection.svelte';
 	import KpiCard from '$lib/components/KpiCard.svelte';
 	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
-	import IsaAllowanceWidget from '$lib/components/IsaAllowanceWidget.svelte';
-	import TaxYearProgress from '$lib/components/TaxYearProgress.svelte';
+	import TaxYearTimeline from '$lib/components/TaxYearTimeline.svelte';
 	import GoalCard from '$lib/components/GoalCard.svelte';
 	import DebtCard from '$lib/components/DebtCard.svelte';
 	import PaginationClient from '$lib/components/PaginationClient.svelte';
@@ -141,14 +140,10 @@
 		accounts={data.accounts}
 	/>
 
-	<!-- v3 R29: header widgets side-by-side (3/2 split) instead of stacked bands -->
-	<div class="grid grid-cols-5 gap-2 border-b border-black p-2">
-		<div class="col-span-3 border border-black flex flex-col [&>*:last-child]:border-b-0">
-			<TaxYearProgress data={data.isaTracker} />
-		</div>
-		<div class="col-span-2 border border-black [&>*:last-child]:border-b-0">
-			<IsaAllowanceWidget data={data.isaTracker} />
-		</div>
+	<!-- v3.1 A02/D3: the emblem row rebuilt — one full-width tax-year timeline
+	     strip (month cells + ISA lane) replaces the 3/2 TaxYear|ISA pair -->
+	<div class="border-b border-black p-2">
+		<TaxYearTimeline data={data.isaTracker} />
 	</div>
 
 	<!-- v3 R3: visualisation gallery — bento grid of compact cells -->

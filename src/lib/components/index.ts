@@ -28,5 +28,5 @@ export { default as StatGrid } from "./StatGrid.svelte";
 export { default as SubmitFeedback } from "./SubmitFeedback.svelte";
 export { default as SystemIntegrityCheck } from "./SystemIntegrityCheck.svelte";
 export { default as TaxYearNav } from "./TaxYearNav.svelte";
-export { default as TaxYearProgress } from "./TaxYearProgress.svelte";
+export { default as TaxYearTimeline } from "./TaxYearTimeline.svelte";
 export { default as TransactionFilterBar } from "./TransactionFilterBar.svelte";
