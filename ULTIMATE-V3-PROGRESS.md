@@ -90,6 +90,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-31 12:45:16 GMT | 2026-10-31 12:46:10 GMT | 0h 00m | v3.1 sweep 41: sweep-40 nits — bills strip accents unified (per-year no longer selectively amber), "adds if all confirm" phrasing, heatmap month headers centered over cells; pins 11/11 |
 | 2026-10-31 12:46:10 GMT | 2026-10-31 12:46:55 GMT | 0h 00m | v3.1 sweep 42: full gate — 159 files / 1104 tests green + build ✔ (goals-cap pin included) |
 | 2026-10-31 12:47:21 GMT | 2026-10-31 12:49:23 GMT | 0h 02m | v3.1 sweep 43 rotation: 6 surfaces clean, expenses trend hover live (2025-12 £1,800), console clean |
+| 2026-10-31 12:49:23 GMT | 2026-10-31 12:50:08 GMT | 0h 00m | v3.1 sweep 44 rotation: goals savings detail pair intact (post-reseed slug), budget pace-state + target-source both render; console clean |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
