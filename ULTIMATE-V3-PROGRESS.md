@@ -71,6 +71,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-31 12:14:48 GMT | 2026-10-31 12:17:38 GMT | 0h 02m | v3.1 sweep 22 deepen: encrypted-description blindness class swept (budgets + ISA already decrypt — bills was the only miss); stooze tool vision PASS w/ real label nit ("net gain −£35" read as stoozing losing) → on-time vs late relabel; [*K] = 12th glyph misread; 42 tool tests green |
 | 2026-10-31 12:17:38 GMT | 2026-10-31 12:18:40 GMT | 0h 01m | v3.1 sweep 23 deepen: end-to-end triage flow verified — uncategorised row tagged Bills via the page action (14→13 rows), budget month reflects the category, console clean; the "bucket" A08 promised works through the real flow |
 | 2026-10-31 12:18:40 GMT | 2026-10-31 12:19:48 GMT | 0h 01m | v3.1 sweep 24 deepen: exports live-verified (tx + both history kinds 200, self-describing legend intact); chart-dashed CSS still used (not dead); stooze pay-by date now reads 10 Jan 2027 style |
+| 2026-10-31 12:19:48 GMT | 2026-10-31 12:22:10 GMT | 0h 02m | v3.1 sweep 25: full gate after polish batch (158/1102 + build ✔); tools full-width conversion vision-graded PASS ("ship it" — balanced columns, no new dead space); [✳K] = 13th glyph-misread variant |
 
 ## Sweep 0 — Bootstrap (COMPLETE)
 - [x] Progress file created with §7 contract structure, R1–R28 disposition, block registry, Appendix C pre-seeded decisions. ev: commit `933c3e7`
@@ -390,6 +391,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-31 | v31-a03-liabilities-final.png (zai-vision) | Liabilities re-audit with util data: PASS — util populated/aligned, semantics correct (CRITICAL×2 red, WARNING amber, HEALTHY×4 green), vision re-derived totals matching strip exactly. REJECTED: [[!]]/[%K] (10th/11th documented misreads); Tesco progress 100% suggestion (no originalPrincipal in data — honest dash) |
 | 2026-10-31 | (no vision — DOM/DB trace) | Bills emerging-bug hunt: page __data showed patterns:[] while synthetic detector input matched; DB dump showed v1\| ciphertext descriptions → detector structurally blind on encrypted data. Fixed decrypt-before-detect (matching home + account-detail precedent); live-verified Netflix + bridge |
 | 2026-10-31 | v31-a21-stooze-tool.png (zai-vision) | Stooze calculator PASS (math verified: £7.53 daily-compounded ✓, clear-by minus 5d ✓). REAL: "net gain of stoozing the window −£35.03" mislabels the if-late comparison as the stooze outcome → split into on-time (+£7.53 green) vs if-late rows. REJECTED: [*K] (12th glyph misread); date-format nit noted (input DD/MM vs output ISO — harvest) |
+| 2026-10-31 | v31-a24-tools-fullwidth.png (zai-vision) | Tools full-width conversion: PASS "ship it" — grid edge-to-edge, columns balanced, right margin consistent, no clipping/[[ ]]/new dead space. [✳K] = 13th glyph-misread variant (same adjudicated class) |
 
 ### Sweep 8 (2026-10-30 morning session)
 - .gitignore storage/backups committed (overnight session's uncommitted tail). ev: check 0/0 + 1052/1052 re-verified on resume
