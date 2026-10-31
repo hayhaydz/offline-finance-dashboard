@@ -64,7 +64,7 @@
 				<tr class="bg-gray-100 border-b border-black">
 					<th class="text-left px-1 py-0.5">Bill</th>
 					<th class="text-right px-1 py-0.5">Amount</th>
-					<th class="text-right px-1 py-0.5 pr-2">Yearly</th>
+					<th class="text-right px-1 py-0.5 pr-2">Per year</th>
 					<!-- v3.1 A06 craft: hairline rule at the numeric→date boundary —
 					     8px of padding read as one merged "Yearly Last paid" column -->
 					<th class="text-left px-1 py-0.5 border-l border-gray-300">Last paid</th>
@@ -82,7 +82,7 @@
 					</tr>
 				{/each}
 				<tr class="bg-gray-50 border-t border-black">
-					<td class="px-1 py-0.5 font-bold">total</td>
+					<td class="px-1 py-0.5 font-bold uppercase text-xs">Total</td>
 					<td class="px-1 py-0.5 text-right tabular-nums font-bold">{formatCurrency(data.monthlyTotalPence)}</td>
 					<td class="px-1 py-0.5 text-right tabular-nums font-bold">{formatCurrency(data.yearlyTotalPence)}</td>
 					<td colspan="2"></td>
@@ -95,8 +95,8 @@
 	<!-- R-H15: watchlist — two occurrences on a monthly cadence; a third
 	     matching payment promotes these to confirmed bills -->
 	<div class="border border-black">
-		<div class="bg-gray-50 border-b border-gray-300 px-2 py-1 text-xs font-bold">
-			EMERGING — 2 occurrences, one more confirms ({data.emerging.length})
+		<div class="bg-gray-50 border-b border-gray-300 px-2 py-1 text-xs font-bold" title="Candidates: payments seen twice on a monthly cadence. A third occurrence confirms them as bills.">
+			EMERGING — {data.emerging.length} candidate{data.emerging.length !== 1 ? 's' : ''} · confirmed at 3 occurrences
 		</div>
 		<div class="overflow-x-auto">
 			<table class="w-full text-xs">
@@ -114,7 +114,7 @@
 							<td class="px-1 py-0.5">{c.description}</td>
 							<td class="px-1 py-0.5 text-right tabular-nums text-gray-600">~{formatCurrency(c.amountPence)}</td>
 							<td class="px-1 py-0.5 tabular-nums text-gray-600">{c.firstDate} → {c.lastDate}</td>
-							<td class="px-1 py-0.5 text-amber-700 font-bold">watching</td>
+							<td class="px-1 py-0.5 text-amber-700 font-bold" title="Provisional: two occurrences so far — a third on the monthly cadence confirms it as a bill">watching</td>
 						</tr>
 					{/each}
 					<tr class="bg-gray-50 border-t border-gray-300">

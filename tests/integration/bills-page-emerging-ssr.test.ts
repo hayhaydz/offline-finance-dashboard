@@ -71,7 +71,7 @@ describe("bills page (R25 + R-H15)", () => {
 				],
 			}),
 		);
-		expect(body).toContain("EMERGING — 2 occurrences, one more confirms (1)");
+		expect(body).toContain("EMERGING — 1 candidate · confirmed at 3 occurrences");
 		expect(body).toContain("Spotify");
 		expect(body).toContain("watching");
 		expect(body).toContain("~£9.99");

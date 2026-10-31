@@ -4,6 +4,7 @@
 	import SubmitFeedback from '$lib/components/SubmitFeedback.svelte';
 	import { formatCurrency } from '$lib/utils/currency';
 	import { useSubmitFeedback } from '$lib/utils/use-submit-feedback.svelte';
+	import { currentMonth } from '$lib/utils/month-grid';
 	import type { PageData } from './$types';
 
 	let { data, form }: { data: PageData; form: Record<string, unknown> | null } = $props();
@@ -54,6 +55,19 @@
 		return months.reduce((sum, m) => sum + (m.amountInCents ?? 0), 0);
 	}
 
+	// v3.1 third mandate: summary strip deriveds (latest/known/missing)
+	const latestCell = $derived(
+		[...trendPoints].reverse().find((p) => p.amountInCents !== null) ?? null
+	);
+	const currentYear = $derived(data.grid[0]);
+	const knownThisYear = $derived(
+		currentYear ? currentYear.months.filter((m) => m.amountInCents !== null).length : 0
+	);
+	const unrecordedCount = $derived(
+		// past months only — future months aren't recordable yet
+		trendPoints.filter((p) => p.amountInCents === null && p.month <= currentMonth()).length
+	);
+
 	// Range-fill state (kept across the confirmation round-trip)
 	let rangeFrom = $state('');
 	let rangeTo = $state('');
@@ -83,6 +97,33 @@
 		     are DECLARED totals per month (statement-based), never live data -->
 		<div class="text-[10px] text-gray-600 px-2 pb-1.5">
 			declared totals — enter last month's statement figures; nothing here is live
+		</div>
+	</div>
+
+	<!-- v3.1 third mandate: summary strip — the page's answer line. Bills,
+	     routine and snapshots all open with one; expenses was the sibling
+	     that made you assemble the answer from three panels (vision-flagged:
+	     "latest £2,100 only visible in the emergency-fund reference"). -->
+	<div class="border border-black grid grid-cols-2 md:grid-cols-4 divide-x divide-black">
+		<div class="p-2">
+			<div class="text-[10px] uppercase font-bold text-gray-600">Latest month</div>
+			<div class="font-bold tabular-nums">{latestCell ? formatCurrency(latestCell.amountInCents!) : '—'}</div>
+			<div class="text-[10px] text-gray-500">{latestCell?.month ?? 'no data'}</div>
+		</div>
+		<div class="p-2">
+			<div class="text-[10px] uppercase font-bold text-gray-600">{currentYear?.year ?? ''} known</div>
+			<div class="font-bold tabular-nums">{currentYear ? formatCurrency(yearTotal(currentYear.months)) : '—'}</div>
+			<div class="text-[10px] text-gray-500">{knownThisYear}/12 months</div>
+		</div>
+		<div class="p-2">
+			<div class="text-[10px] uppercase font-bold text-gray-600">Unrecorded</div>
+			<div class="font-bold tabular-nums {unrecordedCount > 0 ? 'text-amber-700' : 'text-green-700'}">{unrecordedCount}</div>
+			<div class="text-[10px] text-gray-500">past months missing</div>
+		</div>
+		<div class="p-2">
+			<div class="text-[10px] uppercase font-bold text-gray-600">Avg known month</div>
+			<div class="font-bold tabular-nums">{knownThisYear > 0 ? formatCurrency(Math.round(yearTotal(currentYear!.months) / knownThisYear)) : '—'}</div>
+			<div class="text-[10px] text-gray-500">this year, recorded months only</div>
 		</div>
 	</div>
 
@@ -122,7 +163,7 @@
 									<button
 										type="button"
 										onclick={() => selectMonth(cell.month)}
-										class="px-1.5 py-0.5 text-[11px] font-mono min-w-12 border
+										class="px-1.5 py-0.5 text-[11px] font-mono min-w-12 border text-right tabular-nums
 											{selectedMonth === cell.month ? 'bg-black text-white border-black' :
 												cell.amountInCents === null ? 'text-gray-500 border-transparent hover:border-black' :
 												'border-gray-300 hover:border-black'}"
@@ -229,7 +270,7 @@
 			</div>
 			<div>
 				<label for="rf-amount" class="block text-[10px] font-bold mb-1 uppercase">&pound;/month</label>
-				<input id="rf-amount" name="amount" type="text" inputmode="numeric" placeholder="2000.00"
+				<input id="rf-amount" name="amount" type="text" inputmode="numeric" placeholder="e.g. 2000.00"
 					bind:value={rangeAmount} class="border border-black px-1 py-1 text-xs font-mono w-24" />
 			</div>
 			<button type="submit" class="bracket-link text-xs">Fill Range</button>
