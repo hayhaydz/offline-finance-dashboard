@@ -66,6 +66,16 @@
 	// Phase 4 V1 #3: bullet-bar tick positions
 	// v3 R4: bar-tick positions removed — bars render plain (pre-v2 form).
 	// Milestone DATA stays for textual labels/next-milestone hints.
+
+	// v3.1 §10.2: hover detail on the meter — the label swaps from % to the
+	// exact remaining £ (the flex bar absorbs the width change; no row shift)
+	let barHover = $state(false);
+	const remainingPence = $derived(isDebtGoal
+		? (remainingInCents ?? Math.max(0, goal.targetAmountInCents - goal.currentAllocation))
+		: Math.max(0, goal.targetAmountInCents - goal.currentAllocation));
+	const meterLabel = $derived(isDebtGoal && paidInCents !== undefined
+		? `£${formatCurrencyShorthand(paidInCents)} of £${formatCurrencyShorthand((paidInCents ?? 0) + remainingPence)} paid off · £${formatCurrencyShorthand(remainingPence)} remaining · updated ${formatDate(new Date(goal.updatedAt))}`
+		: `£${formatCurrencyShorthand(goal.currentAllocation)} of £${formatCurrencyShorthand(goal.targetAmountInCents)} · £${formatCurrencyShorthand(remainingPence)} to go · updated ${formatDate(new Date(goal.updatedAt))}`);
 </script>
 
 <tr class="goal-row border-b border-gray-200 last:border-b-0 {isArchived ? 'bg-gray-50' : ''} {isSelected ? 'bg-amber-50' : ''}" data-nav-row>
@@ -132,12 +142,27 @@
 				{/if}
 			</div>
 		<!-- Progress bar (v3 R4: plain bullet bar — tick lines removed) -->
-		<div class="flex items-center gap-1 text-xs leading-none mt-1">
+		<div
+			role="meter"
+			aria-valuemin={0}
+			aria-valuemax={100}
+			aria-valuenow={debtProgress ?? progress}
+			aria-label={meterLabel}
+			class="flex items-center gap-1 text-xs leading-none mt-1"
+			onmouseenter={() => (barHover = true)}
+			onmouseleave={() => (barHover = false)}
+		>
+			<span class="sr-only">{meterLabel}</span>
 			<GoalBulletBar percent={debtProgress ?? progress} bgClass={progressColor.bg} archived={isArchived} />
 			{#if savingsOver !== null}
 				<span class="font-bold text-green-700 whitespace-nowrap">REACHED — {formatCurrencyShorthand(savingsOver)} over target</span>
 			{:else}
-				<span class="min-w-5 font-bold">{progress}%</span>
+				<span
+					class="min-w-5 font-bold whitespace-nowrap tabular-nums"
+					title={meterLabel}
+				>
+					{#if barHover}{formatCurrencyShorthand(remainingPence)} to go{:else}{progress}%{/if}
+				</span>
 			{/if}
 		</div>
 	{:else}
@@ -146,9 +171,24 @@
 				{formatCurrencyShorthand(goal.currentAllocation)} / {formatCurrencyShorthand(goal.targetAmountInCents)}
 			</div>
 			<!-- Progress bar (v3 R4: plain bullet bar — tick lines removed) -->
-			<div class="flex items-center gap-1 text-xs leading-none mt-1">
+			<div
+				role="meter"
+				aria-valuemin={0}
+				aria-valuemax={100}
+				aria-valuenow={progress}
+				aria-label={meterLabel}
+				class="flex items-center gap-1 text-xs leading-none mt-1"
+				onmouseenter={() => (barHover = true)}
+				onmouseleave={() => (barHover = false)}
+			>
+				<span class="sr-only">{meterLabel}</span>
 				<GoalBulletBar percent={progress} bgClass={progressColor.bg} archived={isArchived} />
-				<span class="min-w-5 font-bold">{progress}%</span>
+				<span
+					class="min-w-5 font-bold whitespace-nowrap tabular-nums"
+					title={meterLabel}
+				>
+					{#if barHover}{formatCurrencyShorthand(remainingPence)} to go{:else}{progress}%{/if}
+				</span>
 			</div>
 		{/if}
 	</td>
