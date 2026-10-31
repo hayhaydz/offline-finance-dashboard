@@ -11,13 +11,16 @@
 	);
 </script>
 
-<div class="font-bold flex justify-between items-center border-b border-black p-2 bg-gray-100">
+<!-- v3.1 border unification: inset panel frame -->
+<div class="p-2 flex flex-col gap-2">
+
+<div class="font-bold flex justify-between items-center border border-black p-2 bg-gray-100">
 	<span>BILLS — RECURRING MONEY OUT</span>
 	<a href="/overview" class="bracket-link text-xs">Overview</a>
 </div>
 
 <!-- summary strip -->
-<div class="border-b border-black grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-300">
+<div class="border border-black grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-300">
 	<div class="px-2 py-1.5">
 		<div class="text-[10px] uppercase font-bold text-gray-600">Recurring bills</div>
 		<div class="text-sm font-bold">{data.patterns.length}</div>
@@ -55,7 +58,7 @@
 		</div>
 	{/if}
 	{#if sorted.length > 0}
-	<div class="overflow-x-auto">
+	<div class="border border-black overflow-x-auto">
 		<table class="w-full text-xs">
 			<thead>
 				<tr class="bg-gray-100 border-b border-black">
@@ -91,7 +94,7 @@
 	{#if data.emerging.length > 0}
 	<!-- R-H15: watchlist — two occurrences on a monthly cadence; a third
 	     matching payment promotes these to confirmed bills -->
-	<div class="border-t border-black">
+	<div class="border border-black">
 		<div class="bg-gray-50 border-b border-gray-300 px-2 py-1 text-xs font-bold">
 			EMERGING — 2 occurrences, one more confirms ({data.emerging.length})
 		</div>
@@ -125,7 +128,7 @@
 		</div>
 	</div>
 	{/if}
-	<p class="text-[10px] text-gray-600 px-2 py-1 border-t border-gray-200">
+	<p class="text-[10px] text-gray-600 px-2 py-1">
 		Derived from your actual payments — confirmed bills need three real withdrawals on a
 		monthly cadence; watchlist rows are provisional at two (one more confirms them). No bill
 		list to maintain; when a payment changes, the pattern follows within a cycle. This is the
@@ -133,3 +136,4 @@
 		the mechanism.
 	</p>
 {/if}
+</div>

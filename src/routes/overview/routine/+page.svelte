@@ -5,15 +5,18 @@
 	const { history, streak, thisMonth } = $derived(data);
 </script>
 
+<!-- v3.1 border unification: inset panel frame -->
+<div class="p-2 flex flex-col gap-2">
+
 <!-- Header -->
-<div class="font-bold flex justify-between items-center bg-gray-100 border-b border-black p-2">
+<div class="font-bold flex justify-between items-center bg-gray-100 border border-black p-2">
 	<span>MONTHLY REVIEW</span>
 </div>
 
 <!-- SUMMARY STRIP (v3.1 A06: 5 cells; the old STREAK banner above was
      killed — it duplicated these cells (banned-pattern #4 inverse) and
      carried exactly one unique datum, now the Last active cell) -->
-<div class="border-b border-black grid grid-cols-2 md:grid-cols-5 divide-x divide-gray-300">
+<div class="border border-black grid grid-cols-2 md:grid-cols-5 divide-x divide-gray-300">
 	<div class="px-2 py-1.5">
 		<div class="text-[10px] uppercase font-bold text-gray-600">Current streak</div>
 		<div class="text-sm font-bold {streak.currentStreak > 0 ? 'text-green-700' : 'text-gray-400'}">
@@ -54,7 +57,7 @@
 </div>
 
 <!-- Checklist reference (R29: a grid of cells, not a wrapped blob) -->
-<div class="border-b border-black p-2">
+<div class="border border-black p-2">
 	<div class="text-[10px] font-bold text-gray-500 uppercase mb-1">Checklist ({CHECKLIST_ITEMS.length} items)</div>
 	<div class="grid gap-1 md:grid-cols-2 lg:grid-cols-3">
 		{#each CHECKLIST_ITEMS as item (item.key)}
@@ -113,3 +116,4 @@
 		</tbody>
 	</table>
 {/if}
+</div>
