@@ -211,6 +211,9 @@
 	// Facts-strip alert chips (severity counts; triage lives on /alerts)
 	const redAlertCount = $derived(data.alerts.filter((a) => a.severity === 'red').length);
 	const amberAlertCount = $derived(data.alerts.filter((a) => a.severity === 'amber').length);
+	// v3.1: the info count completes the rollup (16 = 4 + 8 + 4 read as
+	// "4 unaccounted" without it — same fix as the alerts panel header)
+	const infoAlertCount = $derived(data.alerts.filter((a) => a.severity !== 'red' && a.severity !== 'amber').length);
 </script>
 
 <!-- Close/delete feedback banners (audit #10) -->
@@ -262,6 +265,7 @@
 			<a href="/alerts" class="bracket-link">{data.alerts.length}</a>
 			{#if redAlertCount > 0}<span class="text-red-700 font-bold text-xs"> [!!{redAlertCount}]</span>{/if}
 			{#if amberAlertCount > 0}<span class="text-amber-700 font-bold text-xs"> [!{amberAlertCount}]</span>{/if}
+			{#if infoAlertCount > 0}<span class="text-zinc-600 font-bold text-xs"> [i{infoAlertCount}]</span>{/if}
 		</div>
 		<div class="text-[10px] text-gray-500"><a href="/alerts" class="bracket-link">Triage</a></div>
 	</div>

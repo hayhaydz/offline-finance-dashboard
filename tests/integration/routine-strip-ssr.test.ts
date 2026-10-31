@@ -19,7 +19,7 @@ const data = {
 describe("Routine summary strip (v3.1 A06)", () => {
 	it("renders five cells including the rescued Last active datum", () => {
 		const { body } = render(RoutinePage, { props: { data } });
-		expect(body).toContain("Current streak");
+		expect(body).toContain("Last streak");
 		expect(body).toContain("Longest");
 		expect(body).toContain("This month");
 		expect(body).toContain("Last active");

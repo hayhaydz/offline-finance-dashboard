@@ -3,6 +3,34 @@
 
 	let { data } = $props();
 	const { history, streak, thisMonth } = $derived(data);
+
+	// v3.1: fill month GAPS with explicit "NO REVIEW" rows — the index used
+	// to jump Mar→Oct silently, contradicting the streak it displays
+	type Row = (typeof history)[number] & { isGap?: boolean };
+	const historyWithGaps: Row[] = $derived.by(() => {
+		if (history.length < 2) return history;
+		const out: Row[] = [history[0]];
+		const totalItems = CHECKLIST_ITEMS.length;
+		for (let i = 1; i < history.length; i++) {
+			let [y, m] = history[i - 1].yearMonth.split('-').map(Number);
+			for (let steps = 0; steps < 12; steps++) {
+				m -= 1;
+				if (m === 0) { m = 12; y -= 1; }
+				if (`${y}-${String(m).padStart(2, '0')}` === history[i].yearMonth) break;
+				out.push({
+					yearMonth: `${y}-${String(m).padStart(2, '0')}`,
+					label: formatYearMonth(`${y}-${String(m).padStart(2, '0')}`),
+					completedCount: 0,
+					totalItems,
+					isComplete: false,
+					notes: null,
+					isGap: true,
+				} as Row);
+			}
+			out.push(history[i]);
+		}
+		return out;
+	});
 </script>
 
 <!-- v3.1 border unification: inset panel frame -->
@@ -18,7 +46,11 @@
      carried exactly one unique datum, now the Last active cell) -->
 <div class="border border-black grid grid-cols-2 md:grid-cols-5 divide-x divide-gray-300">
 	<div class="px-2 py-1.5">
-		<div class="text-[10px] uppercase font-bold text-gray-600">Current streak</div>
+		<!-- v3.1: "Current" lied after a gap — the streak ends at the last
+		     active month; state which month it ended at -->
+		<div class="text-[10px] uppercase font-bold text-gray-600">
+			{streak.lastActiveMonth === thisMonth ? 'Current streak' : 'Last streak'}
+		</div>
 		<div class="text-sm font-bold {streak.currentStreak > 0 ? 'text-green-700' : 'text-gray-400'}">
 			{streak.currentStreak} month{streak.currentStreak === 1 ? '' : 's'}
 		</div>
@@ -79,13 +111,23 @@
 		<thead>
 			<tr>
 				<th class="pl-2 text-left">Month</th>
-				<th class="text-center">Items</th>
+				<th class="text-center">Done</th>
 				<th class="text-center">Status</th>
 				<th class="text-left pl-2">Notes</th>
 			</tr>
 		</thead>
 		<tbody>
-			{#each history as entry}
+			{#each historyWithGaps as entry}
+				{#if entry.isGap}
+					<!-- v3.1: months with NO review render as honest gap rows — an
+					     index that jumps Mar→Oct silently contradicts the streak -->
+					<tr class="border-t border-gray-100 text-gray-400">
+						<td class="pl-2 py-1">{entry.label}</td>
+						<td class="text-center tabular-nums py-1">0/{entry.totalItems}</td>
+						<td class="text-center py-1" title="No review was recorded for this month">NO REVIEW</td>
+						<td class="pl-2 py-1 text-xs">—</td>
+					</tr>
+				{:else}
 				<tr class="border-t border-gray-100 hover:bg-gray-50 transition-colors duration-150">
 					<td class="pl-2 py-1 font-bold">
 						<a href="/overview/routine/{entry.yearMonth}" class="bracket-link">{entry.label}</a>
@@ -105,13 +147,14 @@
 						{:else if entry.completedCount > 0}
 							<span class="text-amber-700 font-bold">PARTIAL</span>
 						{:else}
-							<span class="text-gray-500">—</span>
+							<span class="text-gray-500" title="Not started yet">PENDING</span>
 						{/if}
 					</td>
 					<td class="pl-2 py-1 text-xs text-gray-500 max-w-xs truncate">
 						{entry.notes ?? '—'}
 					</td>
 				</tr>
+				{/if}
 			{/each}
 		</tbody>
 	</table>
