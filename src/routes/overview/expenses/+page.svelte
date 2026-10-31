@@ -68,13 +68,20 @@
 
 <main>
 	<!-- HEADER -->
-	<div class="flex justify-between items-center gap-4 border-b border-black p-2 bg-gray-100">
-		<span class="font-bold">EXPENSES HISTORY</span>
-		<span class="flex gap-3 text-xs">
-			<a href="/api/history/export?kind=expenses" download class="bracket-link">Export CSV</a>
-			<a href="/settings/data" class="bracket-link">Import CSV</a>
-			<a href="/overview" class="bracket-link">Overview</a>
-		</span>
+	<div class="border-b border-black bg-gray-100">
+		<div class="flex justify-between items-center gap-4 p-2">
+			<span class="font-bold">EXPENSES HISTORY</span>
+			<span class="flex gap-3 text-xs">
+				<a href="/api/history/export?kind=expenses" download class="bracket-link">Export CSV</a>
+				<a href="/settings/data" class="bracket-link">Import CSV</a>
+				<a href="/overview" class="bracket-link">Overview</a>
+			</span>
+		</div>
+		<!-- v3.1 row 36 (D0): the cadence, stated where entry happens — these
+		     are DECLARED totals per month (statement-based), never live data -->
+		<div class="text-[10px] text-gray-600 px-2 pb-1.5">
+			declared totals — enter last month's statement figures; nothing here is live
+		</div>
 	</div>
 
 	<!-- ═══ TREND ═══ -->
