@@ -96,7 +96,13 @@
 					</td>
 				</tr>
 				<tr class="border-b border-gray-200">
-					<td class="px-1 py-0.5 text-gray-600">net gain of stoozing the window</td>
+					<td class="px-1 py-0.5 text-gray-600">net if you clear ON TIME (what stoozing earns)</td>
+					<td class="px-1 py-0.5 text-right tabular-nums font-bold text-green-700">
+						{formatCurrency(result.savingsInterestPence)}
+					</td>
+				</tr>
+				<tr class="border-b border-gray-200">
+					<td class="px-1 py-0.5 text-gray-600">net if you ride {result.daysRemaining}d PAST the end (for comparison)</td>
 					<td class="px-1 py-0.5 text-right tabular-nums font-bold {result.netGainPence >= 0 ? 'text-green-700' : 'text-red-700'}">
 						{formatCurrency(result.netGainPence)}
 					</td>
