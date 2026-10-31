@@ -1062,8 +1062,11 @@ async function buildSeasonality(userId: number): Promise<ReportDoc> {
 			{
 				heading: "Extremes",
 				rows: [
-					{ label: `weakest ${MONTHS[worst.monthOfYear]}`, value: formatCurrency(worst.meanDeltaPence), flag: "red" as const },
-					{ label: `strongest ${MONTHS[best.monthOfYear]}`, value: formatCurrency(best.meanDeltaPence), flag: "green" as const },
+					// v3.1 A09: colour by SCALE not rank (the recorded sweep-9
+					// rule) — a "strongest" month that still fell renders red,
+					// not green
+					{ label: `weakest ${MONTHS[worst.monthOfYear]}`, value: formatCurrency(worst.meanDeltaPence), flag: worst.meanDeltaPence > 0 ? ("green" as const) : worst.meanDeltaPence < 0 ? ("red" as const) : undefined },
+					{ label: `strongest ${MONTHS[best.monthOfYear]}`, value: formatCurrency(best.meanDeltaPence), flag: best.meanDeltaPence > 0 ? ("green" as const) : best.meanDeltaPence < 0 ? ("red" as const) : undefined },
 				],
 				notes: [
 					"Calendar effects often reflect routine rhythms: annual renewals, holiday spend, or bonus months — cross-check with the spending-profile report.",
