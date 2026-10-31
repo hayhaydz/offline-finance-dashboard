@@ -522,3 +522,7 @@ yearly-overview feature + categories collapse, then the statement-cadence pass a
 - **Tooling gotchas:** lighthouse_audit times out AND leaves the window at 1350 (check innerWidth before width-sensitive audits); db:reset ⇒ restart dev server (stale SQLite conn → 500s; kill `lsof -ti :5173` + background `npm run dev`); DEV_AUTO_LOGIN=true in .env + /dev-login → /unlock (password) flow; sessions age out mid-testing — re-run /dev-login when evaluates land on /login.
 - **A13 c-channel gotcha (3rd occurrence — BURN IT IN): cRange aligns with the FIRST-SEEN c domain order in the data, NOT a canonical order — always build cRange from [...new Set(rows.map(d => d.c))].map(colourOf).**
 - Ledger discipline: `date` FIRST, row AFTER, real times only. Vision-log: append-only. CDP: filePath screenshots; relogin after test/reseed; hover events ON `.lc-tooltip-rect` (bars) / elementFromPoint (lines); DebtProjectionSection: projection[0].payment = resolved min; route-error checks match HEADINGS (£500.00 false-positive).
+
+## THIRD-MANDATE FULL-LOOP SWEEP (2026-10-31 20:11 GMT — user: "audit EVERY page and interaction, improve all of it")
+
+Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [2] snapshot DETAIL · [3] create/edit forms → 2-col proof sheets (goal, debt, account, edit, add, withdraw) · [4] border pass 2 (A06/budget/reports/settings/tools) · [5] routine-month + budgets/all · [6] reports/tools sub-pages rotation · [7] utility pages (notes, confirms, uncategorised, auth) · [8] full gate + records.
