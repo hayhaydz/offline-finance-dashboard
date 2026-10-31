@@ -480,6 +480,13 @@ gap-register rows 31–35 are the new constitution. Verbatim text appended to pl
 - Ledger CONTINUES from 10h06m; runtime budget 8h this invocation; stop file only when every
   dossier's design-quality re-audit + rows 31–35 + runtime all hold.
 
+## THIRD DIRECTION RECORDED (2026-10-31, rows 36–38 + doctrine D0)
+
+Statement-based model is now first-class (D0): UX assumes previous-month statement entry, not realtime.
+Budgets gain: yearly overview with met/over visualisations (row 37), categories collapse by default
+(row 38), statement-cadence copy. Queue after the named chart targets (heatmap, allocation): A08
+yearly-overview feature + categories collapse, then the statement-cadence pass across surfaces.
+
 ## Notes for next iteration
 - **SESSION STATE 2026-10-31 12:47 GMT: all 13 dossiers audited · gap register closed (30 rows) · §8 gates ALL hold EXCEPT ledger — 10h04m banked, needs ~1h56m more. NO stop file yet (§9).** Final gate green: 159 files/1104 tests ×2 + build ✔.
 - **NEXT SESSION = ledger-closing deepens + then stop:** run spaced verification sweeps (~10 real checks each: route sweeps, hover rotations, density re-measures — see sweeps 39-44 for the pattern), ~1h54m of recorded rows; then re-verify gates, finalize the FINAL REPORT ledger line, and ONLY THEN write `.opencode/opencode-loop/ULTIMATE-V3-DONE`.
