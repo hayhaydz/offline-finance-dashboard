@@ -41,7 +41,7 @@
 </script>
 
 <!-- ARCHIVED GOALS LIST SECTION -->
-<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
+<div class="font-bold flex justify-between bg-gray-100 border border-black p-2">
 	<span><span class="text-gray-600">●</span> ARCHIVED ({data.totalCount})</span>
 	<a href="/goals" class="bracket-link text-xs">Back to Goals</a>
 </div>

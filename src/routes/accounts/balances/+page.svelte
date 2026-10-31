@@ -14,12 +14,12 @@
 
 <div class="p-2 font-mono">
 	<div class="border border-black">
-		<div class="border-b border-black bg-gray-100 p-2 font-bold flex justify-between items-center">
+		<div class="border border-black bg-gray-100 p-2 font-bold flex justify-between items-center">
 			<span>BULK BALANCE UPDATE</span>
 			<a class="bracket-link text-xs" href="/accounts">Back to accounts</a>
 		</div>
 
-		<div class="p-2 text-xs border-b border-black bg-gray-50">
+		<div class="p-2 text-xs border border-black bg-gray-50">
 			{data.accounts.length} open account{data.accounts.length !== 1 ? "s" : ""}
 			{#if staleCount > 0}
 				<span class="text-amber-700 font-bold"> · {staleCount} stale (35+ days)</span>
@@ -29,7 +29,7 @@
 
 		<SubmitFeedback message={feedback.message} onDismiss={feedback.dismiss} />
 		{#if form?.error}
-			<div class="border-b border-black px-2 py-1 text-xs text-red-700 font-bold">
+			<div class="border border-black px-2 py-1 text-xs text-red-700 font-bold">
 				[!] {form.error}
 			</div>
 		{/if}
@@ -39,7 +39,7 @@
 			action="?/update"
 			use:enhance={feedback.createEnhanceHandler("Balances updated")}
 		>
-			<div class="flex items-center gap-2 p-2 border-b border-black text-sm">
+			<div class="flex items-center gap-2 p-2 border border-black text-sm">
 				<label for="balanceDate" class="text-xs font-bold">AS OF</label>
 				<input
 					type="date"
