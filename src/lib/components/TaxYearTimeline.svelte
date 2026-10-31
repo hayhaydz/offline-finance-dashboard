@@ -96,7 +96,7 @@
 			<span>Day {daysElapsed} of 365</span>
 			<span>{daysRemaining} days remaining</span>
 			<span>ends {endDateFormatted}</span>
-			<span class="hidden sm:inline text-gray-400">{Math.round(percentComplete)}% elapsed</span>
+			<span class="hidden sm:inline">{Math.round(percentComplete)}% elapsed</span>
 		</span>
 		<a href="/accounts/isa/{currentYearSlug}" class="bracket-link text-xs whitespace-nowrap">ISA Breakdown</a>
 	</div>
@@ -117,20 +117,25 @@
 					<div class="absolute bottom-0 left-0 h-3 bg-gray-500" style={`width: ${m.fillPct}%`}></div>
 				{/if}
 				{#if m.state === 'current'}
-					<!-- today marker: hairline at the fill edge -->
+					<!-- today marker: hairline at the fill edge; the TODAY
+					     label hugs the hairline (right-anchored once the
+					     month is half gone — a left label beside a 90%
+					     marker read as marking the month START) -->
 					<div class="absolute bottom-0 h-5 w-px bg-black" style={`left: ${m.fillPct}%`}></div>
-					<span class="absolute bottom-0.5 left-1 text-[9px] font-bold text-black">TODAY</span>
+					<span class={`absolute bottom-0.5 text-[9px] font-bold text-black ${m.fillPct > 50 ? 'right-1' : 'left-1'}`}>TODAY</span>
 				{/if}
 			</div>
 		{/each}
 	</div>
 
-	<!-- lane 2: ISA allowance + pacing in the same width (v3.1 A02 D8: the
-	     meter flexes with the lane and the pacing facts right-align — no
-	     left-packed run with a dead right margin) -->
+	<!-- lane 2: ISA allowance + pacing in the same width (v3.1 A02 D8,
+	     re-fixed 2026-10-31 third mandate: the meter's flex-1 carried a
+	     max-w-md cap, which at 1584px left a ~400px dead hole between
+	     the facts and the right-aligned pacing — the meter IS the
+	     connective tissue of the lane; no cap) -->
 	<div class="p-2 flex items-center gap-3 text-xs flex-wrap">
 		<span class="font-bold whitespace-nowrap">ISA ALLOWANCE</span>
-		<div class="h-2 border border-black bg-white flex-1 min-w-24 max-w-md">
+		<div class="h-2 border border-black bg-white flex-1 min-w-24">
 			<div class="h-full bg-green-700" style={`width: ${isaPercentUsed}%`}></div>
 		</div>
 		<span class="tabular-nums whitespace-nowrap">

@@ -37,8 +37,10 @@
 
 	const totalAssetsColor = $derived(summary.totalAssets >= 0 ? 'text-green-700' : 'text-red-700');
 
+	// v3.1 craft: the column label already reads "As of" — strip the
+	// helper's "as of " prefix so the value never duplicates its label
 	const formattedDateRange = $derived(
-		formatDateRange(summary.dateRange.oldest, summary.dateRange.newest)
+		formatDateRange(summary.dateRange.oldest, summary.dateRange.newest).replace(/^as of /, "")
 	);
 
 	const showNeutralColor = $derived(

@@ -44,7 +44,7 @@
 	const summary = $derived(
 		shares.length === 0
 			? `No ${label} money yet`
-			: `${formatCurrency(total)} ${label} across ${shares.length} ${noun} — largest: ${shares[0].name} (${shares[0].percent}%) · hover for detail`,
+			: `${formatCurrency(total)} ${label} across ${shares.length} ${noun} — largest: ${shares[0].name} (${shares[0].percent}%)`,
 	);
 
 	// a segment gets an inline label when it's wide enough to hold it

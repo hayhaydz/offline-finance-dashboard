@@ -70,7 +70,7 @@
 			<thead>
 				<tr>
 					{#each DOW as dw (dw)}
-						<th class="text-center font-normal text-gray-500 pb-1">{dw}</th>
+						<th class="text-left font-normal text-gray-500 pb-1 pl-1">{dw}</th>
 					{/each}
 				</tr>
 			</thead>
@@ -117,7 +117,10 @@
 										{/each}
 									</div>
 								{:else}
-									<div class="min-h-12"></div>
+									<!-- v3.1 third-mandate craft: leading/trailing blanks
+									     carry the same hairline as day cells — borderless
+									     voids made week 1 read as a ragged hole -->
+									<div class="min-h-12 border border-gray-200"></div>
 								{/if}
 							</td>
 						{/each}

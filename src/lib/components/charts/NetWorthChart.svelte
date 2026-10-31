@@ -122,7 +122,7 @@
 			/>
 		</div>
 		<p class="text-[10px] text-gray-600 px-1 pt-1">
-			hover for date + value · dashed gridlines = axis, solid line = snapshots
+			hover for date + value · faint rules = axis grid, solid line = snapshots
 		</p>
 	{/if}
 </ChartPanel>
