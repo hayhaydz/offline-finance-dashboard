@@ -48,14 +48,14 @@
     if (!data.debtData) return null;
     const balance = Math.abs(data.debtData.linkedAccount.currentBalance);
     const apr = data.debtData.linkedAccount.apr ?? 0;
-    if (balance === 0) return { months: 0, payoffDate: null as Date | null };
+    if (balance === 0) return { months: 0, payoffDate: null as Date | null, totalInterestInCents: null as number | null };
     if (monthlyPayment <= 0) return null;
     const monthlyRate = (apr / 100) / 12 / 100;
     if (monthlyRate === 0) {
       const months = Math.ceil(balance / monthlyPayment);
       const d = new Date();
       d.setMonth(d.getMonth() + months);
-      return { months, payoffDate: d };
+      return { months, payoffDate: d, totalInterestInCents: null as number | null };
     }
     if (monthlyPayment <= balance * monthlyRate) return null;
     const months = Math.ceil(
@@ -63,7 +63,23 @@
     );
     const d = new Date();
     d.setMonth(d.getMonth() + months);
-    return { months, payoffDate: d };
+    // total interest over the plan (sum of payments − starting balance)
+    const totalInterestInCents = Math.round(months * monthlyPayment - balance);
+    return { months, payoffDate: d, totalInterestInCents };
+  });
+
+  // v3.1 third mandate: negative-amortization warning — the single most
+  // persuasive fact on a debt page is that the MINIMUM doesn't even cover
+  // the month-one interest (the balance would grow). Same verdict class as
+  // the account-detail CRITICAL note.
+  const minVsInterestCritical = $derived.by(() => {
+    const apr = data.debtData?.linkedAccount.apr;
+    const bal = data.debtData?.linkedAccount.currentBalance;
+    const min = data.debtData?.linkedAccount.minimumPayment;
+    if (!apr || bal == null || !min) return false;
+    // apr is basis points: monthly interest = balance × apr / 100 / 100 / 12
+    const firstMonthInterest = (Math.abs(bal) * apr) / 120000;
+    return min <= firstMonthInterest;
   });
 
   function formatMinimumPayment(account: { minimumPayment: number | null; minimumPaymentType: string | null }): string {
@@ -141,11 +157,14 @@
   />
 </div>
 
-<!-- EDIT GOAL -->
+<!-- EDIT GOAL (v3.1 third mandate: was a full-width section band whose only
+     content was one right-aligned link — read as an accordion that failed to
+     render. Now an inline action row under the goal header band; the form
+     still opens in place) -->
 <div class="border-t border-black">
-  <div class="font-bold p-2 bg-gray-100 border-b border-black flex justify-between items-center">
-    <span>EDIT GOAL</span>
-    <button type="button" class="bracket-link text-xs font-normal" onclick={() => (editOpen ? (editOpen = false) : openEdit())}>
+  <div class="p-2 flex items-center justify-between gap-2 bg-gray-50 border-b border-gray-200">
+    <span class="text-xs text-gray-600">Goal settings</span>
+    <button type="button" class="bracket-link text-xs" onclick={() => (editOpen ? (editOpen = false) : openEdit())}>
       {editOpen ? 'Cancel' : 'Edit Name/Target'}
     </button>
   </div>
@@ -236,18 +255,8 @@
           <span class="text-gray-600">Balance:</span>
           <span class="ml-1">{formatCurrency(data.debtData.linkedAccount.currentBalance)}</span>
         </div>
-        <div>
-          <span class="text-gray-600">APR:</span>
-          <span class="ml-1">
-            {data.debtData.linkedAccount.apr
-              ? `${(data.debtData.linkedAccount.apr / 100).toFixed(2)}%`
-              : "-"}
-          </span>
-        </div>
-        <div>
-          <span class="text-gray-600">Min Payment:</span>
-          <span class="ml-1">{formatMinimumPayment(data.debtData.linkedAccount)}</span>
-        </div>
+        <!-- v3.1 third mandate: APR + Min Payment moved to DEBT METRICS only —
+             both panels carried identical values (vision-flagged duplication) -->
       </div>
     </div>
   </div>
@@ -333,6 +342,18 @@
                 : "-"}
             </span>
           </div>
+          {#if data.debtData.linkedAccount.apr && projection?.totalInterestInCents != null}
+            <div class="flex justify-between">
+              <span class="text-gray-600">1st month:</span>
+              <span class="tabular-nums">
+                {formatCurrency(Math.round((Math.abs(data.debtData.linkedAccount.currentBalance) * data.debtData.linkedAccount.apr) / 120000))}
+              </span>
+            </div>
+            <div class="flex justify-between">
+              <span class="text-gray-600">Over plan:</span>
+              <span class="tabular-nums font-bold text-red-700">{formatCurrency(projection.totalInterestInCents)}</span>
+            </div>
+          {/if}
         </div>
       </div>
       <div class="p-2">
@@ -342,6 +363,11 @@
             <span class="text-gray-600">Amount:</span>
             <span>{formatMinimumPayment(data.debtData.linkedAccount)}</span>
           </div>
+          {#if minVsInterestCritical}
+            <div class="text-red-700 font-bold leading-snug mt-1">
+              [CRITICAL] minimum &lt; first-month interest — paying only the minimum, this balance GROWS
+            </div>
+          {/if}
         </div>
       </div>
       <div class="p-2">
@@ -361,17 +387,21 @@
             class="w-full"
           />
           {#if projection}
-            <div class="flex justify-between">
-              <span class="text-gray-600">Months:</span>
-              <span>{projection?.months ?? "-"}</span>
-            </div>
-            <div class="flex justify-between">
-              <span class="text-gray-600">Target:</span>
-              <span>{projection?.payoffDate ? formatDateShorthand(projection!.payoffDate!) : "-"}</span>
+            <!-- v3.1 third mandate: the payoff horizon is the page's real
+                 headline — promoted from label:value rows to an emphasized
+                 line (was buried small text at the panel's far right) -->
+            <div class="mt-1 leading-tight">
+              <div class="text-sm font-bold">
+                {projection.months} month{projection.months !== 1 ? 's' : ''}
+              </div>
+              <div class="font-bold text-green-700">
+                {projection.payoffDate ? formatDateShorthand(projection.payoffDate) : "-"}
+              </div>
+              <div class="text-[10px] text-gray-500">at £{(monthlyPayment / 100).toFixed(0)}/mo</div>
             </div>
           {:else}
-            <div class="text-amber-700 text-xs mt-1">
-              Payment too small to cover interest
+            <div class="text-red-700 font-bold text-xs mt-1">
+              Payment too small to cover interest — balance would grow
             </div>
           {/if}
         </div>
