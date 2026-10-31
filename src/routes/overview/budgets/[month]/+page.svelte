@@ -41,6 +41,8 @@
 	let editingCategoryId = $state<number | null>(null);
 	// v3.1 A08: zero-spend untargeted categories hidden by default
 	let showUntargetedZero = $state(false);
+	// v3.1 row 38: categories collapse by default
+	let categoriesOpen = $state(false);
 	let editAmount = $state("");
 
 	// Budget creation scoping (task 3.1): explicit choice, no silent default
@@ -266,7 +268,9 @@
 				{#if data.budget}
 					&middot; {formatCurrency(data.status.totalSpent)} spent
 				{/if}
-				{#if !data.isCurrentMonth}
+				{#if data.isCurrentMonth}
+					&middot; <span class="text-gray-500">statement-based: figures firm up as last month's statements are entered</span>
+				{:else}
 					&middot; <span class="text-gray-500">Historical — config editable, transactions immutable</span>
 				{/if}
 			</div>
@@ -424,8 +428,33 @@
 		</div>
 	{/if}
 
-	<!-- CATEGORY TARGETS -->
-	<div class="font-bold text-xs px-2 py-1 bg-gray-50 border-t border-black">CATEGORY TARGETS <span class="text-gray-500">{targetedCategories.length} targeted · {untargetedCategories.length} untargeted</span></div>
+	<!-- CATEGORY TARGETS (v3.1 row 38: collapsed by default — categories
+	     created negative space; the strip + charts lead, config on demand) -->
+	<button
+		type="button"
+		class="w-full font-bold text-xs px-2 py-1 bg-gray-50 border-t border-black flex justify-between items-center cursor-pointer gap-2"
+		aria-expanded={categoriesOpen}
+		onclick={() => (categoriesOpen = !categoriesOpen)}
+	>
+		<span class="flex items-center gap-2 flex-wrap min-w-0">
+			CATEGORY TARGETS <span class="text-gray-500 font-normal">{targetedCategories.length} targeted · {untargetedCategories.length} untargeted</span>
+			<!-- v3.1: over-budget chips stay visible when collapsed — the
+			     month's problem categories at a glance -->
+			{#if !categoriesOpen}
+				{#each targetedCategories.filter((c) => c.target && c.target > 0 && c.spent > c.target) as cat (cat.id)}
+					<a
+						href="./uncategorised"
+						class="text-[10px] font-bold text-red-700 border border-red-300 bg-red-50 px-1 whitespace-nowrap"
+						title="{cat.name}: {formatCurrency(cat.spent)} of {formatCurrency(cat.target ?? 0)} target"
+					>
+						{cat.name} +{formatCurrency(cat.spent - (cat.target ?? 0))}
+					</a>
+				{/each}
+			{/if}
+		</span>
+		<span class="text-gray-500">{categoriesOpen ? '[-]' : '[+]'}</span>
+	</button>
+	{#if categoriesOpen}
 	<SubmitFeedback message={targetFeedback.message} onDismiss={targetFeedback.dismiss} />
 	<div class="px-2 py-1 border-b border-gray-300">
 		{#if targetedCategories.length > 0}
@@ -578,6 +607,7 @@
 			{/each}
 		{/if}
 	</div>
+	{/if}
 
 		</div>
 		<div>

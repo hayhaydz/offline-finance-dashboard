@@ -63,10 +63,11 @@ describe("Budget page redesign (R9 + R29)", () => {
 		expect(body).toContain("HISTORY");
 	});
 
-	it("category rows keep uncapped over-target semantics", () => {
+	it("categories collapse by default with over-budget chips visible (row 38)", () => {
 		const { body } = renderPage();
-		// Eating out: £2,100 spent of £800 target → over label
-		expect(body).toContain("over");
-		expect(body).toContain("£1,300.00 over £800.00 target");
+		expect(body).toContain("CATEGORY TARGETS");
+		expect(body).toContain('aria-expanded="false"');
+		// the collapsed header surfaces the over-budget categories as chips
+		expect(body).toContain("Eating out +£1,300.00");
 	});
 });
