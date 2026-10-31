@@ -56,7 +56,7 @@
 			<span>ROW-LEVEL SECURITY</span>
 		</div>
 		<div class="bg-gray-50 p-4">
-			<h2 class="mt-0 mb-2">How Row-Level Security Works</h2>
+			<h3 class="text-xs tracking-widest font-bold text-gray-700 uppercase mt-0 mb-2">How Row-Level Security Works</h3>
 			<ol class="leading-relaxed mb-4">
 				<li>
 					<strong>Session validation:</strong> Every request validates the session token and
@@ -76,7 +76,7 @@
 				</li>
 			</ol>
 
-			<h2 class="mt-4 mb-2">Testing Multi-User Isolation</h2>
+			<h3 class="text-xs tracking-widest font-bold text-gray-700 uppercase mt-4 mb-2">Testing Multi-User Isolation</h3>
 			<p>To test row-level security:</p>
 			<ol class="leading-relaxed">
 				<li>Register a second user (<a href="/register" class="bracket-link">/register</a>)</li>
