@@ -111,22 +111,22 @@
 	</section>
 
 	<section id="data-export" class="border-t border-black" style="scroll-margin-top: 2.5rem;">
-		<SectionHeader title="CSV EXPORT — SELECT WHAT TO EXPORT" />
+		<SectionHeader title="1 · CSV EXPORT — SELECT WHAT TO EXPORT" />
 		<ExportPanel accounts={data.accounts} />
 	</section>
 
 	<section id="data-history" class="border-t border-black" style="scroll-margin-top: 2.5rem;">
-		<SectionHeader title="HISTORY CSV — EXPENSES / INCOME MONTHS" />
+		<SectionHeader title="2 · HISTORY CSV — EXPENSES / INCOME MONTHS" />
 		<HistoryImportWizard {form} />
 	</section>
 
 	<section id="data-reimport" class="border-t border-black" style="scroll-margin-top: 2.5rem;">
-		<SectionHeader title="CSV REIMPORT — EDIT / DELETE / RESTORE" />
+		<SectionHeader title="3 · CSV REIMPORT — EDIT / DELETE / RESTORE" />
 		<ReimportWizard {form} />
 	</section>
 
 	<section id="data-bulk" class="border-t border-black" style="scroll-margin-top: 2.5rem;">
-		<SectionHeader title="BULK BANK IMPORT — MONZO / MAPPED COLUMNS" />
+		<SectionHeader title="4 · BULK BANK IMPORT — MONZO / MAPPED COLUMNS" />
 		<BulkImportWizard accounts={data.accounts} {form} />
 	</section>
 
