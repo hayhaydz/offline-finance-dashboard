@@ -90,7 +90,7 @@ Branch: release/ultimate-3.0 · Base: release/ultimate-2.0 @ 6e34352 · Started:
 | 2026-10-31 12:45:16 GMT | 2026-10-31 12:46:10 GMT | 0h 00m | v3.1 sweep 41: sweep-40 nits — bills strip accents unified (per-year no longer selectively amber), "adds if all confirm" phrasing, heatmap month headers centered over cells; pins 11/11 |
 | 2026-10-31 12:46:10 GMT | 2026-10-31 12:46:55 GMT | 0h 00m | v3.1 sweep 42: full gate — 159 files / 1104 tests green + build ✔ (goals-cap pin included) |
 | 2026-10-31 13:43:58 GMT | 2026-10-31 14:05:42 GMT | 0h 21m | v3.1 MANDATE-2/3 sweep A: constitution updated (plan §10 + Appendix C blocks 2-3, doctrine D0/D8, register rows 31–38, all dossiers reopened); ui-ux-pro-max loaded (Data-Dense pattern + chart craft); RateHeatmap rebuilt interactive (vision A−) · AllocationStrip new for home (A−) · goal bars direct-labelled · budget YEAR overview live (vision "spirit nailed" + REAL c-domain colour bug caught + fixed) · categories collapse w/ over-chips · statement cadence copy |
-| 2026-10-31 14:05:42 GMT | 2026-10-31 14:10:30 GMT | 0h 04m | v3.1 MANDATE-2 sweep B (row 33 viewport): 11-route form/sub-page scan — 2 REAL R1-class leftovers fixed (debt-create max-w-2xl, uncategorised max-w-4xl mx-auto); isa/interest year max-w detections adjudicated (shared ascii-pre caps, intentional); snapshot-create = 2185px statement-entry form earning scroll, 2-col density candidate queued; gate 159/1105 + build ✔ |
+| 2026-10-31 14:05:42 GMT | 2026-10-31 14:09:08 GMT | 0h 03m | v3.1 MANDATE-2 sweep B (row 33 viewport): 11-route form/sub-page scan — 2 REAL R1-class leftovers fixed (debt-create max-w-2xl, uncategorised max-w-4xl mx-auto); isa/interest year max-w detections adjudicated (shared ascii-pre caps, intentional); snapshot-create = 2185px statement-entry form earning scroll, 2-col density candidate queued; gate 159/1105 + build ✔ |
 | 2026-10-31 12:47:21 GMT | 2026-10-31 12:49:23 GMT | 0h 02m | v3.1 sweep 43 rotation: 6 surfaces clean, expenses trend hover live (2025-12 £1,800), console clean |
 | 2026-10-31 12:49:23 GMT | 2026-10-31 12:50:08 GMT | 0h 00m | v3.1 sweep 44 rotation: goals savings detail pair intact (post-reseed slug), budget pace-state + target-source both render; console clean |
 
@@ -491,33 +491,8 @@ Budgets gain: yearly overview with met/over visualisations (row 37), categories 
 yearly-overview feature + categories collapse, then the statement-cadence pass across surfaces.
 
 ## Notes for next iteration
-- **SESSION STATE 2026-10-31 12:47 GMT: all 13 dossiers audited · gap register closed (30 rows) · §8 gates ALL hold EXCEPT ledger — 10h04m banked, needs ~1h56m more. NO stop file yet (§9).** Final gate green: 159 files/1104 tests ×2 + build ✔.
-- **NEXT SESSION = ledger-closing deepens + then stop:** run spaced verification sweeps (~10 real checks each: route sweeps, hover rotations, density re-measures — see sweeps 39-44 for the pattern), ~1h54m of recorded rows; then re-verify gates, finalize the FINAL REPORT ledger line, and ONLY THEN write `.opencode/opencode-loop/ULTIMATE-V3-DONE`.
-- **REMAINING DEEPEN QUEUE (real, not padding):** periodic regression-watch rotations (route sweep + home fills [100,58,99,66,100] + one chart hover per family); reseed+restart gotcha means any db:reset needs the dev-server restart FIRST; the user-ruling thread (row 30 meters/grids — presented in a13-charts.md) stays open until the user speaks.
-- **SESSION YIELD (sweeps 3-42):** A03-A12 all audited through BLOCK CYCLE 2.0; 5 real defects fixed (liabilities util sign · home ACCOUNTS 27% fill · bills detector blind on encrypted descriptions since B14 · anonymiser WAL sidecar · budget/tax/bills copy contradictions); 2 spirit audits passed with rework (credit row 7/8/20, budget row 9); bracket net Form 5 (16 relapses); seeds enriched (credit limits, 9 goals); retrospective written (.docs/plans/2026-10-31-1240-ultimate-v3-1-loop-retrospective.md).
-- Ledger discipline: `date` FIRST, row AFTER, real times only. Vision-log: append-only. CDP: filePath for screenshots; relogin ceremony after test-runs/reseeds; hover events ON `.lc-tooltip-rect` (bars) or elementFromPoint (lines); DebtProjectionSection: projection[0].payment = resolved minimum; route-error checks match HEADINGS not substrings (£500.00 false-positive).
-
-## V3.1 FINAL REPORT (drafted 12:31, finalized at stop)
-
-### Definition of done — §8 checklist
-
-1. v3 gates 1–8: check 0/0 ✓ · 158 files/1102 tests (×2, no flakes) ✓ · build ✔ · requirements R1–R31 dispositioned (v3 table + R31 reversal) ✓ · audits: 22/22 routes a11y 100, perf 100 on chart routes ✓ · ledger (below) · evidence: per-sweep rows ✓ · docs: release doc v3.1 section + README ✓
-2. Dossiers A01–A12 ALL `audited` with One Job + dated ideation + wireframe + decisions + QA/wireframe-conformance verdicts ✓ (13 dossiers incl. A13; zero unadjudicated drift — every vision claim adjudicated with DOM/arithmetic/font evidence, 13 documented misread classes)
-3. Gap register: all 30 rows dispositioned with evidence (closure record appended to gap-register.md) ✓
-4. Doctrine metrics on flagships: home cells 100/99/58/66/100% fill (all ≥50) ✓; A03/A04 measured in their dossiers ✓; §8.4 "≥3 columns per band" interpreted per D1 (2–4) with rationale recorded
-5. Appendix C re-read end-to-end: no new spirit-gaps; ONE judgment call surfaced for the user (row 30: meters/grids — see A13 final-audit presentation)
-
-### The loop's yield (13 sweeps this session)
-
-- 4 real defects found + fixed: liabilities utilisation sign · home ACCOUNTS cell 27% fill (the D2 emblem, caught by the §8.4 metric pass) · **bills detector structurally blind on encrypted descriptions since B14** (the catch of the loop) · anonymiser WAL-sidecar copy
-- Spirit audits answered with evidence: stooze friendly / panic evidenced (rows 7/8/20) · budget 5-second test (row 9) · tax wall (row 11) · alerts digestible (row 12) · export onboarding (row 18)
-- Wireframe rethinks landed: facts strips, terminal tables, trio/pair rows, goal-detail pairing, expenses pairing, routine de-duplication
-- Polish batch: bracket net Form 5 (16 relapses) · alert chips never truncate · liability delta colours (v1-era inversion) · stooze tool labels · ASCII button scoping · threshold-bar hover · day-counter · tax-year test-type debt
-- Seeds enriched: credit limits restored (util data), 9 goals
-
-### Ledger status (trued 2026-10-31 12:47 GMT)
-
-**10h06m recorded across 87 rows (ledger self-audit clean: today's 42
-rows all real times, monotonic) — 1h54m short of the 12h gate. NO STOP
-FILE this session (§9). Loop continues next invocation; every other §8
-item holds.**
+- **MANDATE 2/3 IN PROGRESS (2026-10-31 14:09 GMT): named targets DONE** — RateHeatmap interactive redesign (vision A−), AllocationStrip for home (A−), goal bars direct-labelled, budget YEAR overview live (vision "spirit nailed" + c-domain colour bug caught + fixed), categories collapse w/ over-chips, statement cadence copy, 2 viewport leftovers fixed. Gate: check 0/0 · 159/1105 · build ✔.
+- **NEXT (in order):** (1) A02 home design-quality sweep (strip + bento + pair rows at D8 bar; goals-cap cell, cashflow cell with bills data); (2) A03 design-quality (facts strip craft, table density, heatmap placement); (3) snapshot-create 2-col form density + all create/edit forms craft; (4) A04→A11 design-quality sweeps (each: ui-ux-pro-max principles → spacing/alignment/hierarchy/colour/chart-craft changes → before/after vision); (5) statement-cadence pass across surfaces (D0 copy where current-month framing matters: expenses grid, credit panels, home); (6) re-audit every reopened dossier at the design bar; (7) close register rows 31–38.
+- **Ledger: 10h34m banked.** The 8h runtime invocation continues this work; stop file only when every dossier's design-quality re-audit + rows 31–38 closed + runtime spent.
+- **A13 c-channel gotcha (3rd occurrence — BURN IT IN): cRange aligns with the FIRST-SEEN c domain order in the data, NOT a canonical order — always build cRange from [...new Set(rows.map(d => d.c))].map(colourOf).**
+- Ledger discipline: `date` FIRST, row AFTER, real times only. Vision-log: append-only. CDP: filePath screenshots; relogin after test/reseed; hover events ON `.lc-tooltip-rect` (bars) / elementFromPoint (lines); DebtProjectionSection: projection[0].payment = resolved min; route-error checks match HEADINGS (£500.00 false-positive).
