@@ -47,7 +47,12 @@
 	{#if top.length === 0}
 		<div class="text-xs text-gray-500 p-2 text-center">[no categorised spending]</div>
 	{:else if browser}
-		<div class="font-mono text-[10px]" data-interactive-chart="category-bars">
+		<div
+			class="font-mono text-[10px]"
+			data-interactive-chart="category-bars"
+			role="img"
+			aria-label="Top spending categories as horizontal bars, interactive; summary below"
+		>
 			<BarChart
 				data={rows}
 				y="name"

@@ -90,7 +90,12 @@
 			One snapshot ({points[0].date}) — {formatPence(first)}. Record another to draw a line.
 		</div>
 	{:else if browser}
-		<div class="font-mono text-[10px]" data-interactive-chart="net-worth">
+		<div
+			class="font-mono text-[10px]"
+			data-interactive-chart="net-worth"
+			role="img"
+			aria-label="Net worth line over all snapshots, interactive; summary below"
+		>
 			<LineChart
 				data={rows}
 				x="date"

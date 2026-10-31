@@ -62,7 +62,12 @@
 	{#if points.length === 0}
 		<div class="text-xs text-gray-500 p-2 text-center">[no spending data]</div>
 	{:else if browser}
-		<div class="font-mono text-[10px]" data-interactive-chart="monthly-spend">
+		<div
+			class="font-mono text-[10px]"
+			data-interactive-chart="monthly-spend"
+			role="img"
+			aria-label="Spending columns per month with average reference, interactive; summary below"
+		>
 			<BarChart
 				data={rows}
 				x="month"

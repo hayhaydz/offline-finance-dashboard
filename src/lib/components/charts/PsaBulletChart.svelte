@@ -80,7 +80,12 @@
 
 <ChartPanel title="Personal savings allowance" {summary}>
 	{#if browser}
-		<div class="font-mono text-[10px]" data-interactive-chart="psa-bullet">
+		<div
+			class="font-mono text-[10px]"
+			data-interactive-chart="psa-bullet"
+			role="img"
+			aria-label="Taxable interest bullet against the personal savings allowance, interactive; summary below"
+		>
 			<BarChart
 				data={[row]}
 				y="row"

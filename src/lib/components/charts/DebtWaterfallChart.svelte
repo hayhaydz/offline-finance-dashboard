@@ -80,7 +80,12 @@
 	{#if n === 0}
 		<div class="text-xs text-gray-500 p-2 text-center">[no debt goals]</div>
 	{:else if browser}
-		<div class="font-mono text-[10px]" data-interactive-chart="debt-waterfall">
+		<div
+			class="font-mono text-[10px]"
+			data-interactive-chart="debt-waterfall"
+			role="img"
+			aria-label="Debt payoff waterfall steps in snowball order, interactive; summary below"
+		>
 			<BarChart
 				data={rows}
 				y="label"

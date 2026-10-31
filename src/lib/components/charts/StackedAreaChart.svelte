@@ -85,7 +85,12 @@
 			One snapshot ({points[0].date}) — two or more draw the bands.
 		</div>
 	{:else if browser}
-		<div class="font-mono text-[10px]" data-interactive-chart="assets-liabilities">
+		<div
+			class="font-mono text-[10px]"
+			data-interactive-chart="assets-liabilities"
+			role="img"
+			aria-label="Assets band above zero versus liabilities band below zero, interactive; summary below"
+		>
 			<AreaChart
 				data={rows}
 				x="date"
