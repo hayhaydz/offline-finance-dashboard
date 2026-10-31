@@ -141,9 +141,15 @@
 	});
 </script>
 
-<div class="border-b border-black p-2">
-	<h1 class="text-lg font-bold mb-2 mt-0">EDIT ACCOUNT</h1>
-	<p class="text-gray-600 my-1 truncate">Update account details for {data.account.name}</p>
+<div class="border-b border-black p-2 flex justify-between items-center gap-2">
+	<div class="min-w-0">
+		<h1 class="text-lg font-bold mb-0 mt-0">EDIT ACCOUNT</h1>
+		<p class="text-gray-600 my-0 text-xs truncate">Update account details for {data.account.name}</p>
+	</div>
+	<div class="flex gap-2 shrink-0">
+		<button type="submit" form="account-edit-form" class="bracket-link">Update Account</button>
+		<a href="/accounts/{data.account.slug}" class="bracket-link">Cancel</a>
+	</div>
 </div>
 
 <form
@@ -155,8 +161,11 @@
 			await update();
 		};
 	}}
-	class="border-b border-black p-2"
+	class="p-2"
+	id="account-edit-form"
 >
+	<!-- v3.1 third-mandate: 2-col field ledger (was a vertical stack) -->
+	<div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 border border-black p-3">
 	<FormField
 		bind:this={nameField}
 		label="Account Name"
@@ -238,20 +247,11 @@
 		<p class="text-xs text-gray-500 mt-1">The real-world date this account was opened (not the date added to the dashboard).</p>
 	</div>
 
+	</div>
+
 	{#if form?.error}
 		<p class="text-red-700 font-bold my-2">{form.error}</p>
 	{/if}
-
-	<div class="mt-4 mb-2">
-		<button
-			type="submit"
-			class="bracket-link"
-			onclick={() => devLogClient('account-edit', 'Submit button clicked', { isFormValid })}
-		>
-			Update Account
-		</button>
-		<a href="/accounts/{data.account.slug}" class="bracket-link ml-2">Cancel</a>
-	</div>
 </form>
 
 <div class="p-2">

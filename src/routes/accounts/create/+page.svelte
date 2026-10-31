@@ -151,9 +151,15 @@
 	});
 </script>
 
-<div class="border-b border-black p-2">
-	<h1 class="text-lg font-bold mb-2 mt-0">CREATE ACCOUNT</h1>
-	<p class="text-gray-600 my-1">Add a new financial account to track</p>
+<div class="border-b border-black p-2 flex justify-between items-center">
+	<div>
+		<h1 class="text-lg font-bold mb-0 mt-0">CREATE ACCOUNT</h1>
+		<p class="text-gray-600 my-0 text-xs">Add a new financial account to track</p>
+	</div>
+	<div class="flex gap-2">
+		<button type="submit" form="account-create-form" class="bracket-link">Create Account</button>
+		<a href="/accounts" class="bracket-link">Cancel</a>
+	</div>
 </div>
 
 <form
@@ -165,10 +171,13 @@
 		};
 	}}
 	class="p-2"
+	id="account-create-form"
 >
 	<input type="hidden" name="type" value={type} />
 	<input type="hidden" name="taxWrapper" value={taxWrapper} />
 
+	<!-- v3.1 third-mandate: 2-col field ledger (was a vertical stack) -->
+	<div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 border border-black p-3">
 	<FormField
 		bind:this={nameField}
 		label="Account Name"
@@ -258,19 +267,9 @@
 		inputmode="numeric"
 		autocomplete="off"
 	/>
+	</div>
 
 	{#if form?.error}
 		<p class="text-red-700 font-bold my-2">{form.error}</p>
 	{/if}
-
-	<div class="mt-4 mb-2">
-		<button
-			type="submit"
-			class="bracket-link"
-			onclick={() => devLogClient('account-create', 'Submit button clicked', { isFormValid })}
-		>
-			Create Account
-		</button>
-		<a href="/accounts" class="bracket-link ml-2">Cancel</a>
-	</div>
 </form>
