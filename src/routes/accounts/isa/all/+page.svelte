@@ -47,8 +47,8 @@
      gray band + unboxed table violated the inset-panel system. -->
 <div class="p-2">
 	<div class="border border-black">
-		<div class="bg-gray-100 p-2 font-bold border-b border-black flex justify-between items-center">
-			<span>ISA USAGE HISTORY</span>
+		<div class="bg-gray-100 p-2 border-b border-black flex justify-between items-center">
+			<h1 class="text-base font-bold m-0">ISA USAGE HISTORY</h1>
 			<a href="/accounts" class="bracket-link text-xs font-normal">Back to Accounts</a>
 		</div>
 

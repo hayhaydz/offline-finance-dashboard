@@ -139,8 +139,8 @@
 	});
 </script>
 
-<div class="bg-gray-100 p-2 font-bold border-b border-black flex justify-between items-center">
-	<span>BUDGET HISTORY</span>
+<div class="bg-gray-100 p-2 border-b border-black flex justify-between items-center">
+	<h1 class="text-base font-bold m-0">BUDGET HISTORY</h1>
 	<a href="/overview/budgets" class="bracket-link text-xs">Current Month</a>
 </div>
 

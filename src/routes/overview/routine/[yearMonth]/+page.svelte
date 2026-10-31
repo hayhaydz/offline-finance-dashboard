@@ -46,7 +46,7 @@
 <div class="font-bold flex justify-between items-center bg-gray-100 border-b border-black p-2">
 	<div class="flex items-center gap-2">
 		<a href="/overview/routine" class="bracket-link text-xs">Reviews</a>
-		<span>/ {label.toUpperCase()}</span>
+		<h1 class="text-base font-bold m-0">/ {label.toUpperCase()}</h1>
 	</div>
 	{#if isCurrentMonth}
 		<span class="text-xs text-gray-500">Current month</span>
