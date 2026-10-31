@@ -75,20 +75,9 @@
 	</div>
 {/if}
 
-<!-- SNAPSHOTS LIST SECTION (v3.1 third-mandate: the old vertical table
-     never used the viewport — snapshots are RECORDS, so render them as a
-     grid of statement cards, 4-wide at desktop) -->
-<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-	<span class="text-xs text-gray-600">
-			{#if data.staleness}
-				<span class={data.staleness.cssClass}>●</span> {data.staleness.label}
-			{:else}
-				No snapshots yet
-			{/if}
-		</span>
-	<a href="/overview/snapshots/create" class="bracket-link text-xs">+ Create Snapshot</a>
-</div>
-
+<!-- v3.1 third-mandate: the summary strip already carries freshness +
+     the create action — this duplicate header band is removed (two red
+     dots, two [+ Create Snapshot], stacked rules) -->
 <div class="p-2">
 	{#if data.snapshots.length === 0}
 		<p class="text-gray-600 text-xs">
