@@ -352,7 +352,7 @@
 			</thead>
 			<tbody use:listnav>
 				{#snippet accountRow(account: (typeof data.accounts)[number])}
-					<tr class="border-b border-gray-200 last:border-b-0" data-nav-row>
+					<tr class="border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors duration-150" data-nav-row>
 						<td class="pl-3 text-sm py-2 whitespace-nowrap">
 							<a href="/accounts/{account.slug}" class="bracket-link" class:line-through={account.closedAt}>{truncateDisplay(account.name, DISPLAY_LIMITS.ACCOUNT_NAME)}</a>
 							{#if account.closedAt}

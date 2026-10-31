@@ -71,7 +71,7 @@
   {#each liabilities as liability (liability.id)}
     {@const ttz = ttzText(liability)}
     {@const status = statusLabel(liability)}
-    <tr class="border-b border-gray-200 last:border-b-0 hover:bg-gray-50">
+    <tr class="border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors duration-150">
       <td class="pl-3 text-sm py-2 whitespace-nowrap">
         <a href="/accounts/{liability.slug}" class="bracket-link">{liability.name}</a>
       </td>
