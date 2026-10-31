@@ -58,7 +58,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 			const ttz = calculateTTZ(Math.abs(balance), currentRate, rule);
 			const projectionNullReason = getProjectionNullReason(ttz.months, rule);
 			const utilization = account.creditLimit
-				? ((balance / account.creditLimit) * 100).toFixed(1)
+				? ((Math.abs(balance) / account.creditLimit) * 100).toFixed(1)
 				: null;
 			const progress = account.originalPrincipal
 				? (
