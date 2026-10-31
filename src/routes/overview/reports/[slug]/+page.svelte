@@ -115,10 +115,16 @@
 		     bento h-full stretch here so grid rows reflow with content. -->
 		{#if report.findings}
 			{@const tableSections = report.findings.filter((s) => !s.figure && (s.rows?.length ?? 0) > 0).length}
+			{@const tableIdxs = report.findings.map((s, i) => (!s.figure && (s.rows?.length ?? 0) > 0 ? i : -1)).filter((i) => i >= 0)}
+			{@const lastTableIdx = tableIdxs.length > 0 && tableIdxs.length % 2 === 1 ? tableIdxs[tableIdxs.length - 1] : -1}
 			<div class="grid md:grid-cols-2 md:divide-x md:divide-gray-300 [&_figure.chart-panel]:h-auto">
 			{#each report.findings as section, i (section.heading)}
+				<!-- v3.1 A09 D2 fix: an ODD number of half-width table sections
+				     leaves the right column dead below the last pairing
+				     (savings-rate's RUNWAY hugged bottom-left w/ a ~600px
+				     hole beside it) — the final table of an odd run spans 2 -->
 				<section
-					class="{i > 0 ? 'border-t' : ''} {section.figure || tableSections < 2 ? 'md:col-span-2 md:border-t' : ''} border-black p-2"
+					class="{i > 0 ? 'border-t' : ''} {section.figure || tableSections < 2 || i === lastTableIdx ? 'md:col-span-2 md:border-t' : ''} border-black p-2"
 				>
 					<h2 class="font-bold text-xs mb-2 uppercase">{section.heading}</h2>
 
