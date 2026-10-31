@@ -103,15 +103,16 @@
 		</table>
 	</div>
 
-	<div class="border-t border-gray-300 pt-2 grid grid-cols-2 gap-x-4 gap-y-1">
+	<div class="border-t border-gray-300 pt-2 grid grid-cols-2 gap-x-4 gap-y-1 items-baseline">
 		<span class="text-gray-500">forecast taxable ({data.taxYearLabel})</span>
-		<span class="text-right">{formatCurrency(data.forecastTaxableInterestInCents)}</span>
+		<span class="text-right tabular-nums">{formatCurrency(data.forecastTaxableInterestInCents)}</span>
 		<span class="text-gray-500">tax today</span>
-		<span class="text-right">{formatCurrency(taxSavedNow)}</span>
+		<span class="text-right tabular-nums">{formatCurrency(taxSavedNow)}</span>
 		<span class="text-gray-500">tax after move</span>
-		<span class="text-right">{formatCurrency(Math.max(0, taxSavedNow - taxSavedAfterMove))}</span>
-		<span class="text-gray-500">saved</span>
-		<span class="text-right font-bold text-green-700">{formatCurrency(taxSavedAfterMove)}</span>
+		<span class="text-right tabular-nums">{formatCurrency(Math.max(0, taxSavedNow - taxSavedAfterMove))}</span>
+		<!-- v3.1 A09 craft: the RESULT is the answer — make it the loudest row -->
+		<span class="font-bold uppercase text-[10px]">saved</span>
+		<span class="text-right text-lg font-bold text-green-700 tabular-nums">{formatCurrency(taxSavedAfterMove)}</span>
 	</div>
 
 	<p class="text-gray-600">

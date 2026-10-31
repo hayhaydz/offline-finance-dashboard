@@ -253,3 +253,37 @@ td {
 		box-shadow: none !important;
 	}
 }
+
+/* v3.1 A09 tool craft: terminal range sliders (default UA chrome broke
+   the mono/black language on tool inputs) */
+input[type="range"] {
+	appearance: none;
+	height: 1rem;
+	background: transparent;
+	cursor: pointer;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+	height: 4px;
+	background: #e5e7eb;
+	border: 1px solid #111827;
+}
+input[type="range"]::-webkit-slider-thumb {
+	appearance: none;
+	margin-top: -7px;
+	width: 10px;
+	height: 16px;
+	background: #111827;
+	border: 1px solid #111827;
+}
+input[type="range"]::-moz-range-track {
+	height: 4px;
+	background: #e5e7eb;
+	border: 1px solid #111827;
+}
+input[type="range"]::-moz-range-thumb {
+	width: 10px;
+	height: 16px;
+	background: #111827;
+	border: 1px solid #111827;
+	border-radius: 0;
+}
