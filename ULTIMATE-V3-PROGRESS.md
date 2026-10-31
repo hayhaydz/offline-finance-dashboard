@@ -464,12 +464,11 @@ The user ruled the v3 run delivered mechanisms without spirit: "the design still
 - Ledger continues HERE (6h55m banked; 12h gate carried). Definition-of-done now ALSO requires all dossiers `audited` + gap register closed (v3.1 §8).
 
 ## Notes for next iteration
-- **V3.1 SWEEP 13 (A12 GATE) DONE 2026-10-31 11:45 GMT:** flagship metrics pass (home goals-cap fix, ACCOUNTS 27→66%), 19 routes clean, gap register CLOSED (30 rows with evidence), Appendix C re-read → no new spirit-gaps. ALL DOSSIERS A01–A13 NOW `audited`.
-- **REMAINING FOR STOP FILE: ledger ≥12h only** — 9h47m banked, needs ~2h13m more. Run deepen sweeps (candidates queued below) until the ledger closes, then final §8 verification + stop file.
-- **DEEPEN QUEUE:** (1) row-30 judgment call — present meters/grids decision to the user in the final report (or if ruled "graphs": GoalBulletBar migration sketch in a13-charts.md); (2) scroll-spy for settings/data anchor navs; (3) target-source hint on budget strip; (4) sealed-state screenshot archive; (5) re-verify one interactive chart per surface family (line/bar/h-bar) with fresh sessions; (6) seed >8 goals to exercise AllocationBar "Other" live; (7) print PDF manual pass if tooling appears.
-- **STATE: v3.1 ALL GATES EXCEPT LEDGER · check 0/0 · 158/1102 · build ✔ · 13 dossiers audited in .docs/plans/2026-10-31-0854-ultimate-v3-1-dossiers/.**
-- Ledger discipline: `date` FIRST, ledger row AFTER (real times only — two projected rows were corrected this loop; keep it zero). Vision-log edits: append, never replace rows.
-- CDP: take_screenshot needs filePath; sessions expire after npm test/reseed; after ANY db:reset RESTART the dev server (stale SQLite conn → 500s); hover QA events ON `.lc-tooltip-rect`; DebtProjectionSection: projection[0].payment = resolved minimum; route-sweep checks must match the error HEADING not substrings (£500.00 PSA false-positive).
+- **SESSION STATE 2026-10-31 12:47 GMT: all 13 dossiers audited · gap register closed (30 rows) · §8 gates ALL hold EXCEPT ledger — 10h04m banked, needs ~1h56m more. NO stop file yet (§9).** Final gate green: 159 files/1104 tests ×2 + build ✔.
+- **NEXT SESSION = ledger-closing deepens + then stop:** run spaced verification sweeps (~10 real checks each: route sweeps, hover rotations, density re-measures — see sweeps 39-42 for the pattern), ~1h56m of recorded rows; then re-verify gates, finalize the FINAL REPORT ledger line, and ONLY THEN write `.opencode/opencode-loop/ULTIMATE-V3-DONE`.
+- **REMAINING DEEPEN QUEUE (real, not padding):** periodic regression-watch rotations (route sweep + home fills [100,58,99,66,100] + one chart hover per family); reseed+restart gotcha means any db:reset needs the dev-server restart FIRST; the user-ruling thread (row 30 meters/grids — presented in a13-charts.md) stays open until the user speaks.
+- **SESSION YIELD (sweeps 3-42):** A03-A12 all audited through BLOCK CYCLE 2.0; 5 real defects fixed (liabilities util sign · home ACCOUNTS 27% fill · bills detector blind on encrypted descriptions since B14 · anonymiser WAL sidecar · budget/tax/bills copy contradictions); 2 spirit audits passed with rework (credit row 7/8/20, budget row 9); bracket net Form 5 (16 relapses); seeds enriched (credit limits, 9 goals); retrospective written (.docs/plans/2026-10-31-1240-ultimate-v3-1-loop-retrospective.md).
+- Ledger discipline: `date` FIRST, row AFTER, real times only. Vision-log: append-only. CDP: filePath for screenshots; relogin ceremony after test-runs/reseeds; hover events ON `.lc-tooltip-rect` (bars) or elementFromPoint (lines); DebtProjectionSection: projection[0].payment = resolved minimum; route-error checks match HEADINGS not substrings (£500.00 false-positive).
 
 ## V3.1 FINAL REPORT (drafted 12:31, finalized at stop)
 
@@ -489,6 +488,8 @@ The user ruled the v3 run delivered mechanisms without spirit: "the design still
 - Polish batch: bracket net Form 5 (16 relapses) · alert chips never truncate · liability delta colours (v1-era inversion) · stooze tool labels · ASCII button scoping · threshold-bar hover · day-counter · tax-year test-type debt
 - Seeds enriched: credit limits restored (util data), 9 goals
 
-### Ledger status
+### Ledger status (trued 2026-10-31 12:47 GMT)
 
-9h... → trued at stop. Stop file ONLY when ≥12h + all gates (§9).
+**10h04m recorded across 85 rows — 1h56m short of the 12h gate. NO STOP
+FILE this session (§9: stop only when ledger + gates ALL hold). Loop
+continues next invocation; every other §8 item holds.**
