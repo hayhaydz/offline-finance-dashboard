@@ -67,8 +67,10 @@
 </script>
 
 <main>
+	<!-- v3.1 border unification: inset panel frame -->
+	<div class="p-2 flex flex-col gap-2">
 	<!-- HEADER -->
-	<div class="border-b border-black bg-gray-100">
+	<div class="border border-black bg-gray-100">
 		<div class="flex justify-between items-center gap-4 p-2">
 			<span class="font-bold">EXPENSES HISTORY</span>
 			<span class="flex gap-3 text-xs">
@@ -85,7 +87,7 @@
 	</div>
 
 	<!-- ═══ TREND ═══ -->
-	<section class="border-b border-black">
+	<section class="border border-black">
 		<div class="font-bold bg-gray-50 border-b border-gray-300 p-2">TREND</div>
 		<div class="p-3">
 			<HistoryTrendChart points={trendPoints} formatAmount={compactAmount} />
@@ -93,7 +95,7 @@
 	</section>
 
 		<!-- ═══ YEAR × MONTH GRID ═══ -->
-	<section class="border-b border-black">
+	<section class="border border-black">
 		<div class="font-bold bg-gray-50 border-b border-gray-300 p-2">
 			GRID <span class="text-xs text-gray-600 font-normal">(click a month to edit)</span>
 		</div>
@@ -298,5 +300,6 @@
 			</p>
 		</div>
 	</section>
+	</div>
 	</div>
 </main>
