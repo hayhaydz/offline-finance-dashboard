@@ -129,13 +129,17 @@ export async function checkDebtPayoffAlerts(userId: number): Promise<Alert[]> {
 			),
 		);
 
-	// Group payments per account and compute average (payments reduce debt, so amount < 0 for liabilities)
+	// Group payments per account and compute average.
+	// v3.1 third-mandate fix: on LIABILITY accounts payments are POSITIVE
+	// (money into the card reduces the negative balance; charges are
+	// negative). The old `amount < 0` filter read CHARGES as payments —
+	// with real conventions this alert could never fire on actual
+	// payments (same inverted-seam class as the payoff-history filter).
 	const accountPayments = new Map<number, number[]>();
 	for (const row of paymentRows) {
-		// For liability accounts, payments reduce the balance (negative amounts)
-		if (row.amount < 0) {
+		if (row.amount > 0) {
 			const existing = accountPayments.get(row.accountId) ?? [];
-			existing.push(Math.abs(row.amount));
+			existing.push(row.amount);
 			accountPayments.set(row.accountId, existing);
 		}
 	}

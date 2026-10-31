@@ -112,8 +112,11 @@ export function getDefaultMonthlyPayment(
 /**
  * Calculate the average payment amount from recent transaction history.
  *
- * Only considers negative-amount transactions (payments toward debt)
- * within the last `monthsToConsider` months.
+ * v3.1 third-mandate fix: on LIABILITY accounts, PAYMENTS are POSITIVE
+ * amounts (money into the card reduces the negative balance) and charges
+ * are negative — the old `amount < 0` filter averaged CHARGES as
+ * "payments" (the same inverted-seam class the payoff-history filter
+ * had; schema + live data both confirm the convention).
  *
  * @returns  Average payment in pence, or null when no qualifying payments exist
  */
@@ -125,7 +128,7 @@ export function calculateRecentAveragePayment(
 	cutoffDate.setMonth(cutoffDate.getMonth() - monthsToConsider);
 
 	const recentPayments = transactions.filter(
-		(t) => t.amount < 0 && t.createdAt >= cutoffDate,
+		(t) => t.amount > 0 && t.createdAt >= cutoffDate,
 	);
 
 	if (recentPayments.length === 0) {

@@ -95,18 +95,18 @@ describe("Debt metrics calculations", () => {
 	});
 
 	describe("calculateRecentAveragePayment", () => {
-		it("should calculate average of recent payments", () => {
+		it("should calculate average of recent payments (positive amounts on liability accounts)", () => {
 			const transactions = [
-				{ amount: -20000, createdAt: new Date() },
-				{ amount: -30000, createdAt: new Date() },
+				{ amount: 20000, createdAt: new Date() },
+				{ amount: 30000, createdAt: new Date() },
 			];
 			const result = calculateRecentAveragePayment(transactions);
 			expect(result).toBe(25000);
 		});
 
-		it("should return null when no recent payments", () => {
+		it("should return null when no recent payments (charges are negative)", () => {
 			const transactions = [
-				{ amount: 10000, createdAt: new Date() }, // positive = not a payment
+				{ amount: -10000, createdAt: new Date() }, // charge = not a payment
 			];
 			const result = calculateRecentAveragePayment(transactions);
 			expect(result).toBeNull();
