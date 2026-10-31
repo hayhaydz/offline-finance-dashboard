@@ -67,7 +67,7 @@
 								{@const typeLabels: Record<string, string> = { 'savings': 'SAVINGS', 'current': 'CURRENT', 'investment': 'INVESTMENT', 'credit-card': 'CREDIT CARD', 'loan': 'LOAN', 'mortgage': 'MORTGAGE' }}
 								<span class="text-xs border px-1 shrink-0 {isLiability ? 'text-red-700 border-red-300' : 'text-zinc-600 border-zinc-300'}">{typeLabels[alert.accountType] ?? alert.accountType.toUpperCase()}</span>
 							{/if}
-							{#if alert.accountName}
+							{#if alert.accountName && !group.title.includes(alert.accountName)}
 								<span class="text-xs font-bold text-zinc-700">{alert.accountName}</span>
 								<span class="text-zinc-600 text-xs">—</span>
 							{/if}

@@ -24,6 +24,7 @@
 	const truncated = $derived(maxItems ? Math.max(0, groups.length - maxItems) : 0);
 	const redCount = $derived(alerts.filter((a) => a.severity === 'red').length);
 	const amberCount = $derived(alerts.filter((a) => a.severity === 'amber').length);
+	const infoCount = $derived(alerts.filter((a) => a.severity !== 'red' && a.severity !== 'amber').length);
 </script>
 
 {#if alerts.length > 0}
@@ -39,6 +40,11 @@
 				{/if}
 				{#if amberCount > 0}
 					<span class="text-amber-700 text-xs">[!{amberCount}]</span>
+				{/if}
+				<!-- v3.1: the info count completes the rollup — 9+12+6=27 read
+				     as "6 alerts unaccounted for" without it -->
+				{#if infoCount > 0}
+					<span class="text-zinc-600 text-xs">[i{infoCount}]</span>
 				{/if}
 			</span>
 			<span class="text-xs text-zinc-600">{open ? '[-]' : '[+]'}</span>

@@ -82,7 +82,7 @@
 					<span class="text-xs text-gray-500 font-normal">
 						[
 						{#each emergencyFundMilestones as milestone, index}
-							<span class={milestone.achieved ? 'text-green-700' : 'text-gray-500'}>{milestone.label}</span
+							<span class={milestone.achieved ? 'text-green-700 font-bold' : 'text-gray-500'}>{milestone.label}</span
 							><span class="text-gray-500">{index < emergencyFundMilestones!.length - 1 ? ' ' : ''}</span>
 						{/each}
 						]

@@ -266,7 +266,7 @@
 		<table>
 			<thead>
 				<tr>
-					<th class="w-8 text-center border-r border-gray-200">[#]</th>
+					<th class="w-14 text-center border-r border-gray-200" title="Number of accounts of this type">Accts</th>
 					<th class="pl-2 text-left">Type</th>
 					<th class="text-right pr-2">Balance</th>
 					<th class="text-right pr-1">Updated</th>

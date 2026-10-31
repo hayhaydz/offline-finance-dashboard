@@ -74,7 +74,10 @@
 			{#if typeLabel}
 				<span class="text-xs border border-current px-1 shrink-0 {alert.accountCategory === 'liability' ? 'text-red-700 border-red-300' : 'text-zinc-600 border-zinc-300'}">{typeLabel}</span>
 			{/if}
-			{#if alert.accountName}
+			{#if alert.accountName && !alert.title.includes(alert.accountName)}
+				<!-- v3.1: suppress when the alert title already names the account
+				     (e.g. "High-APR Card — debt growing") — the suffix duplicated
+				     the name with a truncation between the two copies -->
 				<span class="text-zinc-600 text-xs shrink-0" title={alert.accountName}>— {alert.accountName}</span>
 			{/if}
 			{#if isAcked}
