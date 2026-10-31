@@ -75,7 +75,7 @@
       <td class="pl-3 text-sm py-2 whitespace-nowrap">
         <a href="/accounts/{liability.slug}" class="bracket-link">{liability.name}</a>
       </td>
-      <td class="text-right pr-3 text-sm py-2 whitespace-nowrap tabular-nums text-red-700">
+      <td class="text-right pr-3 text-sm py-2 whitespace-nowrap tabular-nums {liability.balance < 0 ? 'text-red-700' : ''}">
         {formatCurrency(liability.balance)}
       </td>
       <td class="text-right pr-3 text-sm py-2 whitespace-nowrap tabular-nums">
