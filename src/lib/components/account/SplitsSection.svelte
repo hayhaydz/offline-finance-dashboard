@@ -24,9 +24,12 @@
 
 	let {
 		details,
+		cardBalancePence = null,
 		initiallyExpanded = true
 	}: {
 		details: ChargeDetail[];
+		/** live card balance — powers the reconciliation footer */
+		cardBalancePence?: number | null;
 		/** false = stooze/null mode: header + toggle only */
 		initiallyExpanded?: boolean;
 	} = $props();
@@ -34,11 +37,21 @@
 	let userToggle = $state<boolean | null>(null);
 	// null = follow the mode default; clicking overrides for this visit
 	const expanded = $derived(userToggle ?? initiallyExpanded);
+
+	// v3.1 third mandate: the tracked charges are ORIGINAL amounts; the
+	// card balance nets off confirmed payments/refunds — vision flagged
+	// the unreconciled £2,585 vs £2,315. State the bridge, don't hide it.
+	const trackedTotalPence = $derived(details.reduce((s, d) => s + d.amountPence, 0));
+	const reconcilesExactly = $derived(
+		cardBalancePence != null && details.length > 0
+			? Math.abs(Math.abs(cardBalancePence) - trackedTotalPence) <= 100
+			: false
+	);
 </script>
 
 <div class="border-b border-black">
 	<div class="font-bold flex justify-between items-center bg-gray-100 border-b border-black p-2">
-		<span>SPLITS — 0% PAY-OFF TRACKER</span>
+		<span>SPLITS — CHARGE PAY-OFF TRACKER</span>
 		<span class="text-xs font-normal text-gray-600 flex items-center gap-2">
 			{#if details.length && !expanded}
 				<span title="Planning detail hidden in stooze mode — the strategy panel keeps the summary. Toggle to plan a charge.">{details.length} charge{details.length === 1 ? '' : 's'} tracked</span>
@@ -68,7 +81,7 @@
 						<th class="text-right">Confirmed</th>
 						<th class="text-right">Per month</th>
 						<th class="text-right">Deadline</th>
-						<th class="text-right pr-1">If late</th>
+						<th class="text-right pr-1">Late cost</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -136,15 +149,18 @@
 							<td class="text-right text-sm tabular-nums py-2 whitespace-nowrap">
 								{formatDateShorthand(d.status.deadline)}
 							</td>
-							<td class="text-right pr-1 text-sm tabular-nums py-2 whitespace-nowrap">
-								{#if d.status.flexCostPence > 0}
-									<span class="text-red-700 font-bold">{formatCurrency(d.status.flexCostPence)}</span>
-								{:else if d.status.remainingPence > 0}
-									<span class="text-gray-500 text-xs">free until deadline</span>
-								{:else}
-									—
-								{/if}
-							</td>
+						<td class="text-right pr-1 text-sm tabular-nums py-2 whitespace-nowrap">
+							{#if d.status.flexCostPence > 0}
+								<span class="text-red-700 font-bold">{formatCurrency(d.status.flexCostPence)}</span>
+							{:else if d.status.remainingPence > 0}
+								<!-- v3.1: "free until deadline" under an "If late" header read as a
+								     contradiction — the column states the COST of missing the
+								     deadline; inside the 0% window that cost is £0 -->
+								<span class="text-gray-500 text-xs">£0 — inside 0% window</span>
+							{:else}
+								—
+							{/if}
+						</td>
 						</tr>
 					{/each}
 				</tbody>
@@ -152,8 +168,15 @@
 		</div>
 		<p class="p-2 text-xs text-gray-500 border-t border-gray-200">
 			[now] = clear with the next statement. [3mo] = split across 3 months — each month's
-			payments mark progress. Payments without a target pay the earliest deadline first.
-			Going past a deadline costs the card's normal APR on what's left.
+			payments mark progress. On track = confirmed payments keep the target reachable; behind =
+			the remaining months need more than average. Payments without a target pay the earliest
+			deadline first. Going past a deadline costs the card's normal APR on what's left.
+			{#if cardBalancePence != null && details.length > 0}
+				Tracked charges {formatCurrency(trackedTotalPence)}
+				{reconcilesExactly
+					? ` = card balance — nothing further on the card`
+					: ` vs card balance ${formatCurrency(Math.abs(cardBalancePence))} — difference = charges outside the tracker, payments and refunds`}
+			{/if}
 		</p>
 	{/if}
 </div>

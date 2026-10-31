@@ -323,7 +323,7 @@
 			/>
 		</div>
 		<div class="col-span-3 border border-black [&>*:last-child]:border-b-0">
-			<SplitsSection details={data.credit.chargeDetails} />
+			<SplitsSection details={data.credit.chargeDetails} cardBalancePence={data.currentBalance} />
 		</div>
 	</div>
 {:else if data.account.type === 'credit-card' && data.credit}
@@ -335,7 +335,7 @@
 	/>
 	<!-- v3.1 A05: stooze/null mode collapses the planning table (the
 	     strategy panel keeps the counts) — zero pressure by default -->
-	<SplitsSection details={data.credit.chargeDetails} initiallyExpanded={false} />
+	<SplitsSection details={data.credit.chargeDetails} cardBalancePence={data.currentBalance} initiallyExpanded={false} />
 {/if}
 
 <!-- DEBT PROJECTION SECTION — payoff assistance ONLY in panic mode
