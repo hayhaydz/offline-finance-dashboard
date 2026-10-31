@@ -44,3 +44,4 @@ logs/
 storage/backups
 
 *.DS_STORE.opencode/probe_subpages.js
+.opencode/*.png
