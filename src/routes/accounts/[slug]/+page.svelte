@@ -20,6 +20,22 @@
 
 	let { data, form }: { data: PageData; form: ActionData } = $props();
 
+	// v3.1 A05 design-quality: while a 0% promo runs, the header rate line
+	// (which shows the REVERT rate) gains the promo context — otherwise the
+	// screen says "Rate: 21.90%" next to "this balance costs nothing".
+	const promoNote = $derived.by(() => {
+		if (data.account.type !== 'credit-card' || !data.credit) return null;
+		const s = data.credit.stooze;
+		if (!s?.stoozing || !s.promoEndsAt) return null;
+		const revert =
+			data.account.revertAprBps != null
+				? `${(data.account.revertAprBps / 100).toFixed(2)}%`
+				: 'the revert rate';
+		const d = s.promoEndsAt;
+		const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+		return `0% promo until ${iso} · reverts to ${revert} after the window`;
+	});
+
 	// Tax year navigation for interest breakdown links
 	const currentYearSlug = $derived(
 		data.interestSummary
@@ -251,6 +267,7 @@
 	currentRate={data.currentRate}
 	boeBaseRate={data.boeBaseRate}
 	rateSpread={data.rateSpread}
+	promoNote={promoNote}
 	{balanceDelta1m}
 	{balanceDelta12m}
 	category={data.account.category}

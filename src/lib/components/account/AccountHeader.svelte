@@ -17,6 +17,7 @@
 		currentRate,
 		boeBaseRate,
 		rateSpread,
+		promoNote = null,
 		balanceDelta1m,
 		balanceDelta12m,
 		category,
@@ -34,6 +35,8 @@
 		currentRate: number | null;
 		boeBaseRate: number | null;
 		rateSpread: number | null;
+		/** v3.1 A05: 0%-promo context for stoozing cards (explains the revert rate) */
+		promoNote?: string | null;
 		balanceDelta1m: number | null;
 		balanceDelta12m: number | null;
 		category: string;
@@ -109,6 +112,14 @@
 			<div>{accountAge.monthLabel} · Age: {accountAge.years}y {accountAge.months}m</div>
 		{/if}
 	</div>
+	{#if promoNote}
+		<!-- v3.1 A05: reconcile the rate line with an active 0% window -->
+		<div class="text-xs mt-1 text-gray-600">
+			<span class="font-bold text-green-700">0% promo active</span>
+			<span class="text-gray-500 mx-1">·</span>
+			{promoNote}
+		</div>
+	{/if}
 	{#if rateSpread !== null && currentRate !== null && boeBaseRate !== null}
 		<div class="text-xs mt-1 text-gray-600">
 			Rate: {(currentRate / 100).toFixed(2)}%
