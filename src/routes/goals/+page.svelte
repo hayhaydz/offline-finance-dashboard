@@ -220,42 +220,59 @@ async function placeAtEnd() {
 	accounts={data.accounts}
 />
 
-<!-- READY TO ASSIGN SECTION -->
-<div class="border-b border-black bg-gray-50 p-2">
-	<div class="flex justify-between items-center mb-1">
-		<span class="text-xs tracking-widest font-bold">READY TO ASSIGN</span>
-		<span class="text-xs font-bold text-gray-900">{formatCurrency(data.readyToAssign)}</span>
+<!-- v3.1 A04: context trio — READY TO ASSIGN | GOAL ALERTS | Allocation
+     in one 3-col row (volumes 139/84/149 pair honestly; D1 density) -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-2 border-b border-black p-2">
+	<!-- READY TO ASSIGN -->
+	<div class="border border-black [&>*:last-child]:border-b-0">
+		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
+			<span>READY TO ASSIGN</span>
+			<span class="text-gray-900">{formatCurrency(data.readyToAssign)}</span>
+		</div>
+		<div class="p-2 text-xs text-gray-600">
+			<div class="mb-1">
+				{formatCurrency(data.liquidAssets)} instant-access cash - {formatCurrency(data.totalSavingsAllocated)} allocated to savings
+			</div>
+			{#if data.totalUnallocatedAssets !== data.readyToAssign}
+				<div class="text-[10px] text-gray-500 mb-1">
+					+ {formatCurrency(data.totalUnallocatedAssets - data.readyToAssign)} unallocated in delayed/locked accounts (bonds, investments)
+				</div>
+			{/if}
+			{#if data.totalLiabilities > 0}
+				<div class="border-t border-gray-300 pt-1">
+					<div class="flex justify-between items-center mb-1">
+						<span class="text-xs tracking-widest font-bold text-gray-700">DEBT TRACKING</span>
+					</div>
+					<div class="text-xs text-gray-600">
+						<div class="flex justify-between">
+							<span>Tracked by goals</span>
+							<span>{formatCurrency(data.totalDebtTracked)}</span>
+						</div>
+						<div class="flex justify-between">
+							<span>Untracked liabilities</span>
+							<span class="{data.totalDebtUntracked > 0 ? 'text-amber-700 font-bold' : ''}">{formatCurrency(data.totalDebtUntracked)}</span>
+						</div>
+					</div>
+				</div>
+			{/if}
+		</div>
 	</div>
-	<div class="text-xs text-gray-600 mb-2">
-		{formatCurrency(data.liquidAssets)} instant-access cash - {formatCurrency(data.totalSavingsAllocated)} allocated to savings
-	</div>
-	{#if data.totalUnallocatedAssets !== data.readyToAssign}
-		<div class="text-[10px] text-gray-500 mb-2">
-			+ {formatCurrency(data.totalUnallocatedAssets - data.readyToAssign)} unallocated in delayed/locked accounts (bonds, investments)
+
+	{#if data.alerts.length > 0}
+		<div class="border border-black [&>*:last-child]:border-b-0">
+			<AlertsSection alerts={data.alerts} title="GOAL ALERTS" viewAllHref="/alerts" />
 		</div>
 	{/if}
-	{#if data.totalLiabilities > 0}
-		<div class="border-t border-gray-300 pt-1">
-			<div class="flex justify-between items-center mb-1">
-				<span class="text-xs tracking-widest font-bold text-gray-700">DEBT TRACKING</span>
-			</div>
-			<div class="text-xs text-gray-600">
-				<div class="flex justify-between">
-					<span>Tracked by goals</span>
-					<span>{formatCurrency(data.totalDebtTracked)}</span>
-				</div>
-				<div class="flex justify-between">
-					<span>Untracked liabilities</span>
-					<span class="{data.totalDebtUntracked > 0 ? 'text-amber-700 font-bold' : ''}">{formatCurrency(data.totalDebtUntracked)}</span>
-				</div>
-			</div>
+
+	{#if goals.length > 0}
+		<div class="border border-black">
+			<AllocationBar
+				items={goals.map((g) => ({ name: g.name, value: Math.max(0, g.currentAllocation ?? 0) }))}
+				label="allocated"
+			/>
 		</div>
 	{/if}
 </div>
-
-{#if data.alerts.length > 0}
-	<AlertsSection alerts={data.alerts} title="GOAL ALERTS" viewAllHref="/alerts" />
-{/if}
 
 <!-- DEBT STRATEGY PANEL (shown when filtering by debt and strategy data exists) -->
 {#if filter === 'debt' && data.debtStrategyMetrics}
@@ -264,17 +281,6 @@ async function placeAtEnd() {
 		selectedStrategy={debtStrategy}
 		onStrategyChange={(s) => debtStrategy = s}
 	/>
-{/if}
-
-<!-- Phase 7 line 2: allocation view — share of total allocated money per goal
-     (v3 R6: full width, no max-w wrapper) -->
-{#if goals.length > 0}
-	<div class="mt-3">
-		<AllocationBar
-			items={goals.map((g) => ({ name: g.name, value: Math.max(0, g.currentAllocation ?? 0) }))}
-			label="allocated"
-		/>
-	</div>
 {/if}
 
 <!-- GOALS LIST SECTION -->
