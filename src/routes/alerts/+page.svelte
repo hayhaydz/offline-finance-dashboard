@@ -25,15 +25,16 @@
 	});
 </script>
 
-<div class="">
-	<div class="border-b border-black p-2 font-bold flex justify-between items-center gap-4 bg-white text-sm">
+<!-- v3.1 border unification: inset panel frame -->
+<div class="p-2 flex flex-col gap-2">
+	<div class="border border-black p-2 font-bold flex justify-between items-center gap-4 bg-white text-sm">
 		<span>ALERTS ({data.total}){#if data.total > 0}<span class="text-xs text-gray-500 font-normal">· {affectedAccounts()} account{affectedAccounts() !== 1 ? 's' : ''} affected</span>{/if}</span>
 		<a href="/" class="bracket-link text-xs">Homepage</a>
 	</div>
 
 	<!-- severity summary strip (R12): three cells, aligned with the lanes below -->
 	{#if data.total > 0}
-		<div class="border-b border-black grid grid-cols-3 divide-x divide-gray-300">
+		<div class="border border-black grid grid-cols-3 divide-x divide-gray-300">
 			<div class="px-2 py-1.5">
 				<div class="text-[10px] uppercase font-bold text-gray-600">Critical</div>
 				<div class="text-sm font-bold {data.redAlerts.length > 0 ? 'text-red-700' : 'text-gray-400'}">{data.redAlerts.length}</div>
@@ -56,9 +57,9 @@
 	{:else}
 
 		<!-- severity lanes (R29): red | amber | info side by side when wide -->
-		<div class="grid lg:grid-cols-3 md:divide-x md:divide-gray-300">
+		<div class="grid lg:grid-cols-3 gap-2">
 			<!-- CRITICAL lane -->
-			<div class="{data.redAlerts.length === 0 ? 'hidden lg:block' : ''}">
+			<div class="border border-black {data.redAlerts.length === 0 ? 'hidden lg:block' : ''}">
 				<div class="border-b border-black px-2 py-1 bg-red-100 text-xs font-bold font-mono text-red-700">
 					[!!] CRITICAL ({data.redAlerts.length})
 				</div>
@@ -71,7 +72,7 @@
 			</div>
 
 			<!-- WARNINGS lane -->
-			<div class="{data.amberAlerts.length === 0 ? 'hidden lg:block' : ''} border-t lg:border-t-0 border-black">
+			<div class="border border-black {data.amberAlerts.length === 0 ? 'hidden lg:block' : ''}">
 				<div class="border-b border-black px-2 py-1 bg-amber-100 text-xs font-bold font-mono text-amber-700">
 					[!] WARNINGS ({data.amberAlerts.length})
 				</div>
@@ -84,7 +85,7 @@
 			</div>
 
 			<!-- INFORMATION lane -->
-			<div class="{data.infoAlerts.length === 0 ? 'hidden lg:block' : ''} border-t lg:border-t-0 border-black">
+			<div class="border border-black {data.infoAlerts.length === 0 ? 'hidden lg:block' : ''}">
 				<div class="border-b border-black px-2 py-1 bg-gray-100 text-xs font-bold font-mono text-zinc-600">
 					[i] INFORMATION ({data.infoAlerts.length})
 				</div>
