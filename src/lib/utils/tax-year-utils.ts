@@ -29,8 +29,11 @@ export interface TaxFreeStatus {
 
 /**
  * Per-tax-year band threshold config (in cents), keyed by tax year start year.
- * Defaults to HMRC values (£50,270 / £150,000); future years inherit the
- * latest known value until edited here.
+ * Defaults to HMRC values; future years inherit the latest known value until
+ * edited here. v3.1 third-mandate fix: the additional-rate threshold is
+ * £125,140 from 2023/24 (HMRC cut it from £150,000 on 6 Apr 2023 and froze
+ * it there) — the old table carried £150,000 forward, a real correctness
+ * bug on a page whose whole job is thresholds.
  */
 const HIGHER_RATE_THRESHOLD_BY_START_YEAR: Record<number, number> = {
 	2018: 46_350_00,
@@ -43,7 +46,9 @@ const ADDITIONAL_RATE_THRESHOLD_BY_START_YEAR: Record<number, number> = {
 	2018: 150_000_00,
 	2019: 150_000_00,
 	2020: 150_000_00,
-	2021: 150_000_00, // Frozen at £150,000 through 2027/28
+	2021: 150_000_00,
+	2022: 150_000_00, // 2022/23: last year at £150,000
+	2023: 125_140_00, // 2023/24 onward: £125,140 (frozen)
 };
 
 function lookupByStartYear(
@@ -70,7 +75,7 @@ export function getHigherRateThresholdInCents(taxYear: string): number {
 /** Additional-rate threshold (adjusted net income) for a tax year, in cents. */
 export function getAdditionalRateThresholdInCents(taxYear: string): number {
 	const startYear = taxYearStartYear(taxYear);
-	if (startYear === null) return 150_000_00;
+	if (startYear === null) return 125_140_00;
 	return lookupByStartYear(ADDITIONAL_RATE_THRESHOLD_BY_START_YEAR, startYear);
 }
 

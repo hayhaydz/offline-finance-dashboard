@@ -8,7 +8,7 @@
 	// R11 (v3 B10): the finder year is a CARD — verdict badge, a compact
 	// label→value mini-table instead of stacked prose, and a threshold
 	// bar that SHOWS where the assessment sits against the £50,270 /
-	// £150,000 lines (labelled, not mystery ticks). Cards grid 2-up at
+	// £125,140 lines (labelled, not mystery ticks). Cards grid 2-up at
 	// wide viewports (R29).
 
 	let { data }: { data: PageData } = $props();
@@ -39,6 +39,14 @@
 		if (state === 'EXPECTED') return 'text-amber-700';
 		if (state === 'BOUNDED') return 'text-amber-700';
 		return 'text-gray-500';
+	}
+
+	// v3.1 third mandate: verdict vocabulary defined (was unexplained jargon)
+	function stateHint(state: string): string {
+		if (state === 'FIRM') return 'All 12 months known — the assessment is final for this year';
+		if (state === 'EXPECTED') return 'Includes months projected from your average — the number can still move';
+		if (state === 'BOUNDED') return 'Months are missing — the true value lies between the known total and the worst case';
+		return 'No income data';
 	}
 
 	// Threshold bar geometry: fill = assessment / additional threshold,
@@ -96,7 +104,9 @@
 									<span class="text-[10px] text-gray-500">suggests</span>
 									<span class="font-bold font-mono text-xs">{year.suggestedBand.toUpperCase()}</span>
 								{/if}
-								<span class="font-bold text-xs {stateClass(year.state)}">{year.state}</span>
+								<!-- v3.1: verdict states defined on hover — EXPECTED/FIRM/BOUNDED
+								     were guessable jargon (vision-flagged) -->
+								<span class="font-bold text-xs {stateClass(year.state)}" title={stateHint(year.state)}>{year.state}</span>
 							</div>
 						</div>
 
@@ -120,8 +130,21 @@
 								</div>
 							</div>
 
-							<!-- mini-table: the arithmetic, scannable -->
+							<!-- mini-table: the arithmetic, scannable. v3.1 third mandate:
+							     ANSWER FIRST — assessment + vs-threshold lead so the key rows
+							     align horizontally across cards (conditional detail rows used
+							     to push them to different heights per card) -->
 							<div class="border border-black text-xs">
+								<div class="flex justify-between border-b border-gray-200 px-1 py-0.5 bg-gray-50">
+									<span class="font-bold">assessment</span>
+									<span class="tabular-nums font-bold">{formatCurrency(year.assessmentTotalInCents)}</span>
+								</div>
+								<div class="flex justify-between border-b border-gray-200 px-1 py-0.5 {year.marginInCents >= 0 ? 'text-red-700' : 'text-green-700'}">
+									<span>vs threshold</span>
+									<span class="tabular-nums font-bold">
+										{year.marginInCents >= 0 ? 'over by' : 'under by'} {formatCurrency(Math.abs(year.marginInCents))}
+									</span>
+								</div>
 								<div class="flex justify-between border-b border-gray-200 px-1 py-0.5">
 									<span class="text-gray-600">known income ({year.knownMonths.length}/12 mo)</span>
 									<span class="tabular-nums">{formatCurrency(year.knownTotalInCents)}</span>
@@ -134,7 +157,7 @@
 											{#if year.overRegardless}
 												over regardless
 											{:else}
-												need &ge; {formatCurrency(year.requiredAvgPerMissingMonthInCents ?? 0)}/mo
+												need &ge; {formatCurrency(year.requiredAvgPerMissingMonthInCents ?? 0)}/mo to reach higher
 											{/if}
 										</span>
 									</div>
@@ -148,16 +171,6 @@
 								<div class="flex justify-between border-b border-gray-200 px-1 py-0.5">
 									<span class="text-gray-600">interest (auto, non-ISA{#if year.interestIncludesProjection} + proj{/if})</span>
 									<span class="tabular-nums">{formatCurrency(year.taxableInterestInCents)}</span>
-								</div>
-								<div class="flex justify-between border-b border-gray-200 px-1 py-0.5 bg-gray-50">
-									<span class="font-bold">assessment</span>
-									<span class="tabular-nums font-bold">{formatCurrency(year.assessmentTotalInCents)}</span>
-								</div>
-								<div class="flex justify-between px-1 py-0.5 {year.marginInCents >= 0 ? 'text-red-700' : 'text-green-700'}">
-									<span>vs threshold</span>
-									<span class="tabular-nums font-bold">
-										{year.marginInCents >= 0 ? 'over by' : 'under by'} {formatCurrency(Math.abs(year.marginInCents))}
-									</span>
 								</div>
 							</div>
 
@@ -200,7 +213,7 @@
 			</div>
 			<p class="text-[10px] text-gray-600 px-3 py-2 border-t border-gray-200">
 				Finder is an estimator — applied band rows are authoritative. Thresholds are
-				per-tax-year (HMRC defaults &pound;50,270 / &pound;150,000). Tax-wrappered interest
+				per-tax-year (HMRC: &pound;50,270; additional rate &pound;125,140 from 2023/24). Tax-wrappered interest
 				(ISA/LISA/premium bonds) never counts.
 			</p>
 		{/if}
