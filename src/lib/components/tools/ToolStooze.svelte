@@ -110,7 +110,9 @@
 				<tr>
 					<td class="px-1 py-0.5 text-gray-600">pay everything by (5-day clearing buffer)</td>
 					<td class="px-1 py-0.5 text-right tabular-nums font-bold text-amber-700">
-						{result.clearByDate ?? "—"}
+						{result.clearByDate
+							? new Date(result.clearByDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })
+							: "—"}
 					</td>
 				</tr>
 			</tbody>
