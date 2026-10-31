@@ -11,6 +11,12 @@
 	 * bands. ChartPanel frame + summary + export unchanged; client-only
 	 * mount (layerchart measures + SSR module cycle).
 	 */
+	/** compact axis labels (pence → "-£200,000"); tooltips keep full precision */
+	function compactPence(pence: number): string {
+		const units = Math.round(Math.abs(pence) / 100).toLocaleString("en-GB");
+		return `${pence < 0 ? "-" : ""}£${units}`;
+	}
+
 	let {
 		points,
 		formatPence,
@@ -42,14 +48,16 @@
 			label: "assets",
 			value: "assets",
 			color: "#e5e7eb",
-			props: { stroke: "#6b7280", strokeWidth: 1 },
+			// area from the zero baseline up to assets
+			props: { y0: () => 0, stroke: "#6b7280", strokeWidth: 1 },
 		},
 		{
 			key: "liabilities",
 			label: "liabilities",
 			value: "liabilities",
 			color: "#d1d5db",
-			props: { stroke: "#6b7280", strokeWidth: 1 },
+			// area from liabilities (negative) up to the zero baseline
+			props: { y1: () => 0, stroke: "#6b7280", strokeWidth: 1 },
 		},
 	];
 
@@ -95,7 +103,6 @@
 				data={rows}
 				x="date"
 				{series}
-				seriesLayout="stack"
 				height={240}
 				padding={{ top: 10, right: 16, bottom: 26, left: 52 }}
 				yDomain={[yLo, yHi]}
@@ -103,7 +110,7 @@
 				xNice={false}
 				props={{
 					xAxis: { ticks: yearTicks, format: (d: Date) => String(d.getFullYear()), tickLabelProps: { dy: "1.3em" } },
-					yAxis: { format: (v: number) => formatPence(v) },
+					yAxis: { format: (v: number) => compactPence(v) },
 					tooltip: {
 						header: { format: (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` },
 						item: { format: (v: number) => formatPence(Math.abs(v)) },

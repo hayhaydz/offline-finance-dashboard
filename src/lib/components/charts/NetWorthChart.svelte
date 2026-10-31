@@ -11,6 +11,12 @@
 	 * and export buttons are unchanged; the chart mounts client-only —
 	 * layerchart measures its container and its SSR module graph cycles.
 	 */
+	/** compact axis labels (pence → "-£200,000"); tooltips keep full precision */
+	function compactPence(pence: number): string {
+		const units = Math.round(Math.abs(pence) / 100).toLocaleString("en-GB");
+		return `${pence < 0 ? "-" : ""}£${units}`;
+	}
+
 	let {
 		points,
 		formatPence,
@@ -107,7 +113,7 @@
 				xNice={false}
 				props={{
 					xAxis: { ticks: yearTicks, format: (d: Date) => String(d.getFullYear()), tickLabelProps: { dy: "1.3em" } },
-					yAxis: { format: (v: number) => formatPence(v) },
+					yAxis: { format: (v: number) => compactPence(v) },
 					tooltip: {
 						header: { format: (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` },
 						item: { format: (v: number) => formatPence(v) },

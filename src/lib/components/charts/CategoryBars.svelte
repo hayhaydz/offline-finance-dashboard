@@ -11,6 +11,11 @@
 	 * per-category colour), and gain a hover tooltip (category + £ +
 	 * share of month). Frame + summary unchanged; client-only mount.
 	 */
+	/** compact axis labels (pence → "£2,500"); tooltips keep full precision */
+	function compactPence(pence: number): string {
+		return `£${Math.round(Math.abs(pence) / 100).toLocaleString("en-GB")}`;
+	}
+
 	let {
 		month,
 		categories,
@@ -64,7 +69,7 @@
 				padding={{ top: 6, right: 20, bottom: 24, left: 150 }}
 				xDomain={[0, maxV * 1.05]}
 				props={{
-					xAxis: { format: (v: number) => formatCurrency(v) },
+					xAxis: { format: (v: number) => compactPence(v) },
 					tooltip: {
 						header: { format: (n: string) => String(n) },
 						item: { format: (v: number) => `${formatCurrency(v)}${total > 0 ? ` · ${Math.round((v / total) * 100)}% of ${month}` : ""}` },

@@ -12,6 +12,11 @@
 	 * hover tooltip shows this-goal + debt-below per step. Frame +
 	 * summary unchanged; client-only mount.
 	 */
+	/** compact axis labels (pence → "£2,500"); tooltips keep full precision */
+	function compactPence(pence: number): string {
+		return `£${Math.round(Math.abs(pence) / 100).toLocaleString("en-GB")}`;
+	}
+
 	let {
 		goals,
 		totalDebtInCents,
@@ -96,7 +101,7 @@
 				padding={{ top: 6, right: 20, bottom: 24, left: 220 }}
 				xDomain={[0, maxV]}
 				props={{
-					xAxis: { format: (v: number) => formatPence(v) },
+					xAxis: { format: (v: number) => compactPence(v) },
 					tooltip: {
 						header: { format: (l: string) => String(l) },
 						item: { format: (v: number) => formatPence(v) },
