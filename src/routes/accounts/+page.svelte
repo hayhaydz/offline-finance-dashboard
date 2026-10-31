@@ -1,5 +1,4 @@
 <script lang="ts">
-	import AlertsSection from '$lib/components/AlertsSection.svelte';
 	import RateHeatmap from '$lib/components/charts/RateHeatmap.svelte';
 	import { listnav } from '$lib/utils/list-nav';
 	import { page } from '$app/state';
@@ -209,6 +208,9 @@
 	const maturingSoonAccounts = $derived(
 		data.accounts.filter((a) => !a.closedAt && a.daysToMaturity !== null && a.daysToMaturity >= 0 && a.daysToMaturity <= 90)
 	);
+	// Facts-strip alert chips (severity counts; triage lives on /alerts)
+	const redAlertCount = $derived(data.alerts.filter((a) => a.severity === 'red').length);
+	const amberAlertCount = $derived(data.alerts.filter((a) => a.severity === 'amber').length);
 </script>
 
 <!-- Close/delete feedback banners (audit #10) -->
@@ -229,47 +231,43 @@
 	accounts={data.accounts}
 />
 
-<!-- v3 R29: summary stats + account alerts side-by-side (3/2 split) -->
-<div class="grid grid-cols-5 gap-2 border-b border-black p-2">
-	<div class="col-span-3 border border-black [&>*:last-child]:border-b-0">
-		<!-- SUMMARY SECTION -->
-		<div class="font-bold flex justify-between bg-gray-100 border-b border-black p-2">
-			<span>SUMMARY</span>
-		</div>
-		<div class="p-2">
-			<div class="flex justify-between my-1">
-				<span>Total Accounts</span>
-				<span>{totalAccounts}</span>
-			</div>
-			<div class="flex justify-between my-1">
-				<span>Asset Accounts</span>
-				<span>{assetAccounts}</span>
-			</div>
-			<div class="flex justify-between my-1">
-				<span>Liability Accounts</span>
-				<span>{liabilityAccounts}</span>
-			</div>
-			<div class="flex justify-between my-1">
-				<span>Maturing Soon (90d)</span>
-				<span class={maturingSoonAccounts.length > 0 ? 'text-amber-700 font-bold' : ''}>{maturingSoonAccounts.length}</span>
-			</div>
-			{#if closedAccountCount > 0}
-				<div class="flex justify-between my-1 text-gray-500">
-					<span>Closed Accounts (not counted above)</span>
-					<span>{closedAccountCount}</span>
-				</div>
-			{/if}
-		</div>
+<!-- v3.1 A03: ACCOUNTS FACTS strip (was SUMMARY|ALERTS 3/2 grid — measured
+     40% content-fill, D2 defect; alert counts + link replace the wall) -->
+<div class="border-b border-black grid grid-cols-3 md:grid-cols-6 divide-x divide-gray-300">
+	<div class="px-2 py-1.5">
+		<div class="text-[10px] uppercase font-bold text-gray-600">Accounts</div>
+		<div class="text-sm font-bold tabular-nums">{totalAccounts}</div>
+		<div class="text-[10px] text-gray-500">open</div>
 	</div>
-	{#if sortedAccounts.length > 0}
-		<div class="col-span-2 border border-black [&>*:last-child]:border-b-0">
-			<AlertsSection alerts={data.alerts} title="ACCOUNT ALERTS" viewAllHref="/alerts" />
+	<div class="px-2 py-1.5">
+		<div class="text-[10px] uppercase font-bold text-gray-600">Assets</div>
+		<div class="text-sm font-bold tabular-nums">{assetAccounts}</div>
+		<div class="text-[10px] text-gray-500">positive-balance</div>
+	</div>
+	<div class="px-2 py-1.5">
+		<div class="text-[10px] uppercase font-bold text-gray-600">Liabilities</div>
+		<div class="text-sm font-bold tabular-nums">{liabilityAccounts}</div>
+		<div class="text-[10px] text-gray-500"><a href="/accounts/liabilities" class="bracket-link">View</a></div>
+	</div>
+	<div class="px-2 py-1.5">
+		<div class="text-[10px] uppercase font-bold text-gray-600">Maturing ≤90d</div>
+		<div class="text-sm font-bold tabular-nums {maturingSoonAccounts.length > 0 ? 'text-amber-700' : ''}">{maturingSoonAccounts.length}</div>
+		<div class="text-[10px] text-gray-500">{maturingSoonAccounts.length > 0 ? maturingSoonAccounts.map((a) => truncateDisplay(a.name, 18)).join(', ') : 'none due'}</div>
+	</div>
+	<div class="px-2 py-1.5">
+		<div class="text-[10px] uppercase font-bold text-gray-600">Alerts</div>
+		<div class="text-sm font-bold tabular-nums">
+			<a href="/alerts" class="bracket-link">{data.alerts.length}</a>
+			{#if redAlertCount > 0}<span class="text-red-700 font-bold text-xs"> [!!{redAlertCount}]</span>{/if}
+			{#if amberAlertCount > 0}<span class="text-amber-700 font-bold text-xs"> [!{amberAlertCount}]</span>{/if}
 		</div>
-	{:else}
-		<div class="col-span-2 border border-black p-2 text-xs text-gray-500">
-			No account alerts — no accounts to monitor yet.
-		</div>
-	{/if}
+		<div class="text-[10px] text-gray-500"><a href="/alerts" class="bracket-link">Triage</a></div>
+	</div>
+	<div class="px-2 py-1.5">
+		<div class="text-[10px] uppercase font-bold text-gray-600">Closed</div>
+		<div class="text-sm font-bold tabular-nums {closedAccountCount > 0 ? 'text-gray-500' : ''}">{closedAccountCount}</div>
+		<div class="text-[10px] text-gray-500">not counted above</div>
+	</div>
 </div>
 
 <!-- ACCOUNTS OVERVIEW SECTION -->
