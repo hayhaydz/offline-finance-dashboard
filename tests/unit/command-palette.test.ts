@@ -22,7 +22,7 @@ describe("command palette registry (#19)", () => {
 		expect(currentMonthSlug(new Date("2026-10-15T10:00:00Z"))).toBe("2026-10");
 		expect(currentMonthSlug(new Date("2026-01-01T00:00:00Z"))).toBe("2026-01");
 		const dyn = dynamicPaletteCommands(new Date("2026-10-15T10:00:00Z"));
-		expect(dyn.map((c) => c.href)).toContain("/overview/trends/2026-10");
+		expect(dyn.map((c) => c.href)).toContain("/overview/trends/insights?month=2026-10");
 		expect(dyn.map((c) => c.href)).toContain(
 			"/overview/trends/2026-10/uncategorised",
 		);
@@ -108,7 +108,7 @@ describe("palette route coverage (Phase 9 drift guard)", () => {
 		}
 		// dynamic month routes
 		const month = currentMonthSlug();
-		expect(hrefs.has(`/overview/trends/${month}`)).toBe(true);
+		expect(hrefs.has(`/overview/trends/insights?month=${month}`)).toBe(true);
 		expect(hrefs.has(`/overview/trends/${month}/uncategorised`)).toBe(true);
 	});
 
