@@ -88,7 +88,7 @@
 			<div class="overflow-x-auto">
 				<table class="text-xs border-collapse">
 					<thead>
-						<tr>
+						<tr class="border-b border-black">
 							<th class="text-left pr-3 font-bold pb-1" scope="col"><span class="sr-only">Account</span></th>
 							{#each months as m, i (m.toISOString())}
 								<th class="pb-1 font-normal text-gray-600 text-center w-14" scope="col">
@@ -117,13 +117,13 @@
 								{#each row.values as v, i (i)}
 									<td class="p-0.5">
 										{#if v.rate === null}
-											<div class="w-13 h-6 border border-dashed border-gray-200"></div>
+											<div class="w-13 h-6 border border-dashed border-black"></div>
 										{:else}
 											<button
 												type="button"
-												class="w-13 h-6 flex items-center justify-center text-[10px] tabular-nums cursor-pointer transition-transform duration-150
+												class="w-13 h-6 flex items-center justify-center text-[10px] tabular-nums cursor-pointer border border-black transition-colors duration-150
 													{heatLevel(v.rate, minRate, maxRate) >= 3 ? 'text-white' : 'text-black'}
-													{hover?.account === row.name && hover?.monthIdx === i ? 'ring-2 ring-black ring-offset-1' : ''}"
+													{hover?.account === row.name && hover?.monthIdx === i ? 'ring-2 ring-black ring-offset-[-1px]' : ''}"
 												style="background: {LEVEL_BG[heatLevel(v.rate, minRate, maxRate)]}"
 												aria-label="{row.name} {monthLabel(months[i])}: {pct(v.rate)}"
 												onmouseenter={() => onCell(row.name, i, v.rate)}
@@ -163,7 +163,7 @@
 				<div class="flex items-center gap-1 text-[10px] text-gray-600 tabular-nums">
 					<span>{pct(minRate)}</span>
 					{#each LEVEL_BG as bg, i (i)}
-						<div class="w-7 h-3 border border-gray-300" style="background: {bg}" title="level {i + 1}/5"></div>
+						<div class="w-7 h-3 border border-black" style="background: {bg}" title="level {i + 1}/5"></div>
 					{/each}
 					<span>{pct(maxRate)}</span>
 				</div>
