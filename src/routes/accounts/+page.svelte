@@ -267,7 +267,7 @@
 			{#if amberAlertCount > 0}<span class="text-amber-700 font-bold text-xs"> [!{amberAlertCount}]</span>{/if}
 			{#if infoAlertCount > 0}<span class="text-zinc-600 font-bold text-xs"> [i{infoAlertCount}]</span>{/if}
 		</div>
-		<div class="text-[10px] text-gray-500"><a href="/alerts" class="bracket-link">Triage</a></div>
+		<div class="text-[10px] text-gray-500"><a href="/alerts" class="bracket-link inline-block py-1.5">Triage</a></div>
 	</div>
 	<div class="px-2 py-1.5">
 		<div class="text-[10px] uppercase font-bold text-gray-600">Closed</div>

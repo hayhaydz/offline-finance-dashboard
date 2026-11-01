@@ -111,7 +111,7 @@
 			<span class="flex items-center gap-1"><span class="w-3 border-t border-gray-900"></span>actual spend</span>
 			<span class="flex items-center gap-1"><span class="w-3 border-t border-dashed border-gray-400"></span>even pace</span>
 			<span class="flex items-center gap-1"><span class="w-2 border-t-2 border-gray-600"></span>target {spendLabel(targetPence)}</span>
-			<span class="text-gray-400">· hover for day + £</span>
+			<span class="text-gray-600">· hover for day + £</span>
 		</div>
 	{/if}
 </ChartPanel>

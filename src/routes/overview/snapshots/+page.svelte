@@ -32,7 +32,7 @@
 
 	function getTrendColor(change: number): string {
 		if (change === 0) return 'text-gray-600';
-		return change > 0 ? 'text-green-700' : 'text-red-700';
+		return change > 0 ? 'text-green-800' : 'text-red-700';
 	}
 </script>
 
@@ -118,7 +118,7 @@
 								{snapshot.trends.netWorthChange >= 0 ? '+' : ''}{formatCurrencyShorthand(snapshot.trends.netWorthChange)}
 							</span>
 						{:else}
-							<span class="text-[10px] text-gray-500">first record</span>
+							<span class="text-[10px] text-gray-600">first record</span>
 						{/if}
 					</div>
 			<!-- the headline -->

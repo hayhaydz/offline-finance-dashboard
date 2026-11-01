@@ -423,7 +423,7 @@ async function placeAtEnd() {
 						{/if}
 						<div class="flex justify-between gap-2">
 							<span>{goal.targetDate ? `by ${formatDate(new Date(goal.targetDate))}` : 'no deadline'}</span>
-							<span class="text-gray-400">{formatDate(new Date(goal.updatedAt))}</span>
+							<span class="text-gray-600">{formatDate(new Date(goal.updatedAt))}</span>
 						</div>
 					</div>
 

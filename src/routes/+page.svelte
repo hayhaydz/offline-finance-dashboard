@@ -231,19 +231,19 @@
 						type="button"
 						onclick={() => goalsFilter = 'all'}
 						class="bracket-link text-xs font-bold cursor-pointer"
-						class:text-green-700={goalsFilter === 'all'}
+						class:text-green-800={goalsFilter === 'all'}
 					>All</button>
 					<button
 						type="button"
 						onclick={() => goalsFilter = 'savings'}
 						class="bracket-link text-xs font-bold cursor-pointer"
-						class:text-green-700={goalsFilter === 'savings'}
+						class:text-green-800={goalsFilter === 'savings'}
 					>Savings</button>
 					<button
 						type="button"
 						onclick={() => goalsFilter = 'debt'}
 						class="bracket-link text-xs font-bold cursor-pointer"
-						class:text-green-700={goalsFilter === 'debt'}
+						class:text-green-800={goalsFilter === 'debt'}
 					>Debt</button>
 				</div>
 			</div>
