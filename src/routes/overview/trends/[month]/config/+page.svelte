@@ -523,6 +523,6 @@
 
 	<div class="flex justify-between items-center text-xs">
 		<a href="/overview/trends/{data.selectedMonth}" class="bracket-link">← Back to the month</a>
-		<a href="/overview/trends/{data.selectedMonth}/insights" class="bracket-link">Spending insights</a>
+		<a href="/overview/trends/insights?month={data.selectedMonth}" class="bracket-link">Spending insights</a>
 	</div>
 </div>

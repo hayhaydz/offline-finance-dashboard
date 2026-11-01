@@ -97,6 +97,6 @@ describe("Trend config page (v3.2 V4)", () => {
 	it("links back to the month and forward to insights", () => {
 		const { body } = renderPage();
 		expect(body).toContain('href="/overview/trends/2026-10"');
-		expect(body).toContain('href="/overview/trends/2026-10/insights"');
+		expect(body).toContain('href="/overview/trends/insights?month=2026-10"');
 	});
 });

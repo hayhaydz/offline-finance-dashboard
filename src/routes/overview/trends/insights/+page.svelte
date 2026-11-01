@@ -90,7 +90,7 @@
 	<div class="flex justify-between items-baseline">
 		<h1 class="text-lg font-bold m-0">Spending insights</h1>
 		<div class="flex items-center gap-2 text-xs">
-			<a href="/overview/trends/{data.previousKey}/insights" class="bracket-link" data-sveltekit-noscroll>◀ {monthLabel(data.previousKey)}</a>
+			<a href="/overview/trends/insights?month={data.previousKey}" class="bracket-link" data-sveltekit-noscroll>◀ {monthLabel(data.previousKey)}</a>
 			<span class="font-bold">{monthLabel(data.monthKey)}</span>
 			{#if data.monthKey < data.currentMonthKey}
 				<a href="/overview/trends/insights" class="bracket-link" data-sveltekit-noscroll>latest ▶</a>
