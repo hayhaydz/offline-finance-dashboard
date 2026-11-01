@@ -751,3 +751,5 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **Done this turn so far:** final audit §6.1–6.5 (+§6.6 pending budget); D0 edge probes (2020-01 empty month + 2026-12 future month BOTH degrade honestly, no crashes — first scary read was stale-nav artifact); keyboard tab operation ✓; print-CSS doctrine gap FOUND+FIXED (chart panels atomic on paper, CSSOM-verified); scar recorded: scoped-path greps → false-missing results ×2.
 - **NEXT QUEUE:** hold-and-deepen turns until 18:04:58 — candidate rotations: a11y lighthouse re-run on 2-3 core routes as regression tripwire; one fresh-eyes DOM journey (home→trends→report→tool) checking for console noise; ~17:30 LAST full suite + build; 18:04:58+ stop-file + final row.
 - **Budget:** ends 18:04:58 GMT.
+
+- TURN CLOSE 2026-11-01 15:23:42 GMT: a11y regression tripwire home=100 insights=100 (snapshot mode). Turn 15:17:41→2026-11-01 15:23:42 GMT (~8m). Next turn: continue hold-and-deepen rotations per queue above.
