@@ -274,6 +274,14 @@ export async function seedBulkTransactionHistory(
 
 	let inserted = 0;
 	let accountCount = 0;
+	/** v3.2 sweep 7: per-month spend (withdrawal + charge − refund, the
+	 * budget engine's definition) so each historical month can carry a
+	 * budgetMonths row — the trends TARGET history + /all tables get a
+	 * year+ of mixed under/over verdicts instead of 2 hand-authored rows. */
+	const spendByMonth = new Map<string, number>();
+	const bumpSpend = (monthKey: string, delta: number) => {
+		spendByMonth.set(monthKey, (spendByMonth.get(monthKey) ?? 0) + delta);
+	};
 
 	for (const spec of SPECS) {
 		const account = accountByName.get(spec.accountName);
@@ -322,6 +330,12 @@ export async function seedBulkTransactionHistory(
 					createdAt: date,
 				});
 				inserted++;
+				// accumulate spend per the budget engine's type definition
+				if (ev.type === "withdrawal" || ev.type === "charge") {
+					bumpSpend(monthKey, Math.abs(amount));
+				} else if (ev.type === "refund") {
+					bumpSpend(monthKey, -Math.abs(amount));
+				}
 			}
 		}
 	}
@@ -329,5 +343,37 @@ export async function seedBulkTransactionHistory(
 	console.log(
 		`  ✓ Bulk history: ${inserted} transactions across ${accountCount} accounts (2025-01 → 2026-10, deterministic)`,
 	);
+
+	// v3.2 sweep 7: one budgetMonths row per seeded month. Target derives
+	// from that month's OWN spend × a deterministic 0.82–1.18 factor —
+	// history shows a realistic mix of UNDER/OVER verdicts (D0 honest:
+	// these are declared intents, not predictions). onConflictDoNothing
+	// keeps the hand-authored current-month + amendment-demo rows.
+	let budgetMonthsSeeded = 0;
+	for (const monthKey of [...spendByMonth.keys()].sort()) {
+		const spend = spendByMonth.get(monthKey) ?? 0;
+		if (spend <= 0) continue;
+		const monthRand = lcg(
+			monthKey.split("").reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 13),
+		);
+		const factor = 0.82 + monthRand() * 0.36;
+		const target = Math.max(
+			20_000,
+			Math.round((spend * factor) / 500) * 500,
+		);
+		await db
+			.insert(schema.budgetMonths)
+			.values({
+				userId,
+				month: monthKey,
+				totalTargetInCents: target,
+			})
+			.onConflictDoNothing();
+		budgetMonthsSeeded++;
+	}
+	console.log(
+		`  ✓ Bulk budget months: ${budgetMonthsSeeded} historical targets (mixed under/over, deterministic)`,
+	);
+
 	return inserted;
 }
