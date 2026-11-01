@@ -195,7 +195,7 @@
 				<div class="px-2 py-1.5">
 					<div class="text-[10px] uppercase font-bold text-gray-600">Verdict</div>
 					<div class="text-sm font-bold {yearStats.met === yearStats.months && yearStats.over === 0 ? 'text-green-700' : yearStats.over >= yearStats.met ? 'text-red-700' : 'text-amber-700'}">
-						{yearStats.met === yearStats.months && yearStats.over === 0 ? 'year met' : yearStats.over >= yearStats.met ? 'over budget year' : 'mixed year'}
+						{yearStats.met === yearStats.months && yearStats.over === 0 ? 'year met' : yearStats.over >= yearStats.met ? 'over-target year' : 'mixed year'}
 					</div>
 					<div class="text-[10px] text-gray-500">vs statement months</div>
 				</div>
@@ -203,9 +203,9 @@
 
 			<!-- the year chart: bars coloured by verdict vs that month's target
 					(target values live in the history table below; colour = met/near/over) -->
-			<ChartPanel title="Budget year — {activeYear.year}" {summary}>
+			<ChartPanel title="Target year — {activeYear.year}" {summary}>
 				{#if browser && chartRows.length > 0}
-					<div class="font-mono text-[10px] p-2" data-interactive-chart="budget-year" role="img" aria-label="Monthly spend versus target for {activeYear.year}, coloured by whether the budget was met; summary below">
+					<div class="font-mono text-[10px] p-2" data-interactive-chart="budget-year" role="img" aria-label="Monthly spend versus target for {activeYear.year}, coloured by whether the target was met; summary below">
 						<BarChart
 							data={chartRows}
 							x="month"
@@ -259,7 +259,7 @@
 {/if}
 
 {#if data.months.length === 0}
-	<div class="p-2 text-gray-600 text-sm">No budget history found.</div>
+	<div class="p-2 text-gray-600 text-sm">No target history found.</div>
 {:else}
 	<div bind:this={tableRef}>
 		<div class="font-bold text-xs bg-gray-50 border-y border-gray-300 px-2 py-1">MONTH BY MONTH</div>

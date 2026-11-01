@@ -153,12 +153,12 @@
 		if (!scopeAllAccounts && scopeSelectedIds.length === 0) {
 			targetFeedback.message = {
 				type: "error",
-				text: "Choose accounts for this budget or tick All accounts",
+				text: "Choose accounts for this target or tick All accounts",
 			};
 			input.cancel();
 			return;
 		}
-		return targetFeedback.createEnhanceHandler("Budget saved")();
+		return targetFeedback.createEnhanceHandler("Target saved")();
 	}
 
 	function toggleScopeAccount(id: number) {
@@ -291,7 +291,7 @@
 									<span class="text-gray-500">{acc.type}</span>
 								</button>
 							{/each}
-							<div class="text-[10px] text-gray-600 mt-0.5">Unticked accounts are excluded from this budget. Editable later via filters below.</div>
+							<div class="text-[10px] text-gray-600 mt-0.5">Unticked accounts are excluded from this target. Editable later via filters below.</div>
 						{/if}
 					</div>
 					<div class="text-xs text-gray-600 mt-1">Set a monthly spending target to unlock progress tracking.</div>
