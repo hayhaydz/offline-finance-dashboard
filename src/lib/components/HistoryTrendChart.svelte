@@ -106,7 +106,7 @@
 			x="date"
 			{series}
 			{height}
-			padding={{ top: 8, right: 14, bottom: 28, left: 42 }}
+			padding={{ top: 8, right: 14, bottom: 28, left: 70 }}
 			yDomain={[yMin, yMax]}
 			xDomain={rows.length ? [rows[0].date, rows[rows.length - 1].date] : undefined}
 			xNice={false}

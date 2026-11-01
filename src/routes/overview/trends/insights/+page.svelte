@@ -3,7 +3,7 @@
 	import TargetPaceChart from '$lib/components/charts/TargetPaceChart.svelte';
 	import HistoryTrendChart from '$lib/components/HistoryTrendChart.svelte';
 	import KpiCard from '$lib/components/KpiCard.svelte';
-	import { formatCurrency } from '$lib/utils/currency';
+	import { formatCurrency, formatCurrencyShorthand } from '$lib/utils/currency';
 	import { savedOrLostPence } from '$lib/utils/trends-math';
 
 	/**
@@ -153,7 +153,7 @@
 					month: f.monthKey,
 					amountInCents: f.closingBalancePence,
 				}))}
-				formatAmount={formatCurrency}
+				formatAmount={(p) => formatCurrencyShorthand(p)}
 				yearStartMonth={1}
 				height={200}
 			/>
@@ -185,7 +185,7 @@
 						<tr class="border-b border-gray-200"><td class="pl-2 text-sm py-1.5">Starting balance</td><td class="text-right pr-2 text-sm py-1.5 tabular-nums font-bold">{formatCurrency(windowStart)}</td></tr>
 						<tr class="border-b border-gray-200"><td class="pl-2 text-sm py-1.5">Money in (income + deposits)</td><td class="text-right pr-2 text-sm py-1.5 tabular-nums text-green-700">+{formatCurrency(windowIn)}</td></tr>
 						<tr class="border-b border-gray-200"><td class="pl-2 text-sm py-1.5">Money out (spend)</td><td class="text-right pr-2 text-sm py-1.5 tabular-nums text-red-700">−{formatCurrency(windowOut)}</td></tr>
-						<tr class="border-b border-gray-200 bg-gray-50"><td class="pl-2 text-sm py-1.5 font-bold">Ending balance</td><td class="text-right pr-2 text-sm py-1.5 tabular-nums font-bold">{formatCurrency(windowEnd)}</td></tr>
+						<tr class="bg-gray-50"><td class="pl-2 text-sm py-1.5 font-bold">Ending balance</td><td class="text-right pr-2 text-sm py-1.5 tabular-nums font-bold">{formatCurrency(windowEnd)}</td></tr>
 						{#if outOpen}
 							{#if data.categories.included.length}
 								<tr class="border-b border-black bg-gray-50"><td colspan="2" class="pl-2 py-1 text-[10px] font-bold uppercase text-gray-600">Spend by category</td></tr>
