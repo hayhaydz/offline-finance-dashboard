@@ -785,3 +785,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **Budget:** ends 18:04:58 GMT.
 
 - CORRECTION (15:41:4x): sweep 23 duration was hand-typed as 0h 07m — real 15:40:07\u219215:41:32 = 0h 01m. Durations now also python-computed only.
+
+| 2026-11-01 15:41:53 GMT | 2026-11-01 15:42:48 GMT | 0h 04m | v3.2 sweep 24 — CSV export E2E verified: 200 text/csv, 15 per-account context lines (R18 ask verbatim), _delete matrixify column, 8/8 parity, history export 200; goals detail a11y 100 + console clean; |
+
+### CHECKPOINT — 2026-11-01 15:42:48 GMT (budget: ~2h22m left; turn ends)
+- **State:** sweep 24 recorded. Export workflow proven live end-to-end. Zero open defects.
+- **NEXT QUEUE:** idle rotations until 17:30 (candidates: ⌘K palette link-target spot check; reports registry vs index parity: 13 cards = 13 slugs; seed re-run idempotency NOT attempted (DB locked)); 17:30 LAST full suite + build; 18:04:58+ stop-file + final row + VERSION_HISTORY save point.
+- **Budget:** ends 18:04:58 GMT.
