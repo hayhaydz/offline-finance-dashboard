@@ -136,13 +136,16 @@
 
 <!-- v3.2 V10: tab band — the goals-filter grammar (bracket links, active green) -->
 <div class="font-bold flex justify-between items-center bg-gray-100 border-b border-black p-2">
-	<div class="flex gap-2 font-normal">
+	<div role="tablist" aria-label="Snapshot view" class="flex gap-2 font-normal">
 		{#each TABS as t (t.id)}
 			<button
 				type="button"
+				role="tab"
+				id="{t.id}-tab"
+				aria-selected={tab === t.id}
+				aria-controls="{t.id}-panel"
 				class="bracket-link text-xs font-bold cursor-pointer"
 				class:text-green-800={tab === t.id}
-				aria-pressed={tab === t.id}
 				onclick={() => switchTab(t.id)}
 			>
 				{t.label}
@@ -156,6 +159,8 @@
 
 <!-- ═══ OVERVIEW ═══ -->
 {#if tab === 'overview'}
+<!-- .contents: tabpanel for ARIA only — children lay out unchanged -->
+<div role="tabpanel" id="overview-panel" aria-labelledby="overview-tab" class="contents">
 <div class="p-2 grid grid-cols-5 gap-2 items-start">
 	<!-- FINANCIAL SUMMARY (the headline) -->
 	<div class="col-span-3 border border-black">
@@ -294,10 +299,12 @@
 	</div>
 	{/if}
 </div>
+</div>
 {/if}
 
 <!-- ═══ ACCOUNTS ═══ -->
 {#if tab === 'accounts'}
+<div role="tabpanel" id="accounts-panel" aria-labelledby="accounts-tab" class="contents">
 <div class="p-2">
 	<div class="border border-black">
 		<div class="font-bold bg-gray-100 border-b border-black p-2">
@@ -319,10 +326,12 @@
 		</div>
 	</div>
 </div>
+</div>
 {/if}
 
 <!-- ═══ TAX ═══ -->
 {#if tab === 'tax'}
+<div role="tabpanel" id="tax-panel" aria-labelledby="tax-tab" class="contents">
 <div class="p-2 grid grid-cols-5 gap-2 items-start">
 	<!-- ISA ALLOWANCE + PERSONAL SAVINGS ALLOWANCE (paired tax facts) -->
 	{#if isaBreakdown}
@@ -443,5 +452,6 @@
 		</div>
 	</div>
 	{/if}
+</div>
 </div>
 {/if}

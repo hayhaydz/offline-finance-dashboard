@@ -117,13 +117,16 @@
 
 	<!-- tab band: the goals filter grammar (bracket links, active green) -->
 	<div class="font-bold flex justify-between items-center bg-gray-100 border-y border-black p-2">
-		<div class="flex gap-2 font-normal">
+		<div role="tablist" aria-label="Insights view" class="flex gap-2 font-normal">
 			{#each TABS as t (t.id)}
 				<button
 					type="button"
+					role="tab"
+					id="{t.id}-tab"
+					aria-selected={tab === t.id}
+					aria-controls="{t.id}-panel"
 					class="bracket-link text-xs font-bold cursor-pointer"
 					class:text-green-800={tab === t.id}
-					aria-pressed={tab === t.id}
 					onclick={() => switchTab(t.id)}
 				>
 					{t.label}
@@ -156,6 +159,9 @@
 
 	<!-- ═══ BALANCE ═══ -->
 	{#if tab === 'balance'}
+		<!-- .contents: tabpanel exists for ARIA only — children lay out as
+		     direct children of the page column (zero layout change) -->
+		<div role="tabpanel" id="balance-panel" aria-labelledby="balance-tab" class="contents">
 		<!-- KPI strip: the site's KpiCard grid -->
 		<div class="border border-black grid grid-cols-4 [&>*:last-child]:border-r-0">
 			<KpiCard label="Starting balance" value={formatCurrency(windowStart)} />
@@ -248,10 +254,12 @@
 				</table>
 			</div>
 		</div>
+		</div>
 	{/if}
 
 	<!-- ═══ SPENDING ═══ -->
 	{#if tab === 'spending'}
+		<div role="tabpanel" id="spending-panel" aria-labelledby="spending-tab" class="contents">
 		{#if isYear}
 		<div class="border border-black grid grid-cols-4 [&>*:last-child]:border-r-0">
 			<KpiCard label="Spent · year" value={formatCurrency(yearOutTotal)} detail={`${data.monthKey.slice(0, 4)} · declared months only`} />
@@ -326,10 +334,12 @@
 				</table>
 			</div>
 		</div>
+		</div>
 	{/if}
 
 	<!-- ═══ TARGET ═══ -->
 	{#if tab === 'target'}
+		<div role="tabpanel" id="target-panel" aria-labelledby="target-tab" class="contents">
 		<div class="border border-black grid grid-cols-4 [&>*:last-child]:border-r-0">
 			<KpiCard label="Target" value={data.targetPence > 0 ? formatCurrency(data.targetPence) : '—'} detail={data.targetPence > 0 ? `${data.daysInMonth} days · even pace` : 'not set'} />
 			<KpiCard label="Spent" value={formatCurrency(data.spentPence)} detail={data.chosenMonthDeclared ? 'as declared' : 'nothing declared yet'} />
@@ -410,6 +420,7 @@
 					</tbody>
 				</table>
 			</div>
+		</div>
 		</div>
 	{/if}
 
