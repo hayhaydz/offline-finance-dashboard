@@ -760,3 +760,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** sweep 20 committed (3 feat commits). Tab + checkbox ARIA semantics complete across trends config, insights, snapshots. All gates green (check 0/0 after each edit).
 - **NEXT QUEUE:** continue hold-and-deepen — candidates: (a) ASCII toggle on reports now that figure:none papers hide it — re-verify no-op guard still correct post-ARIA edits; (b) one last stale-console sweep across 4-5 routes; (c) ~17:30 LAST full suite + build; (d) 18:04:58+ stop-file + final row + VERSION_HISTORY save-point line.
 - **Budget:** ends 18:04:58 GMT.
+
+| 2026-11-01 15:32:12 GMT | 2026-11-01 15:37:20 GMT | 0h 06m | v3.2 sweep 21 — ⌘K palette a11y complete (dialog/modal/listbox/labels/Escape all present, no defect); ASCII guard matrix re-verified; console clean ×6 routes; REAL D0 FIX: homepage trends headline counted all 16 registry accounts → now Monzo-parity contributing count (LIVE 16→12, 4 accounts had no Nov txns), pure headlineAccountCount() helper + 4-case test pin, insights KPI keeps honest 'all accounts' semantics; commit 'fix: homepage trends counts only spending accounts' |
+
+### CHECKPOINT — 2026-11-01 15:37:20 GMT (budget: ~2h26m left; turn ends — 6m turn)
+- **State:** sweep 21 committed. Headline honesty fix live + tested. All probes green; no open defects.
+- **NEXT QUEUE:** hold-and-deepen — (a) mid-window full suite+build insurance (~16:15 turn); (b) remaining rotation ideas: seed-data report sweep (spot-check 2-3 reports for degenerate synthetic-data artifacts), goals/tools a11y tripwires; (c) ~17:30 LAST full suite + build; (d) 18:04:58+ stop-file + final row + VERSION_HISTORY save point.
+- **Budget:** ends 18:04:58 GMT.
