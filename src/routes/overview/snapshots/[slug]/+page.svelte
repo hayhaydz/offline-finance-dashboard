@@ -200,7 +200,7 @@
 					name="notes"
 					rows="4"
 					placeholder="Add context for this snapshot..."
-					class="w-full border border-gray-300 p-2 text-sm font-mono flex-1"
+					class="w-full border border-gray-300 p-2 text-sm font-mono flex-1 resize-none"
 				>{data.snapshot.notes || ''}</textarea>
 				<div class="flex justify-between items-center mt-2">
 					<span class="text-[10px] text-gray-500">only notes are editable — financial data is immutable</span>
@@ -213,8 +213,7 @@
 	<!-- v3.2 V10: VS PREVIOUS — what changed since the last snapshot -->
 	<div class="col-span-3 border border-black">
 		<div class="font-bold bg-gray-100 border-b border-black p-2">
-			VS PREVIOUS{#if deltas} · {deltas.daysBetween} day{deltas.daysBetween === 1 ? '' : 's'} since {previous?.snapshotDate}{/if}
-		</div>
+			VS PREVIOUS{#if deltas} · {deltas.daysBetween} day{deltas.daysBetween === 1 ? '' : 's'} since {previous?.snapshotDate}{/if}		</div>
 		{#if deltas}
 			<div class="p-2 grid grid-cols-3 gap-2">
 				<div>
