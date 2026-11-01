@@ -11,8 +11,10 @@
 	/**
 	 * Budget history + YEARLY OVERVIEW (v3.1 row 37): the year view shows
 	 * each month's spend against its target as interactive bars coloured
-	 * by verdict (met / near / over) with the target line drawn in — the
-	 * meeting-or-not story at a glance, statement cadence included (each
+	 * by verdict (met / near / over — targets VARY per month so a single
+	 * line cannot represent them; the history table below carries each
+	 * month's target) — the meeting-or-not story at a glance, statement
+	 * cadence included (each
 	 * month is a statement period, not live data).
 	 */
 	let { data } = $props();
@@ -199,7 +201,8 @@
 				</div>
 			</div>
 
-			<!-- the year chart: actual bars coloured by verdict, target as labelled ticks -->
+			<!-- the year chart: bars coloured by verdict vs that month's target
+					(target values live in the history table below; colour = met/near/over) -->
 			<ChartPanel title="Budget year — {activeYear.year}" {summary}>
 				{#if browser && chartRows.length > 0}
 					<div class="font-mono text-[10px] p-2" data-interactive-chart="budget-year" role="img" aria-label="Monthly spend versus target for {activeYear.year}, coloured by whether the budget was met; summary below">
