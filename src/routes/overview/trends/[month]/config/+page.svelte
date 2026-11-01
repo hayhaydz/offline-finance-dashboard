@@ -271,8 +271,9 @@
 						<div class="text-gray-600 font-bold text-xs py-0.5">SCOPE — WHICH ACCOUNTS DOES THIS BUDGET COVER?</div>
 						<button
 							type="button"
+							role="checkbox"
 							class="flex items-center gap-1.5 py-0.5 cursor-pointer text-xs"
-							aria-pressed={scopeAllAccounts}
+							aria-checked={scopeAllAccounts}
 							onclick={() => (scopeAllAccounts = !scopeAllAccounts)}
 						>
 							<span class="font-bold">{scopeAllAccounts ? '[X]' : '[ ]'}</span>
@@ -282,8 +283,9 @@
 							{#each data.accounts as acc (acc.id)}
 								<button
 									type="button"
+									role="checkbox"
 									class="flex items-center gap-1.5 py-0.5 cursor-pointer text-xs w-fit"
-									aria-pressed={scopeSelectedIds.includes(acc.id)}
+									aria-checked={scopeSelectedIds.includes(acc.id)}
 									onclick={() => toggleScopeAccount(acc.id)}
 								>
 									<span class="font-bold">{scopeSelectedIds.includes(acc.id) ? '[X]' : '[ ]'}</span>
