@@ -738,9 +738,11 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 
 - ADDENDUM same turn (ended 2026-11-01 15:16:48 GMT): extracted creepKicker(name, driftPct) as exported pure helper (was inline) + pinned with test ('creep kicker never calls zero drift creep' — 0/0.5% → honest line, 0.6%/24% → steepest-creep). reports-v2 35/35, check ✓, live abstract re-verified (honest kicker, no fn-leak). Committed 'feat: test the no-drift report kicker'.
 
-| 2026-11-01 15:17:41 GMT | 2026-11-01 15:20:33 GMT | 0h 14m | v3.2 sweep 19 — FINAL AUDIT pulled forward (more slack to fix if gaps found): full suite 1175/1175 + build 11.49s clean; §6.1–6.5 ALL HOLD; §6.5 spirit-scan zero new gaps (payslips = R24, confirmed live registry); console re-check insights+home clean post-refactor (earlier '1 error' was my console_events tool-name bug — list_console_messages is real, scar recorded); /overview/trends→insights redirect by-design per source comment |
+| 2026-11-01 15:17:41 GMT | 2026-11-01 15:20:33 GMT | 0h 03m | v3.2 sweep 19 — FINAL AUDIT pulled forward (more slack to fix if gaps found): full suite 1175/1175 + build 11.49s clean; §6.1–6.5 ALL HOLD; §6.5 spirit-scan zero new gaps (payslips = R24, confirmed live registry); console re-check insights+home clean post-refactor (earlier '1 error' was my console_events tool-name bug — list_console_messages is real, scar recorded); /overview/trends→insights redirect by-design per source comment |
 
 ### CHECKPOINT — 2026-11-01 15:20 GMT (budget: ~2h44m left; turn ends — 14m turn)
 - **State:** FINAL AUDIT COMPLETE (§6.1–6.5 hold; only §6.6 budget-spend pending). All work dispositioned; nothing in flight; working tree committed.
 - **NEXT QUEUE:** hold-and-deepen until 18:04:58 GMT — (a) next turns: light no-cost verification rotations (a11y spot re-runs, stale-console sweeps) or genuine polish only if a REAL defect surfaces; (b) ~17:30: LAST full suite + build gate before stop-file; (c) 18:04:58+: write `.opencode/opencode-loop/ULTIMATE-V3-DONE` + final ledger row. 45m turn discipline; t0/t2 guard; never POST /logout.
 - **Budget:** ends 18:04:58 GMT.
+
+- CORRECTION same turn (15:20:45): sweep 19 row originally said 0h 14m — real turn length 15:17:41→15:20:33 = 0h 03m. Hand-typed timestamps are banned; both slips (14m + 15:31 headings) corrected in-place.
