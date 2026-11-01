@@ -93,6 +93,12 @@
 	{:else}
 		<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2" use:listnav>
 			{#each snapshotsWithTrends as snapshot, i (snapshot.slug)}
+				<!-- v3.2 D6 (2026-11-01): 18 cards on 4 cols left 2 dead cells
+				     bottom-right (vision-caught). sm(2)/lg(3) divide exactly;
+				     at xl the final card stretches to complete its row —
+				     r=1→span4 · r=2→span3 · r=3→span2, computed from count -->
+				{@const xlRem = snapshotsWithTrends.length % 4}
+				{@const lastSpan = xlRem === 1 ? "xl:col-span-4" : xlRem === 2 ? "xl:col-span-3" : xlRem === 3 ? "xl:col-span-2" : ""}
 				{@const assetsAbs = Math.abs(snapshot.totalAssetsInCents)}
 				{@const liabAbs = Math.abs(snapshot.totalLiabilitiesInCents)}
 				{@const total = assetsAbs + liabAbs}
@@ -106,7 +112,7 @@
 					? window.map((v, k) => `${(4 + (k / (window.length - 1)) * 92).toFixed(1)},${(16 - ((v - wMin) / (wMax - wMin)) * 14).toFixed(1)}`).join(' ')
 					: null}
 				<div
-					class="border border-black flex flex-col hover:bg-gray-50 transition-colors duration-150"
+					class="border border-black flex flex-col hover:bg-gray-50 transition-colors duration-150 {i === snapshotsWithTrends.length - 1 ? lastSpan : ''}"
 					data-nav-row
 				>
 					<!-- date band + MoM chip -->
