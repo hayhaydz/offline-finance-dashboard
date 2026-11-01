@@ -3,6 +3,7 @@
 	import KpiCard from '$lib/components/KpiCard.svelte';
 	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
 	import TaxYearTimeline from '$lib/components/TaxYearTimeline.svelte';
+	import CashflowCalendar from '$lib/components/charts/CashflowCalendar.svelte';
 	import GoalCard from '$lib/components/GoalCard.svelte';
 	import DebtCard from '$lib/components/DebtCard.svelte';
 	import HomeVizGallery from '$lib/components/charts/HomeVizGallery.svelte';
@@ -135,118 +136,6 @@
 	<!-- v3.1 border system: the tax strip panel sits in the same inset frame -->
 	<div class="p-2">
 		<TaxYearTimeline data={data.isaTracker} />
-	</div>
-
-	<!-- v3 R3: visualisation gallery — bento grid of compact cells -->
-	<HomeVizGallery
-		trend={data.netWorthTrend}
-		cashflow={data.cashflow}
-		assetGroups={assetGroups.map(g => ({ name: g.type, value: Math.max(0, g.balance) }))}
-	/>
-
-	<!-- v3 R29: INTEREST + ALERTS side-by-side (3/2 split). v3.1 border
-	     system: cells own complete boxes; the wrapper carries NO border-b
-	     (wrapper+cell borders drew parallel rules 8px apart) -->
-	<div class="grid grid-cols-5 gap-2 p-2">
-	<!-- INTEREST SUMMARY SECTION -->
-	{#if data.interestSummary}
-	{@const posted = data.interestSummary.actualInterestIsa + data.interestSummary.actualInterestNonIsa}
-	{@const estimated = data.interestSummary.projectedInterestIsa + data.interestSummary.projectedInterestNonIsa}
-	{@const forecast = posted + estimated}
-	{@const isaPosted = data.interestSummary.actualInterestIsa}
-	{@const isaProjected = data.interestSummary.projectedInterestIsa}
-	{@const taxablePosted = data.interestSummary.actualInterestNonIsa}
-	{@const taxableProjected = data.interestSummary.projectedInterestNonIsa}
-	{#snippet interestAction()}
-		<div class="flex items-center gap-2">
-			<a href="/accounts/interest/{currentYearSlug}" class="bracket-link text-xs">View Breakdown</a>
-			<button
-				type="button"
-				class="bracket-link text-xs cursor-pointer"
-				aria-expanded={interestExpanded}
-				onclick={() => interestExpanded = !interestExpanded}
-			>
-				{interestExpanded ? '− Explain' : '+ Explain'}
-			</button>
-		</div>
-	{/snippet}
-	<div class="col-span-3 border border-black [&>*:last-child]:border-b-0">
-	<SectionHeader title="INTEREST" action={interestAction} />
-	<div class="border-b border-black">
-		<div class="grid grid-cols-2 md:grid-cols-4">
-			<KpiCard label="Posted (Actual)" value={formatCurrency(posted)} color="text-green-700" />
-			<KpiCard label="Estimated (Projected)" value={formatCurrency(estimated)} color="text-amber-700" />
-			<KpiCard label="Forecast (Total)" value={formatCurrency(forecast)} />
-			<KpiCard
-				label="PSA Remaining"
-				value={data.interestSummary.taxFreeStatusProjected.overAllowance
-					? `−${formatCurrency(data.interestSummary.taxFreeStatusProjected.taxableAmount)}`
-					: formatCurrency(data.interestSummary.taxFreeStatusProjected.remaining)}
-				color={data.interestSummary.taxFreeStatusProjected.overAllowance ? 'text-red-700' : 'text-green-700'}
-				detail="{data.interestSummary.taxFreeStatusProjected.overAllowance ? `over the ${formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} allowance` : `of ${formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} allowance`} · {data.interestSummary.taxBand} rate"
-			/>
-		</div>
-	</div>
-
-	<!-- v3.1 A02 D2/D8: wrapper split — the PSA story is ISA-vs-taxable;
-	     this ledger fills the stretched cell with data that belongs here -->
-	<div class="border-t border-gray-200 text-xs">
-		<div class="grid grid-cols-[1fr_repeat(3,minmax(0,9rem))] bg-gray-50 border-b border-gray-200">
-			<div class="pl-2 py-1 text-[10px] font-bold text-gray-600 uppercase">Wrapper</div>
-			<div class="py-1 text-right text-[10px] font-bold text-gray-600 uppercase">Posted</div>
-			<div class="py-1 text-right text-[10px] font-bold text-gray-600 uppercase">Projected</div>
-			<div class="py-1 pr-2 text-right text-[10px] font-bold text-gray-600 uppercase">Forecast</div>
-		</div>
-		<div class="grid grid-cols-[1fr_repeat(3,minmax(0,9rem))] border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors duration-150">
-			<div class="pl-2 py-1.5">ISA / LISA <span class="text-gray-500">tax-free</span></div>
-			<div class="py-1.5 text-right tabular-nums">{formatCurrency(isaPosted)}</div>
-			<div class="py-1.5 text-right tabular-nums text-gray-600">{formatCurrency(isaProjected)}</div>
-			<div class="py-1.5 pr-2 text-right tabular-nums font-bold">{formatCurrency(isaPosted + isaProjected)}</div>
-		</div>
-		<div class="grid grid-cols-[1fr_repeat(3,minmax(0,9rem))] border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors duration-150">
-			<div class="pl-2 py-1.5">Taxable <span class="text-gray-500">counts towards PSA</span></div>
-			<div class="py-1.5 text-right tabular-nums">{formatCurrency(taxablePosted)}</div>
-			<div class="py-1.5 text-right tabular-nums text-gray-600">{formatCurrency(taxableProjected)}</div>
-			<div class="py-1.5 pr-2 text-right tabular-nums font-bold">{formatCurrency(taxablePosted + taxableProjected)}</div>
-		</div>
-	</div>
-
-	<!-- Accordion: Interest Explanation (v3.1 A02: toggle lives in the header
-	     action area — the full-width expand row was a dead row) -->
-	<div>
-		{#if interestExpanded}
-			<div class="p-2 border-t border-black text-xs text-gray-700 space-y-2">
-				<div>
-					<span class="font-bold">Posted (Actual):</span> Interest transactions already received this tax year.
-				</div>
-				<div>
-					<span class="font-bold">Estimated (Projected):</span> Projected interest based on current balances and rates for the remaining {data.interestSummary.daysRemainingInTaxYear} days.
-				</div>
-				<div>
-					<span class="font-bold">ISA/LISA:</span> Always tax-free. Current total: {formatCurrency(data.interestSummary.totalExpectedIsa)}
-				</div>
-				<div>
-					<span class="font-bold">Personal Savings Allowance:</span>
-					{#if data.interestSummary.taxFreeStatusProjected.overAllowance}
-						Over by {formatCurrency(data.interestSummary.taxFreeStatusProjected.taxableAmount)} of {formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} allowance ({data.interestSummary.taxBand} rate).
-					{:else}
-						{formatCurrency(data.interestSummary.taxFreeStatusProjected.remaining)} remaining of {formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} allowance ({data.interestSummary.taxBand} rate).
-					{/if}
- 				</div>
- 			</div>
- 		{/if}
-	</div>
-	</div>
-	{/if}
-
-	<div class={data.interestSummary ? 'col-span-2 border border-black [&>*:last-child]:border-b-0' : 'col-span-5 border border-black [&>*:last-child]:border-b-0'}>
-	<AlertsSection
-		alerts={data.alerts}
-		title="ALERTS"
-		maxItems={5}
-		viewAllHref="/alerts"
-	/>
-	</div>
 	</div>
 
 	<!-- v3 R29: ACCOUNTS + GOALS side-by-side (3/2 split) -->
@@ -399,4 +288,129 @@
 	</div>
 	{/if}
 	</div>
+
+	<!-- v3 R3: visualisation gallery — bento grid of compact cells -->
+	<HomeVizGallery
+		trend={data.netWorthTrend}
+		assetGroups={assetGroups.map(g => ({ name: g.type, value: Math.max(0, g.balance) }))}
+	/>
+
+	<!-- v3 R29: INTEREST + ALERTS side-by-side (3/2 split). v3.1 border
+	     system: cells own complete boxes; the wrapper carries NO border-b
+	     (wrapper+cell borders drew parallel rules 8px apart) -->
+	<div class="grid grid-cols-5 gap-2 p-2">
+	<!-- INTEREST SUMMARY SECTION -->
+	{#if data.interestSummary}
+	{@const posted = data.interestSummary.actualInterestIsa + data.interestSummary.actualInterestNonIsa}
+	{@const estimated = data.interestSummary.projectedInterestIsa + data.interestSummary.projectedInterestNonIsa}
+	{@const forecast = posted + estimated}
+	{@const isaPosted = data.interestSummary.actualInterestIsa}
+	{@const isaProjected = data.interestSummary.projectedInterestIsa}
+	{@const taxablePosted = data.interestSummary.actualInterestNonIsa}
+	{@const taxableProjected = data.interestSummary.projectedInterestNonIsa}
+	{#snippet interestAction()}
+		<div class="flex items-center gap-2">
+			<a href="/accounts/interest/{currentYearSlug}" class="bracket-link text-xs">View Breakdown</a>
+			<button
+				type="button"
+				class="bracket-link text-xs cursor-pointer"
+				aria-expanded={interestExpanded}
+				onclick={() => interestExpanded = !interestExpanded}
+			>
+				{interestExpanded ? '− Explain' : '+ Explain'}
+			</button>
+		</div>
+	{/snippet}
+	<div class="col-span-3 border border-black [&>*:last-child]:border-b-0">
+	<SectionHeader title="INTEREST" action={interestAction} />
+	<div class="border-b border-black">
+		<div class="grid grid-cols-2 md:grid-cols-4">
+			<KpiCard label="Posted (Actual)" value={formatCurrency(posted)} color="text-green-700" />
+			<KpiCard label="Estimated (Projected)" value={formatCurrency(estimated)} color="text-amber-700" />
+			<KpiCard label="Forecast (Total)" value={formatCurrency(forecast)} />
+			<KpiCard
+				label="PSA Remaining"
+				value={data.interestSummary.taxFreeStatusProjected.overAllowance
+					? `−${formatCurrency(data.interestSummary.taxFreeStatusProjected.taxableAmount)}`
+					: formatCurrency(data.interestSummary.taxFreeStatusProjected.remaining)}
+				color={data.interestSummary.taxFreeStatusProjected.overAllowance ? 'text-red-700' : 'text-green-700'}
+				detail="{data.interestSummary.taxFreeStatusProjected.overAllowance ? `over the ${formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} allowance` : `of ${formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} allowance`} · {data.interestSummary.taxBand} rate"
+			/>
+		</div>
+	</div>
+
+	<!-- v3.1 A02 D2/D8: wrapper split — the PSA story is ISA-vs-taxable;
+	     this ledger fills the stretched cell with data that belongs here -->
+	<div class="border-t border-gray-200 text-xs">
+		<div class="grid grid-cols-[1fr_repeat(3,minmax(0,9rem))] bg-gray-50 border-b border-gray-200">
+			<div class="pl-2 py-1 text-[10px] font-bold text-gray-600 uppercase">Wrapper</div>
+			<div class="py-1 text-right text-[10px] font-bold text-gray-600 uppercase">Posted</div>
+			<div class="py-1 text-right text-[10px] font-bold text-gray-600 uppercase">Projected</div>
+			<div class="py-1 pr-2 text-right text-[10px] font-bold text-gray-600 uppercase">Forecast</div>
+		</div>
+		<div class="grid grid-cols-[1fr_repeat(3,minmax(0,9rem))] border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors duration-150">
+			<div class="pl-2 py-1.5">ISA / LISA <span class="text-gray-500">tax-free</span></div>
+			<div class="py-1.5 text-right tabular-nums">{formatCurrency(isaPosted)}</div>
+			<div class="py-1.5 text-right tabular-nums text-gray-600">{formatCurrency(isaProjected)}</div>
+			<div class="py-1.5 pr-2 text-right tabular-nums font-bold">{formatCurrency(isaPosted + isaProjected)}</div>
+		</div>
+		<div class="grid grid-cols-[1fr_repeat(3,minmax(0,9rem))] border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors duration-150">
+			<div class="pl-2 py-1.5">Taxable <span class="text-gray-500">counts towards PSA</span></div>
+			<div class="py-1.5 text-right tabular-nums">{formatCurrency(taxablePosted)}</div>
+			<div class="py-1.5 text-right tabular-nums text-gray-600">{formatCurrency(taxableProjected)}</div>
+			<div class="py-1.5 pr-2 text-right tabular-nums font-bold">{formatCurrency(taxablePosted + taxableProjected)}</div>
+		</div>
+	</div>
+
+	<!-- Accordion: Interest Explanation (v3.1 A02: toggle lives in the header
+	     action area — the full-width expand row was a dead row) -->
+	<div>
+		{#if interestExpanded}
+			<div class="p-2 border-t border-black text-xs text-gray-700 space-y-2">
+				<div>
+					<span class="font-bold">Posted (Actual):</span> Interest transactions already received this tax year.
+				</div>
+				<div>
+					<span class="font-bold">Estimated (Projected):</span> Projected interest based on current balances and rates for the remaining {data.interestSummary.daysRemainingInTaxYear} days.
+				</div>
+				<div>
+					<span class="font-bold">ISA/LISA:</span> Always tax-free. Current total: {formatCurrency(data.interestSummary.totalExpectedIsa)}
+				</div>
+				<div>
+					<span class="font-bold">Personal Savings Allowance:</span>
+					{#if data.interestSummary.taxFreeStatusProjected.overAllowance}
+						Over by {formatCurrency(data.interestSummary.taxFreeStatusProjected.taxableAmount)} of {formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} allowance ({data.interestSummary.taxBand} rate).
+					{:else}
+						{formatCurrency(data.interestSummary.taxFreeStatusProjected.remaining)} remaining of {formatCurrency(data.interestSummary.taxFreeStatusProjected.allowance)} allowance ({data.interestSummary.taxBand} rate).
+					{/if}
+ 				</div>
+ 			</div>
+ 		{/if}
+	</div>
+	</div>
+	{/if}
+
+	<div class={data.interestSummary ? 'col-span-2 border border-black [&>*:last-child]:border-b-0' : 'col-span-5 border border-black [&>*:last-child]:border-b-0'}>
+	<AlertsSection
+		alerts={data.alerts}
+		title="ALERTS"
+		maxItems={5}
+		viewAllHref="/alerts"
+	/>
+	</div>
+	</div>
+
+	<!-- v3.2 V2 (2026-11-01): the cashflow calendar moves to the BOTTOM of
+	     home (user direction) — accounts+goals moved to the top; the viz
+	     gallery above keeps the trend+allocation pair. Full-width cell: the
+	     month grid was already col-span-3 in the gallery, so nothing shrinks. -->
+	{#if data.cashflow && data.cashflow.obligations.length > 0}
+		<div class="p-2">
+			<CashflowCalendar
+				year={data.cashflow.year}
+				month={data.cashflow.month}
+				obligations={data.cashflow.obligations}
+			/>
+		</div>
+	{/if}
 {/if}
