@@ -349,11 +349,13 @@
 	{/if}
 
 	<!-- AMENDMENT OPTIONS (shared by every config form below) -->
+	<!-- v3.2 V5: contrast bumped (user: "can't read this text or the
+	     placeholder") — the band itself moves to its own page in V4. -->
 	{#if data.budget}
 		<div class="border border-black px-2 py-1 bg-gray-50 flex flex-wrap items-center gap-x-4 gap-y-1">
-			<span class="text-[10px] uppercase font-bold text-gray-600">Amendment options</span>
-			<span class="text-[10px] text-gray-600">— attach to your next config edit (target / filters) below</span>
-			<label class="flex items-center gap-1 text-xs text-gray-600">
+			<span class="text-[10px] uppercase font-bold text-gray-700">Amendment options</span>
+			<span class="text-xs text-gray-800">— attach to your next config edit (target / filters) below</span>
+			<label class="flex items-center gap-1 text-xs text-gray-800">
 				<span>Note</span>
 				<input
 					type="text"
@@ -361,10 +363,10 @@
 					bind:value={amendNote}
 					maxlength="200"
 					placeholder="optional — why is this changing?"
-					class="border border-gray-300 px-1 py-0.5 w-64 font-terminal text-xs"
+					class="border border-gray-500 bg-white px-1 py-0.5 w-64 font-terminal text-xs text-gray-900 placeholder:text-gray-600"
 				/>
 			</label>
-			<div class="flex items-center gap-3 text-xs text-gray-600">
+			<div class="flex items-center gap-3 text-xs text-gray-800">
 				<label class="flex items-center gap-1 cursor-pointer">
 					<input type="radio" name="applyScope" value="month" checked={!applyForward} onchange={() => (applyForward = false)} class="cursor-pointer" />
 					<span>this month only</span>

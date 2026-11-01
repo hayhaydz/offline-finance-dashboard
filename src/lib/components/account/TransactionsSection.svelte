@@ -458,7 +458,10 @@
 		<div class="overflow-x-auto">
 			<table class="w-full table-fixed min-w-[800px]">
 				<thead>
-					<tr>
+					<!-- v3.2 V8: header row carries a full-width black rule — it had
+					     none, so the column labels sat borderless above the
+					     month bands ("border doesn't go all the way across") -->
+					<tr class="border-b border-black">
 						{#if editMode}
 						<th class="pl-2 text-left whitespace-nowrap w-28">Actions</th>
 						{/if}
