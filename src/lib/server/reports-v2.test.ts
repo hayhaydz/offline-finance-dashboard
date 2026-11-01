@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { REPORTS, findReport, giniCoefficient, concentrationFlag, statementCadence, cadenceFlag, cadenceLagMonths, cadenceRowFlag } from "$lib/server/reports-v2";
+import { REPORTS, findReport, giniCoefficient, concentrationFlag, statementCadence, cadenceFlag, cadenceLagMonths, cadenceRowFlag, classifyBillCadence, amountDriftPct, driftFlag } from "$lib/server/reports-v2";
 
 // v3 B07 (R10): the report registry is well-formed — unique slugs, real
 // blurbs and builders — and every report builds against a throwaway user
@@ -183,5 +183,63 @@ describe("statement cadence math (v3.2)", () => {
 		expect(doc.findings.length).toBeGreaterThan(0);
 		// empty state must name the statement model, not fake data (D0)
 		expect(doc.abstract).toContain("No declared statement months");
+	});
+});
+
+describe("bill chronology math (v3.2)", () => {
+	const d = (iso: string) => new Date(`${iso}T12:00:00Z`);
+
+	it("monthly: four ~30d payments → monthly, tight jitter", () => {
+		const s = classifyBillCadence([d("2026-01-05"), d("2026-02-04"), d("2026-03-06"), d("2026-04-05")])!;
+		expect(s.cadence).toBe("monthly");
+		expect(s.occurrences).toBe(4);
+		expect(s.medianGapDays).toBeGreaterThanOrEqual(28);
+		expect(s.medianGapDays).toBeLessThanOrEqual(31);
+		expect(s.jitterDays).toBeLessThanOrEqual(4);
+	});
+
+	it("quarterly: 3 payments ~91d apart → quarterly (invisible to /overview/bills)", () => {
+		const s = classifyBillCadence([d("2026-01-10"), d("2026-04-11"), d("2026-07-10")])!;
+		expect(s.cadence).toBe("quarterly");
+	});
+
+	it("annual: 2 payments 365d apart → annual (only class needing 2)", () => {
+		const s = classifyBillCadence([d("2025-03-01"), d("2026-03-01")])!;
+		expect(s.cadence).toBe("annual");
+		// two quarterly payments do NOT pass as annual or anything else
+		expect(classifyBillCadence([d("2026-01-10"), d("2026-04-11")])!.cadence).toBe("irregular");
+	});
+
+	it("irregular: mixed gaps fall through every window", () => {
+		const s = classifyBillCadence([d("2026-01-01"), d("2026-02-01"), d("2026-06-01"), d("2026-06-20")])!;
+		expect(s.cadence).toBe("irregular");
+	});
+
+	it("fewer than 2 dates → null; unsorted input tolerated", () => {
+		expect(classifyBillCadence([d("2026-01-01")])).toBeNull();
+		expect(classifyBillCadence([])).toBeNull();
+		const unsorted = classifyBillCadence([d("2026-04-05"), d("2026-01-05"), d("2026-02-04"), d("2026-03-06")])!;
+		expect(unsorted.cadence).toBe("monthly");
+		expect(unsorted.firstDate).toBe("2026-01-05");
+	});
+
+	it("drift math + flags follow the recorded scale", () => {
+		expect(amountDriftPct([10000, 10000, 10000])).toBeCloseTo(0, 10);
+		expect(amountDriftPct([100, 110, 120])).toBeCloseTo(2 / 11, 10); // (120−100) ÷ median 110
+		expect(driftFlag(0.05)).toBe("green");
+		expect(driftFlag(0.1)).toBe("green"); // boundary inclusive
+		expect(driftFlag(0.11)).toBe("amber");
+		expect(driftFlag(0.25)).toBe("amber");
+		expect(driftFlag(0.26)).toBe("red");
+		// signs ignored — withdrawals are negative in the ledger
+		expect(amountDriftPct([-10000, -10000])).toBeCloseTo(0, 10);
+	});
+
+	it("registered with the paper structure and degrades for unknown users", async () => {
+		const report = findReport("bill-chronology");
+		expect(report).toBeDefined();
+		const doc = await report!.build(999_999);
+		expect(doc.slug).toBe("bill-chronology");
+		expect(doc.abstract).toContain("No recurring withdrawals");
 	});
 });

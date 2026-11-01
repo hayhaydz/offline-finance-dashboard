@@ -1487,6 +1487,240 @@ async function buildStatementCadence(userId: number): Promise<ReportDoc> {
 		],
 	};
 }
+// ---------------------------------------------------------------------------
+// Bill chronology (v3.2 harvest, 2026-11-01) — the bill-history report the
+// 2026-10-18 ask pointed at ("new behavior for all of our bills and bill
+// history"). The /overview/bills detector is deliberately monthly-only;
+// this report classifies EVERY recurring outgoing's cadence (monthly /
+// quarterly / annual / irregular) and grades amount drift + jitter.
+// D0: evidence is declared statements only — a "skipped" month may simply
+// be an undeclared statement; drift/jitter are computed over what exists.
+// ---------------------------------------------------------------------------
+
+export type BillCadence = "monthly" | "quarterly" | "annual" | "irregular";
+
+export interface BillCadenceStats {
+	cadence: BillCadence;
+	occurrences: number;
+	medianGapDays: number;
+	/** max−min of the observed gaps; small = metronomic */
+	jitterDays: number;
+	firstDate: string;
+	lastDate: string;
+}
+
+/** day gaps between sorted dates */
+export function dayGaps(dates: Date[]): number[] {
+	const sorted = [...dates].sort((a, b) => a.getTime() - b.getTime());
+	const gaps: number[] = [];
+	for (let i = 1; i < sorted.length; i++) {
+		gaps.push(Math.round((sorted[i].getTime() - sorted[i - 1].getTime()) / 86_400_000));
+	}
+	return gaps;
+}
+
+function median(values: number[]): number {
+	if (values.length === 0) return 0;
+	const s = [...values].sort((a, b) => a - b);
+	const mid = Math.floor(s.length / 2);
+	return s.length % 2 === 1 ? s[mid] : Math.round((s[mid - 1] + s[mid]) / 2);
+}
+
+/**
+ * Pure cadence classification over one description-group's payment dates.
+ * Class windows are generous on purpose (real bills drift across weekends
+ * and statement cut-offs). Too few payments to classify → irregular.
+ */
+export function classifyBillCadence(dates: Date[]): BillCadenceStats | null {
+	if (dates.length < 2) return null;
+	const sorted = [...dates].sort((a, b) => a.getTime() - b.getTime());
+	const gaps = dayGaps(sorted);
+	const med = median(gaps);
+	const jitter = gaps.length > 0 ? Math.max(...gaps) - Math.min(...gaps) : 0;
+	const inWindow = (lo: number, hi: number) => gaps.every((g) => g >= lo && g <= hi);
+	// annual needs just 2 payments (sparse by nature); others need 3+
+	let cadence: BillCadence = "irregular";
+	if (dates.length >= 3 && inWindow(21, 42)) cadence = "monthly";
+	else if (dates.length >= 3 && inWindow(72, 115)) cadence = "quarterly";
+	else if (dates.length >= 2 && inWindow(330, 400)) cadence = "annual";
+	return {
+		cadence,
+		occurrences: dates.length,
+		medianGapDays: med,
+		jitterDays: jitter,
+		firstDate: sorted[0].toISOString().slice(0, 10),
+		lastDate: sorted[sorted.length - 1].toISOString().slice(0, 10),
+	};
+}
+
+/** amount drift: (max−min)/median of the observed amounts, 0–1+ */
+export function amountDriftPct(amounts: number[]): number {
+	if (amounts.length === 0) return 0;
+	const med = median(amounts.map(Math.abs));
+	if (med <= 0) return 0;
+	const max = Math.max(...amounts.map(Math.abs));
+	const min = Math.min(...amounts.map(Math.abs));
+	return (max - min) / med;
+}
+
+/** drift flag: green ≤10% stable · amber ≤25% creeping · red >25% reprice */
+export function driftFlag(driftPct: number): "green" | "amber" | "red" {
+	if (driftPct <= 0.1) return "green";
+	if (driftPct <= 0.25) return "amber";
+	return "red";
+}
+
+async function buildBillChronology(userId: number): Promise<ReportDoc> {
+	const date = isoToday();
+	const txRows = await db
+		.select({
+			slug: accountTransactions.slug,
+			description: accountTransactions.description,
+			amount: accountTransactions.amount,
+			transactionDate: accountTransactions.transactionDate,
+		})
+		.from(accountTransactions)
+		.innerJoin(accounts, eq(accounts.id, accountTransactions.accountId))
+		.where(
+			and(
+				withUserFilter(userId, accounts),
+				isNull(accounts.deletedAt),
+				eq(accountTransactions.type, "withdrawal"),
+			),
+		);
+	// descriptions are encrypted at rest — decrypt BEFORE grouping
+	const groups = new Map<string, { dates: Date[]; amounts: number[] }>();
+	for (const t of txRows) {
+		const description = decryptTxDescription(userId, t.slug, t.description);
+		if (!description || description.trim().length <= 3) continue;
+		const key = description.toLowerCase().trim();
+		const group = groups.get(key) ?? { dates: [], amounts: [] };
+		group.dates.push(new Date(t.transactionDate));
+		group.amounts.push(Number(t.amount));
+		groups.set(key, group);
+	}
+
+	interface Bill {
+		name: string;
+		stats: BillCadenceStats;
+		medianAmountPence: number;
+		driftPct: number;
+		lifetimePence: number;
+		monthlyEquivalentPence: number;
+		paidMonths: Set<string>;
+		spanKey: string;
+	}
+	const bills: Bill[] = [];
+	for (const [key, g] of groups) {
+		const stats = classifyBillCadence(g.dates);
+		if (!stats || stats.cadence === "irregular") continue;
+		const amountsAbs = g.amounts.map((a) => Math.abs(a));
+		const med = Math.round(median(amountsAbs));
+		const lifetime = Math.round(amountsAbs.reduce((s, a) => s + a, 0));
+		bills.push({
+			name: key,
+			stats,
+			medianAmountPence: med,
+			driftPct: amountDriftPct(g.amounts),
+			lifetimePence: lifetime,
+			monthlyEquivalentPence: Math.round((lifetime / stats.occurrences) * (365.25 / 12 / stats.medianGapDays)),
+			paidMonths: new Set(g.dates.map((d) => `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`)),
+			spanKey: `${stats.firstDate.slice(0, 7)}→${stats.lastDate.slice(0, 7)}`,
+		});
+	}
+	bills.sort((a, b) => b.lifetimePence - a.lifetimePence);
+
+	if (bills.length === 0) {
+		return {
+			slug: "bill-chronology",
+			title: "Bill Chronology",
+			date,
+			abstract:
+				"No recurring withdrawals on record — import statements and every regular outgoing lands here with its cadence, drift, and lifetime cost.",
+			method: [
+				"Data: declared withdrawals grouped by decrypted description (≥3 payments, ≥2 for annual)",
+				"cadence windows: monthly 21–42d · quarterly 72–115d · annual 330–400d (every gap in window) — else irregular and excluded",
+				"drift = (max−min) ÷ median amount; jitter = max−min gap in days",
+				"monthly-equivalent = lifetime ÷ occurrences × (30.44 ÷ median gap) — cadences made comparable",
+			],
+			findings: [{ heading: "Findings", rows: [{ label: "recurring outgoings", value: "0" }] }],
+		};
+	}
+
+	const byCadence = (c: BillCadence) => bills.filter((b) => b.stats.cadence === c);
+	const monthlyEq = bills.reduce((s, b) => s + b.monthlyEquivalentPence, 0);
+	const nonMonthly = bills.filter((b) => b.stats.cadence !== "monthly");
+	const creeping = [...bills].sort((a, b) => b.driftPct - a.driftPct)[0];
+	const metronomic = [...bills].sort((a, b) => a.stats.jitterDays - b.stats.jitterDays)[0];
+	const lifetimeTotal = bills.reduce((s, b) => s + b.lifetimePence, 0);
+
+	return {
+		slug: "bill-chronology",
+		title: "Bill Chronology",
+		date,
+		abstract: `${bills.length} recurring outgoing${bills.length !== 1 ? "s" : ""} on record, lifetime ${formatCurrency(lifetimeTotal)} — ${formatCurrency(monthlyEq)}/month equivalent across monthly, quarterly, and annual cadences. ${nonMonthly.length} bill${nonMonthly.length !== 1 ? "s" : ""} sit outside the monthly detector's window and are invisible on /overview/bills. Steepest price creep: ${creeping.name} at ${(creeping.driftPct * 100).toFixed(0)}% drift.`,
+		method: [
+			`Data: declared withdrawals grouped by description, ${bills.length} group${bills.length !== 1 ? "s" : ""} passing a cadence window (D0: undeclared statement months are absent, not skipped)`,
+			"cadence windows: monthly 21–42d · quarterly 72–115d · annual 330–400d — every gap inside the window, else irregular (excluded)",
+			"drift = (max−min) ÷ median amount · jitter = max−min observed gap (days)",
+			"monthly-equivalent = lifetime ÷ occurrences × (30.44 ÷ median gap) — a £90/quarter bill reads as £30/mo",
+			"flags: drift green ≤10% · amber ≤25% · red >25%",
+		],
+		findings: [
+			{
+				heading: "By cadence",
+				figure: "none",
+				rows: [
+					...(["monthly", "quarterly", "annual"] as BillCadence[]).map((c) => {
+						const list = byCadence(c);
+						return {
+							label: c,
+							// D5: neutral values — a cadence class is a fact, not a status
+							value: `${list.length} bill${list.length !== 1 ? "s" : ""} · ${formatCurrency(list.reduce((s, b) => s + b.monthlyEquivalentPence, 0))}/mo eq`,
+						};
+					}),
+					{
+						label: "total (monthly-equivalent)",
+						value: `${formatCurrency(monthlyEq)}/mo · lifetime ${formatCurrency(lifetimeTotal)}`,
+					},
+				],
+				notes: nonMonthly.length > 0
+					? [`${nonMonthly.length} non-monthly bill${nonMonthly.length !== 1 ? "s" : ""} below do NOT appear on /overview/bills — its detector is monthly-only by design (28–35d); this report is their ledger.`]
+					: ["every recurring bill is monthly — /overview/bills already sees the whole set."],
+			},
+			{
+				heading: "Per-bill chronology — largest lifetime first",
+				figure: "none",
+				rows: bills.map((b) => ({
+					label: b.name,
+					value: `${b.stats.cadence} · ${b.stats.occurrences}× · gap ${b.stats.medianGapDays}d ±${b.stats.jitterDays} · ${formatCurrency(b.medianAmountPence)} median (drift ${(b.driftPct * 100).toFixed(0)}%) · lifetime ${formatCurrency(b.lifetimePence)}`,
+					flag: driftFlag(b.driftPct),
+				})),
+				notes: [
+					...bills.slice(0, 12).map((b) => {
+						// month strip over the bill's own span: █ paid · nothing due = −
+						const [fy, fm] = b.stats.firstDate.slice(0, 7).split("-").map(Number);
+						const [ly, lm] = b.stats.lastDate.slice(0, 7).split("-").map(Number);
+						let y = fy;
+						let m = fm;
+						let strip = "";
+						let guard = 0;
+						while ((y < ly || (y === ly && m <= lm)) && guard < 36) {
+							const key = `${y}-${String(m).padStart(2, "0")}`;
+							strip += b.paidMonths.has(key) ? "█" : "−";
+							m++;
+							if (m > 12) { m = 1; y++; }
+							guard++;
+						}
+						return `${strip}  ${b.name} (${b.spanKey})`;
+					}),
+					"strip = months of the bill's own span · █ paid · − no matching payment (may be an undeclared statement — D0)",
+					`most metronomic: ${metronomic.name} (±${metronomic.stats.jitterDays}d) · steepest creep: ${creeping.name} (${(creeping.driftPct * 100).toFixed(0)}%)`,
+				],
+			},
+		],
+	};
+}
 
 
 export const REPORTS: ReportDefinition[] = [
@@ -1555,6 +1789,12 @@ export const REPORTS: ReportDefinition[] = [
 		title: "Statement Cadence",
 		blurb: "Which accounts narrate reliably — coverage, silences, and freshness of declarations.",
 		build: buildStatementCadence,
+	},
+	{
+		slug: "bill-chronology",
+		title: "Bill Chronology",
+		blurb: "Every recurring outgoing's cadence, price creep, and lifetime cost — quarterly and annual included.",
+		build: buildBillChronology,
 	},
 ];
 

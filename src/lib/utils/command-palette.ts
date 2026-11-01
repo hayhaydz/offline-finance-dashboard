@@ -26,6 +26,7 @@ export const REPORT_MIRROR: readonly { slug: string; title: string }[] = [
 	{ slug: "net-worth-seasonality", title: "Net-Worth Seasonality" },
 	{ slug: "spend-concentration", title: "Spend Concentration" },
 	{ slug: "statement-cadence", title: "Statement Cadence" },
+	{ slug: "bill-chronology", title: "Bill Chronology" },
 ];
 
 export interface PaletteCommand {
