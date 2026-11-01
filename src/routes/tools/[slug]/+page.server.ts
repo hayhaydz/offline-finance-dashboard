@@ -74,21 +74,34 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	// Statement gap finder (v3.2 harvest): months with zero transactions
 	// INSIDE each account's declared range — the statement model's own
 	// blind spots, user-scoped (D0: before-first is not a gap).
-	const statementGaps =
-		tool.slug === "statement-gaps"
-			? await db
-					.select({
-						slug: accounts.slug,
-						name: accounts.name,
-						type: accounts.type,
-						month: sql<string>`strftime('%Y-%m', ${accountTransactions.transactionDate})`,
-					})
-					.from(accountTransactions)
-					.innerJoin(accounts, eq(accounts.id, accountTransactions.accountId))
-					.where(withUserFilter(user.id, accounts))
-					.groupBy(accounts.slug, accounts.name, accounts.type, sql`strftime('%Y-%m', ${accountTransactions.transactionDate})`)
-					.orderBy(accounts.name, sql`strftime('%Y-%m', ${accountTransactions.transactionDate})`)
-			: [];
+	// Months bucket in JS: strftime on this timestamp column returns NULL
+	// (sqlite reads bare unix-second ints as Julian days — documented in
+	// budgets.ts); the SQL group-by silently collapsed every month to NULL
+	// and rendered false "complete" verdicts (fixed 2026-11-01).
+	const statementGaps: Array<{ slug: string; name: string; type: string; month: string }> = [];
+	if (tool.slug === "statement-gaps") {
+		const dateRows = await db
+			.selectDistinct({
+				slug: accounts.slug,
+				name: accounts.name,
+				type: accounts.type,
+				transactionDate: accountTransactions.transactionDate,
+			})
+			.from(accountTransactions)
+			.innerJoin(accounts, eq(accounts.id, accountTransactions.accountId))
+			.where(withUserFilter(user.id, accounts));
+		const seen = new Set<string>();
+		for (const r of dateRows) {
+			const d = new Date(r.transactionDate);
+			if (Number.isNaN(d.getTime())) continue;
+			const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+			const dedupe = `${r.slug}|${key}`;
+			if (seen.has(dedupe)) continue;
+			seen.add(dedupe);
+			statementGaps.push({ slug: r.slug, name: r.name, type: r.type, month: key });
+		}
+		statementGaps.sort((a, b) => a.name.localeCompare(b.name) || a.month.localeCompare(b.month));
+	}
 
 	return { tool, toolsData: data, cards, netWorthHistory, statementGaps };
 };

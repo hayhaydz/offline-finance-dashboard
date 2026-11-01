@@ -1249,6 +1249,245 @@ async function buildSpendConcentration(userId: number): Promise<ReportDoc> {
 	};
 }
 
+// ---------------------------------------------------------------------------
+// Statement cadence (v3.2 harvest, 2026-11-01) — which accounts narrate
+// reliably. Companion to the statement-gap finder tool: where the tool
+// lists interior holes, this report grades the whole declaration habit
+// per account (coverage, silences, freshness) and the fleet's spread.
+// D0: months exist only when a statement was declared (≥1 transaction).
+// ---------------------------------------------------------------------------
+
+export interface CadenceStats {
+	firstMonth: string;
+	lastMonth: string;
+	/** months in first→last inclusive (endpoints declared by definition) */
+	spanMonths: number;
+	declaredCount: number;
+	/** declared ÷ span, 0–1 */
+	coveragePct: number;
+	/** interior months with zero transactions (before-first never counts) */
+	gapCount: number;
+	/** longest run of consecutive interior missing months */
+	longestGapRun: number;
+}
+
+/**
+ * Pure cadence math over one account's declared months (YYYY-MM keys,
+ * any order). Returns null when nothing is declared — the account is
+ * not a narrator yet, not a failing one (D0).
+ */
+export function statementCadence(declaredMonths: string[]): CadenceStats | null {
+	const declared = [...new Set(declaredMonths.filter((m) => /^\d{4}-\d{2}$/.test(m)))].sort();
+	if (declared.length === 0) return null;
+	const firstMonth = declared[0];
+	const lastMonth = declared[declared.length - 1];
+	const set = new Set(declared);
+	let spanMonths = 0;
+	const missing: string[] = [];
+	let longestGapRun = 0;
+	let run = 0;
+	{
+		const [fy, fm] = firstMonth.split("-").map(Number);
+		const [ly, lm] = lastMonth.split("-").map(Number);
+		let y = fy;
+		let m = fm;
+		while (y < ly || (y === ly && m <= lm)) {
+			const key = `${y}-${String(m).padStart(2, "0")}`;
+			spanMonths++;
+			if (!set.has(key) && key !== lastMonth) {
+				missing.push(key);
+				run++;
+				longestGapRun = Math.max(longestGapRun, run);
+			} else {
+				run = 0;
+			}
+			m++;
+			if (m > 12) {
+				m = 1;
+				y++;
+			}
+		}
+	}
+	return {
+		firstMonth,
+		lastMonth,
+		spanMonths,
+		declaredCount: declared.length,
+		coveragePct: spanMonths > 0 ? declared.length / spanMonths : 1,
+		gapCount: missing.length,
+		longestGapRun,
+	};
+}
+
+/** coverage flag scale: green ≥0.90 complete · amber ≥0.70 patchy · red below */
+export function cadenceFlag(coveragePct: number): "green" | "amber" | "red" {
+	if (coveragePct >= 0.9) return "green";
+	if (coveragePct >= 0.7) return "amber";
+	return "red";
+}
+
+/** lag flag scale: green 0 · amber 1 · red ≥2 months behind the fleet */
+export function lagFlag(lag: number): "green" | "amber" | "red" {
+	if (lag <= 0) return "green";
+	if (lag === 1) return "amber";
+	return "red";
+}
+
+/** severity rank for worst-of flagging (green < amber < red) */
+const FLAG_RANK: Record<"green" | "amber" | "red", number> = { green: 0, amber: 1, red: 2 };
+
+/** the row carries the worse of coverage and freshness — both promised by the legend */
+export function cadenceRowFlag(coveragePct: number, lag: number): "green" | "amber" | "red" {
+	const byCoverage = cadenceFlag(coveragePct);
+	const byLag = lagFlag(lag);
+	return FLAG_RANK[byCoverage] >= FLAG_RANK[byLag] ? byCoverage : byLag;
+}
+
+/** months an account sits behind the fleet's freshest declaration */
+export function cadenceLagMonths(accountLast: string, fleetLast: string): number {
+	if (!/^\d{4}-\d{2}$/.test(accountLast) || !/^\d{4}-\d{2}$/.test(fleetLast)) return 0;
+	const [ay, am] = accountLast.split("-").map(Number);
+	const [fy, fm] = fleetLast.split("-").map(Number);
+	return (fy - ay) * 12 + (fm - am);
+}
+
+async function buildStatementCadence(userId: number): Promise<ReportDoc> {
+	const date = isoToday();
+	// month keys are bucketed in JS: strftime on this timestamp column returns
+	// NULL (verified live, documented in budgets.ts 2026-10-28) — sqlite reads
+	// bare unix-second integers as Julian days. Select DISTINCT dates only.
+	const rows = await db
+		.selectDistinct({
+			slug: accounts.slug,
+			name: accounts.name,
+			transactionDate: accountTransactions.transactionDate,
+		})
+		.from(accountTransactions)
+		.innerJoin(accounts, eq(accounts.id, accountTransactions.accountId))
+		.where(withUserFilter(userId, accounts));
+
+	// reduce to per-account declared-month sets
+	const byAccount = new Map<string, { name: string; months: Set<string> }>();
+	for (const r of rows) {
+		const d = new Date(r.transactionDate);
+		if (Number.isNaN(d.getTime())) continue;
+		const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+		let entry = byAccount.get(r.slug);
+		if (!entry) {
+			entry = { name: r.name, months: new Set<string>() };
+			byAccount.set(r.slug, entry);
+		}
+		entry.months.add(key);
+	}
+
+	const perAccount = [...byAccount.entries()]
+		.map(([slug, { name, months }]) => {
+			const stats = statementCadence([...months]);
+			return stats ? { slug, name, stats, monthSet: months } : null;
+		})
+		.filter((a): a is NonNullable<typeof a> => a !== null);
+	if (perAccount.length === 0) {
+		return {
+			slug: "statement-cadence",
+			title: "Statement Cadence",
+			date,
+			abstract:
+				"No declared statement months on record — import statements (Settings → Data) and the cadence math appears here.",
+			method: [
+				"Data: per-account transaction months (a month exists when it carries ≥1 transaction, D0 statement model)",
+				"coverage = declared months ÷ months inside each account's first→last span (endpoints declared by definition)",
+				"gaps = interior months with zero transactions; before-first never counts (the account may not have existed)",
+				"lag = months between an account's last declaration and the fleet's freshest",
+			],
+			findings: [{ heading: "Findings", rows: [{ label: "accounts with declarations", value: "0" }] }],
+		};
+	}
+	const fleetLast = perAccount.reduce(
+		(a, b) => (b.stats.lastMonth > a ? b.stats.lastMonth : a),
+		perAccount[0].stats.lastMonth,
+	);
+	const lagging = perAccount.map((a) => ({ ...a, lag: cadenceLagMonths(a.stats.lastMonth, fleetLast) }));
+	lagging.sort((a, b) => a.stats.coveragePct - b.stats.coveragePct || b.lag - a.lag);
+	const meanCoverage = lagging.reduce((s, a) => s + a.stats.coveragePct, 0) / lagging.length;
+	const silentMonthsTotal = lagging.reduce((s, a) => s + a.stats.gapCount, 0);
+	const stalest = lagging[0];
+	const atFreshest = lagging.filter((a) => a.lag === 0).length;
+	// D0 honesty: accounts that exist but never declared are part of the story
+	const totalAccounts = await db
+		.select({ slug: accounts.slug })
+		.from(accounts)
+		.where(withUserFilter(userId, accounts));
+	const silentAccounts = totalAccounts.length - lagging.length;
+	const widest = lagging.reduce((a, b) => (b.stats.spanMonths > a.stats.spanMonths ? b : a));
+	const deepest = lagging.reduce((a, b) => (b.stats.longestGapRun > a.stats.longestGapRun ? b : a));
+
+	// coverage strip (last ≤24 months of the span): █ declared · · silent
+	const stripFor = (a: (typeof lagging)[number]): string => {
+		const [fy, fm] = a.stats.firstMonth.split("-").map(Number);
+		const [ly, lm] = a.stats.lastMonth.split("-").map(Number);
+		const total = (ly - fy) * 12 + (lm - fm) + 1;
+		const skip = Math.max(0, total - 24);
+		let y = fy;
+		let m = fm;
+		let i = 0;
+		let out = "";
+		while (y < ly || (y === ly && m <= lm)) {
+			const key = `${y}-${String(m).padStart(2, "0")}`;
+			if (i >= skip) out += a.monthSet.has(key) || key === a.stats.lastMonth ? "█" : "·";
+			i++;
+			m++;
+			if (m > 12) {
+				m = 1;
+				y++;
+			}
+		}
+		return skip > 0 ? `…${out}` : out;
+	};
+
+	return {
+		slug: "statement-cadence",
+		title: "Statement Cadence",
+		date,
+		abstract: `Across ${lagging.length} account${lagging.length !== 1 ? "s" : ""} with declarations, the freshest month is ${fleetLast} and mean interior coverage is ${(meanCoverage * 100).toFixed(0)}% — ${silentMonthsTotal} silent month${silentMonthsTotal !== 1 ? "s" : ""} hide inside declared ranges. ${atFreshest} of ${lagging.length} account${lagging.length !== 1 ? "s" : ""} declared through ${fleetLast}; the thinnest narrator is ${stalest.name} at ${(stalest.stats.coveragePct * 100).toFixed(0)}% coverage.`,
+		method: [
+			`Data: per-account transaction months, ${lagging.length} account${lagging.length !== 1 ? "s" : ""} carrying ≥1 declaration (D0: undeclared months are absent, not zero)`,
+			"coverage = declared ÷ months inside the account's first→last span; endpoints are declared by definition",
+			"gaps = interior months with zero transactions (same rule as the statement-gap finder tool); longest run = max consecutive silence",
+			"lag = months behind the fleet's freshest declaration — staleness against your own best habit, not against realtime",
+			"flags: green ≥90% · amber 70–89% · red <70% (lag: green 0 · amber 1 · red ≥2)",
+		],
+		findings: [
+			{
+				heading: "Fleet",
+				figure: "none",
+				rows: [
+					{ label: "accounts with declarations", value: `${lagging.length} of ${totalAccounts.length}` },
+					{ label: "freshest declared month", value: fleetLast },
+					{ label: "accounts at freshest", value: `${atFreshest} of ${lagging.length}`, flag: atFreshest === lagging.length ? ("green" as const) : atFreshest * 2 >= lagging.length ? ("amber" as const) : ("red" as const) },
+					{ label: "mean coverage", value: `${(meanCoverage * 100).toFixed(0)}%`, flag: cadenceFlag(meanCoverage) },
+					{ label: "total silent interior months", value: `${silentMonthsTotal}`, flag: silentMonthsTotal === 0 ? ("green" as const) : null },
+					{ label: "widest span", value: `${widest.name} · ${widest.stats.spanMonths} months (${widest.stats.firstMonth}→${widest.stats.lastMonth})` },
+					{ label: "longest single silence", value: deepest.stats.longestGapRun === 0 ? "none — every narrator unbroken" : `${deepest.name} · ${deepest.stats.longestGapRun} months`, flag: deepest.stats.longestGapRun >= 3 ? ("red" as const) : deepest.stats.longestGapRun >= 2 ? ("amber" as const) : null },
+					{ label: "accounts with zero declarations", value: `${silentAccounts}`, flag: silentAccounts === 0 ? ("green" as const) : ("amber" as const) },
+				],
+			},
+			{
+				heading: "Per-account cadence — thinnest first",
+				figure: "none",
+				rows: lagging.map((a) => ({
+					label: a.name,
+					value: `${a.stats.firstMonth}→${a.stats.lastMonth} · coverage ${(a.stats.coveragePct * 100).toFixed(0)}% · ${a.stats.gapCount} gap${a.stats.gapCount !== 1 ? "s" : ""} (longest ${a.stats.longestGapRun}) · lag ${a.lag}mo`,
+					flag: cadenceRowFlag(a.stats.coveragePct, a.lag),
+				})),
+				notes: [
+					...lagging.slice(0, 12).map((a) => `${stripFor(a)}  ${a.name} (${(a.stats.coveragePct * 100).toFixed(0)}%)`),
+					"strip = last ≤24 months of each account's declared span · █ declared · silent interior = ·",
+				],
+			},
+		],
+	};
+}
+
 
 export const REPORTS: ReportDefinition[] = [
 	{
@@ -1310,6 +1549,12 @@ export const REPORTS: ReportDefinition[] = [
 		title: "Spend Concentration",
 		blurb: "Does one category carry the month, or is the load spread?",
 		build: buildSpendConcentration,
+	},
+	{
+		slug: "statement-cadence",
+		title: "Statement Cadence",
+		blurb: "Which accounts narrate reliably — coverage, silences, and freshness of declarations.",
+		build: buildStatementCadence,
 	},
 ];
 
