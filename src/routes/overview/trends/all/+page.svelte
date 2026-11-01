@@ -231,7 +231,7 @@
 								{VERDICT_LABEL[v]} ({count})
 							</span>
 						{/each}
-						<span class="text-gray-400">· bar height = spend · colour = verdict vs that month's target</span>
+						<span class="text-gray-600">· bar height = spend · colour = verdict vs that month's target</span>
 					</div>
 				{:else if chartRows.length > 0}
 					<!-- V1 CLS fix (2026-11-01): reserve the chart's exact height
@@ -245,7 +245,7 @@
 								{VERDICT_LABEL[v]} ({count})
 							</span>
 						{/each}
-						<span class="text-gray-400">· bar height = spend · colour = verdict vs that month's target</span>
+						<span class="text-gray-600">· bar height = spend · colour = verdict vs that month's target</span>
 					</div>
 				{:else if chartRows.length === 0}
 					<div class="text-xs text-gray-500 p-2 text-center">[no months recorded for {activeYear.year}]</div>
