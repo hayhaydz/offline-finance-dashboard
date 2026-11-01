@@ -22,6 +22,7 @@ import {
 	getNetWorthHistory,
 } from "$lib/server/reports";
 import { formatCurrency } from "$lib/utils/currency";
+import { asciiSparkline } from "$lib/utils/ascii-charts";
 import { MS_PER_MONTH } from "$lib/utils/time-constants";
 
 /**
@@ -1141,6 +1142,114 @@ async function buildSeasonality(userId: number): Promise<ReportDoc> {
 // Registry
 // ---------------------------------------------------------------------------
 
+/**
+ * Spend concentration (v3.2 harvest, 2026-11-01): how much of each declared
+ * month's spending lives in its biggest categories — Gini over category
+ * spend, top-N share, and the effective number of categories (participation
+ * ratio 1/Σp²). A concentrated month is budget-fragile: one category
+ * decision moves the whole number. Math-paper structure per Appendix C
+ * ("separate reports focussed on interesting ideas… math/science paper
+ * format"); statement-honest — declared months only (D0).
+ */
+export function giniCoefficient(values: number[]): number {
+	// zero-spend categories COUNT (a month where one category pays for
+	// everything among four present categories is 0.75-concentrated, not
+	// "equal among spenders") — matches the textbook [1,2,3,4]=0.25 check.
+	// The monthly-spend source never passes zero rows, so this only bites
+	// in direct calls/tests.
+	const xs = [...values].sort((a, b) => a - b);
+	const n = xs.length;
+	if (n < 2) return 0;
+	const total = xs.reduce((s, x) => s + x, 0);
+	if (total <= 0) return 0;
+	let weighted = 0;
+	for (let i = 0; i < n; i++) weighted += (i + 1) * xs[i];
+	return (2 * weighted) / (n * total) - (n + 1) / n;
+}
+
+/** concentration verdict scale (module-level for the regression test) */
+export function concentrationFlag(gini: number): "green" | "amber" | "red" {
+	if (gini < 0.5) return "green";
+	if (gini <= 0.7) return "amber";
+	return "red";
+}
+
+async function buildSpendConcentration(userId: number): Promise<ReportDoc> {
+	const date = isoToday();
+	const history = await getMonthlySpend(userId, 12);
+	const declared = history.filter((m) => m.totalPence > 0);
+
+	if (declared.length === 0) {
+		return {
+			slug: "spend-concentration",
+			title: "Spend Concentration",
+			date,
+			abstract:
+				"No categorised spend is declared for the last 12 months — import statements or tag transactions and the concentration math appears here.",
+			method: [
+				"Data: per-category monthly spend (budget-config aware, last 12 calendar months, declared months only)",
+				"Gini over category spend; top-N cumulative share; effective categories = 1/Σp²",
+			],
+			findings: [{ heading: "Findings", rows: [{ label: "declared months", value: "0" }] }],
+		};
+	}
+
+	const rowsFor = (month: (typeof declared)[number]) => {
+		const shares = month.categories.map((c) => c.spentPence / month.totalPence);
+		const gini = giniCoefficient(month.categories.map((c) => c.spentPence));
+		const top1 = shares[0] ?? 0;
+		const top3 = shares.slice(0, 3).reduce((s, p) => s + p, 0);
+		const nEff = 1 / shares.reduce((s, p) => s + p * p, 0);
+		return { month, gini, top1, top3, nEff };
+	};
+
+	const computed = declared.map(rowsFor); // chronological (source is oldest→newest)
+	const latest = computed[computed.length - 1];
+	const meanGini = computed.reduce((s, c) => s + c.gini, 0) / computed.length;
+	const peak = computed.reduce((a, b) => (b.gini > a.gini ? b : a));
+	const flat = computed.reduce((a, b) => (b.gini < a.gini ? b : a));
+
+	return {
+		slug: "spend-concentration",
+		title: "Spend Concentration",
+		date,
+		abstract: `Across ${computed.length} declared month${computed.length !== 1 ? "s" : ""}, mean spend Gini is ${meanGini.toFixed(2)} — ${latest.month.month} sits at ${latest.gini.toFixed(2)} with the top 3 categories carrying ${(latest.top3 * 100).toFixed(0)}% of spend (${latest.nEff.toFixed(1)} effective categories). Concentrated months are budget-fragile: one category decision moves the whole number.`,
+		method: [
+			`Data: per-category monthly spend, ${computed.length} declared month${computed.length !== 1 ? "s" : ""} of the last 12 (statement model — undeclared months absent, not zero, D0)`,
+			"Gini = 2·Σ(i·x_i)/(n·Σx) − (n+1)/n over category spend (0 = spread evenly, →1 = one category pays for everything)",
+			"effective categories = 1/Σp² — the participation ratio: how many equal categories the month behaves like",
+			"flags: green < 0.50 spread · amber 0.50–0.70 concentrated · red > 0.70 fragile",
+		],
+		findings: [
+			{
+				heading: `Latest declared month — ${latest.month.month}`,
+				rows: [
+					{ label: "spend Gini", value: latest.gini.toFixed(2), flag: concentrationFlag(latest.gini) },
+					{ label: "top category", value: `${latest.month.categories[0]?.name ?? "—"} · ${formatCurrency(latest.month.categories[0]?.spentPence ?? 0)} (${(latest.top1 * 100).toFixed(0)}%)` },
+					{ label: "top-3 share", value: `${(latest.top3 * 100).toFixed(0)}%`, flag: latest.top3 > 0.75 ? ("red" as const) : latest.top3 > 0.6 ? ("amber" as const) : ("green" as const) },
+					{ label: "effective categories", value: `${latest.nEff.toFixed(1)} of ${latest.month.categories.length}` },
+					{ label: "total declared spend", value: formatCurrency(latest.month.totalPence) },
+				],
+			},
+			{
+				heading: "Gini drift — declared months only",
+				rows: [...computed]
+					.reverse()
+					.map((c) => ({
+						label: c.month.month,
+						value: `gini ${c.gini.toFixed(2)} · top-3 ${(c.top3 * 100).toFixed(0)}% · ${c.nEff.toFixed(1)} eff`,
+						flag: concentrationFlag(c.gini),
+					})),
+				notes: [
+					`gini, oldest → newest: ${asciiSparkline(computed.map((c) => c.gini))}`,
+					`most concentrated: ${peak.month.month} (${peak.gini.toFixed(2)}) · most spread: ${flat.month.month} (${flat.gini.toFixed(2)})`,
+				],
+			},
+		],
+	};
+}
+
+
 export const REPORTS: ReportDefinition[] = [
 	{
 		slug: "net-worth-trajectory",
@@ -1195,6 +1304,12 @@ export const REPORTS: ReportDefinition[] = [
 		title: "Net-Worth Seasonality",
 		blurb: "Which calendar months historically shrink the number, and which grow it.",
 		build: buildSeasonality,
+	},
+	{
+		slug: "spend-concentration",
+		title: "Spend Concentration",
+		blurb: "Does one category carry the month, or is the load spread?",
+		build: buildSpendConcentration,
 	},
 ];
 
