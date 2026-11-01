@@ -822,3 +822,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** table-fixed defect class fully closed. Zero open defects. Nothing in flight.
 - **NEXT QUEUE:** light rotations; 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + .docs/VERSION_HISTORY.md save point.
 - **Budget:** ends 18:04:58 GMT.
+
+| 2026-11-01 15:54:31 GMT | 2026-11-01 15:58:28 GMT | 0h 04m | v3.2 sweep 29 - REAL FIX: +error.svelte rebuilt to boxed D9 panel w/ status-aware honest 404 copy; hooks.server HttpError messages pass through structurally; contextualBack extended to accounts/goals; tests 3/3 extended, check 0/0, both 404 paths live-verified; goals idx a11y 100 + console clean; commit 'fix: honest terminal-styled 404 error page' |
+
+### CHECKPOINT - 2026-11-01 15:58:28 GMT (budget: ~2h05m left; turn ends)
+- **State:** error surface at doctrine bar. Zero open defects. Nothing in flight.
+- **NEXT QUEUE:** light rotations; 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + .docs/VERSION_HISTORY.md save point.
+- **Budget:** ends 18:04:58 GMT.
