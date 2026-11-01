@@ -540,3 +540,14 @@ yearly-overview feature + categories collapse, then the statement-cadence pass a
 ## THIRD-MANDATE FULL-LOOP SWEEP (2026-10-31 20:11 GMT — user: "audit EVERY page and interaction, improve all of it")
 
 Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [2] snapshot DETAIL · [3] create/edit forms → 2-col proof sheets (goal, debt, account, edit, add, withdraw) · [4] border pass 2 (A06/budget/reports/settings/tools) · [5] routine-month + budgets/all · [6] reports/tools sub-pages rotation · [7] utility pages (notes, confirms, uncategorised, auth) · [8] full gate + records.
+
+## V3.2 Time ledger (continues the table above)
+| Session start | Session end | Elapsed | Work done |
+|---|---|---|---|
+| 2026-11-01 10:05:01 GMT | 2026-11-01 10:32:00 GMT | 0h 27m | v3.2 sweep 1: V1 FIXED (root cause = hydration CLS from 11 browser-gated chart mounts — trusted-click repro pointerdown→link but pointerup→wrong card; all mounts now reserve exact SSR height, listnav preventScroll; 4 new pins) · V2 home reorder (accounts+goals top, calendar bottom, gallery 2-cell) · V5 contrast · V8 header rule · V7 heatmap black hairlines · V3 reports card grid. check 0/0 + 1116/1116 at V1 gate; per-unit suites green |
+
+### CHECKPOINT — 2026-11-01 10:32 GMT (budget: ~7h33m left of 8h from 10:04:58 admission)
+- **Dispositions:** V1 ✅ (commit "fix: charts reserve their height before hydration so first clicks land") · V2 ✅ ("feat: home reorder…") · V5 ✅ (interim; V4 relocates the band) · V7 ✅ · V8 ✅ · V3 ✅ ("feat: reports index as a card grid")
+- **NEXT QUEUE (§4 order):** 1) **A14/V6 trends flagship** — dossier a14-trends.md still `ideating`; BLOCK CYCLE 2.0: ideate+research+scope+wireframe (LOAD ui-ux-pro-max FIRST), plan ≤5 units, then implement (rename budgets→trends + route alias; homepage trends section £X spent-so-far N accounts + month-vs-month interactive graph + "view your spending insights"; insights page 3 terminal-styled tabs balance/spending/target; statement-model honesty D0 copy; projection math + tests). 2) V4 amendments separate page + custom controls. 3) V9 transaction history seeding. 4) V10 snapshot tabs. Then audits/harvest per §4.
+- **Gotchas this turn:** chrome-devtools wrapper `click` uses REAL pointer events (synthetic el.click() skips pointerdown — the hydration-race only repros with trusted clicks); `.focus()` does NOT scroll when the container is partially visible (rejected hypothesis); session aged ~25min → 302 to `/` mid-verify — /dev-login re-login ceremony worked; CDP uid coordinates go stale if layout shifts between snapshot+click (that artifact is what exposed the real bug).
+- **Misread-ledger note:** the "scroll-then-open" complaint was NOT an anchor/toggle bug — every [+]/[-] in the tree is a proper button (live-verified first-click). Class: hydration-CLS click displacement.
