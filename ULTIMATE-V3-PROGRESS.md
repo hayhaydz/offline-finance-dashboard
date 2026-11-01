@@ -949,3 +949,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** all gates green, nothing in flight. Holding pattern stable.
 - **NEXT QUEUE:** ONE more sleep rotation (~40m, wake ~17:48), then final turn: sleep past 18:04:58 and execute dossier FINAL-TURN RUNBOOK (stop-file, VERSION_HISTORY prepend, final ledger row+commit).
 - **Budget:** ends 18:04:58 GMT (~1h00m).
+
+| 2026-11-01 17:05:35 GMT | 2026-11-01 17:45:44 GMT | 0h 40m | v3.2 idle rotation 3 (in-turn sleep 40m) - dev healthy 302, stop-file absent by design, git clean; | 
+
+### CHECKPOINT - 2026-11-01 17:45:44 GMT (budget: ~19m left; turn ends)
+- **State:** all gates green, nothing in flight. Holding pattern complete - this was the last rotation.
+- **NEXT QUEUE:** FINAL TURN - sleep ~20m past 18:04:58 GMT, then dossier FINAL-TURN RUNBOOK: (a) date confirms past 18:04:58; (b) write stop-file .opencode/opencode-loop/ULTIMATE-V3-DONE (body: v3.2 complete - 6.1-6.6 hold, budget spent); (c) prepend to .docs/VERSION_HISTORY.md: '## 2026-11-01 - feat: trends rename + insights flagship, error page, sweep wins V1-V10'; (d) final ledger row + LOOP COMPLETE checkpoint; (e) commit 'docs: ultimate v3.2 loop complete'. Never POST /logout; never push.
+- **Budget:** ends 18:04:58 GMT (~19m).
