@@ -31,9 +31,10 @@
 		const v = Math.round(Math.abs(p) / 100);
 		return `${p < 0 ? "−" : ""}£${v.toLocaleString("en-GB")}`;
 	};
-	// headroom both ways; domain must contain negatives (see insights fix)
-	const yMax = $derived(Math.max(...rows.map((r) => r.balance), 0) * 1.08);
-	const yMin = $derived(Math.min(...rows.map((r) => r.balance), 0) * 1.08);
+	// headroom both ways; NOT anchored at 0 — a balance chart's data band
+	// (£38–42k say) must fill the plot, and negatives stay contained
+	const yMax = $derived(Math.max(...rows.map((r) => r.balance)) * 1.08);
+	const yMin = $derived(Math.min(...rows.map((r) => r.balance)) * 1.08);
 
 	const series = $derived([
 		{ key: "balance", label: "balance", value: "balance", props: { stroke: "#111827", strokeWidth: 1.75 } },

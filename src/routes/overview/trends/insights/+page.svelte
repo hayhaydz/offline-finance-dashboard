@@ -203,7 +203,9 @@
 			<div class="bg-gray-100 border-b border-black px-2 py-1 text-sm font-bold flex justify-between items-center">
 				<span>MONEY MOVEMENT · {isYear ? data.monthKey.slice(0, 4) : data.monthKey}</span>
 				{#if data.categories.included.length}
-					<button type="button" class="bracket-link text-xs font-normal cursor-pointer" onclick={() => (outOpen = !outOpen)} aria-expanded={outOpen}>
+					<!-- plain [+] expander (accordion grammar) — bracket-link
+					     would double-wrap the brackets -->
+					<button type="button" class="text-xs text-gray-700 cursor-pointer font-normal" onclick={() => (outOpen = !outOpen)} aria-expanded={outOpen}>
 						{outOpen ? '[-] hide categories' : '[+] by category'}
 					</button>
 				{/if}
