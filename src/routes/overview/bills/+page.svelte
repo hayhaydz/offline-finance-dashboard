@@ -135,5 +135,13 @@
 		direct-debit AND billed-as-invoiced view unified: money that leaves regularly, whatever
 		the mechanism.
 	</p>
+	<!-- v3.2 D0 (2026-11-01, vision-caught): the monthly detector is blind to
+	     quarterly/annual cadences and this page never said so — the honest
+	     limitation + the bridge to the report that CAN see them -->
+	<p class="text-[10px] text-gray-600 px-2 pb-1">
+		This detector only sees MONTHLY cadence — quarterly and annual bills are invisible here.
+		<a href="/overview/reports/bill-chronology" class="bracket-link">Bill Chronology</a> sees
+		every cadence plus price drift and lifetime cost.
+	</p>
 {/if}
 </div>
