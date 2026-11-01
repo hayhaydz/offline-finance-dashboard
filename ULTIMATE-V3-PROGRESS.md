@@ -865,3 +865,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** V1 regression-verified behaviourally. Zero open defects. Nothing in flight.
 - **NEXT QUEUE:** 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point. Interim: light probes only.
 - **Budget:** ends 18:04:58 GMT.
+
+| 2026-11-01 16:08:01 GMT | 2026-11-01 16:08:54 GMT | 0h 01m | v3.2 sweep 35 - numeric self-consistency on insights: balance identity exact (start+in-out=end), target identity exact (target-spent=saved), spec copy + diagonal pace + category/excluded breakdowns live, D0 copy everywhere; zero defects; |
+
+### CHECKPOINT - 2026-11-01 16:08:54 GMT (budget: ~1h55m left; turn ends)
+- **State:** flagship numbers verified self-consistent. Zero open defects. Nothing in flight.
+- **NEXT QUEUE:** 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point. Interim: light probes only.
+- **Budget:** ends 18:04:58 GMT.
