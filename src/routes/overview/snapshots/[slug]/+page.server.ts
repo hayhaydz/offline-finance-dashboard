@@ -1,5 +1,5 @@
 import { error, fail, redirect } from "@sveltejs/kit";
-import { eq } from "drizzle-orm";
+import { and, desc, eq, lt } from "drizzle-orm";
 import { validateUserAccess } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { snapshots } from "$lib/db/schema";
@@ -47,9 +47,29 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		});
 	}
 
+	// v3.2 V10: the previous snapshot powers vs-previous deltas + the
+	// biggest account movers on the overview tab (more interesting info,
+	// per user direction — "snapshots: more interesting information,
+	// better UX, maybe tabs").
+	const previous = await db.query.snapshots.findFirst({
+		columns: {
+			snapshotDate: true,
+			netWorthInCents: true,
+			totalAssetsInCents: true,
+			totalLiabilitiesInCents: true,
+			accountsBreakdown: true,
+		},
+		where: and(
+			eq(snapshots.userId, user.id),
+			lt(snapshots.snapshotDate, snapshot.snapshotDate),
+		),
+		orderBy: [desc(snapshots.snapshotDate)],
+	});
+
 	return {
 		user: userDto(user),
 		snapshot,
+		previous: previous ?? null,
 		breadcrumbOverrides: [
 			// Path /overview/snapshots/[slug] → segments: overview(0),
 			// snapshots(1), slug(2). The date label must replace the SLUG

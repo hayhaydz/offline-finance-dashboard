@@ -3,7 +3,27 @@
 	import { formatCurrencyShorthand } from '$lib/utils/currency';
 	import { DISPLAY_LIMITS, truncateDisplay } from '$lib/utils/fieldLimits';
 
+	/**
+	 * v3.2 V10 (2026-11-01): the snapshot detail page reorganised into three
+	 * terminal tabs (user direction — "more interesting information, better
+	 * UX, maybe tabs") using the goals-filter grammar: [overview] shows the
+	 * headline + NEW vs-previous deltas and biggest account movers;
+	 * [accounts] the per-type ledger; [tax] ISA/PSA + the interest matrix.
+	 */
 	let { data, form } = $props();
+
+	type TabId = 'overview' | 'accounts' | 'tax';
+	let tab = $state<TabId>('overview');
+
+	const TABS: Array<{ id: TabId; label: string }> = [
+		{ id: 'overview', label: 'overview' },
+		{ id: 'accounts', label: 'accounts' },
+		{ id: 'tax', label: 'tax' },
+	];
+
+	function switchTab(id: TabId) {
+		tab = id;
+	}
 
 	// Get accounts breakdown with null safety
 	const accountsBreakdown = $derived(
@@ -37,6 +57,41 @@
 		return groups;
 	});
 
+	// ── v3.2 V10: vs-previous-snapshot deltas + biggest movers ──
+	type PrevAccount = { name: string; balanceInCents: number };
+	const previous = $derived(data.previous);
+
+	const deltas = $derived.by(() => {
+		if (!previous) return null;
+		return {
+			netWorth: data.snapshot.netWorthInCents - previous.netWorthInCents,
+			assets: data.snapshot.totalAssetsInCents - previous.totalAssetsInCents,
+			liabilities: data.snapshot.totalLiabilitiesInCents - previous.totalLiabilitiesInCents,
+			daysBetween: Math.round(
+				(new Date(data.snapshot.snapshotDate).getTime() - new Date(previous.snapshotDate).getTime()) / 86_400_000
+			),
+		};
+	});
+
+	const movers = $derived.by(() => {
+		if (!previous?.accountsBreakdown?.accounts) return null;
+		const prevByName = new Map<string, number>(
+			(previous.accountsBreakdown.accounts as PrevAccount[]).map((a) => [a.name, a.balanceInCents])
+		);
+		const changes = accountsBreakdown.accounts
+			.map((a) => ({
+				name: a.name,
+				delta: a.balanceInCents - (prevByName.get(a.name) ?? a.balanceInCents),
+				now: a.balanceInCents,
+			}))
+			.filter((m) => m.delta !== 0)
+			.sort((x, y) => y.delta - x.delta);
+		return {
+			up: changes.slice(0, 3),
+			down: changes.slice(-3).reverse().filter((c) => c.delta < 0),
+		};
+	});
+
 	// v3.1 third-mandate: the Actual×Projected×Expected interest matrix
 	// (mirrors the create proof sheet — one table, not 3 label-value blocks)
 	const interestMatrix = $derived.by(() => {
@@ -64,16 +119,43 @@
 </script>
 
 <!-- SNAPSHOT HEADER (v3.1 third-mandate: this page joins the proof-sheet
-     language of the create page — was five stacked full-width bands of
-     label-value rows that never used the viewport) -->
+     language of the create page) -->
 <div class="border-b border-black p-2 flex justify-between items-center">
 	<div>
 		<h1 class="text-lg font-bold m-0 leading-none">SNAPSHOT — {data.snapshot.snapshotDate}</h1>
 		<div class="text-[10px] text-gray-500 mt-0.5">immutable record · the statement as entered on this date</div>
 	</div>
-	<a href="/overview/snapshots/{data.snapshot.slug}/delete" class="bracket-link text-xs text-red-700">Delete</a>
+	<div class="flex items-center gap-3">
+		{#if previous}
+			<span class="text-[10px] text-gray-600">previous: {previous.snapshotDate}</span>
+		{/if}
+		<a href="/overview/snapshots" class="bracket-link text-xs">All snapshots</a>
+		<a href="/overview/snapshots/{data.snapshot.slug}/delete" class="bracket-link text-xs text-red-700">Delete</a>
+	</div>
 </div>
 
+<!-- v3.2 V10: tab band — the goals-filter grammar (bracket links, active green) -->
+<div class="font-bold flex justify-between items-center bg-gray-100 border-b border-black p-2">
+	<div class="flex gap-2 font-normal">
+		{#each TABS as t (t.id)}
+			<button
+				type="button"
+				class="bracket-link text-xs font-bold cursor-pointer"
+				class:text-green-800={tab === t.id}
+				aria-pressed={tab === t.id}
+				onclick={() => switchTab(t.id)}
+			>
+				{t.label}
+			</button>
+		{/each}
+	</div>
+	<span class="text-[10px] font-normal text-gray-600">
+		{accountsBreakdown.accounts.length} accounts · {goalsBreakdown.goals.length} goals
+	</span>
+</div>
+
+<!-- ═══ OVERVIEW ═══ -->
+{#if tab === 'overview'}
 <div class="p-2 grid grid-cols-5 gap-2 items-start">
 	<!-- FINANCIAL SUMMARY (the headline) -->
 	<div class="col-span-3 border border-black">
@@ -100,7 +182,7 @@
 		</div>
 	</div>
 
-	<!-- NOTES (the only editable surface — right column) -->
+	<!-- NOTES (the only editable surface) -->
 	<div class="col-span-2 border border-black flex flex-col">
 		<div class="font-bold bg-gray-100 border-b border-black p-2">NOTES (EDITABLE)</div>
 		<div class="p-2 flex-1 flex flex-col">
@@ -128,25 +210,36 @@
 		</div>
 	</div>
 
-	<!-- ACCOUNTS -->
-	<div class="col-span-3 border border-black self-stretch">
+	<!-- v3.2 V10: VS PREVIOUS — what changed since the last snapshot -->
+	<div class="col-span-3 border border-black">
 		<div class="font-bold bg-gray-100 border-b border-black p-2">
-			ACCOUNTS ({accountsBreakdown.accounts.length})
+			VS PREVIOUS{#if deltas} · {deltas.daysBetween} day{deltas.daysBetween === 1 ? '' : 's'} since {previous?.snapshotDate}{/if}
 		</div>
-		<div class="p-2">
-			{#each Object.entries(accountsByType) as [type, accounts]}
-				<div class="font-bold text-xs mb-1 mt-1 first:mt-0">{capitalizeType(type)} ({accounts.length})</div>
-				{#each accounts as account}
-					<div class="text-xs flex justify-between py-1 border-b border-gray-200 last:border-0 hover:bg-gray-50 transition-colors duration-150">
-						<span>{truncateDisplay(account.name, DISPLAY_LIMITS.ACCOUNT_NAME)}</span>
-						<span class="{account.includedInTotal ? '' : 'text-gray-500'}">
-							{formatCurrencyShorthand(account.balanceInCents)}
-							{!account.includedInTotal ? ' (excluded)' : ''}
-						</span>
+		{#if deltas}
+			<div class="p-2 grid grid-cols-3 gap-2">
+				<div>
+					<div class="text-[10px] uppercase font-bold text-gray-500">net worth</div>
+					<div class="text-sm font-bold tabular-nums {deltas.netWorth >= 0 ? 'text-green-700' : 'text-red-700'}">
+						{deltas.netWorth >= 0 ? '+' : '−'}{formatCurrencyShorthand(Math.abs(deltas.netWorth))}
 					</div>
-				{/each}
-			{/each}
-		</div>
+				</div>
+				<div>
+					<div class="text-[10px] uppercase font-bold text-gray-500">assets</div>
+					<div class="text-sm font-bold tabular-nums {deltas.assets >= 0 ? 'text-green-700' : 'text-red-700'}">
+						{deltas.assets >= 0 ? '+' : '−'}{formatCurrencyShorthand(Math.abs(deltas.assets))}
+					</div>
+				</div>
+				<div>
+					<div class="text-[10px] uppercase font-bold text-gray-500">liabilities</div>
+					<!-- liabilities DOWN is good (debt repaid) — colour by direction of net effect -->
+					<div class="text-sm font-bold tabular-nums {deltas.liabilities <= 0 ? 'text-green-700' : 'text-red-700'}">
+						{deltas.liabilities >= 0 ? '+' : '−'}{formatCurrencyShorthand(Math.abs(deltas.liabilities))}
+					</div>
+				</div>
+			</div>
+		{:else}
+			<div class="p-2 text-xs text-gray-600">First snapshot on record — deltas appear from the next one.</div>
+		{/if}
 	</div>
 
 	<!-- GOALS -->
@@ -171,6 +264,67 @@
 		</div>
 	</div>
 
+	<!-- v3.2 V10: BIGGEST MOVERS — accounts driving the change -->
+	{#if movers && (movers.up.length > 0 || movers.down.length > 0)}
+	<div class="col-span-5 border border-black">
+		<div class="font-bold bg-gray-100 border-b border-black p-2">BIGGEST MOVERS SINCE PREVIOUS</div>
+		<div class="p-2 grid grid-cols-2 gap-x-6">
+			<div>
+				<div class="text-[10px] uppercase font-bold text-green-700 py-0.5">Rising</div>
+				{#each movers.up as m (m.name)}
+					<div class="text-xs flex justify-between py-1 border-b border-gray-200 last:border-0">
+						<span>{truncateDisplay(m.name, DISPLAY_LIMITS.ACCOUNT_NAME)}</span>
+						<span class="tabular-nums text-green-700 font-bold">+{formatCurrencyShorthand(m.delta)}</span>
+					</div>
+				{:else}
+					<div class="text-xs text-gray-600 py-1">None rose.</div>
+				{/each}
+			</div>
+			<div>
+				<div class="text-[10px] uppercase font-bold text-red-700 py-0.5">Falling</div>
+				{#each movers.down as m (m.name)}
+					<div class="text-xs flex justify-between py-1 border-b border-gray-200 last:border-0">
+						<span>{truncateDisplay(m.name, DISPLAY_LIMITS.ACCOUNT_NAME)}</span>
+						<span class="tabular-nums text-red-700 font-bold">−{formatCurrencyShorthand(Math.abs(m.delta))}</span>
+					</div>
+				{:else}
+					<div class="text-xs text-gray-600 py-1">None fell.</div>
+				{/each}
+			</div>
+		</div>
+	</div>
+	{/if}
+</div>
+{/if}
+
+<!-- ═══ ACCOUNTS ═══ -->
+{#if tab === 'accounts'}
+<div class="p-2">
+	<div class="border border-black">
+		<div class="font-bold bg-gray-100 border-b border-black p-2">
+			ACCOUNTS ({accountsBreakdown.accounts.length})
+		</div>
+		<div class="p-2">
+			{#each Object.entries(accountsByType) as [type, accounts]}
+				<div class="font-bold text-xs mb-1 mt-1 first:mt-0">{capitalizeType(type)} ({accounts.length})</div>
+				{#each accounts as account}
+					<div class="text-xs flex justify-between py-1 border-b border-gray-200 last:border-0 hover:bg-gray-50 transition-colors duration-150">
+						<span>{truncateDisplay(account.name, DISPLAY_LIMITS.ACCOUNT_NAME)}</span>
+						<span class="{account.includedInTotal ? '' : 'text-gray-500'}">
+							{formatCurrencyShorthand(account.balanceInCents)}
+							{!account.includedInTotal ? ' (excluded)' : ''}
+						</span>
+					</div>
+				{/each}
+			{/each}
+		</div>
+	</div>
+</div>
+{/if}
+
+<!-- ═══ TAX ═══ -->
+{#if tab === 'tax'}
+<div class="p-2 grid grid-cols-5 gap-2 items-start">
 	<!-- ISA ALLOWANCE + PERSONAL SAVINGS ALLOWANCE (paired tax facts) -->
 	{#if isaBreakdown}
 	<div class="col-span-2 border border-black">
@@ -280,7 +434,7 @@
 		</div>
 	</div>
 	{/if}
-{:else if !isaBreakdown}
+	{:else if !isaBreakdown}
 	<div class="col-span-5 border border-black">
 		<div class="font-bold bg-gray-100 border-b border-black p-2">ISA AND INTEREST DATA</div>
 		<div class="p-2">
@@ -289,5 +443,6 @@
 			</p>
 		</div>
 	</div>
-{/if}
+	{/if}
 </div>
+{/if}
