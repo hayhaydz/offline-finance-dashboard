@@ -22,6 +22,9 @@
 	let tab: TabId = $state('balance');
 	let scope = $state<'month' | 'year'>('month');
 	let outOpen = $state(false);
+	// target tab: category wall cap (top movers only until [+])
+	let catsOpen = $state(false);
+	const TARGET_CATEGORY_CAP = 6;
 
 	const TABS: Array<{ id: TabId; label: string }> = [
 		{ id: 'balance', label: 'balance' },
@@ -82,6 +85,7 @@
 	function switchTab(id: TabId) {
 		tab = id;
 		outOpen = false;
+		catsOpen = false;
 	}
 </script>
 
@@ -359,10 +363,24 @@
 
 		<div class="grid grid-cols-5 gap-2">
 			<div class="col-span-3 border border-black [&>*:last-child]:border-b-0">
-				<div class="bg-gray-100 border-b border-black px-2 py-1 text-sm font-bold">BY CATEGORY</div>
+				<div class="bg-gray-100 border-b border-black px-2 py-1 text-sm font-bold flex justify-between items-center">
+					<span>BY CATEGORY</span>
+					<!-- v3.2: categories don't need to always be in view (2026-10-31
+					     direction) — top movers visible, the wall behind one bracket -->
+					{#if data.categories.included.length > TARGET_CATEGORY_CAP}
+						<button
+							type="button"
+							class="text-xs text-gray-700 cursor-pointer font-normal"
+							onclick={() => (catsOpen = !catsOpen)}
+							aria-expanded={catsOpen}
+						>
+							{catsOpen ? '[-] hide' : '[+] show all ' + data.categories.included.length}
+						</button>
+					{/if}
+				</div>
 				<table class="w-full">
 					<tbody>
-						{#each data.categories.included as cat (cat.name)}
+						{#each (catsOpen ? data.categories.included : data.categories.included.slice(0, TARGET_CATEGORY_CAP)) as cat (cat.name)}
 							<tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-150">
 								<td class="pl-2 text-sm py-1.5">{cat.name}</td>
 								<td class="text-right pr-2 text-sm py-1.5 tabular-nums">{formatCurrency(cat.spentPence)}</td>
