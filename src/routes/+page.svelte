@@ -4,6 +4,7 @@
 	import NetWorthDisplay from '$lib/components/NetWorthDisplay.svelte';
 	import TaxYearTimeline from '$lib/components/TaxYearTimeline.svelte';
 	import CashflowCalendar from '$lib/components/charts/CashflowCalendar.svelte';
+	import TrendsMonthCompare from '$lib/components/charts/TrendsMonthCompare.svelte';
 	import GoalCard from '$lib/components/GoalCard.svelte';
 	import DebtCard from '$lib/components/DebtCard.svelte';
 	import HomeVizGallery from '$lib/components/charts/HomeVizGallery.svelte';
@@ -288,6 +289,46 @@
 	</div>
 	{/if}
 	</div>
+
+	{#if data.trends}
+	<!-- v3.2 V6 (2026-11-01): homepage TRENDS section — Monzo-style headline +
+	     this-month-vs-last-month cumulative graph + insights link. Statement
+	     model (D0): "spent so far" = the current statement month as declared;
+	     if nothing is declared yet the section says so instead of faking £0. -->
+	<div class="p-2">
+		<div class="border border-black">
+			<div class="flex justify-between items-baseline bg-gray-100 border-b border-black px-2 py-1.5">
+				<span class="text-sm font-bold">TRENDS</span>
+				<span class="text-sm font-bold tabular-nums">
+					{data.trends.currentMonthDeclared
+						? formatCurrency(data.trends.current.totalPence)
+						: '—'}
+					<span class="text-gray-600 font-normal"> - spent so far - </span>
+					{data.trends.accountCount} account{data.trends.accountCount === 1 ? '' : 's'}
+				</span>
+			</div>
+			<div class="px-2 pt-1 text-[10px] text-gray-600">
+				{#if data.trends.currentMonthDeclared}
+					{data.trends.currentMonthKey} as declared from statements · {data.trends.previousMonthKey} comparison · not realtime
+				{:else}
+					{data.trends.currentMonthKey} not declared yet — it enters at statement time · showing the {data.trends.previousMonthKey} comparison shape
+				{/if}
+			</div>
+			<TrendsMonthCompare
+				currentMonthKey={data.trends.currentMonthKey}
+				previousMonthKey={data.trends.previousMonthKey}
+				currentDaily={data.trends.current.daily}
+				previousDaily={data.trends.previous.daily}
+			/>
+			<a
+				href="/overview/trends/insights"
+				class="bracket-link text-xs block border-t border-black px-2 py-1.5 bg-gray-50 hover:bg-gray-100"
+			>
+				view your spending insights
+			</a>
+		</div>
+	</div>
+	{/if}
 
 	<!-- v3 R3: visualisation gallery — bento grid of compact cells -->
 	<HomeVizGallery

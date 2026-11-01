@@ -13,6 +13,7 @@ import {
 } from "$lib/server/derivedBalances";
 import { updateTypeExclusions } from "$lib/server/exclusions";
 import { getNetWorthSummary } from "$lib/server/finance";
+import { getTrendsSnapshot } from "$lib/server/trends";
 import { getDebtGoalProgress, projectPayoffDate } from "$lib/server/goals";
 import { calculateISAPacing } from "$lib/server/isaPacing";
 import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
@@ -358,6 +359,8 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 			month: cashflowMonth,
 			obligations: cashflowObligations,
 		},
+		// v3.2 V6: homepage trends section (Monzo-style, statement-honest)
+		trends: await getTrendsSnapshot(user.id),
 	};
 };
 
