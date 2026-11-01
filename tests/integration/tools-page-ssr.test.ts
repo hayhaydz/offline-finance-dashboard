@@ -37,7 +37,7 @@ describe("Tools index (R13)", () => {
 				},
 			},
 		});
-		expect(body).toContain("7 TOOLS");
+		expect(body).toContain("8 TOOLS");
 		for (const tool of TOOLS) {
 			expect(body).toContain(tool.name);
 			expect(body).toContain(`href="/tools/${tool.slug}"`);
@@ -56,6 +56,7 @@ describe("Tool sub-pages (R13)", () => {
 					toolsData: baseData,
 					cards: [],
 					netWorthHistory: [],
+					statementGaps: [],
 					...extra,
 				},
 			},
@@ -118,5 +119,43 @@ describe("Tool component details (the old cramped cards, deepened)", () => {
 			props: { data: { ...baseData, debtGoals: [] } },
 		});
 		expect(over.body).toContain("[no debt goals with linked accounts]");
+	});
+});
+
+describe("Statement gap finder tool (v3.2)", () => {
+	const renderSub = (slug: string, extra: Record<string, unknown> = {}) =>
+		render(ToolSubPage, {
+			props: {
+				data: {
+					tool: TOOLS.find((t) => t.slug === slug)!,
+					toolsData: baseData,
+					cards: [],
+					netWorthHistory: [],
+					statementGaps: [],
+					...extra,
+				},
+			},
+		});
+
+	it("renders declared history with missing months flagged", () => {
+		const { body } = renderSub("statement-gaps", {
+			statementGaps: [
+				{ slug: "main-current", name: "Main Current", type: "current", month: "2026-08" },
+				{ slug: "main-current", name: "Main Current", type: "current", month: "2026-09" },
+				// 2026-10 interior hole
+				{ slug: "main-current", name: "Main Current", type: "current", month: "2026-11" },
+				{ slug: "savings-one", name: "Savings One", type: "savings", month: "2026-09" },
+			],
+		});
+		expect(body).toContain("2 accounts with declared history");
+		expect(body).toContain("2026-08 → 2026-11");
+		expect(body).toContain("2026-10");
+		expect(body).toContain("complete"); // Savings One single-month range
+		expect(body).not.toContain('type="radio"');
+	});
+
+	it("degrades honestly with no declared history", () => {
+		const { body } = renderSub("statement-gaps");
+		expect(body).toContain("[no declared transactions");
 	});
 });

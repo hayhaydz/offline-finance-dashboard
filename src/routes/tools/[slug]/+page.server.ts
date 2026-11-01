@@ -1,5 +1,5 @@
 import { error } from "@sveltejs/kit";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { accounts, accountTransactions } from "$lib/db/schema";
@@ -71,5 +71,24 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	const netWorthHistory =
 		tool.slug === "fi-projector" ? await getNetWorthHistory(user.id) : [];
 
-	return { tool, toolsData: data, cards, netWorthHistory };
+	// Statement gap finder (v3.2 harvest): months with zero transactions
+	// INSIDE each account's declared range — the statement model's own
+	// blind spots, user-scoped (D0: before-first is not a gap).
+	const statementGaps =
+		tool.slug === "statement-gaps"
+			? await db
+					.select({
+						slug: accounts.slug,
+						name: accounts.name,
+						type: accounts.type,
+						month: sql<string>`strftime('%Y-%m', ${accountTransactions.transactionDate})`,
+					})
+					.from(accountTransactions)
+					.innerJoin(accounts, eq(accounts.id, accountTransactions.accountId))
+					.where(withUserFilter(user.id, accounts))
+					.groupBy(accounts.slug, accounts.name, accounts.type, sql`strftime('%Y-%m', ${accountTransactions.transactionDate})`)
+					.orderBy(accounts.name, sql`strftime('%Y-%m', ${accountTransactions.transactionDate})`)
+			: [];
+
+	return { tool, toolsData: data, cards, netWorthHistory, statementGaps };
 };

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
 	BAND_RATE_PCT,
 	compoundSeries,
+	findMissingStatementMonths,
 	isaMoveTaxSavedPence,
 	overpayVsSave,
 	projectMilestones,
@@ -451,5 +452,35 @@ describe("overpayVsSave (R-H16)", () => {
 		expect(r.netSavingsBasisPoints).toBe(0);
 		expect(r.advantageBasisPoints).toBe(0);
 		expect(r.firstYearBenefitPence).toBe(0);
+	});
+});
+
+describe("findMissingStatementMonths (v3.2 statement gap finder)", () => {
+	it("finds interior holes only — before-first and after-last are not gaps", () => {
+		expect(
+			findMissingStatementMonths("2026-01", "2026-06", [
+				"2026-01", "2026-02", "2026-04", "2026-06",
+			]),
+		).toEqual(["2026-03", "2026-05"]);
+	});
+
+	it("complete history has no gaps", () => {
+		expect(
+			findMissingStatementMonths("2026-01", "2026-03", ["2026-01", "2026-02", "2026-03"]),
+		).toEqual([]);
+	});
+
+	it("single-month range never has gaps", () => {
+		expect(findMissingStatementMonths("2026-09", "2026-09", ["2026-09"])).toEqual([]);
+	});
+
+	it("rolls over year boundaries", () => {
+		expect(
+			findMissingStatementMonths("2025-11", "2026-02", ["2025-11", "2026-02"]),
+		).toEqual(["2025-12", "2026-01"]);
+	});
+
+	it("rejects malformed month keys", () => {
+		expect(findMissingStatementMonths("", "2026-06", ["2026-06"])).toEqual([]);
 	});
 });

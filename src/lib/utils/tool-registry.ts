@@ -42,6 +42,11 @@ export const TOOLS: ToolMeta[] = [
 		name: "Overpay or save?",
 		blurb: "Whether extra money beats the debt's APR or the net (after-tax) savings rate.",
 	},
+	{
+		slug: "statement-gaps",
+		name: "Statement gap finder",
+		blurb: "Months with no declared statement inside each account's own range — the model's blind spots.",
+	},
 ];
 
 export function findTool(slug: string): ToolMeta | undefined {

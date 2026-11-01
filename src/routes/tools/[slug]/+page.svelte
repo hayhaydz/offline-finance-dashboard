@@ -6,6 +6,7 @@
 	import ToolOverpayment from "$lib/components/tools/ToolOverpayment.svelte";
 	import ToolRateWhatIf from "$lib/components/tools/ToolRateWhatIf.svelte";
 	import ToolStooze from "$lib/components/tools/ToolStooze.svelte";
+	import ToolStatementGaps from "$lib/components/tools/ToolStatementGaps.svelte";
 	import type { ToolMeta } from "$lib/utils/tool-registry";
 	import type { ToolsData } from "$lib/server/tools";
 
@@ -26,6 +27,7 @@
 			toolsData: ToolsData;
 			cards: StoozeCard[];
 			netWorthHistory: { date: string; netWorthInCents: number }[];
+			statementGaps: { slug: string; name: string; type: string; month: string }[];
 		};
 	} = $props();
 
@@ -59,6 +61,8 @@
 			<ToolFiProjector history={data.netWorthHistory} />
 		{:else if data.tool.slug === "overpay-or-save"}
 			<ToolOverpaySave data={data.toolsData} />
+		{:else if data.tool.slug === "statement-gaps"}
+			<ToolStatementGaps rows={data.statementGaps} />
 		{/if}
 	</div>
 </div>

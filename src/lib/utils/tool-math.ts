@@ -361,3 +361,31 @@ export function overpayVsSave(params: {
 		firstYearBenefitPence: firstYear,
 	};
 }
+
+/**
+ * Statement gap finder (v3.2 harvest, 2026-11-01): the statement model's
+ * own blind-spot tool — within an account's FIRST→LAST declared month
+ * range, which months carry zero transactions. Statement-honest (D0):
+ * months BEFORE the first declaration are not gaps (the account may not
+ * have existed); only interior holes are claimed.
+ */
+export function findMissingStatementMonths(
+	firstMonth: string,
+	lastMonth: string,
+	declaredMonths: string[],
+): string[] {
+	const declared = new Set(declaredMonths);
+	if (!/^\d{4}-\d{2}$/.test(firstMonth) || !/^\d{4}-\d{2}$/.test(lastMonth)) return [];
+	const [fy, fm] = firstMonth.split("-").map(Number);
+	const [ly, lm] = lastMonth.split("-").map(Number);
+	const missing: string[] = [];
+	let y = fy;
+	let m = fm;
+	while (y < ly || (y === ly && m <= lm)) {
+		const key = `${y}-${String(m).padStart(2, "0")}`;
+		if (!declared.has(key) && key !== lastMonth) missing.push(key);
+		m++;
+		if (m > 12) { m = 1; y++; }
+	}
+	return missing;
+}
