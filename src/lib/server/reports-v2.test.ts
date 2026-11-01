@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { REPORTS, findReport, giniCoefficient, concentrationFlag, statementCadence, cadenceFlag, cadenceLagMonths, cadenceRowFlag, classifyBillCadence, amountDriftPct, driftFlag, goalVelocity, velocityFlag } from "$lib/server/reports-v2";
+import { REPORTS, findReport, giniCoefficient, concentrationFlag, statementCadence, cadenceFlag, cadenceLagMonths, cadenceRowFlag, classifyBillCadence, amountDriftPct, creepKicker, driftFlag, goalVelocity, velocityFlag } from "$lib/server/reports-v2";
 
 // v3 B07 (R10): the report registry is well-formed — unique slugs, real
 // blurbs and builders — and every report builds against a throwaway user
@@ -233,6 +233,15 @@ describe("bill chronology math (v3.2)", () => {
 		expect(driftFlag(0.26)).toBe("red");
 		// signs ignored — withdrawals are negative in the ledger
 		expect(amountDriftPct([-10000, -10000])).toBeCloseTo(0, 10);
+	});
+
+	it("creep kicker never calls zero drift creep (D0 honesty)", () => {
+		// 0% drift = "nothing moved", NOT "steepest creep" — the
+		// self-contradicting template was a real copy bug (2026-11-01)
+		expect(creepKicker("rent", 0)).toBe("No bill has changed price across its whole recorded history.");
+		expect(creepKicker("rent", 0.005)).toBe("No bill has changed price across its whole recorded history."); // rounding noise
+		expect(creepKicker("rent", 0.006)).toBe("Steepest price creep: rent at 1% drift.");
+		expect(creepKicker("energy", 0.24)).toBe("Steepest price creep: energy at 24% drift.");
 	});
 
 	it("registered with the paper structure and degrades for unknown users", async () => {

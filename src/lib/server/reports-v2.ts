@@ -1572,6 +1572,21 @@ export function driftFlag(driftPct: number): "green" | "amber" | "red" {
 	return "red";
 }
 
+/**
+ * Abstract kicker for bill-chronology — names the steepest climber only
+ * when something actually climbed. 0% drift is NOT creep (the
+ * self-contradicting "steepest creep at 0%" template was a real copy
+ * bug, vision-caught 2026-11-01); ≤0.5% is rounding noise on a median.
+ */
+export function creepKicker(
+	name: string,
+	driftPct: number,
+): string {
+	return driftPct > 0.005
+		? `Steepest price creep: ${name} at ${(driftPct * 100).toFixed(0)}% drift.`
+		: "No bill has changed price across its whole recorded history.";
+}
+
 async function buildBillChronology(userId: number): Promise<ReportDoc> {
 	const date = isoToday();
 	const txRows = await db
@@ -1657,17 +1672,14 @@ async function buildBillChronology(userId: number): Promise<ReportDoc> {
 	const lifetimeTotal = bills.reduce((s, b) => s + b.lifetimePence, 0);
 	// D0 honesty in the kicker: 0% drift is NOT creep — when nothing has
 	// moved, say so instead of naming a "steepest" climber at zero
-	// (vision-caught contradiction 2026-11-01)
-	const creepKicker =
-		creeping.driftPct > 0.005
-			? `Steepest price creep: ${creeping.name} at ${(creeping.driftPct * 100).toFixed(0)}% drift.`
-			: "No bill has changed price across its whole recorded history.";
+	// (vision-caught contradiction 2026-11-01; helper is exported + tested)
+	const abstractKicker = creepKicker(creeping.name, creeping.driftPct);
 
 	return {
 		slug: "bill-chronology",
 		title: "Bill Chronology",
 		date,
-		abstract: `${bills.length} recurring outgoing${bills.length !== 1 ? "s" : ""} on record, lifetime ${formatCurrency(lifetimeTotal)} — ${formatCurrency(monthlyEq)}/month equivalent across monthly, quarterly, and annual cadences. ${nonMonthly.length} bill${nonMonthly.length !== 1 ? "s" : ""} sit outside the monthly detector's window and are invisible on /overview/bills. ${creepKicker}`,
+		abstract: `${bills.length} recurring outgoing${bills.length !== 1 ? "s" : ""} on record, lifetime ${formatCurrency(lifetimeTotal)} — ${formatCurrency(monthlyEq)}/month equivalent across monthly, quarterly, and annual cadences. ${nonMonthly.length} bill${nonMonthly.length !== 1 ? "s" : ""} sit outside the monthly detector's window and are invisible on /overview/bills. ${abstractKicker}`,
 		method: [
 			`Data: declared withdrawals grouped by description, ${bills.length} group${bills.length !== 1 ? "s" : ""} passing a cadence window (D0: undeclared statement months are absent, not skipped)`,
 			"cadence windows: monthly 21–42d · quarterly 72–115d · annual 330–400d — every gap inside the window, else irregular (excluded)",
