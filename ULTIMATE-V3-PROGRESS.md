@@ -836,3 +836,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** settings + print surfaces verified at doctrine bar. Zero open defects. Nothing in flight.
 - **NEXT QUEUE:** light rotations; 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + .docs/VERSION_HISTORY.md save point.
 - **Budget:** ends 18:04:58 GMT.
+
+| 2026-11-01 16:00:09 GMT | 2026-11-01 16:01:46 GMT | 0h 01m | v3.2 sweep 31 - all 13 report detail pages crawled (0 console errors, real h1s, sane chart counts) + settings/security + settings/profile verified (stale-nav false alarm adjudicated via double-navigate); zero defects; |
+
+### CHECKPOINT - 2026-11-01 16:01:46 GMT (budget: ~2h01m left; turn ends)
+- **State:** full reports registry + settings tail at doctrine bar. Zero open defects. Nothing in flight.
+- **NEXT QUEUE:** candidates: logged-out surface probe (cookie clear + dev-login ceremony); 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point.
+- **Budget:** ends 18:04:58 GMT.
