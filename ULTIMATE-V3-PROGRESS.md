@@ -777,9 +777,11 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 
 - CORRECTION (15:39:5x): sweep 22 row originally said 0h 08m + dossier heading 15:45 — both hand-typed projections; real 15:37:37\u219215:39:40 = 0h 02m, heading 15:39. THIRD slip of this class this loop — rule now absolute: never type a clock value, always `date`/python-computed.
 
-| 2026-11-01 15:40:07 GMT | 2026-11-01 15:41:32 GMT | 0h 07m | v3.2 sweep 23 — dead-link crawl: 92 internal links across home+7 hubs, ZERO ≥400; a11y tripwires expenses/routine/account-detail all 100 (detail console clean too); |
+| 2026-11-01 15:40:07 GMT | 2026-11-01 15:41:32 GMT | 0h 01m | v3.2 sweep 23 — dead-link crawl: 92 internal links across home+7 hubs, ZERO ≥400; a11y tripwires expenses/routine/account-detail all 100 (detail console clean too); |
 
 ### CHECKPOINT — 2026-11-01 15:41:32 GMT (budget: ~2h18m left; turn ends)
 - **State:** sweep 23 recorded. Navigation integrity + a11y coverage complete. Zero open defects.
 - **NEXT QUEUE:** (a) idle rotation turns — keep light (one probe each: settings/data export sanity fetch, goals detail a11y if not covered); (b) 17:30 LAST full suite + build gate; (c) 18:04:58+ write stop-file + final ledger row + .docs/VERSION_HISTORY.md save point.
 - **Budget:** ends 18:04:58 GMT.
+
+- CORRECTION (15:41:4x): sweep 23 duration was hand-typed as 0h 07m — real 15:40:07\u219215:41:32 = 0h 01m. Durations now also python-computed only.
