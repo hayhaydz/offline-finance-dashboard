@@ -469,14 +469,14 @@
 						<th class="text-left whitespace-nowrap w-36">Type</th>
 						<th class="text-left whitespace-nowrap w-28">Category</th>
 						<th class="text-right pr-1 whitespace-nowrap w-36">Amount</th>
-						<th class="pl-2 text-left w-sm">Description</th>
+						<th class="pl-2 text-left w-auto">Description</th>
 					</tr>
 				</thead>
 				<tbody>
 				{#each searchedGroups as group}
 					<!-- Month header row — totals always full-month, even when rows are prefiltered -->
 					<tr class="bg-gray-100 border-b border-gray-300">
-						<td colspan={editMode ? 7 : 6} class="pl-2 py-1 text-xs font-bold">
+						<td colspan={editMode ? 6 : 5} class="pl-2 py-1 text-xs font-bold">
 							{group.monthLabel} — {group.transactions.length} transaction{group.transactions.length !== 1 ? 's' : ''}{#if typeFilter || normalizedQuery} shown{/if}
 							<span class="text-gray-600 font-normal"> · Net: </span>
 							<span class="{group.net >= 0 ? 'text-green-800' : 'text-red-800'}">{group.net >= 0 ? '+' : ''}{formatCurrency(group.net)}</span>
@@ -485,7 +485,7 @@
 					</tr>
 					{#if group.transactions.length === 0}
 						<tr class="border-b border-gray-200">
-							<td colspan={editMode ? 7 : 6} class="pl-2 py-1 text-xs text-gray-500">
+							<td colspan={editMode ? 6 : 5} class="pl-2 py-1 text-xs text-gray-500">
 								No {typeFilter} transactions this month.
 							</td>
 						</tr>
