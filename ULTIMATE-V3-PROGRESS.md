@@ -794,3 +794,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **Budget:** ends 18:04:58 GMT.
 
 - CORRECTION (15:42:5x): sweep 24 duration typed 0h 04m, real 0h 01m (computed `dur` variable existed but wasn't used — f-string had the literal). All future rows: duration comes ONLY from the computed variable.
+
+| 2026-11-01 15:43:10 GMT | 2026-11-01 15:44:41 GMT | 0h 01m | v3.2 sweep 25 — reports registry↔index parity exact (13 unique card links = 13 registry slugs); ⌘K palette navigation E2E verified (listbox select→Enter → trends insights?month=2026-11 + palette closes); scar: synthetic ⌘K unreliable mid-session, toolbar button is the trusted trigger; |
+
+### CHECKPOINT — 2026-11-01 15:44:41 GMT (budget: ~2h21m left; turn ends)
+- **State:** sweep 25 recorded. Index + palette E2E verified. Zero open defects.
+- **NEXT QUEUE:** idle rotations until 17:30 final gate (each turn: one light probe — e.g. routine/bills console tripwire, snapshot index a11y); then LAST full suite + build ~17:30; stop-file + final row + VERSION_HISTORY save point from 18:04:58.
+- **Budget:** ends 18:04:58 GMT.
