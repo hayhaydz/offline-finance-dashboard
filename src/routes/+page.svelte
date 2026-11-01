@@ -136,6 +136,7 @@
 
 	<!-- v3.2 (2026-11-01 user steer): HIGH-LEVEL OVERVIEW strip — the four
 	     numbers that answer the month at a glance, right under the hero. -->
+	{#if data.trends && data.budgetStatus}
 	<div class="px-2">
 		<div class="border border-black grid grid-cols-4 divide-x divide-gray-300">
 			<KpiCard
@@ -168,6 +169,7 @@
 			/>
 		</div>
 	</div>
+	{/if}
 
 	<!-- v3.1 border system: the tax strip panel sits in the same inset frame -->
 	<div class="p-2">
