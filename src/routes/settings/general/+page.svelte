@@ -45,10 +45,10 @@
 </script>
 
 <main>
-		<!-- HEADER -->
-		<div class="flex justify-between items-center border-b border-black p-2 bg-gray-100">
-			<span class="font-bold">GENERAL SETTINGS</span>
-		</div>
+		<!-- HEADER (R-H10: title band is a real h1) -->
+		<h1 class="text-base font-bold m-0 flex justify-between items-center border-b border-black p-2 bg-gray-100">
+			GENERAL SETTINGS
+		</h1>
 
 		<SettingsSectionNav {sections} />
 

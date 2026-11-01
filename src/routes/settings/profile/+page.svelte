@@ -10,7 +10,12 @@
 </script>
 
 <main>
-		<SettingsSectionNav {sections} />
+	<!-- HEADER (R-H10: title band is a real h1) -->
+	<h1 class="text-base font-bold m-0 flex justify-between bg-gray-100 border border-black p-2">
+		PROFILE
+	</h1>
+
+	<SettingsSectionNav {sections} />
 
 		<!-- USER INFO SECTION -->
 	<section id="section-user-info" style="scroll-margin-top: 2.5rem;">

@@ -67,15 +67,15 @@
 </script>
 
 <main>
-	<!-- HEADER -->
-	<div class="flex justify-between items-center gap-4 border-b border-black p-2 bg-gray-100">
-		<span class="font-bold">INCOME HISTORY</span>
+	<!-- HEADER (R-H10: title band is a real h1) -->
+	<h1 class="text-base font-bold m-0 flex justify-between items-center gap-4 border-b border-black p-2 bg-gray-100">
+		INCOME HISTORY
 		<span class="flex gap-3 text-xs">
 			<a href="/api/history/export?kind=income" download class="bracket-link">Export CSV</a>
 			<a href="/settings/data" class="bracket-link">Import CSV</a>
 			<a href="/overview/tax" class="bracket-link">Tax</a>
 		</span>
-	</div>
+	</h1>
 
 	<!-- ═══ TREND ═══ -->
 	<section class="border-b border-black">

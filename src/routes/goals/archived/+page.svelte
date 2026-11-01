@@ -41,10 +41,11 @@
 </script>
 
 <!-- ARCHIVED GOALS LIST SECTION -->
-<div class="font-bold flex justify-between bg-gray-100 border border-black p-2">
+<!-- R-H10: title band is a real h1 -->
+<h1 class="text-base font-bold m-0 bg-gray-100 border border-black p-2 flex justify-between items-center">
 	<span><span class="text-gray-600">●</span> ARCHIVED ({data.totalCount})</span>
 	<a href="/goals" class="bracket-link text-xs">Back to Goals</a>
-</div>
+</h1>
 
 <div bind:this={tableSectionRef}>
 	<div class="p-0">

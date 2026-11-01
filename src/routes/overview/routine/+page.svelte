@@ -36,10 +36,10 @@
 <!-- v3.1 border unification: inset panel frame -->
 <div class="p-2 flex flex-col gap-2">
 
-<!-- Header -->
-<div class="font-bold flex justify-between items-center bg-gray-100 border border-black p-2">
-	<span>MONTHLY REVIEW</span>
-</div>
+<!-- Header (R-H10: title band is a real h1) -->
+<h1 class="text-base font-bold m-0 flex justify-between items-center bg-gray-100 border border-black p-2">
+	MONTHLY REVIEW
+</h1>
 
 <!-- SUMMARY STRIP (v3.1 A06: 5 cells; the old STREAK banner above was
      killed — it duplicated these cells (banned-pattern #4 inverse) and

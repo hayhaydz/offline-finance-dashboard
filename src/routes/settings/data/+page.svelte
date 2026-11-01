@@ -101,7 +101,10 @@
 	]} />
 
 	<section id="data-import" style="scroll-margin-top: 2.5rem;">
-		<SectionHeader title="SETTINGS / DATA MANAGEMENT" />
+	<!-- HEADER (R-H10: title band is a real h1; sections below stay SectionHeader h2s) -->
+	<h1 class="font-bold flex justify-between items-center bg-gray-100 border-b border-black px-2 py-1 m-0 text-sm">
+		SETTINGS / DATA MANAGEMENT
+	</h1>
 
 		<ImportWizard
 			accounts={data.accounts}

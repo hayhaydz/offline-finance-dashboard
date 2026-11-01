@@ -14,10 +14,11 @@
 
 <div class="p-2 font-mono">
 	<div class="border border-black">
-		<div class="border border-black bg-gray-100 p-2 font-bold flex justify-between items-center">
-			<span>BULK BALANCE UPDATE</span>
+		<!-- R-H10: title band is a real h1 -->
+		<h1 class="text-base font-bold m-0 bg-gray-100 p-2 flex justify-between items-center border border-black">
+			BULK BALANCE UPDATE
 			<a class="bracket-link text-xs" href="/accounts">Back to accounts</a>
-		</div>
+		</h1>
 
 		<div class="p-2 text-xs border border-black bg-gray-50">
 			{data.accounts.length} open account{data.accounts.length !== 1 ? "s" : ""}
