@@ -2,21 +2,25 @@
 	import TrendsMonthCompare from '$lib/components/charts/TrendsMonthCompare.svelte';
 	import TargetPaceChart from '$lib/components/charts/TargetPaceChart.svelte';
 	import HistoryTrendChart from '$lib/components/HistoryTrendChart.svelte';
+	import KpiCard from '$lib/components/KpiCard.svelte';
 	import { formatCurrency } from '$lib/utils/currency';
-	import { savedOrLostPence, targetPaceByDay, cumulativeSpendByDay } from '$lib/utils/trends-math';
+	import { savedOrLostPence } from '$lib/utils/trends-math';
 
 	/**
-	 * Spending insights (v3.2 A14 / V6): Monzo's balance / spending / target
-	 * tabs in the terminal grammar — custom tab buttons (never default HTML
-	 * controls), boxed panels, statement-honest copy (D0).
+	 * Spending insights (v3.2 A14 / V6) — Monzo's balance / spending /
+	 * target tabs rebuilt in the SITE'S grammar (2026-11-01 redesign after
+	 * user steer): goals-style filter band (bracket-link tabs, active
+	 * text-green-800), KpiCard strips, boxed tables with gray-100 band
+	 * headers, ChartPanels. No default HTML control styling anywhere.
+	 * Statement-model honest (D0): months are DECLARED statement months;
+	 * estimates come from declared-history averages, never realtime.
 	 */
 	let { data } = $props();
 
 	type TabId = 'balance' | 'spending' | 'target';
 	let tab: TabId = $state('balance');
-	// terminal segmented radios: [ ] month / [•] year semantics, button-based
 	let scope = $state<'month' | 'year'>('month');
-	let breakdownOpen: 'in' | 'out' | null = $state(null);
+	let outOpen = $state(false);
 
 	const TABS: Array<{ id: TabId; label: string }> = [
 		{ id: 'balance', label: 'balance' },
@@ -36,238 +40,300 @@
 	const chosenFlow = $derived(
 		data.balanceFlows.find((f) => f.monthKey === data.monthKey) ?? null,
 	);
-	const yearMonths = $derived(
-		scope === 'year'
-			? data.balanceFlows.filter((f) => f.monthKey.startsWith(data.monthKey.slice(0, 4)))
-			: [],
+	const yearFlows = $derived(
+		data.balanceFlows.filter((f) => f.monthKey.startsWith(data.monthKey.slice(0, 4))),
 	);
+	const isYear = $derived(scope === 'year');
+	const windowFlows = $derived(isYear ? yearFlows : chosenFlow ? [chosenFlow] : []);
+	const windowIn = $derived(windowFlows.reduce((s, f) => s + f.moneyInPence, 0));
+	const windowOut = $derived(windowFlows.reduce((s, f) => s + f.moneyOutPence, 0));
+	const windowStart = $derived(data.startingBalancePence);
+	const windowEnd = $derived(
+		windowFlows.length ? windowFlows[windowFlows.length - 1].closingBalancePence : data.startingBalancePence,
+	);
+
+	const lastMonthTotal = $derived(
+		cumulativeTotal(data.previousMonthDailies),
+	);
+	function cumulativeTotal(dailies: Array<{ day: number; amountPence: number }>): number {
+		return dailies.reduce((s, d) => s + -d.amountPence, 0);
+	}
 
 	const saved = $derived(savedOrLostPence(data.targetPence, data.spentPence));
 
-	// TARGET tab: cumulative spend + diagonal pace series
-	const targetRows = $derived.by(() => {
-		const pace = targetPaceByDay(data.targetPence, data.daysInMonth);
-		const cum = cumulativeSpendByDay(data.chosenMonthDailies, data.daysInMonth);
-		return Array.from({ length: data.daysInMonth }, (_, i) => ({
-			day: i + 1,
-			pace: pace[i],
-			spent: cum[i],
-		}));
-	});
-
 	function switchTab(id: TabId) {
 		tab = id;
-		breakdownOpen = null;
+		outOpen = false;
 	}
 </script>
 
 <div class="p-2 flex flex-col gap-2">
-	<!-- title band: real h1 (D9) + month chooser -->
-	<div class="border border-black">
-		<div class="bg-gray-100 border-b border-black px-2 py-1.5 flex justify-between items-center">
-			<h1 class="text-lg font-bold m-0 uppercase">Spending insights</h1>
-			<div class="flex items-center gap-2 text-xs">
-				<a href="/overview/trends/{data.previousKey}/insights" class="bracket-link" data-sveltekit-noscroll>◀ {monthLabel(data.previousKey)}</a>
-				<span class="font-bold">{monthLabel(data.monthKey)}</span>
-				{#if data.monthKey < data.currentMonthKey}
-					<a href="/overview/trends/insights" class="bracket-link" data-sveltekit-noscroll>latest ▶</a>
-				{/if}
-			</div>
+	<!-- page header: the reports/tools pattern — h1 + meta line, no box -->
+	<div class="flex justify-between items-baseline">
+		<h1 class="text-lg font-bold m-0">Spending insights</h1>
+		<div class="flex items-center gap-2 text-xs">
+			<a href="/overview/trends/{data.previousKey}/insights" class="bracket-link" data-sveltekit-noscroll>◀ {monthLabel(data.previousKey)}</a>
+			<span class="font-bold">{monthLabel(data.monthKey)}</span>
+			{#if data.monthKey < data.currentMonthKey}
+				<a href="/overview/trends/insights" class="bracket-link" data-sveltekit-noscroll>latest ▶</a>
+			{/if}
 		</div>
-		<!-- terminal tab bar (custom buttons; no default HTML control styling) -->
-		<div class="flex border-b border-black" role="tablist" aria-label="Insight views">
+	</div>
+	<p class="text-xs text-gray-600 m-0">
+		{#if data.chosenMonthDeclared}
+			{data.monthKey} as declared from statements
+		{:else}
+			{data.monthKey} not declared yet — it enters at statement time
+		{/if}
+		· not realtime · {isYear ? 'year view shows declared months only' : 'estimates from declared-history averages'}
+	</p>
+
+	<!-- tab band: the goals filter grammar (bracket links, active green) -->
+	<div class="font-bold flex justify-between items-center bg-gray-100 border-y border-black p-2">
+		<div class="flex gap-2 font-normal">
 			{#each TABS as t (t.id)}
 				<button
 					type="button"
-					role="tab"
-					aria-selected={tab === t.id}
-					class="px-3 py-1.5 text-sm cursor-pointer border-r border-black last:border-r-0 transition-colors duration-150
-						{tab === t.id ? 'bg-white font-bold underline underline-offset-4' : 'bg-gray-100 text-gray-600 hover:bg-gray-50'}"
+					class="bracket-link text-xs font-bold cursor-pointer"
+					class:text-green-800={tab === t.id}
+					aria-pressed={tab === t.id}
 					onclick={() => switchTab(t.id)}
 				>
 					{t.label}
 				</button>
 			{/each}
-			<!-- scope segmented radio: month/year (statement-honest: year = declared months only) -->
-			<div class="ml-auto flex items-center gap-1 px-2 text-xs" role="radiogroup" aria-label="Scope">
-				<button
-					type="button"
-					role="radio"
-					aria-checked={scope === 'month'}
-					class="bracket-link cursor-pointer {scope === 'month' ? 'font-bold text-green-800' : 'text-gray-600'}"
-					onclick={() => (scope = 'month')}
-				>[•] month</button>
-				<button
-					type="button"
-					role="radio"
-					aria-checked={scope === 'year'}
-					class="bracket-link cursor-pointer {scope === 'year' ? 'font-bold text-green-800' : 'text-gray-600'}"
-					onclick={() => (scope = 'year')}
-				>[•] year</button>
-			</div>
 		</div>
-
-		<!-- ═══ BALANCE ═══ -->
-		{#if tab === 'balance'}
-			<div class="p-2 flex flex-col gap-2">
-				<p class="text-[10px] text-gray-600 m-0">
-					statement model — {scope === 'year' ? `${data.monthKey.slice(0, 4)} shows declared months only` : `${data.monthKey} as declared`}; estimates come from declared-history averages, never realtime
-				</p>
-				{#if data.balanceFlows.length > 1}
-					<HistoryTrendChart
-						points={(scope === 'year' ? yearMonths : data.balanceFlows).map((f) => ({
-							month: f.monthKey,
-							amountInCents: f.closingBalancePence,
-						}))}
-						formatAmount={formatCurrency}
-						yearStartMonth={1}
-					/>
-				{:else}
-					<div class="border border-dashed border-gray-200 p-2 text-xs text-gray-600">
-						Not enough declared history for the balance graph yet — months appear as statements are entered.
-					</div>
-				{/if}
-				<!-- ledger: start → in/out (expandable) → end -->
-				<div class="border border-black text-sm">
-					<div class="flex justify-between px-2 py-1.5 border-b border-gray-200">
-						<span>Starting balance</span>
-						<span class="tabular-nums font-bold">{formatCurrency(data.startingBalancePence)}</span>
-					</div>
-					<div class="border-b border-gray-200">
-						<button type="button" class="w-full flex justify-between px-2 py-1.5 cursor-pointer hover:bg-gray-50 text-left" onclick={() => (breakdownOpen = breakdownOpen === 'in' ? null : 'in')} aria-expanded={breakdownOpen === 'in'}>
-							<span>Total money in <span class="text-xs text-gray-500">{chosenFlow ? '· income + deposits' : '· none declared'}</span></span>
-							<span class="tabular-nums font-bold text-green-700">+{formatCurrency(chosenFlow?.moneyInPence ?? 0)}</span>
-						</button>
-						{#if breakdownOpen === 'in' && data.categories.included.length}
-							<div class="px-4 pb-1.5 text-xs text-gray-600 border-t border-gray-100">
-								categories carry spend only — money-in detail lands with per-type breakdowns (statement model)
-							</div>
-						{/if}
-					</div>
-					<div class="border-b border-gray-200">
-						<button type="button" class="w-full flex justify-between px-2 py-1.5 cursor-pointer hover:bg-gray-50 text-left" onclick={() => (breakdownOpen = breakdownOpen === 'out' ? null : 'out')} aria-expanded={breakdownOpen === 'out'}>
-							<span>Total money out <span class="text-xs text-gray-500">▾ by category</span></span>
-							<span class="tabular-nums font-bold text-red-700">−{formatCurrency(chosenFlow?.moneyOutPence ?? 0)}</span>
-						</button>
-						{#if breakdownOpen === 'out'}
-							<div class="border-t border-gray-100">
-								{#each data.categories.included as cat (cat.name)}
-									<div class="flex justify-between px-4 py-1 text-xs border-b border-gray-100 last:border-b-0">
-										<span>{cat.name}</span>
-										<span class="tabular-nums">{formatCurrency(cat.spentPence)}</span>
-									</div>
-								{:else}
-									<div class="px-4 py-1 text-xs text-gray-500">No categorised spend declared this month.</div>
-								{/each}
-							</div>
-						{/if}
-					</div>
-					<div class="flex justify-between px-2 py-1.5 border-b border-gray-200 bg-gray-50">
-						<span class="font-bold">Ending balance</span>
-						<span class="tabular-nums font-bold">{formatCurrency(chosenFlow?.closingBalancePence ?? data.startingBalancePence)}</span>
-					</div>
-					{#if data.estimatedEndPence !== null}
-						<div class="flex justify-between px-2 py-1.5 bg-amber-50">
-							<span>Estimated month-end <span class="text-[10px] text-gray-600">— from declared-history averages{data.avgInPence !== null && data.avgOutPence !== null ? ` (in ${formatCurrency(data.avgInPence)} · out ${formatCurrency(data.avgOutPence)}/mo)` : ''}</span></span>
-							<span class="tabular-nums font-bold">{formatCurrency(data.estimatedEndPence)}</span>
-						</div>
-					{/if}
-				</div>
-			</div>
-		{/if}
-
-		<!-- ═══ SPENDING ═══ -->
-		{#if tab === 'spending'}
-			<div class="p-2 flex flex-col gap-2">
-				<p class="text-[10px] text-gray-600 m-0">
-					{data.monthKey} vs {data.previousKey} · {data.chosenMonthDeclared ? `${formatCurrency(data.chosenMonthTotalPence)} spent as declared` : 'not declared yet — enters at statement time'} · not realtime
-				</p>
-				<TrendsMonthCompare
-					currentMonthKey={data.monthKey}
-					previousMonthKey={data.previousKey}
-					currentDaily={data.chosenMonthDailies}
-					previousDaily={data.previousMonthDailies}
-					title="Spending"
-				/>
-				<div class="grid grid-cols-2 gap-2">
-					<div class="border border-black">
-						<div class="bg-gray-100 border-b border-black px-2 py-1 text-sm font-bold">SPENDING BY CATEGORY</div>
-						{#each data.categories.included as cat (cat.name)}
-							<div class="flex justify-between px-2 py-1 text-xs border-b border-gray-100 last:border-b-0">
-								<span>{cat.name}</span>
-								<span class="tabular-nums">{formatCurrency(cat.spentPence)}</span>
-							</div>
-						{:else}
-							<div class="px-2 py-1.5 text-xs text-gray-500">No categorised spend declared.</div>
-						{/each}
-					</div>
-					<div class="border border-black">
-						<div class="bg-gray-100 border-b border-black px-2 py-1 text-sm font-bold">EXCLUDED CATEGORIES</div>
-						{#each data.categories.excluded as cat (cat.name)}
-							<div class="flex justify-between px-2 py-1 text-xs border-b border-gray-100 last:border-b-0">
-								<span>{cat.name}</span>
-								<span class="tabular-nums text-gray-600">{formatCurrency(cat.spentPence)}</span>
-							</div>
-						{:else}
-							<div class="px-2 py-1.5 text-xs text-gray-500">No excluded-category spend this month.</div>
-						{/each}
-					</div>
-				</div>
-			</div>
-		{/if}
-
-		<!-- ═══ TARGET ═══ -->
-		{#if tab === 'target'}
-			<div class="p-2 flex flex-col gap-2">
-				<p class="text-sm m-0">
-					<span class="font-bold">you spent {formatCurrency(data.spentPence)} overall</span>
-					{#if data.targetPence > 0}
-						— {saved >= 0
-							? `saved ${formatCurrency(saved)}`
-							: `lost ${formatCurrency(-saved)}`}
-						against the {formatCurrency(data.targetPence)} target
-					{:else}
-						— <a href="/overview/trends/{data.monthKey}" class="bracket-link">set a monthly target</a> to track pace
-					{/if}
-				</p>
-				{#if data.targetPence > 0}
-					<TargetPaceChart
-						monthKey={data.monthKey}
-						targetPence={data.targetPence}
-						dailies={data.chosenMonthDailies}
-						daysInMonth={data.daysInMonth}
-					/>
-				{/if}
-				<div class="grid grid-cols-2 gap-2">
-					<div class="border border-black">
-						<div class="bg-gray-100 border-b border-black px-2 py-1 text-sm font-bold">BY CATEGORY</div>
-						{#each data.categories.included as cat (cat.name)}
-							<div class="flex justify-between px-2 py-1 text-xs border-b border-gray-100 last:border-b-0">
-								<span>{cat.name}</span>
-								<span class="tabular-nums">{formatCurrency(cat.spentPence)}</span>
-							</div>
-						{:else}
-							<div class="px-2 py-1.5 text-xs text-gray-500">No categorised spend declared.</div>
-						{/each}
-					</div>
-					<div class="border border-black">
-						<div class="bg-gray-100 border-b border-black px-2 py-1 text-sm font-bold">EXCLUDED FROM TARGET</div>
-						{#each data.categories.excluded as cat (cat.name)}
-							<div class="flex justify-between px-2 py-1 text-xs border-b border-gray-100 last:border-b-0">
-								<span>{cat.name}</span>
-								<span class="tabular-nums text-gray-600">{formatCurrency(cat.spentPence)}</span>
-							</div>
-						{:else}
-							<div class="px-2 py-1.5 text-xs text-gray-500">Nothing excluded this month.</div>
-						{/each}
-					</div>
-				</div>
-			</div>
-		{/if}
+		<div class="flex gap-2">
+			<button
+				type="button"
+				class="bracket-link text-xs font-bold cursor-pointer"
+				class:text-green-800={scope === 'month'}
+				aria-pressed={scope === 'month'}
+				onclick={() => (scope = 'month')}
+			>
+				month
+			</button>
+			<button
+				type="button"
+				class="bracket-link text-xs font-bold cursor-pointer"
+				class:text-green-800={scope === 'year'}
+				aria-pressed={scope === 'year'}
+				onclick={() => (scope = 'year')}
+			>
+				year
+			</button>
+		</div>
 	</div>
 
-	<div class="flex justify-between items-center">
-		<a href="/overview/trends/{data.monthKey}" class="bracket-link text-xs">← Monthly Trend</a>
-		<a href="/overview/trends/all" class="bracket-link text-xs">Trend history</a>
+	<!-- ═══ BALANCE ═══ -->
+	{#if tab === 'balance'}
+		<!-- KPI strip: the site's KpiCard grid -->
+		<div class="border border-black grid grid-cols-4 [&>*:last-child]:border-r-0">
+			<KpiCard label="Starting balance" value={formatCurrency(windowStart)} />
+			<KpiCard label="Money in" value={`+${formatCurrency(windowIn)}`} color="text-green-700" detail={windowFlows.length ? `${windowFlows.length} declared month${windowFlows.length === 1 ? '' : 's'}` : 'none declared'} />
+			<KpiCard label="Money out" value={`−${formatCurrency(windowOut)}`} color="text-red-700" />
+			<KpiCard label="Ending balance" value={formatCurrency(windowEnd)} />
+		</div>
+
+		{#if data.estimatedEndPence !== null && !isYear}
+			<div class="border border-black bg-amber-50 px-2 py-1.5 text-sm flex justify-between items-baseline">
+				<span>
+					<span class="font-bold">Estimated month-end</span>
+					<span class="text-[10px] text-gray-600">
+						— declared-history averages{data.avgInPence !== null && data.avgOutPence !== null ? ` (in ${formatCurrency(data.avgInPence)} · out ${formatCurrency(data.avgOutPence)}/mo)` : ''}
+					</span>
+				</span>
+				<span class="tabular-nums font-bold">{formatCurrency(data.estimatedEndPence)}</span>
+			</div>
+		{/if}
+
+		{#if data.balanceFlows.length > 1}
+			<HistoryTrendChart
+				points={(isYear ? yearFlows : data.balanceFlows).map((f) => ({
+					month: f.monthKey,
+					amountInCents: f.closingBalancePence,
+				}))}
+				formatAmount={formatCurrency}
+				yearStartMonth={1}
+				height={200}
+			/>
+		{:else}
+			<div class="border border-black p-2 text-xs text-gray-600">
+				Not enough declared history for the balance graph yet — months appear as statements are entered.
+			</div>
+		{/if}
+
+		<!-- ledger: boxed table with band header + expandable category rows -->
+		<div class="border border-black">
+			<div class="bg-gray-100 border-b border-black px-2 py-1 text-sm font-bold flex justify-between items-center">
+				<span>MONEY MOVEMENT · {isYear ? data.monthKey.slice(0, 4) : data.monthKey}</span>
+				{#if data.categories.included.length}
+					<button type="button" class="bracket-link text-xs font-normal cursor-pointer" onclick={() => (outOpen = !outOpen)} aria-expanded={outOpen}>
+						{outOpen ? '[-] hide categories' : '[+] by category'}
+					</button>
+				{/if}
+			</div>
+			<div class="overflow-x-auto">
+				<table class="w-full">
+					<thead>
+						<tr class="border-b border-black">
+							<th class="pl-2 text-left text-xs py-1">Line</th>
+							<th class="text-right pr-2 text-xs py-1 w-40">Amount</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr class="border-b border-gray-200"><td class="pl-2 text-sm py-1.5">Starting balance</td><td class="text-right pr-2 text-sm py-1.5 tabular-nums font-bold">{formatCurrency(windowStart)}</td></tr>
+						<tr class="border-b border-gray-200"><td class="pl-2 text-sm py-1.5">Money in (income + deposits)</td><td class="text-right pr-2 text-sm py-1.5 tabular-nums text-green-700">+{formatCurrency(windowIn)}</td></tr>
+						<tr class="border-b border-gray-200"><td class="pl-2 text-sm py-1.5">Money out (spend)</td><td class="text-right pr-2 text-sm py-1.5 tabular-nums text-red-700">−{formatCurrency(windowOut)}</td></tr>
+						<tr class="border-b border-gray-200 bg-gray-50"><td class="pl-2 text-sm py-1.5 font-bold">Ending balance</td><td class="text-right pr-2 text-sm py-1.5 tabular-nums font-bold">{formatCurrency(windowEnd)}</td></tr>
+						{#if outOpen}
+							{#if data.categories.included.length}
+								<tr class="border-b border-black bg-gray-50"><td colspan="2" class="pl-2 py-1 text-[10px] font-bold uppercase text-gray-600">Spend by category</td></tr>
+								{#each data.categories.included as cat (cat.name)}
+									<tr class="border-b border-gray-100">
+										<td class="pl-4 text-xs py-1 text-gray-700">└ {cat.name}</td>
+										<td class="text-right pr-2 text-xs py-1 tabular-nums text-gray-700">{formatCurrency(cat.spentPence)}</td>
+									</tr>
+								{/each}
+							{:else}
+								<tr class="border-b border-gray-100"><td colspan="2" class="pl-2 py-1.5 text-xs text-gray-500">No categorised spend declared this month.</td></tr>
+							{/if}
+						{/if}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	{/if}
+
+	<!-- ═══ SPENDING ═══ -->
+	{#if tab === 'spending'}
+		<div class="border border-black grid grid-cols-4 [&>*:last-child]:border-r-0">
+			<KpiCard label="Spent · chosen month" value={formatCurrency(data.chosenMonthTotalPence)} detail={data.monthKey} />
+			<KpiCard label="Same span · previous" value={formatCurrency(lastMonthTotal)} detail={data.previousKey} />
+			<KpiCard
+				label="Month vs month"
+				value={`${data.chosenMonthTotalPence - lastMonthTotal >= 0 ? '+' : '−'}${formatCurrency(Math.abs(data.chosenMonthTotalPence - lastMonthTotal))}`}
+				color={data.chosenMonthTotalPence - lastMonthTotal > 0 ? 'text-red-700' : 'text-green-700'}
+				detail="negative = spending less than last month"
+			/>
+			<KpiCard label="Accounts in view" value={String(data.accountCount)} detail="all accounts" />
+		</div>
+
+		<TrendsMonthCompare
+			currentMonthKey={data.monthKey}
+			previousMonthKey={data.previousKey}
+			currentDaily={data.chosenMonthDailies}
+			previousDaily={data.previousMonthDailies}
+			title="Month vs previous month"
+		/>
+
+		<div class="grid grid-cols-5 gap-2">
+			<div class="col-span-3 border border-black [&>*:last-child]:border-b-0">
+				<div class="bg-gray-100 border-b border-black px-2 py-1 text-sm font-bold">SPENDING BY CATEGORY</div>
+				<table class="w-full">
+					<tbody>
+						{#each data.categories.included as cat (cat.name)}
+							<tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-150">
+								<td class="pl-2 text-sm py-1.5">{cat.name}</td>
+								<td class="text-right pr-2 text-sm py-1.5 tabular-nums">{formatCurrency(cat.spentPence)}</td>
+							</tr>
+						{:else}
+							<tr><td class="px-2 py-1.5 text-xs text-gray-500">No categorised spend declared.</td></tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+			<div class="col-span-2 border border-black [&>*:last-child]:border-b-0">
+				<div class="bg-gray-100 border-b border-black px-2 py-1 text-sm font-bold">EXCLUDED CATEGORIES</div>
+				<table class="w-full">
+					<tbody>
+						{#each data.categories.excluded as cat (cat.name)}
+							<tr class="border-b border-gray-200">
+								<td class="pl-2 text-sm py-1.5">{cat.name}</td>
+								<td class="text-right pr-2 text-sm py-1.5 tabular-nums text-gray-600">{formatCurrency(cat.spentPence)}</td>
+							</tr>
+						{:else}
+							<tr><td class="px-2 py-1.5 text-xs text-gray-500">No excluded-category spend this month.</td></tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	{/if}
+
+	<!-- ═══ TARGET ═══ -->
+	{#if tab === 'target'}
+		<div class="border border-black grid grid-cols-4 [&>*:last-child]:border-r-0">
+			<KpiCard label="Target" value={data.targetPence > 0 ? formatCurrency(data.targetPence) : '—'} detail={data.targetPence > 0 ? `${data.daysInMonth} days · even pace` : 'not set'} />
+			<KpiCard label="Spent" value={formatCurrency(data.spentPence)} detail={data.chosenMonthDeclared ? 'as declared' : 'nothing declared yet'} />
+			<KpiCard
+				label={saved >= 0 ? 'Saved' : 'Lost'}
+				value={formatCurrency(Math.abs(saved))}
+				color={saved >= 0 ? 'text-green-700' : 'text-red-700'}
+				detail={data.targetPence > 0 ? 'vs target' : 'set a target to track'}
+			/>
+			<KpiCard
+				label="Verdict"
+				value={data.targetPence === 0 ? '—' : saved >= 0 ? 'UNDER' : 'OVER'}
+				color={saved >= 0 ? 'text-green-700' : 'text-red-700'}
+				detail="spend line vs pace line"
+			/>
+		</div>
+
+		{#if data.targetPence > 0}
+			<p class="text-sm m-0">
+				<span class="font-bold">you spent {formatCurrency(data.spentPence)} overall</span>
+				— {saved >= 0 ? `saved ${formatCurrency(saved)}` : `lost ${formatCurrency(-saved)}`}
+				against the {formatCurrency(data.targetPence)} target
+			</p>
+			<TargetPaceChart
+				monthKey={data.monthKey}
+				targetPence={data.targetPence}
+				dailies={data.chosenMonthDailies}
+				daysInMonth={data.daysInMonth}
+			/>
+		{:else}
+			<div class="border border-black p-2 text-sm">
+				No target set for {data.monthKey}. <a href="/overview/trends/{data.monthKey}" class="bracket-link">Set a monthly target →</a>
+			</div>
+		{/if}
+
+		<div class="grid grid-cols-5 gap-2">
+			<div class="col-span-3 border border-black [&>*:last-child]:border-b-0">
+				<div class="bg-gray-100 border-b border-black px-2 py-1 text-sm font-bold">BY CATEGORY</div>
+				<table class="w-full">
+					<tbody>
+						{#each data.categories.included as cat (cat.name)}
+							<tr class="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-150">
+								<td class="pl-2 text-sm py-1.5">{cat.name}</td>
+								<td class="text-right pr-2 text-sm py-1.5 tabular-nums">{formatCurrency(cat.spentPence)}</td>
+							</tr>
+						{:else}
+							<tr><td class="px-2 py-1.5 text-xs text-gray-500">No categorised spend declared.</td></tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+			<div class="col-span-2 border border-black [&>*:last-child]:border-b-0">
+				<div class="bg-gray-100 border-b border-black px-2 py-1 text-sm font-bold">EXCLUDED FROM TARGET</div>
+				<table class="w-full">
+					<tbody>
+						{#each data.categories.excluded as cat (cat.name)}
+							<tr class="border-b border-gray-200">
+								<td class="pl-2 text-sm py-1.5">{cat.name}</td>
+								<td class="text-right pr-2 text-sm py-1.5 tabular-nums text-gray-600">{formatCurrency(cat.spentPence)}</td>
+							</tr>
+						{:else}
+							<tr><td class="px-2 py-1.5 text-xs text-gray-500">Nothing excluded this month.</td></tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		</div>
+	{/if}
+
+	<div class="flex justify-between items-center text-xs">
+		<a href="/overview/trends/{data.monthKey}" class="bracket-link">← Monthly Trend</a>
+		<a href="/overview/trends/all" class="bracket-link">Trend history</a>
 	</div>
 </div>

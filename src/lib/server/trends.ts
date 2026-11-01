@@ -153,8 +153,11 @@ export interface BalanceFlowPoint extends MonthlyFlow {
 
 /**
  * Balance-tab series: per-month in/out across ALL accounts plus the
- * aggregated closing balance (per-account running sums, then summed).
- * Declared months only — a month appears only if some account transacted.
+ * aggregated closing balance. Per-account closings are FORWARD-FILLED
+ * across the declared timeline (an account that transacted in September
+ * but not October still carries its September close into October's
+ * aggregate — otherwise idle accounts would silently drop out and the
+ * ledger would not close: end ≠ start + in − out). Declared months only.
  */
 export async function getBalanceFlows(userId: number): Promise<BalanceFlowPoint[]> {
 	const monthExpr = sql<string>`strftime('%Y-%m', ${accountTransactions.transactionDate}, 'unixepoch')`;
@@ -172,15 +175,38 @@ export async function getBalanceFlows(userId: number): Promise<BalanceFlowPoint[
 		.groupBy(accountTransactions.accountId, monthExpr)
 		.orderBy(monthExpr);
 
-	const byMonth = new Map<string, { in: number; out: number; closing: number }>();
+	// per-account month → {net, close} in timeline order
+	const perAccount = new Map<number, Array<{ monthKey: string; net: number; close: number }>>();
 	for (const row of rows) {
-		const net = Number(row.net ?? 0);
-		const entry =
-			byMonth.get(row.monthKey) ?? { in: 0, out: 0, closing: 0 };
-		if (net >= 0) entry.in += net;
-		else entry.out += -net;
-		entry.closing += Number(row.closing ?? 0);
-		byMonth.set(row.monthKey, entry);
+		const series = perAccount.get(row.accountId) ?? [];
+		series.push({
+			monthKey: row.monthKey,
+			net: Number(row.net ?? 0),
+			close: Number(row.closing ?? 0),
+		});
+		perAccount.set(row.accountId, series);
+	}
+	const months = [...new Set(rows.map((r) => r.monthKey))].sort();
+
+	// forward-fill: each account's close at month M = its close at its
+	// latest declared month ≤ M (0 before its first declared month)
+	const byMonth = new Map<string, { in: number; out: number; closing: number }>();
+	for (const monthKey of months) {
+		byMonth.set(monthKey, { in: 0, out: 0, closing: 0 });
+	}
+	for (const series of perAccount.values()) {
+		let idx = -1; // pointer into this account's declared months
+		for (const monthKey of months) {
+			while (idx + 1 < series.length && series[idx + 1].monthKey <= monthKey) idx++;
+			const active = idx >= 0 ? series[idx] : null;
+			const transacted = series[idx]?.monthKey === monthKey ? series[idx] : null;
+			const entry = byMonth.get(monthKey)!;
+			if (transacted) {
+				if (transacted.net >= 0) entry.in += transacted.net;
+				else entry.out += -transacted.net;
+			}
+			entry.closing += active?.close ?? 0;
+		}
 	}
 
 	return flowsByMonth(

@@ -85,9 +85,15 @@
 		return yearStartMonth === 1 ? String(y) : `${y}/${String(y + 1).slice(-2)}`;
 	}
 
-	// Explicit headroom so the top data point doesn't sit on the top edge
+	// Explicit headroom so the top data point doesn't sit on the top edge.
+	// v3.2 (2026-11-01): the domain must also contain NEGATIVE values —
+	// balances can go below zero and a [0, max] domain pushed the polyline
+	// out of the plot area (vision-caught P1 on the insights balance graph).
 	const yMax = $derived(
-		Math.max(...rows.map((r) => r.known ?? r.future ?? 0), 1) * 1.08
+		Math.max(...rows.map((r) => r.known ?? r.future ?? 0), 0) * 1.08
+	);
+	const yMin = $derived(
+		Math.min(...rows.map((r) => r.known ?? r.future ?? 0), 0) * 1.08
 	);
 </script>
 
@@ -101,7 +107,7 @@
 			{series}
 			{height}
 			padding={{ top: 8, right: 14, bottom: 28, left: 42 }}
-			yDomain={[0, yMax]}
+			yDomain={[yMin, yMax]}
 			xDomain={rows.length ? [rows[0].date, rows[rows.length - 1].date] : undefined}
 			xNice={false}
 			props={{
