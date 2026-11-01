@@ -851,3 +851,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **NEXT QUEUE:** light rotations; 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point.
 - **Budget:** ends 18:04:58 GMT.
 - **Gotcha:** unauthenticated curl to /login resets admin session; browser self-heals via auto-login.
+
+| 2026-11-01 16:03:55 GMT | 2026-11-01 16:06:10 GMT | 0h 03m | v3.2 sweep 33 - tools/accounts tail crawl (5 tools + interest/isa/liabilities all clean: real h1s, 0 console errors) + border-idiom adjudication: bands-within-p2-wrapper are the dominant inset idiom (home 18 bands/11 boxed) - ISA/liabilities NOT defective, doctrine record corrected; zero code changes; |
+
+### CHECKPOINT - 2026-11-01 16:06:10 GMT (budget: ~1h54m left; turn ends)
+- **State:** route census complete (all tools, all reports, all accounts sub-pages, settings, error, logged-out). Zero open defects. Nothing in flight.
+- **NEXT QUEUE:** 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point. Interim: light probes only.
+- **Budget:** ends 18:04:58 GMT.
