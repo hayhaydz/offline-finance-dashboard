@@ -858,3 +858,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** route census complete (all tools, all reports, all accounts sub-pages, settings, error, logged-out). Zero open defects. Nothing in flight.
 - **NEXT QUEUE:** 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point. Interim: light probes only.
 - **Budget:** ends 18:04:58 GMT.
+
+| 2026-11-01 16:06:27 GMT | 2026-11-01 16:07:44 GMT | 0h 01m | v3.2 sweep 34 - V1 behavioural regression PASS (hydration-window clicks land + navigate first time on /goals and /accounts); create pages clean (real h1s, 0 errors, no default select styling); zero defects; |
+
+### CHECKPOINT - 2026-11-01 16:07:44 GMT (budget: ~1h56m left; turn ends)
+- **State:** V1 regression-verified behaviourally. Zero open defects. Nothing in flight.
+- **NEXT QUEUE:** 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point. Interim: light probes only.
+- **Budget:** ends 18:04:58 GMT.
