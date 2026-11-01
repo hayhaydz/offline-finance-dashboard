@@ -163,15 +163,21 @@
 	     timeline across the band — was left-packed with a dead right 2/3) -->
 	{#if emergencyFundMilestones}
 		<div class="border border-black p-2 mb-2 bg-white">
-			<div class="text-xs tracking-widest text-gray-500 mb-1">EMERGENCY FUND MILESTONES</div>
+			<div class="text-xs tracking-widest text-gray-500 mb-1">
+				EMERGENCY FUND MILESTONES
+				<span class="font-normal normal-case tracking-normal">· months of expenses saved (target = 12mo)</span>
+			</div>
 			<div class="flex justify-between gap-3">
 				{#each emergencyFundMilestones as milestone}
-					<div class="flex items-center gap-1 text-xs">
+					<div
+						class="flex items-center gap-1 text-xs"
+						title="{milestone.label} of expenses covered — threshold {formatCurrency(milestone.amount)}"
+					>
 						<span class={milestone.achieved ? 'text-green-700' : 'text-gray-500'}>
 							{milestone.achieved ? '✓' : '○'}
 						</span>
 						<span class={milestone.achieved ? 'font-bold text-green-700' : 'text-gray-500'}>
-							{milestone.label}
+							{milestone.label} · {formatCurrency(milestone.amount)}
 						</span>
 					</div>
 				{/each}
