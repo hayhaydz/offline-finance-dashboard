@@ -914,3 +914,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** full gate GREEN early (test 1178/1178 + build done). Zero open defects. Nothing in flight.
 - **NEXT QUEUE:** light probes until 17:30 (re-confirm gate only if files changed); 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point.
 - **Budget:** ends 18:04:58 GMT.
+
+| 2026-11-01 16:23:31 GMT | 2026-11-01 16:24:10 GMT | 0h 01m | v3.2 sweep 42 - §6.5 COMPLETE: full Appendix C re-read against evidence walk + this loop's live re-verifications, zero new spirit-gaps; §6 items 1-5 hold (gate 1178/1178 + build), item 6 completes 18:04:58; |
+
+### CHECKPOINT - 2026-11-01 16:24:10 GMT (budget: ~1h39m left; turn ends)
+- **State:** §6 DoD items 1-5 ALL HOLD; only budget-spent (item 6) remains. Zero open defects. Nothing in flight.
+- **NEXT QUEUE:** light no-op/idle rotations until 18:04:58; then stop-file + final ledger row + VERSION_HISTORY save point.
+- **Budget:** ends 18:04:58 GMT.
