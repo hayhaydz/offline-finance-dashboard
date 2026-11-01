@@ -24,8 +24,8 @@ describe("documentTitle (R-H13)", () => {
 	});
 
 	it("month and tax-year segments pass through", () => {
-		expect(documentTitle("/overview/budgets/2026-10")).toBe(
-			"OFFLINE-FINANCE — OVERVIEW · BUDGETS · 2026-10",
+		expect(documentTitle("/overview/trends/2026-10")).toBe(
+			"OFFLINE-FINANCE — OVERVIEW · TRENDS · 2026-10",
 		);
 		expect(documentTitle("/accounts/interest/2026-27")).toBe(
 			"OFFLINE-FINANCE — ACCOUNTS · INTEREST · 2026-27",

@@ -27,7 +27,7 @@ const SEGMENT_LABELS: Record<string, string> = {
 	overview: "OVERVIEW",
 	snapshots: "SNAPSHOTS",
 	routine: "ROUTINE",
-	budgets: "BUDGETS",
+	trends: "TRENDS", budgets: "TRENDS",
 	expenses: "EXPENSES",
 	bills: "BILLS",
 	reports: "REPORTS",

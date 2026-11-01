@@ -1,3 +1,1 @@
-<script lang="ts">
-	// Redirect handled by +page.server.ts
-</script>
+<!-- v3.2 V6 alias: load in +page.server.ts redirects before render -->

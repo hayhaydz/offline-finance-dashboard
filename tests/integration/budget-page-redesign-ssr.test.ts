@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { render } from "svelte/server";
-import BudgetPage from "../../src/routes/overview/budgets/[month]/+page.svelte";
+import BudgetPage from "../../src/routes/overview/trends/[month]/+page.svelte";
 
 // v3 B09 (R9 + R29): the budget page answers the month at a glance — a
 // 4-cell summary strip under the header, then a two-column body (progress

@@ -216,7 +216,7 @@ export async function checkBudgetAlerts(userId: number): Promise<Alert[]> {
 	const year = now.getUTCFullYear();
 	const month = now.getUTCMonth() + 1;
 	const monthSlug = `${year}-${String(month).padStart(2, "0")}`;
-	const href = `/overview/budgets/${monthSlug}`;
+	const href = `/overview/trends/${monthSlug}`;
 
 	const status = await getBudgetStatus(userId, year, month);
 

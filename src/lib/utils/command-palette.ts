@@ -111,14 +111,14 @@ export function dynamicPaletteCommands(now = new Date()): PaletteCommand[] {
 		{
 			id: "budget-current",
 			label: `Budget — ${month}`,
-			href: `/overview/budgets/${month}`,
+			href: `/overview/trends/${month}`,
 			keywords: "spend target pace current month",
 			section: "Jump",
 		},
 		{
 			id: "budget-triage",
 			label: `Uncategorised — ${month}`,
-			href: `/overview/budgets/${month}/uncategorised`,
+			href: `/overview/trends/${month}/uncategorised`,
 			keywords: "tag triage categorise spending",
 			section: "Jump",
 		},

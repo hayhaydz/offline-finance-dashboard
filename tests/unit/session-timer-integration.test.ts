@@ -45,7 +45,7 @@ Object.defineProperty(globalThis, "window", {
 // location mock — expiry redirect must preserve it as redirectTo
 Object.defineProperty(globalThis, "location", {
 	value: {
-		pathname: "/overview/budgets/2026-10",
+		pathname: "/overview/trends/2026-10",
 		search: "?tab=x",
 	},
 	writable: true,
@@ -140,7 +140,7 @@ describe("session-timer integration (fake timers + route harness)", () => {
 
 		const { goto } = await import("$app/navigation");
 		expect(goto).toHaveBeenCalledWith(
-			"/login?reason=expired&redirectTo=%2Foverview%2Fbudgets%2F2026-10%3Ftab%3Dx",
+			"/login?reason=expired&redirectTo=%2Foverview%2Ftrends%2F2026-10%3Ftab%3Dx",
 		);
 	});
 
@@ -194,7 +194,7 @@ describe("session-timer integration (fake timers + route harness)", () => {
 					settlePost = resolve;
 				}),
 		);
-		const postPromise = globalThis.fetch("/overview/budgets?/toggleCategory", {
+		const postPromise = globalThis.fetch("/overview/trends?/toggleCategory", {
 			method: "POST",
 		});
 
@@ -309,8 +309,8 @@ describe("session-timer integration (fake timers + route harness)", () => {
 
 describe("sanitizeRedirectTo", () => {
 	it("accepts same-origin app paths with queries", () => {
-		expect(sanitizeRedirectTo("/overview/budgets/2026-10?tab=x")).toBe(
-			"/overview/budgets/2026-10?tab=x",
+		expect(sanitizeRedirectTo("/overview/trends/2026-10?tab=x")).toBe(
+			"/overview/trends/2026-10?tab=x",
 		);
 	});
 

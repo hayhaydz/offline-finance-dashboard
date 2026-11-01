@@ -201,7 +201,7 @@ describe("alert deep links: budget alerts link to the budget month", () => {
 		vi.clearAllMocks();
 	});
 
-	it("BUDGET_OVERSPEND links to /overview/budgets/[current-month]", async () => {
+	it("BUDGET_OVERSPEND links to /overview/trends/[current-month]", async () => {
 		const { checkBudgetAlerts } = await import(
 			"$lib/server/alerts/async-goals"
 		);
@@ -224,7 +224,7 @@ describe("alert deep links: budget alerts link to the budget month", () => {
 		const monthSlug = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 		const overspend = alerts.find((a) => a.type === "BUDGET_OVERSPEND");
 		expect(overspend).toBeDefined();
-		expect(overspend?.href).toBe(`/overview/budgets/${monthSlug}`);
+		expect(overspend?.href).toBe(`/overview/trends/${monthSlug}`);
 	});
 });
 

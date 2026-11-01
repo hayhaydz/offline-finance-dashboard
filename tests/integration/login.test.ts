@@ -137,13 +137,13 @@ describe("Login Action Integration (L1 unlock ceremony)", () => {
 				request,
 				cookies: mockCookies,
 				url: new URL(
-					"http://localhost/login?reason=expired&redirectTo=%2Foverview%2Fbudgets%2F2026-10%3Ftab%3Dx",
+					"http://localhost/login?reason=expired&redirectTo=%2Foverview%2Ftrends%2F2026-10%3Ftab%3Dx",
 				),
 			});
 			expect.fail("Action should have thrown a redirect");
 		} catch (e: any) {
 			if (e.status === 302) {
-				expect(e.location).toBe("/overview/budgets/2026-10?tab=x");
+				expect(e.location).toBe("/overview/trends/2026-10?tab=x");
 			} else {
 				throw e;
 			}
