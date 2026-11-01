@@ -38,24 +38,23 @@
 		and the method that produced them.
 	</p>
 
-	<!-- j/k list-nav (sweep 9): article rows are keyboard-walkable like
-	     accounts/goals/snapshots; Enter opens the selected paper -->
-	<div class="border border-black" use:listnav>
-		{#each data.reports as report, i (report.slug)}
+	<!-- v3.2 V3: card grid — the same grammar as the tools index (user:
+	     "overview -> reports should be cards/grid similar to tools"); the
+	     dated masthead stays. j/k list-nav kept (sweep 9). -->
+	<div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3" use:listnav>
+		{#each data.reports as report (report.slug)}
 			<a
 				href="/overview/reports/{report.slug}"
 				data-nav-row
 				data-nav-primary
-				class="block {i > 0 ? 'border-t' : ''} border-black p-2 hover:bg-gray-50"
+				class="border border-black p-2 hover:bg-gray-50 flex flex-col gap-1"
 			>
-				<div class="flex justify-between items-baseline gap-4">
-					<span class="font-bold">{report.title}</span>
-					<span class="text-xs text-gray-500 whitespace-nowrap">{displayDate(data.today)}</span>
-				</div>
-				<p class="text-xs text-gray-600 mt-1">{report.blurb}</p>
+				<span class="font-bold">{report.title}</span>
+				<span class="text-xs text-gray-600 flex-1">{report.blurb}</span>
+				<span class="text-[10px] text-gray-500">{displayDate(data.today)}</span>
 				<span class="bracket-link text-xs">Read Report</span>
 			</a>
 		{/each}
 	</div>
-	<p class="text-[10px] text-gray-600 mt-2">j / k walks the list · Enter opens the selected report · Esc clears</p>
+	<p class="text-[10px] text-gray-600 mt-2">j / k walks the grid · Enter opens the selected report · Esc clears</p>
 </div>
