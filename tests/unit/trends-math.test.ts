@@ -5,6 +5,7 @@ import {
 	daysInMonthKey,
 	estimateEndBalance,
 	flowsByMonth,
+	headlineAccountCount,
 	prevMonthKey,
 	savedOrLostPence,
 	targetPaceByDay,
@@ -123,5 +124,14 @@ describe("month helpers", () => {
 		expect(daysInMonthKey("2026-02")).toBe(28);
 		expect(daysInMonthKey("2028-02")).toBe(29);
 		expect(daysInMonthKey("2026-10")).toBe(31);
+	});
+
+	it("headline account count follows Monzo parity (D0)", () => {
+		// declared month → only accounts feeding the spend figure count
+		expect(headlineAccountCount(true, 2, 16)).toBe(2);
+		expect(headlineAccountCount(true, 16, 16)).toBe(16);
+		// undeclared month → honest scope fallback, never a fabricated 0
+		expect(headlineAccountCount(false, 0, 16)).toBe(16);
+		expect(headlineAccountCount(false, 5, 16)).toBe(16);
 	});
 });

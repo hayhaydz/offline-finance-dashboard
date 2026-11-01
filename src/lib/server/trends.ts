@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, lt, lte, ne, notInArray, or, isNull, sql } from "drizzle-orm";
+import { and, countDistinct, eq, gte, inArray, lt, lte, ne, notInArray, or, isNull, sql } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { getCategories } from "$lib/server/categories";
@@ -23,6 +23,8 @@ export interface MonthlySpendSeries {
 	daily: DailyTx[];
 	/** spend for the whole month in pence (reconciles with the engine) */
 	totalPence: number;
+	/** distinct accounts feeding this series (Monzo-parity headline N) */
+	contributingAccounts: number;
 }
 
 export interface TrendsSnapshot {
@@ -30,8 +32,10 @@ export interface TrendsSnapshot {
 	previousMonthKey: string;
 	current: MonthlySpendSeries;
 	previous: MonthlySpendSeries;
-	/** open accounts included in the trends view */
+	/** in-scope accounts for the trends view (registry minus exclusions) */
 	accountCount: number;
+	/** D0 Monzo-parity: accounts actually feeding the current spend figure */
+	spendingAccounts: number;
 	/** D0: does the current statement month have any declared data yet? */
 	currentMonthDeclared: boolean;
 	isCurrentCalendarMonth: boolean;
@@ -112,7 +116,18 @@ async function monthlySpendSeries(
 		.filter((d) => d.amountPence !== 0);
 
 	const totalPence = daily.reduce((s, d) => s + -d.amountPence, 0);
-	return { monthKey, daily, totalPence };
+
+	// Monzo-parity N: accounts actually feeding this series (D0 —
+	// "spent so far across N accounts" counts contributors, not the
+	// whole account registry)
+	const contributingRows = await db
+		.select({ n: countDistinct(accountTransactions.accountId) })
+		.from(accountTransactions)
+		.innerJoin(accounts, eq(accounts.id, accountTransactions.accountId))
+		.where(and(...conditions));
+	const contributingAccounts = Number(contributingRows[0]?.n ?? 0);
+
+	return { monthKey, daily, totalPence, contributingAccounts };
 }
 
 export async function getTrendsSnapshot(
@@ -135,12 +150,18 @@ export async function getTrendsSnapshot(
 			.where(and(withUserFilter(userId, accounts), isNull(accounts.deletedAt))),
 	]);
 
+	// in-scope = registry minus config-excluded accounts (whose statements
+	// would feed the month); spendingAccounts = actual contributors
+	const excluded = new Set(currentConfig?.excludedAccountIds ?? []);
+	const inScope = accountRows.filter((a) => !excluded.has(a.id)).length;
+
 	return {
 		currentMonthKey,
 		previousMonthKey,
 		current,
 		previous,
-		accountCount: accountRows.length,
+		accountCount: inScope,
+		spendingAccounts: current.contributingAccounts,
 		currentMonthDeclared: current.daily.length > 0,
 		isCurrentCalendarMonth: true,
 	};

@@ -10,6 +10,7 @@
 	import HomeVizGallery from '$lib/components/charts/HomeVizGallery.svelte';
 	import SectionHeader from '$lib/components/SectionHeader.svelte';
 	import { formatCurrency, formatCurrencyShorthand, formatAccountType, formatDateShorthand } from '$lib/utils/currency';
+	import { headlineAccountCount } from '$lib/utils/trends-math';
 
 	let { data } = $props();
 	let { user, environment: env, goals } = $derived(data);
@@ -385,7 +386,7 @@
 						? formatCurrency(data.trends.current.totalPence)
 						: '—'}
 					<span class="text-gray-600 font-normal"> - spent so far - </span>
-					{data.trends.accountCount} account{data.trends.accountCount === 1 ? '' : 's'}
+					{headlineAccountCount(data.trends.currentMonthDeclared, data.trends.spendingAccounts, data.trends.accountCount)} account{headlineAccountCount(data.trends.currentMonthDeclared, data.trends.spendingAccounts, data.trends.accountCount) === 1 ? '' : 's'}
 				</span>
 			</div>
 			<div class="px-2 pt-1 text-[10px] text-gray-600">

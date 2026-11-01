@@ -111,3 +111,18 @@ export function daysInMonthKey(monthKey: string): number {
 	const [y, m] = monthKey.split("-").map(Number);
 	return new Date(Date.UTC(y, m, 0)).getUTCDate();
 }
+
+/**
+ * Monzo-parity headline count (D0): "£X — spent so far — N accounts".
+ * N is the accounts that FEED the spend figure — contributing accounts
+ * when the month is declared. With nothing declared yet the honest
+ * fallback is the in-scope account count (whose statements would feed
+ * the month), never a fabricated "0".
+ */
+export function headlineAccountCount(
+	monthDeclared: boolean,
+	contributingAccounts: number,
+	inScopeAccounts: number,
+): number {
+	return monthDeclared ? contributingAccounts : inScopeAccounts;
+}
