@@ -893,3 +893,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** yearly-balance defect class fully swept (balance fixed, spending clean). Zero open defects. Nothing in flight.
 - **NEXT QUEUE:** 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point. Interim: light probes only.
 - **Budget:** ends 18:04:58 GMT.
+
+| 2026-11-01 16:14:13 GMT | 2026-11-01 16:14:49 GMT | 0h 01m | v3.2 sweep 39 - MonthlyBalances telescoping identity exact (0 breaks, 6 rows); Nov net cross-matches transactions banner on same page; sort-order scar recorded; zero defects; |
+
+### CHECKPOINT - 2026-11-01 16:14:49 GMT (budget: ~1h49m left; turn ends)
+- **State:** monthly-balance arithmetic verified. Zero open defects. Nothing in flight.
+- **NEXT QUEUE:** 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point. Interim: light probes only.
+- **Budget:** ends 18:04:58 GMT.
