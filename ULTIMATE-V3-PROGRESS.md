@@ -900,3 +900,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** monthly-balance arithmetic verified. Zero open defects. Nothing in flight.
 - **NEXT QUEUE:** 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point. Interim: light probes only.
 - **Budget:** ends 18:04:58 GMT.
+
+| 2026-11-01 16:15:05 GMT | 2026-11-01 16:15:37 GMT | 0h 01m | v3.2 sweep 40 - homepage trends final read: 485.00/12-accounts headline + D0 copy + key + link all live; figure matches insights 485.00 exactly (non-contributors spent 0) - two-honest-numbers coherent; zero defects; |
+
+### CHECKPOINT - 2026-11-01 16:15:37 GMT (budget: ~1h48m left; turn ends)
+- **State:** homepage flagship surface re-verified end to end. Zero open defects. Nothing in flight.
+- **NEXT QUEUE:** 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point. Interim: light probes only.
+- **Budget:** ends 18:04:58 GMT.
