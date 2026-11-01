@@ -55,6 +55,7 @@
 12. **🚫 SUMMARY.MD MUST REFLECT REALITY** — NEVER create a SUMMARY.md that describes work that wasn't actually done to the codebase. Summary files are documentation of ACTUAL changes, not plans or intentions. If the code wasn't modified, the work is NOT complete.
 13. **⚠️ GSD EXECUTOR VERIFICATION** — When delegating to gsd-executor agents: ALWAYS spot-check their claims by reading the files they claim to have modified. If SUMMARY.md says "Updated X file" but X file doesn't contain the changes, the executor FAILED and work is NOT complete.
 14. **📁 ACTUAL CODE > DOCUMENTATION** — The actual source files are the source of truth. Documentation files (SUMMARY.md, STATE.md, PLAN.md) that contradict actual code are WRONG. Always trust the code over the docs.
+15. **🚫 NO CLOCK-BURNING IN AUTONOMOUS LOOPS (user directive 2026-11-01, permanent)** — NEVER sleep-hold, idle-rotate, or otherwise burn wall-clock to "spend" a runtime budget. When the work Definition-of-Done holds, STOP and refund the remaining time to the user. A runtime budget is a ceiling, never a quota.
 
 7. `.docs/` organization and naming rules:
    - Store docs only in the existing folders: `architecture/`, `ideas/brainstorm/`, `plans/`, `design/`, `mockups/`, `specs/`, `reviews/`, `notes/`.

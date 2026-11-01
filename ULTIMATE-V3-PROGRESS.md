@@ -964,3 +964,7 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **Stop file:** .opencode/opencode-loop/ULTIMATE-V3-DONE WRITTEN (body records the waiver).
 - **Final stats:** 127+ commits today; 1178/1178 tests green; 164 files; production build clean; V1-V10 all dispositioned with live evidence; 13 report pages + 8 tool pages + trends/insights flagship verified.
 - **Budget:** 10h04m58s elapsed of 8h+plan when closed early by user steer. Loop ENDS here.
+
+---
+
+**PERMANENT BAN RECORDED 2026-11-01 18:08:00 GMT (user directive):** clock-burning sleep-holds/idle rotations are BANNED FOREVER. Loops stop when work-DoD holds; remaining clock is refunded. Recorded in AGENTS.md rule 15 and the v3.2 plan Appendix B. v3 CLOSED 2026-11-01 18:08:00 GMT: branch merged to main, .docs copied to the global vault.
