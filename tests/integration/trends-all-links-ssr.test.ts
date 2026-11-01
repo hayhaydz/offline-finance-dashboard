@@ -8,6 +8,9 @@ import AllPage from "../../src/routes/overview/trends/all/+page.svelte";
 // /overview/trends/{month} path.
 
 const data = {
+	// layout-injected props the page component type expects
+	user: null,
+	environment: { mode: "dev", isProduction: false, hasEncryption: true },
 	months: [
 		{ month: "2026-10", totalTarget: 140_000, actualSpent: 960_254 },
 		{ month: "2026-09", totalTarget: 308_500, actualSpent: 458_006 },
@@ -27,7 +30,7 @@ const data = {
 	] as never,
 	years: [
 		{
-			year: 2026,
+			year: "2026",
 			months: [
 				{ month: "2026-10", totalTarget: 140_000, actualSpent: 960_254 },
 				{ month: "2026-09", totalTarget: 308_500, actualSpent: 458_006 },
