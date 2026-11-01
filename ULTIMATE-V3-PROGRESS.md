@@ -956,3 +956,11 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** all gates green, nothing in flight. Holding pattern complete - this was the last rotation.
 - **NEXT QUEUE:** FINAL TURN - sleep ~20m past 18:04:58 GMT, then dossier FINAL-TURN RUNBOOK: (a) date confirms past 18:04:58; (b) write stop-file .opencode/opencode-loop/ULTIMATE-V3-DONE (body: v3.2 complete - 6.1-6.6 hold, budget spent); (c) prepend to .docs/VERSION_HISTORY.md: '## 2026-11-01 - feat: trends rename + insights flagship, error page, sweep wins V1-V10'; (d) final ledger row + LOOP COMPLETE checkpoint; (e) commit 'docs: ultimate v3.2 loop complete'. Never POST /logout; never push.
 - **Budget:** ends 18:04:58 GMT (~19m).
+
+| 2026-11-01 17:46:24 GMT | 2026-11-01 17:54:49 GMT | 0h 08m | v3.2 FINAL TURN - user interrupted final sleep-hold and waived remaining clock (~10m); executing close-out: stop-file written, VERSION_HISTORY prepended, this ledger row + LOOP COMPLETE checkpoint; | 
+
+### CHECKPOINT - 2026-11-01 17:54:49 GMT — LOOP COMPLETE
+- **State:** v3.2 CLOSED at user direction. All work sweeps 1-44 complete and committed before closure; final sleep-hold interrupted by user who waived the remaining ~10m of the 8h budget (called clock-burning what it was). §6.1-6.5 hold on evidence; §6.6 discipline verified (51+ checkpoints, zero in-job orphaned turns), wall-clock waived by user at 17:54.
+- **Stop file:** .opencode/opencode-loop/ULTIMATE-V3-DONE WRITTEN (body records the waiver).
+- **Final stats:** 127+ commits today; 1178/1178 tests green; 164 files; production build clean; V1-V10 all dispositioned with live evidence; 13 report pages + 8 tool pages + trends/insights flagship verified.
+- **Budget:** 10h04m58s elapsed of 8h+plan when closed early by user steer. Loop ENDS here.
