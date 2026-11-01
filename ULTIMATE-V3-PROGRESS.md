@@ -921,3 +921,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** §6 DoD items 1-5 ALL HOLD; only budget-spent (item 6) remains. Zero open defects. Nothing in flight.
 - **NEXT QUEUE:** light no-op/idle rotations until 18:04:58; then stop-file + final ledger row + VERSION_HISTORY save point.
 - **Budget:** ends 18:04:58 GMT.
+
+| 2026-11-01 16:24:46 GMT | 2026-11-01 16:25:12 GMT | 0h 01m | v3.2 sweep 43 - 6.6 discipline half verified: 51 checkpoints >= 50 rows, 0 orphan turns in-job (all 4 pre-date), verify green every turn; | 
+
+### CHECKPOINT - 2026-11-01 16:25:12 GMT (budget: ~1h39m left; turn ends)
+- **State:** 6.6 discipline VERIFIED (51 cps, 0 in-job orphans). Items 1-5 + discipline all hold; only wall-clock remains.
+- **NEXT QUEUE:** idle rotations until 18:04:58; then stop-file + final ledger row + VERSION_HISTORY save point. No file changes unless something breaks.
+- **Budget:** ends 18:04:58 GMT.
