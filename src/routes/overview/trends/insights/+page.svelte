@@ -51,7 +51,18 @@
 	const windowFlows = $derived(isYear ? yearFlows : chosenFlow ? [chosenFlow] : []);
 	const windowIn = $derived(windowFlows.reduce((s, f) => s + f.moneyInPence, 0));
 	const windowOut = $derived(windowFlows.reduce((s, f) => s + f.moneyOutPence, 0));
-	const windowStart = $derived(data.startingBalancePence);
+	// sweep 37: month scope opens at the last declared month before the
+	// chosen one (data.startingBalancePence); YEAR scope must open at the
+	// year's FIRST declared month's opening balance — reusing the month
+	// figure breaks start + in − out = end by the Jan→Oct movement
+	const windowStart = $derived(
+		isYear
+			? yearFlows.length
+				? yearFlows[0].closingBalancePence -
+					(yearFlows[0].moneyInPence - yearFlows[0].moneyOutPence)
+				: data.startingBalancePence
+			: data.startingBalancePence,
+	);
 	const windowEnd = $derived(
 		windowFlows.length ? windowFlows[windowFlows.length - 1].closingBalancePence : data.startingBalancePence,
 	);
