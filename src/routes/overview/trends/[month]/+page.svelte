@@ -31,6 +31,7 @@
 
 	// Accordion state
 	let targetOpen = $state(true); // Auto-open if no budget
+	let amendOptionsOpen = $state(false);
 	$effect(() => {
 		targetOpen = !data.budget;
 	});
@@ -295,6 +296,63 @@
 		</div>
 </div>
 
+	<!-- v3.2 V4 (2026-11-01): amendment options moved to the TOP (user
+	     direction), collapsed behind a single button, terminal controls only
+	     — native radio styling is banned. Full config moves to its own page
+	     next unit. -->
+	{#if data.budget}
+		<div class="border border-black">
+			<button
+				type="button"
+				class="w-full font-bold flex justify-between items-center cursor-pointer px-2 py-1.5 text-sm bg-gray-100 border-b border-black"
+				onclick={() => (amendOptionsOpen = !amendOptionsOpen)}
+				aria-expanded={amendOptionsOpen}
+			>
+				<span class="flex items-center gap-2">
+					AMENDMENT OPTIONS
+					<span class="text-xs font-normal text-gray-600">attach to your next config edit (target / filters) below</span>
+				</span>
+				<span class="text-xs text-gray-600">{amendOptionsOpen ? '[-]' : '[+]'}</span>
+			</button>
+			{#if amendOptionsOpen}
+				<div class="px-2 py-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 bg-gray-50">
+					<label class="flex items-center gap-1 text-xs text-gray-800">
+						<span>Note</span>
+						<input
+							type="text"
+							name="amendNote"
+							bind:value={amendNote}
+							maxlength="200"
+							placeholder="optional — why is this changing?"
+							class="border border-gray-500 bg-white px-1 py-0.5 w-64 font-terminal text-xs text-gray-900 placeholder:text-gray-600"
+						/>
+					</label>
+					<div class="flex items-center gap-2 text-xs">
+						<span class="text-gray-800">Applies</span>
+						<button
+							type="button"
+							class="bracket-link text-xs font-bold cursor-pointer"
+							class:text-green-800={!applyForward}
+							aria-pressed={!applyForward}
+							onclick={() => (applyForward = false)}
+						>
+							this month only
+						</button>
+						<button
+							type="button"
+							class="bracket-link text-xs font-bold cursor-pointer"
+							class:text-green-800={applyForward}
+							aria-pressed={applyForward}
+							onclick={() => (applyForward = true)}
+						>
+							this + future months
+						</button>
+					</div>
+				</div>
+			{/if}
+		</div>
+	{/if}
+
 	<!-- SUMMARY STRIP (R9): the four numbers that answer the month, at a glance -->
 	{#if data.budget && data.budget.totalTargetInCents > 0}
 		<div class="border border-black grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-300">
@@ -348,36 +406,6 @@
 		</div>
 	{/if}
 
-	<!-- AMENDMENT OPTIONS (shared by every config form below) -->
-	<!-- v3.2 V5: contrast bumped (user: "can't read this text or the
-	     placeholder") — the band itself moves to its own page in V4. -->
-	{#if data.budget}
-		<div class="border border-black px-2 py-1 bg-gray-50 flex flex-wrap items-center gap-x-4 gap-y-1">
-			<span class="text-[10px] uppercase font-bold text-gray-700">Amendment options</span>
-			<span class="text-xs text-gray-800">— attach to your next config edit (target / filters) below</span>
-			<label class="flex items-center gap-1 text-xs text-gray-800">
-				<span>Note</span>
-				<input
-					type="text"
-					name="amendNote"
-					bind:value={amendNote}
-					maxlength="200"
-					placeholder="optional — why is this changing?"
-					class="border border-gray-500 bg-white px-1 py-0.5 w-64 font-terminal text-xs text-gray-900 placeholder:text-gray-600"
-				/>
-			</label>
-			<div class="flex items-center gap-3 text-xs text-gray-800">
-				<label class="flex items-center gap-1 cursor-pointer">
-					<input type="radio" name="applyScope" value="month" checked={!applyForward} onchange={() => (applyForward = false)} class="cursor-pointer" />
-					<span>this month only</span>
-				</label>
-				<label class="flex items-center gap-1 cursor-pointer">
-					<input type="radio" name="applyScope" value="forward" checked={applyForward} onchange={() => (applyForward = true)} class="cursor-pointer" />
-					<span>this + future months (each trailed in history)</span>
-				</label>
-			</div>
-		</div>
-	{/if}
 
 	<!-- v3.1 A08 design-quality: single full-width flow — verdict → progress
 	     → [pace | burn-down] pair → history → config accordions. (Was a
