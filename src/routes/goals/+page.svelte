@@ -377,8 +377,13 @@ async function placeAtEnd() {
 				{@const stalenessDot = getStaleness(goal.updatedAt)}
 				{@const savingsOver = !isDebtGoal && goal.currentAllocation > goal.targetAmountInCents ? goal.currentAllocation - goal.targetAmountInCents : null}
 				{@const nextMs = getNextMilestone(goal)}
+				<!-- v3.2 D6 (2026-11-01): app-wide grid sweep found the final
+				     row dead cell here (10 cards, xl 3 cols, rem 1). Computed
+				     stretch — same grammar as snapshots/tools grids. -->
+				{@const gridRem = goals.length % 3}
+				{@const lastSpan = gridRem === 1 ? "xl:col-span-3" : gridRem === 2 ? "xl:col-span-2" : ""}
 				<div
-					class="border border-black p-2 flex flex-col gap-1 hover:bg-gray-50 transition-colors duration-150 {selectedSlug === goal.slug ? 'bg-amber-50' : ''}"
+					class="border border-black p-2 flex flex-col gap-1 hover:bg-gray-50 transition-colors duration-150 {selectedSlug === goal.slug ? 'bg-amber-50' : ''} {index === goals.length - 1 ? lastSpan : ''}"
 					data-nav-row
 				>
 					<div class="flex items-center gap-1 font-bold text-sm min-w-0">
