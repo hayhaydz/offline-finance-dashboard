@@ -248,6 +248,15 @@ td {
 		break-inside: avoid;
 	}
 
+	/* A13 chart mandate: a chart panel is atomic on paper — a plot
+	   sliced across a page boundary is unreadable. Panels are boxed
+	   (D9) so keeping them whole also keeps their border intact. */
+	.chart-panel,
+	.chart-panel-title,
+	svg {
+		break-inside: avoid;
+	}
+
 	/* Borders print hairline-thin but stay visible — terminal aesthetic */
 	* {
 		box-shadow: none !important;
