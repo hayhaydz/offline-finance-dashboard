@@ -935,3 +935,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** discipline verified (sweep 43) + final-turn runbook staged. Dev server healthy. Zero defects. Nothing in flight.
 - **NEXT QUEUE:** idle rotations (each: date, health probe, checkpoint) until 18:04:58; then execute dossier FINAL-TURN RUNBOOK (stop-file, VERSION_HISTORY prepend, final ledger row, final commit).
 - **Budget:** ends 18:04:58 GMT (~1h39m).
+
+| 2026-11-01 16:26:12 GMT | 2026-11-01 16:26:22 GMT | 0h 01m | v3.2 idle rotation 1 - stop-file correctly ABSENT (budget unspent), dev server responding, git clean; | 
+
+### CHECKPOINT - 2026-11-01 16:26:22 GMT (budget: ~1h38m left; turn ends)
+- **State:** all gates green, nothing in flight. Stop-file absent BY DESIGN until 18:04:58.
+- **NEXT QUEUE:** idle rotations until 18:04:58; then dossier FINAL-TURN RUNBOOK.
+- **Budget:** ends 18:04:58 GMT.
