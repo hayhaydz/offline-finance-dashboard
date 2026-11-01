@@ -274,7 +274,7 @@
 					{#each data.months as h (h.month)}
 						{@const status = getStatusLabel(h.totalTarget, h.actualSpent)}
 						<tr class="border-b border-dotted border-gray-200">
-							<td class="p-0.5"><a href="/overview/trends/{h.month}" class="bracket-link">{getMonthLabel(h.month)}</a></td>
+							<td class="p-0.5"><a href="/overview/trends/insights?month={h.month}" class="bracket-link">{getMonthLabel(h.month)}</a></td>
 							<td class="p-0.5 text-right">{formatCurrency(h.totalTarget)}</td>
 							<td class="p-0.5 text-right">{formatCurrency(h.actualSpent)}</td>
 							<td class="p-0.5 text-right {status.class}">{status.label}</td>
@@ -310,7 +310,7 @@
 				{#each group.entries as entry (entry.id)}
 					<div class="flex flex-wrap items-baseline gap-x-1.5 py-0.5 border-b border-dotted border-gray-100 text-xs">
 						<span class="text-gray-500 w-20 shrink-0">{formatAmendmentDate(entry.createdAt)}</span>
-						<a href="/overview/trends/{entry.month}" class="bracket-link">{getMonthLabel(entry.month)}</a>
+						<a href="/overview/trends/insights?month={entry.month}" class="bracket-link">{getMonthLabel(entry.month)}</a>
 						<span class="font-bold">{amendmentFieldLabel(entry.field)}</span>
 						<span>{formatAmendmentValue(entry.field, entry.oldValue)}</span>
 						<span class="text-gray-500">&rarr;</span>

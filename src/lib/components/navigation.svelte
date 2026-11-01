@@ -152,6 +152,11 @@
         overview: 'Overview',
         routine: 'Routine',
         budgets: 'Trends',
+      // v3.2 A14: the trends routes are first-class — crumbs must title-case
+      // like every other segment (vision P2, 2026-11-01 audit)
+      trends: 'Trends',
+      insights: 'Insights',
+      config: 'Config',
         reports: 'Reports',
         snapshots: 'Snapshots',
         tax: 'Tax',

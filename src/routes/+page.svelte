@@ -135,16 +135,19 @@
 	</div>
 
 	<!-- v3.2 (2026-11-01 user steer): HIGH-LEVEL OVERVIEW strip — the four
-	     numbers that answer the month at a glance, right under the hero. -->
-	{#if data.trends && data.budgetStatus}
+	     numbers that answer the month at a glance, right under the hero.
+	     Cards link into the trends story (sweep 7); D0: Δ is the last two
+	     DECLARED month closings, not realtime. -->
+	{#if data.trends && data.budgetStatus && data.balanceFlows}
 	<div class="px-2">
-		<div class="border border-black grid grid-cols-4 divide-x divide-gray-300">
+		<div class="border border-black grid grid-cols-4 [&>*:last-child]:border-r-0">
 			<KpiCard
 				label="Spent this month"
 				value={formatCurrency(data.trends.current.totalPence)}
 				detail={data.trends.currentMonthDeclared
 					? `${data.trends.currentMonthKey} as declared`
 					: `${data.trends.currentMonthKey} not declared yet`}
+				href="/overview/trends/insights"
 			/>
 			<KpiCard
 				label="vs target"
@@ -153,6 +156,7 @@
 					? `${Math.min(999, Math.round((data.trends.current.totalPence / Math.max(1, data.budgetStatus.budget.totalTargetInCents)) * 100))}% used`
 					: 'no target set'}
 				color={data.budgetStatus.budget && data.trends.current.totalPence > data.budgetStatus.budget.totalTargetInCents ? 'text-red-700' : 'text-green-700'}
+				href="/overview/trends/{data.trends.currentMonthKey}/config"
 			/>
 			<KpiCard
 				label={data.budgetStatus.budget && data.trends.current.totalPence <= data.budgetStatus.budget.totalTargetInCents ? 'Saved vs target' : 'Lost vs target'}
@@ -161,11 +165,18 @@
 					: '—'}
 				color={data.budgetStatus.budget && data.trends.current.totalPence <= data.budgetStatus.budget.totalTargetInCents ? 'text-green-700' : 'text-red-700'}
 				detail={data.budgetStatus.budget ? '' : 'set one in trends → target'}
+				href="/overview/trends/insights"
 			/>
 			<KpiCard
-				label="Accounts in view"
-				value={String(data.trends.accountCount)}
-				detail="statement model · not realtime"
+				label="Net worth Δ"
+				value={data.balanceFlows.length >= 2
+					? `${data.balanceFlows[data.balanceFlows.length - 1].closingBalancePence >= data.balanceFlows[data.balanceFlows.length - 2].closingBalancePence ? '+' : '−'}${formatCurrency(Math.abs(data.balanceFlows[data.balanceFlows.length - 1].closingBalancePence - data.balanceFlows[data.balanceFlows.length - 2].closingBalancePence))}`
+					: '—'}
+				color={data.balanceFlows.length >= 2 && data.balanceFlows[data.balanceFlows.length - 1].closingBalancePence >= data.balanceFlows[data.balanceFlows.length - 2].closingBalancePence ? 'text-green-700' : 'text-red-700'}
+				detail={data.balanceFlows.length >= 2
+					? `${data.balanceFlows[data.balanceFlows.length - 2].monthKey} → ${data.balanceFlows[data.balanceFlows.length - 1].monthKey} closings · not realtime`
+					: 'needs two declared months'}
+				href="/overview/trends/insights"
 			/>
 		</div>
 	</div>

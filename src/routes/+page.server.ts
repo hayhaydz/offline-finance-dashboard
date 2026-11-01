@@ -13,7 +13,7 @@ import {
 } from "$lib/server/derivedBalances";
 import { updateTypeExclusions } from "$lib/server/exclusions";
 import { getNetWorthSummary } from "$lib/server/finance";
-import { getTrendsSnapshot } from "$lib/server/trends";
+import { getBalanceFlows, getTrendsSnapshot } from "$lib/server/trends";
 import { getBudgetStatus } from "$lib/server/budgets";
 import { getDebtGoalProgress, projectPayoffDate } from "$lib/server/goals";
 import { calculateISAPacing } from "$lib/server/isaPacing";
@@ -365,6 +365,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		// v3.2 (2026-11-01 user steer): high-level overview strip — this
 		// month vs target at a glance, next to the net worth hero
 		budgetStatus: await getBudgetStatus(user.id, now.getUTCFullYear(), now.getUTCMonth() + 1),
+		// v3.2 sweep 7: net-worth Δ = last two DECLARED month closings
+		// (statement model D0 — never a realtime delta)
+		balanceFlows: await getBalanceFlows(user.id),
 	};
 };
 
