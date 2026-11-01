@@ -88,6 +88,18 @@
 	const cappedLiabilityGroups = $derived(liabilityGroups.slice(0, Math.max(0, ACCOUNTS_CAP - assetGroups.length)));
 	const hiddenAccountGroupsCount = $derived(Math.max(0, (assetGroups.length + liabilityGroups.length) - ACCOUNTS_CAP));
 
+	// D2: tfoot totals close the type table (the panel stretches to the goals
+	// grid partner; totals rows earn that height instead of leaving a void)
+	const shownAssetsTotal = $derived(cappedAssetGroups.reduce((sum, g) => sum + g.balance, 0));
+	const shownLiabilitiesTotal = $derived(cappedLiabilityGroups.reduce((sum, g) => sum + g.balance, 0));
+	const shownNetTotal = $derived(shownAssetsTotal + shownLiabilitiesTotal);
+	const netTotalDate = $derived.by(() => {
+		const stamps = [...cappedAssetGroups, ...cappedLiabilityGroups]
+			.map((g) => g.lastUpdated?.getTime() ?? 0)
+			.filter((t) => t > 0);
+		return stamps.length ? new Date(Math.max(...stamps)) : null;
+	});
+
 	const filteredGoals = $derived.by(() => {
 		if (goalsFilter === 'all') return goals;
 		if (goalsFilter === 'savings') return goals.filter((g) => g.goalType !== 'debt');
@@ -260,6 +272,25 @@
 					{/each}
 				{/if}
 			</tbody>
+			{#if assetGroups.length > 0 || liabilityGroups.length > 0}
+				<tfoot>
+					<tr class="border-t border-black bg-gray-50">
+						<td colspan="2" class="pl-2 py-2 text-xs font-bold uppercase tracking-wider">Assets</td>
+						<td class="text-right pr-2 py-2 text-sm font-bold tabular-nums">{formatCurrency(shownAssetsTotal)}</td>
+						<td class="text-right pr-1 py-2 text-[10px] text-gray-600">total</td>
+					</tr>
+					<tr class="bg-gray-50">
+						<td colspan="2" class="pl-2 py-2 text-xs font-bold uppercase tracking-wider">Liabilities</td>
+						<td class="text-right pr-2 py-2 text-sm font-bold tabular-nums">{formatCurrency(Math.abs(shownLiabilitiesTotal))}</td>
+						<td class="text-right pr-1 py-2 text-[10px] text-gray-600">total</td>
+					</tr>
+					<tr class="border-t border-gray-300 bg-gray-100">
+						<td colspan="2" class="pl-2 py-2 text-xs font-bold uppercase tracking-wider">Net</td>
+						<td class="text-right pr-2 py-2 text-sm font-bold tabular-nums">{formatCurrency(shownNetTotal)}</td>
+						<td class="text-right pr-1 py-2 text-[10px] text-gray-600">{formatDateShorthand(netTotalDate)}</td>
+					</tr>
+				</tfoot>
+			{/if}
 		</table>
 		{#if hiddenAccountGroupsCount > 0}
 			<div class="border-t border-black p-2 text-xs text-gray-500">
