@@ -767,3 +767,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** sweep 21 committed. Headline honesty fix live + tested. All probes green; no open defects.
 - **NEXT QUEUE:** hold-and-deepen — (a) mid-window full suite+build insurance (~16:15 turn); (b) remaining rotation ideas: seed-data report sweep (spot-check 2-3 reports for degenerate synthetic-data artifacts), goals/tools a11y tripwires; (c) ~17:30 LAST full suite + build; (d) 18:04:58+ stop-file + final row + VERSION_HISTORY save point.
 - **Budget:** ends 18:04:58 GMT.
+
+| 2026-11-01 15:37:37 GMT | 2026-11-01 15:39:40 GMT | 0h 08m | v3.2 sweep 22 — insurance gate GREEN (1176/1176 + build 11.56s, validates sweeps 20+21 at full scale); degenerate-number sweep: 5 reports + insights 3 tabs + tax + stooze + rate-what-if all ZERO NaN/undefined/Infinity/InvalidDate hits — V9 synthetic data renders sanely; stooze zero-state live-computed with guidance copy; |
+
+### CHECKPOINT — 2026-11-01 15:39:40 GMT (budget: ~2h20m left; turn ends — 8m turn)
+- **State:** sweep 22 recorded. All gates green; zero open defects; synthetic data proven sane across 11 probed surfaces.
+- **NEXT QUEUE:** hold-and-deepen — (a) idle verification rotations as useful (nav-dead-link crawl: every nav link 200s; a11y tripwire on 1-2 remaining routes); (b) 17:30 LAST full suite + build; (c) 18:04:58+ stop-file + final ledger row + .docs/VERSION_HISTORY.md save point line.
+- **Budget:** ends 18:04:58 GMT.
