@@ -265,6 +265,16 @@ export const handle: Handle = async ({ event, resolve }) => {
  * Logs all unexpected errors for debugging and monitoring
  */
 export const handleError: HandleServerError = async ({ error, event }) => {
+	// v3.2 sweep 29: HttpError (404 "Not found", deliberate error() calls)
+	// carries its own honest message — flattening it to "unexpected error"
+	// mislabels missing pages as bugs. HttpError is a type-only export
+	// (no runtime instanceof), so detect structurally: only values thrown
+	// by SvelteKit's error() carry { status, body: { message } }.
+	const maybeHttp = error as { status?: unknown; body?: { message?: unknown } };
+	if (typeof maybeHttp?.status === "number" && typeof maybeHttp.body?.message === "string") {
+		return { message: maybeHttp.body.message };
+	}
+
 	// Log the error with context
 	logError("server", "Unhandled server error", error);
 
