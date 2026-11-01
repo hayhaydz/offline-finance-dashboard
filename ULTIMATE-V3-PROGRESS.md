@@ -753,3 +753,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **Budget:** ends 18:04:58 GMT.
 
 - TURN CLOSE 2026-11-01 15:23:42 GMT: a11y regression tripwire home=100 insights=100 (snapshot mode). Turn 15:17:41→2026-11-01 15:23:42 GMT (~8m). Next turn: continue hold-and-deepen rotations per queue above.
+
+| 2026-11-01 15:24:02 GMT | 2026-11-01 15:31:53 GMT | 0h 08m | v3.2 sweep 20 — a11y DEPTH pass: found+fixed missing tab semantics (insights + snapshot tab bands → tablist/tab/tabpanel, display:contents wrappers = zero layout change, live-verified); found+fixed checkbox semantics on 5 config toggle classes (28 widgets live, glyph↔state parity exact); V5 contrast QUANTIFIED (18.16:1 note, 18.97:1 placeholder vs AAA 7:1); no-wrap mandate verified at 500px floor (3 cols, no stacking); focus visibility 2px outline confirmed; a11y 100 re-pinned on insights/snapshot/config/reports/bills/tax |
+
+### CHECKPOINT — 2026-11-01 15:31:53 GMT (budget: ~2h33m left; turn ends — 8m turn)
+- **State:** sweep 20 committed (3 feat commits). Tab + checkbox ARIA semantics complete across trends config, insights, snapshots. All gates green (check 0/0 after each edit).
+- **NEXT QUEUE:** continue hold-and-deepen — candidates: (a) ASCII toggle on reports now that figure:none papers hide it — re-verify no-op guard still correct post-ARIA edits; (b) one last stale-console sweep across 4-5 routes; (c) ~17:30 LAST full suite + build; (d) 18:04:58+ stop-file + final row + VERSION_HISTORY save-point line.
+- **Budget:** ends 18:04:58 GMT.
