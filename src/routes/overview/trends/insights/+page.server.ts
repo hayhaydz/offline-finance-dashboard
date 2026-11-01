@@ -1,7 +1,7 @@
 import { redirect } from "@sveltejs/kit";
 import { requireAuth } from "$lib/server/utils/auth-guard";
-import { getBalanceFlows, getCategorySpend, getTrendsSnapshot } from "$lib/server/trends";
-import { getBudgetStatus } from "$lib/server/budgets";
+import { getBalanceFlows, getCategorySpend, getDailyBalances, getTrendsSnapshot } from "$lib/server/trends";
+import { getBudgetHistory, getBudgetStatus } from "$lib/server/budgets";
 import {
 	averageOfLast,
 	daysInMonthKey,
@@ -28,11 +28,15 @@ export const load = async ({ locals, url }) => {
 	const monthKey = monthParam ?? currentMonthKey;
 	const previousKey = prevMonthKey(monthKey);
 
-	const [snapshot, balanceFlows, categories, status] = await Promise.all([
+	const [snapshot, balanceFlows, categories, status, balanceDailies, history] = await Promise.all([
 		getTrendsSnapshot(user.id, now),
 		getBalanceFlows(user.id),
 		getCategorySpend(user.id, monthKey),
 		getBudgetStatus(user.id, Number(monthKey.slice(0, 4)), Number(monthKey.slice(5, 7))),
+		getDailyBalances(user.id, monthKey),
+		// v3.2 merge: the old month page's history table lives in the
+		// target tab now (page 1 — the recent year)
+		getBudgetHistory(user.id, 0),
 	]);
 
 	const [yearStr, monthStr] = monthKey.split("-").map(Number);
@@ -79,6 +83,8 @@ export const load = async ({ locals, url }) => {
 		homeCurrentTotalPence: snapshot.current.totalPence,
 		accountCount: snapshot.accountCount,
 		balanceFlows,
+		balanceDailies,
+		history,
 		categories,
 		targetPence: status.budget?.totalTargetInCents ?? 0,
 		spentPence: status.totalSpent,

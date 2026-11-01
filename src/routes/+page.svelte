@@ -134,6 +134,41 @@
 		/>
 	</div>
 
+	<!-- v3.2 (2026-11-01 user steer): HIGH-LEVEL OVERVIEW strip — the four
+	     numbers that answer the month at a glance, right under the hero. -->
+	<div class="px-2">
+		<div class="border border-black grid grid-cols-4 divide-x divide-gray-300">
+			<KpiCard
+				label="Spent this month"
+				value={formatCurrency(data.trends.current.totalPence)}
+				detail={data.trends.currentMonthDeclared
+					? `${data.trends.currentMonthKey} as declared`
+					: `${data.trends.currentMonthKey} not declared yet`}
+			/>
+			<KpiCard
+				label="vs target"
+				value={data.budgetStatus.budget ? formatCurrency(data.budgetStatus.budget.totalTargetInCents) : '—'}
+				detail={data.budgetStatus.budget
+					? `${Math.min(999, Math.round((data.trends.current.totalPence / Math.max(1, data.budgetStatus.budget.totalTargetInCents)) * 100))}% used`
+					: 'no target set'}
+				color={data.budgetStatus.budget && data.trends.current.totalPence > data.budgetStatus.budget.totalTargetInCents ? 'text-red-700' : 'text-green-700'}
+			/>
+			<KpiCard
+				label={data.budgetStatus.budget && data.trends.current.totalPence <= data.budgetStatus.budget.totalTargetInCents ? 'Saved vs target' : 'Lost vs target'}
+				value={data.budgetStatus.budget
+					? formatCurrency(Math.abs(data.budgetStatus.budget.totalTargetInCents - data.trends.current.totalPence))
+					: '—'}
+				color={data.budgetStatus.budget && data.trends.current.totalPence <= data.budgetStatus.budget.totalTargetInCents ? 'text-green-700' : 'text-red-700'}
+				detail={data.budgetStatus.budget ? '' : 'set one in trends → target'}
+			/>
+			<KpiCard
+				label="Accounts in view"
+				value={String(data.trends.accountCount)}
+				detail="statement model · not realtime"
+			/>
+		</div>
+	</div>
+
 	<!-- v3.1 border system: the tax strip panel sits in the same inset frame -->
 	<div class="p-2">
 		<TaxYearTimeline data={data.isaTracker} />

@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, lte, ne, notInArray, or, isNull, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, lt, lte, ne, notInArray, or, isNull, sql } from "drizzle-orm";
 import { withUserFilter } from "$lib/auth/row-security";
 import { db } from "$lib/db/client";
 import { getCategories } from "$lib/server/categories";
@@ -271,4 +271,78 @@ export async function getCategorySpend(
 	included.sort((a, b) => b.spentPence - a.spentPence);
 	excluded.sort((a, b) => b.spentPence - a.spentPence);
 	return { included, excluded };
+}
+
+/**
+ * Daily aggregate balance for ONE month (v3.2 V6 fix, 2026-11-01 user
+ * report): the balance tab's month view is a day-by-day running balance
+ * across the chosen month (1st -> last day), NOT the multi-month series.
+ * Per-account closings before month start are summed (an account's closing
+ * = cumulative sum of its transactions; accounts with no transactions yet
+ * contribute 0), then each day's NET movement (deposits/withdrawals/
+ * transfers, interest_accrued excluded — same raw-cash filter as
+ * getBalanceFlows) is added as the month runs.
+ */
+export async function getDailyBalances(
+	userId: number,
+	monthKey: string,
+): Promise<Array<{ day: number; balancePence: number }>> {
+	const year = Number(monthKey.slice(0, 4));
+	const month = Number(monthKey.slice(5, 7));
+	const start = new Date(Date.UTC(year, month - 1, 1));
+	const days = new Date(Date.UTC(year, month, 0)).getUTCDate();
+	const endExclusive = new Date(Date.UTC(year, month, 1));
+
+	const userAccounts = await db
+		.select({ id: accounts.id })
+		.from(accounts)
+		.where(and(withUserFilter(userId, accounts), isNull(accounts.closedAt)));
+	const accountIds = userAccounts.map((a) => a.id);
+	if (accountIds.length === 0) return [];
+
+	// aggregate closing balance at month start (per-account cumulative
+	// sums BEFORE the month, summed across accounts)
+	const [beforeRow] = await db
+		.select({ total: sql<number>`coalesce(sum(${accountTransactions.amount}), 0)` })
+		.from(accountTransactions)
+		.where(
+			and(
+				inArray(accountTransactions.accountId, accountIds),
+				lt(accountTransactions.transactionDate, start),
+				ne(accountTransactions.type, "interest_accrued"),
+			),
+		);
+	let running = Number(beforeRow?.total ?? 0);
+
+	// per-day net movement inside the month
+	const dayExpr = sql<number>`strftime('%d', ${accountTransactions.transactionDate}, 'unixepoch')`;
+	const dayRows = await db
+		.select({
+			day: dayExpr,
+			net: sql<number>`sum(${accountTransactions.amount})`,
+		})
+		.from(accountTransactions)
+		.where(
+			and(
+				inArray(accountTransactions.accountId, accountIds),
+				gte(accountTransactions.transactionDate, start),
+				lt(accountTransactions.transactionDate, endExclusive),
+				ne(accountTransactions.type, "interest_accrued"),
+			),
+		)
+		.groupBy(dayExpr);
+
+	const netByDay = new Map<number, number>(
+		dayRows.map((r) => [Number(r.day), Number(r.net ?? 0)]),
+	);
+	// undeclared month (no transactions) → empty series: the page shows the
+	// honest "appears at statement time" empty state instead of a flat line
+	if (dayRows.length === 0) return [];
+
+	const out: Array<{ day: number; balancePence: number }> = [];
+	for (let day = 1; day <= days; day++) {
+		running += netByDay.get(day) ?? 0;
+		out.push({ day, balancePence: running });
+	}
+	return out;
 }

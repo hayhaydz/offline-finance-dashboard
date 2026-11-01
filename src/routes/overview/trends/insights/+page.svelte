@@ -1,5 +1,6 @@
 <script lang="ts">
 	import TrendsMonthCompare from '$lib/components/charts/TrendsMonthCompare.svelte';
+	import BalanceMonthChart from '$lib/components/charts/BalanceMonthChart.svelte';
 	import TargetPaceChart from '$lib/components/charts/TargetPaceChart.svelte';
 	import HistoryTrendChart from '$lib/components/HistoryTrendChart.svelte';
 	import KpiCard from '$lib/components/KpiCard.svelte';
@@ -55,6 +56,14 @@
 	const lastMonthTotal = $derived(
 		cumulativeTotal(data.previousMonthDailies),
 	);
+	function historyStatus(target: number, actual: number): { label: string; cls: string } {
+		if (target === 0) return { label: '—', cls: 'text-gray-500' };
+		const pct = Math.round((actual / target) * 100);
+		if (pct > 100) return { label: `OVER +${pct - 100}%`, cls: 'text-red-700 font-bold' };
+		if (pct >= 95) return { label: `UNDER -${100 - pct}%`, cls: 'text-amber-700 font-bold' };
+		return { label: `UNDER -${100 - pct}%`, cls: 'text-green-700 font-bold' };
+	}
+
 	function cumulativeTotal(dailies: Array<{ day: number; amountPence: number }>): number {
 		return dailies.reduce((s, d) => s + -d.amountPence, 0);
 	}
@@ -86,6 +95,7 @@
 			{#if data.monthKey < data.currentMonthKey}
 				<a href="/overview/trends/insights" class="bracket-link" data-sveltekit-noscroll>latest ▶</a>
 			{/if}
+			<a href="/overview/trends/{data.monthKey}/config" class="bracket-link font-bold">Config & amendments</a>
 		</div>
 	</div>
 	<p class="text-xs text-gray-600 m-0">
@@ -158,19 +168,33 @@
 			</div>
 		{/if}
 
-		{#if data.balanceFlows.length > 1}
-			<HistoryTrendChart
-				points={(isYear ? yearFlows : data.balanceFlows).map((f) => ({
-					month: f.monthKey,
-					amountInCents: f.closingBalancePence,
-				}))}
-				formatAmount={(p) => formatCurrencyShorthand(p)}
-				yearStartMonth={1}
-				height={200}
+		{#if isYear}
+			{#if yearFlows.length > 1}
+				<HistoryTrendChart
+					points={yearFlows.map((f) => ({
+						month: f.monthKey,
+						amountInCents: f.closingBalancePence,
+					}))}
+					formatAmount={(p) => formatCurrencyShorthand(p)}
+					yearStartMonth={1}
+					height={200}
+				/>
+			{:else}
+				<div class="border border-black p-2 text-xs text-gray-600">
+					Not enough declared history for the year graph yet — months appear as statements are entered.
+				</div>
+			{/if}
+		{:else if data.balanceDailies.length > 0}
+			<!-- v3.2 fix (2026-11-01 user report): month scope = THIS month,
+			     day 1 -> last, running balance — never the multi-month series -->
+			<BalanceMonthChart
+				monthKey={data.monthKey}
+				dailies={data.balanceDailies}
+				daysInMonth={data.daysInMonth}
 			/>
 		{:else}
 			<div class="border border-black p-2 text-xs text-gray-600">
-				Not enough declared history for the balance graph yet — months appear as statements are entered.
+				{data.monthKey} has no declared transactions yet — the balance line appears at statement time.
 			</div>
 		{/if}
 
@@ -327,7 +351,7 @@
 			/>
 		{:else}
 			<div class="border border-black p-2 text-sm">
-				No target set for {data.monthKey}. <a href="/overview/trends/{data.monthKey}" class="bracket-link">Set a monthly target →</a>
+				No target set for {data.monthKey}. <a href="/overview/trends/{data.monthKey}/config" class="bracket-link">Set a monthly target →</a>
 			</div>
 		{/if}
 
@@ -365,8 +389,40 @@
 		</div>
 	{/if}
 
+	<!-- v3.2 merge (2026-11-01 user steer): the old month page's HISTORY
+	     table lives in the target tab — the closest descendant of it. -->
+	{#if tab === 'target' && data.history.months.length > 0}
+		<div class="border border-black">
+			<div class="bg-gray-100 border-b border-black px-2 py-1 text-sm font-bold flex justify-between items-center">
+				<span>HISTORY <span class="text-xs font-normal text-gray-600">{data.history.months.length} months</span></span>
+				<a href="/overview/trends/all" class="bracket-link text-xs font-normal">Full history + amendments →</a>
+			</div>
+			<table class="w-full">
+				<thead>
+					<tr class="border-b border-black">
+						<th class="pl-2 py-1 text-left text-[10px] font-bold text-gray-600 uppercase">Month</th>
+						<th class="py-1 pr-2 text-right text-[10px] font-bold text-gray-600 uppercase">Target</th>
+						<th class="py-1 pr-2 text-right text-[10px] font-bold text-gray-600 uppercase">Actual</th>
+						<th class="py-1 pr-2 text-right text-[10px] font-bold text-gray-600 uppercase">Status</th>
+					</tr>
+				</thead>
+				<tbody>
+					{#each data.history.months as h (h.month)}
+						{@const st = historyStatus(h.totalTarget, h.actualSpent)}
+						<tr class="border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors duration-150">
+							<td class="pl-2 py-1.5 text-sm"><a href="/overview/trends/insights?month={h.month}" class="bracket-link">{monthLabel(h.month)}</a></td>
+							<td class="py-1.5 pr-2 text-right text-sm tabular-nums">{formatCurrency(h.totalTarget)}</td>
+							<td class="py-1.5 pr-2 text-right text-sm tabular-nums">{formatCurrency(h.actualSpent)}</td>
+							<td class="py-1.5 pr-2 text-right text-sm {st.cls}">{st.label}</td>
+						</tr>
+					{/each}
+				</tbody>
+			</table>
+		</div>
+	{/if}
+
 	<div class="flex justify-between items-center text-xs">
-		<a href="/overview/trends/{data.monthKey}" class="bracket-link">← Monthly Trend</a>
+		<a href="/overview/trends/{data.monthKey}/config" class="bracket-link">← Config &amp; amendments</a>
 		<a href="/overview/trends/all" class="bracket-link">Trend history</a>
 	</div>
 </div>

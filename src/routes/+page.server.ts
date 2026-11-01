@@ -14,6 +14,7 @@ import {
 import { updateTypeExclusions } from "$lib/server/exclusions";
 import { getNetWorthSummary } from "$lib/server/finance";
 import { getTrendsSnapshot } from "$lib/server/trends";
+import { getBudgetStatus } from "$lib/server/budgets";
 import { getDebtGoalProgress, projectPayoffDate } from "$lib/server/goals";
 import { calculateISAPacing } from "$lib/server/isaPacing";
 import { devLog, isVerboseDebug, logError } from "$lib/server/logger";
@@ -361,6 +362,9 @@ export const load: PageServerLoad = async ({ locals, url }) => {
 		},
 		// v3.2 V6: homepage trends section (Monzo-style, statement-honest)
 		trends: await getTrendsSnapshot(user.id),
+		// v3.2 (2026-11-01 user steer): high-level overview strip — this
+		// month vs target at a glance, next to the net worth hero
+		budgetStatus: await getBudgetStatus(user.id, now.getUTCFullYear(), now.getUTCMonth() + 1),
 	};
 };
 
