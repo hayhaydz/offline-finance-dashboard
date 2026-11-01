@@ -147,7 +147,7 @@
 		<div class="flex items-center gap-2">
 			<span>ACCOUNTS ({activeAccountCount})</span>
 			{#if data.staleness}
-				<span class="text-xs font-bold text-gray-500">{data.staleness.label}</span>
+				<span class="text-xs font-bold text-gray-600">{data.staleness.label}</span>
 			{/if}
 		</div>
 		<a href="/accounts" class="bracket-link text-xs">View All</a>
