@@ -447,9 +447,9 @@
 	<SectionHeader title="INTEREST" action={interestAction} />
 	<div class="border-b border-black">
 		<div class="grid grid-cols-2 md:grid-cols-4">
-			<KpiCard label="Posted (Actual)" value={formatCurrency(posted)} color="text-green-700" />
-			<KpiCard label="Estimated (Projected)" value={formatCurrency(estimated)} color="text-amber-700" />
-			<KpiCard label="Forecast (Total)" value={formatCurrency(forecast)} />
+			<KpiCard label="Posted (Actual)" value={formatCurrency(posted)} color="text-green-700" detail="interest transactions received this tax year" />
+			<KpiCard label="Estimated (Projected)" value={formatCurrency(estimated)} color="text-amber-700" detail="declared-history projection · not realtime" />
+			<KpiCard label="Forecast (Total)" value={formatCurrency(forecast)} detail="actual + projection for the tax year" />
 			<KpiCard
 				label="PSA Remaining"
 				value={data.interestSummary.taxFreeStatusProjected.overAllowance
