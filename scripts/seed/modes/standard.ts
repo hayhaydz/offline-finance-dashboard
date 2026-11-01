@@ -14,6 +14,7 @@ import {
 import type { DB } from "../lib/db.js";
 import { daysAgo, formatGBP, loadFixture, slug } from "../lib/helpers.js";
 import { createSnapshot } from "../lib/snapshot.js";
+import { seedBulkTransactionHistory } from "../lib/history.js";
 import { wipeUserData } from "../lib/wipe.js";
 
 /**
@@ -398,6 +399,12 @@ export async function seedStandard(db: DB, userId: number): Promise<void> {
 
 		console.log(`  ✓ ${t.accountName} (${t.transactions.length} transactions)`);
 	}
+
+	// v3.2 V9: bulk fake history — ~1,000 deterministic transactions across
+	// every open account (2025-01 → 2026-10) so the table paginates deeply
+	// and trends/balance history has months of depth.
+	await seedBulkTransactionHistory(db, userId, accountByName);
+	totalTransactions; // (fixture count logged above; bulk logs its own)
 
 	// --- Interest Rates ---
 	console.log("\n📈 Creating interest rates...");
