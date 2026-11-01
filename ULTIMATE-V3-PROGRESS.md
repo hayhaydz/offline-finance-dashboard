@@ -942,3 +942,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** all gates green, nothing in flight. Stop-file absent BY DESIGN until 18:04:58.
 - **NEXT QUEUE:** idle rotations until 18:04:58; then dossier FINAL-TURN RUNBOOK.
 - **Budget:** ends 18:04:58 GMT.
+
+| 2026-11-01 16:26:36 GMT | 2026-11-01 17:04:55 GMT | 0h 38m | v3.2 idle rotation 2 (in-turn sleep 38m to avoid admission churn) - dev healthy 302, stop-file absent by design, git clean; | 
+
+### CHECKPOINT - 2026-11-01 17:04:55 GMT (budget: ~1h00m left; turn ends)
+- **State:** all gates green, nothing in flight. Holding pattern stable.
+- **NEXT QUEUE:** ONE more sleep rotation (~40m, wake ~17:48), then final turn: sleep past 18:04:58 and execute dossier FINAL-TURN RUNBOOK (stop-file, VERSION_HISTORY prepend, final ledger row+commit).
+- **Budget:** ends 18:04:58 GMT (~1h00m).
