@@ -29,12 +29,19 @@
 
 	<!-- j/k list-nav (sweep 9): cards are keyboard-walkable; Enter opens -->
 	<div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3" use:listnav>
-		{#each TOOLS as tool (tool.slug)}
+		{#each TOOLS as tool, i (tool.slug)}
+			<!-- v3.2 D6 (2026-11-01): 8 cards on 3 cols left one dead cell
+			     bottom-right (vision-caught, DOM-confirmed). md(2) divides
+			     exactly; at lg the final card stretches to complete its row —
+			     r=1→span3 · r=2→span2, computed from count (same grammar as
+			     the snapshots index grid) -->
+			{@const lgRem = TOOLS.length % 3}
+			{@const lastSpan = lgRem === 1 ? "lg:col-span-3" : lgRem === 2 ? "lg:col-span-2" : ""}
 			<a
 				href="/tools/{tool.slug}"
 				data-nav-row
 				data-nav-primary
-				class="border border-black p-2 hover:bg-gray-50 flex flex-col gap-1"
+				class="border border-black p-2 hover:bg-gray-50 flex flex-col gap-1 {i === TOOLS.length - 1 ? lastSpan : ''}"
 			>
 				<span class="font-bold">{tool.name}</span>
 				<span class="text-xs text-gray-600 flex-1">{tool.blurb}</span>
