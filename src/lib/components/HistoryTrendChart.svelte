@@ -122,4 +122,11 @@
 	<p class="text-[10px] text-gray-600 px-1 pt-1">
 		— known &middot; dashed gray = future entries &middot; line break = unknown month &middot; hover for month + &pound;
 	</p>
+{:else}
+	<!-- V1 CLS fix (2026-11-01): reserve the chart's exact height server-side
+	     (see AllocationBar) — zero layout shift at the hydration mount. -->
+	<div class="border border-dashed border-gray-200" style="height: {height}px" aria-hidden="true"></div>
+	<p class="text-[10px] text-gray-600 px-1 pt-1">
+		— known &middot; dashed gray = future entries &middot; line break = unknown month &middot; hover for month + &pound;
+	</p>
 {/if}

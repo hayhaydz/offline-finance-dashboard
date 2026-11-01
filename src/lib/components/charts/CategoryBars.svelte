@@ -82,5 +82,12 @@
 		<p class="text-[10px] text-gray-600 px-1 pt-1">
 			bar colours = your ledger category colours · hover for £ + share of month
 		</p>
+	{:else}
+		<!-- V1 CLS fix (2026-11-01): reserve the chart's exact height
+		     server-side — see AllocationBar. -->
+		<div class="border border-dashed border-gray-200" style="height: {Math.max(top.length * 26 + 24, 90)}px" aria-hidden="true"></div>
 	{/if}
+	<p class="text-[10px] text-gray-600 px-1 pt-1">
+		bar colours = your ledger category colours · hover for £ + share of month
+	</p>
 </ChartPanel>

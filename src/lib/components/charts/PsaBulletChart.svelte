@@ -106,7 +106,9 @@
 			/>
 		</div>
 	{:else}
-		<div class="text-xs text-gray-500 p-2">[chart loads in browser]</div>
+		<!-- V1 CLS fix (2026-11-01): reserve the chart's exact height
+		     server-side — see AllocationBar. -->
+		<div class="border border-dashed border-gray-200" style="height: 110px" aria-hidden="true"></div>
 	{/if}
 	<!-- segment legend: explains the segments + the PSA gridline marker -->
 	<div class="flex flex-wrap gap-x-3 gap-y-1 px-2 pt-1 text-[10px] text-gray-500">

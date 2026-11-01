@@ -101,8 +101,14 @@
 				}}
 			/>
 		</div>
-		<p class="text-[10px] text-gray-600 px-1 pt-1">
-			darker = larger share · hover for £ + % of {label}
-		</p>
+	{:else}
+		<!-- V1 CLS fix (2026-11-01): the chart is a client-only mount; the
+		     server must reserve its exact final height or the panel grows at
+		     hydration and shoves everything below it down mid-click (the
+		     "click scrolls the page, click again to open" bug). -->
+		<div class="border border-dashed border-gray-200" style="height: {Math.max(rows.length * 26 + 24, 90)}px" aria-hidden="true"></div>
 	{/if}
+	<p class="text-[10px] text-gray-600 px-1 pt-1">
+		darker = larger share · hover for £ + % of {label}
+	</p>
 </ChartPanel>

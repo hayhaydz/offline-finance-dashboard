@@ -74,8 +74,7 @@
 <ChartPanel title="Spend vs pace" {summary}>
 	{#if points.length === 0}
 		<div class="text-xs text-gray-500 p-2 text-center">[no spend recorded yet]</div>
-	{:else if browser}
-		<div
+	{:else if browser}		<div
 			class="font-mono text-[10px]"
 			data-interactive-chart="burn-down"
 			role="img"
@@ -100,6 +99,10 @@
 				}}
 			/>
 		</div>
+	{:else}
+		<!-- V1 CLS fix (2026-11-01): reserve the chart's exact height
+		     server-side — see AllocationBar. -->
+		<div class="border border-dashed border-gray-200" style="height: 200px" aria-hidden="true"></div>
 	{/if}
 	<!-- line legend (Phase 9 polish): the two lines are otherwise
 	     indistinguishable to first-time readers; server-rendered text -->

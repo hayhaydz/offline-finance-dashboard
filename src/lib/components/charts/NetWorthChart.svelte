@@ -121,8 +121,12 @@
 				}}
 			/>
 		</div>
-		<p class="text-[10px] text-gray-600 px-1 pt-1">
-			hover for date + value · faint rules = axis grid, solid line = snapshots
-		</p>
+	{:else}
+		<!-- V1 CLS fix (2026-11-01): reserve the chart's exact height
+		     server-side — see AllocationBar. -->
+		<div class="border border-dashed border-gray-200" style="height: {height}px" aria-hidden="true"></div>
 	{/if}
+	<p class="text-[10px] text-gray-600 px-1 pt-1">
+		hover for date + value · faint rules = axis grid, solid line = snapshots
+	</p>
 </ChartPanel>

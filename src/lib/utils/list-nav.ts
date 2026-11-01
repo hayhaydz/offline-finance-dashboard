@@ -106,7 +106,9 @@ export function listnav(container: HTMLElement) {
 	// container needs focus to receive keys
 	if (!container.hasAttribute("tabindex")) container.setAttribute("tabindex", "0");
 	// clicking anywhere in the list focuses it so j/k work immediately
-	const onPointerDown = () => container.focus();
+	// (V1 2026-11-01: preventScroll — focus() may otherwise scroll the
+	// internal-scrolling shell mid-click and shove the pointer off its target)
+	const onPointerDown = () => container.focus({ preventScroll: true });
 	container.addEventListener("pointerdown", onPointerDown);
 
 	return {

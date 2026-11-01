@@ -62,7 +62,9 @@ describe("PsaBulletChart (A13 layerchart migration)", () => {
 		});
 		expect(body).toContain("chart-panel");
 		expect(body).toContain("chart-panel-summary");
-		expect(body).toContain("[chart loads in browser]");
+		// V1 CLS fix (2026-11-01): SSR reserves the chart's exact height so
+		// hydration cannot shift the layout mid-click
+		expect(body).toContain('style="height: 110px"');
 		expect(body).not.toContain("<rect"); // no static geometry server-side
 	});
 

@@ -111,7 +111,12 @@
 			solid = balance · dashed = contributions · hover for year + £
 		</p>
 	{:else}
-		<p class="text-gray-500 p-2 text-center">[chart mounts in the browser]</p>
+		<!-- V1 CLS fix (2026-11-01): reserve the chart's exact height
+		     server-side — see AllocationBar. -->
+		<div class="border border-dashed border-gray-200" style="height: 170px" aria-hidden="true"></div>
+		<p class="text-[10px] text-gray-600 px-1">
+			solid = balance · dashed = contributions · hover for year + £
+		</p>
 	{/if}
 
 	<!-- detail the sub-page adds (no inner max-h: the page owns scrolling —

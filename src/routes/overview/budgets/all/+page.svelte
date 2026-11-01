@@ -233,6 +233,20 @@
 						{/each}
 						<span class="text-gray-400">· bar height = spend · colour = verdict vs that month's target</span>
 					</div>
+				{:else if chartRows.length > 0}
+					<!-- V1 CLS fix (2026-11-01): reserve the chart's exact height
+					     server-side — see AllocationBar. -->
+					<div class="border border-dashed border-gray-200 m-2" style="height: 220px" aria-hidden="true"></div>
+					<div class="flex flex-wrap gap-x-4 gap-y-1 px-2 pb-2 pt-1 text-[10px] text-gray-600">
+						{#each ['met', 'near', 'over'] as v (v)}
+							{@const count = chartRows.filter((r) => r.verdict === v).length}
+							<span class="flex items-center gap-1">
+								<span class="w-3 h-3 border border-gray-400" style="background: {VERDICT_COLOUR[v]}"></span>
+								{VERDICT_LABEL[v]} ({count})
+							</span>
+						{/each}
+						<span class="text-gray-400">· bar height = spend · colour = verdict vs that month's target</span>
+					</div>
 				{:else if chartRows.length === 0}
 					<div class="text-xs text-gray-500 p-2 text-center">[no months recorded for {activeYear.year}]</div>
 				{/if}
