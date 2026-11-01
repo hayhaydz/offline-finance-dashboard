@@ -843,3 +843,11 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** full reports registry + settings tail at doctrine bar. Zero open defects. Nothing in flight.
 - **NEXT QUEUE:** candidates: logged-out surface probe (cookie clear + dev-login ceremony); 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point.
 - **Budget:** ends 18:04:58 GMT.
+
+| 2026-11-01 16:02:03 GMT | 2026-11-01 16:03:35 GMT | 0h 01m | v3.2 sweep 32 - logged-out surface verified: unauth / redirects 302 to /login?reason=logged-out (live curl), sealed banner boxed+semantic in source, dev auto-login masks render by design; browser session self-healed after curl-induced admin session reset (scar recorded); zero defects; |
+
+### CHECKPOINT - 2026-11-01 16:03:35 GMT (budget: ~2h00m left; turn ends)
+- **State:** logged-out surface dispositioned. Zero open defects. Nothing in flight.
+- **NEXT QUEUE:** light rotations; 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point.
+- **Budget:** ends 18:04:58 GMT.
+- **Gotcha:** unauthenticated curl to /login resets admin session; browser self-heals via auto-login.
