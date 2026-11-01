@@ -815,3 +815,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** V8 fully complete at depth (border AND content span). Zero open defects. Gates: check 0/0 post-edit.
 - **NEXT QUEUE:** 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + .docs/VERSION_HISTORY.md save point. Interim turns: light probes only (nothing known outstanding).
 - **Budget:** ends 18:04:58 GMT.
+
+| 2026-11-01 15:52:38 GMT | 2026-11-01 15:54:14 GMT | 0h 02m | v3.2 sweep 28 — phantom-column census: all 8 table-fixed tables verified (balances/uncat/MonthlyBalances live slack 0; InterestRates/DebtProjection/CashflowCalendar structurally immune) — class closed, no further defects; |
+
+### CHECKPOINT — 2026-11-01 15:54:14 GMT (budget: ~2h07m left; turn ends)
+- **State:** table-fixed defect class fully closed. Zero open defects. Nothing in flight.
+- **NEXT QUEUE:** light rotations; 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + .docs/VERSION_HISTORY.md save point.
+- **Budget:** ends 18:04:58 GMT.
