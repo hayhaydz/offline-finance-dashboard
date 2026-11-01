@@ -879,3 +879,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** all money surfaces numerically self-consistent. Zero open defects. Nothing in flight.
 - **NEXT QUEUE:** 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point. Interim: light probes only.
 - **Budget:** ends 18:04:58 GMT.
+
+| 2026-11-01 16:10:57 GMT | 2026-11-01 16:13:05 GMT | 0h 03m | v3.2 sweep 37 - REAL FIX: yearly balance view showed chosen-month opening (39,230.92) vs true Jan-1 opening (9,711.97), breaking start+in-out=end by 29.5k; windowStart now year-aware; live identity exact both scopes, 11-declared-months + chart honesty copy intact, check 0/0, tests 17/17; commit 'fix: yearly balance view opening balance' |
+
+### CHECKPOINT - 2026-11-01 16:13:05 GMT (budget: ~1h51m left; turn ends)
+- **State:** yearly balance identity fixed + verified. Zero open defects. Nothing in flight.
+- **NEXT QUEUE:** 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point. Interim: light probes only.
+- **Budget:** ends 18:04:58 GMT.
