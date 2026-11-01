@@ -808,3 +808,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** all tripwires green. Zero open defects. Nothing in flight.
 - **NEXT QUEUE:** idle rotations (next candidates: bills+alerts console re-tripwire; tools index a11y); 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + .docs/VERSION_HISTORY.md save point.
 - **Budget:** ends 18:04:58 GMT.
+
+| 2026-11-01 15:46:25 GMT | 2026-11-01 15:51:38 GMT | 0h 05m | v3.2 sweep 27 — REAL FIX: account transactions table had 366px dead space per row (all cols fixed-width in 1262px table-fixed; banner colspans off by one) — Description now w-auto (750px), colspans 6:5; live-verified headerSum=tableW=1262 slack 0; also tools-grid D6 re-verified + bills/alerts console clean; commit 'fix: transactions table columns fill full width' |
+
+### CHECKPOINT — 2026-11-01 15:51:38 GMT (budget: ~2h17m left; turn ends)
+- **State:** V8 fully complete at depth (border AND content span). Zero open defects. Gates: check 0/0 post-edit.
+- **NEXT QUEUE:** 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + .docs/VERSION_HISTORY.md save point. Interim turns: light probes only (nothing known outstanding).
+- **Budget:** ends 18:04:58 GMT.
