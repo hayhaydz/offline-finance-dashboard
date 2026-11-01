@@ -40,9 +40,26 @@
 
 	<!-- v3.2 V3: card grid — the same grammar as the tools index (user:
 	     "overview -> reports should be cards/grid similar to tools"); the
-	     dated masthead stays. j/k list-nav kept (sweep 9). -->
+	     dated masthead stays. j/k list-nav kept (sweep 9).
+	     D6 (2026-11-01): 13 cards on 3 cols orphaned the newest report —
+	     the LATEST entry now leads as a full-width feature card (the news-
+	     article metaphor from the original ask), leaving 12 = clean 3×4. -->
 	<div class="grid gap-3 md:grid-cols-2 lg:grid-cols-3" use:listnav>
-		{#each data.reports as report (report.slug)}
+		<a
+			href="/overview/reports/{data.reports[data.reports.length - 1].slug}"
+			data-nav-row
+			data-nav-primary
+			class="lg:col-span-3 md:col-span-2 border border-black p-2 hover:bg-gray-50 flex flex-col gap-1"
+		>
+			<span class="font-bold flex items-center gap-2">
+				{data.reports[data.reports.length - 1].title}
+				<span class="text-[10px] font-normal text-green-700 border border-green-700 px-1">LATEST</span>
+			</span>
+			<span class="text-xs text-gray-600 flex-1">{data.reports[data.reports.length - 1].blurb}</span>
+			<span class="text-[10px] text-gray-500">{displayDate(data.today)}</span>
+			<span class="bracket-link text-xs">Read Report</span>
+		</a>
+		{#each data.reports.slice(0, -1) as report (report.slug)}
 			<a
 				href="/overview/reports/{report.slug}"
 				data-nav-row

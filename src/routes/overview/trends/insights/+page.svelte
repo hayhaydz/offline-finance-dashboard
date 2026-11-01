@@ -67,8 +67,12 @@
 		return { label: `UNDER -${100 - pct}%`, cls: 'text-green-700 font-bold' };
 	}
 
+	// moneyOut-only (matches trends-math conventions + the chart summary);
+	// flipping EVERY amount silently netted refunds against spend — the KPI
+	// and the chart disagreed by exactly the month's positive dailies
+	// (vision-caught £9,847.54 vs £9,882, 2026-11-01)
 	function cumulativeTotal(dailies: Array<{ day: number; amountPence: number }>): number {
-		return dailies.reduce((s, d) => s + -d.amountPence, 0);
+		return dailies.reduce((s, d) => s + (d.amountPence < 0 ? -d.amountPence : 0), 0);
 	}
 
 	const saved = $derived(savedOrLostPence(data.targetPence, data.spentPence));
