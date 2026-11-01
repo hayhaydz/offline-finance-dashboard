@@ -801,3 +801,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** sweep 25 recorded. Index + palette E2E verified. Zero open defects.
 - **NEXT QUEUE:** idle rotations until 17:30 final gate (each turn: one light probe — e.g. routine/bills console tripwire, snapshot index a11y); then LAST full suite + build ~17:30; stop-file + final row + VERSION_HISTORY save point from 18:04:58.
 - **Budget:** ends 18:04:58 GMT.
+
+| 2026-11-01 15:44:58 GMT | 2026-11-01 15:46:10 GMT | 0h 02m | v3.2 sweep 26 — rotation tripwires: snapshot index a11y 100; compound/isa-optimiser/fi-projector console clean (insurance only — untouched since sweep 16); |
+
+### CHECKPOINT — 2026-11-01 15:46:10 GMT (budget: ~2h19m left; turn ends)
+- **State:** all tripwires green. Zero open defects. Nothing in flight.
+- **NEXT QUEUE:** idle rotations (next candidates: bills+alerts console re-tripwire; tools index a11y); 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + .docs/VERSION_HISTORY.md save point.
+- **Budget:** ends 18:04:58 GMT.
