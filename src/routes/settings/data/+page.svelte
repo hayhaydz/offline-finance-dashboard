@@ -88,6 +88,12 @@
 </script>
 
 <main>
+	<!-- HEADER (R-H10: title band is a real h1, placed above the anchor nav
+	     as the page band — was wedged inside section 1 with the wizard) -->
+	<h1 class="font-bold flex justify-between items-center bg-gray-100 border-b border-black px-2 py-1 m-0 text-sm">
+		SETTINGS / DATA MANAGEMENT
+	</h1>
+
 	<!-- v3 R-H12-adjacent: anchor nav across the pipeline sections
 	     (same affordance as /settings/profile) -->
 	<SettingsSectionNav sections={[
@@ -101,11 +107,6 @@
 	]} />
 
 	<section id="data-import" style="scroll-margin-top: 2.5rem;">
-	<!-- HEADER (R-H10: title band is a real h1; sections below stay SectionHeader h2s) -->
-	<h1 class="font-bold flex justify-between items-center bg-gray-100 border-b border-black px-2 py-1 m-0 text-sm">
-		SETTINGS / DATA MANAGEMENT
-	</h1>
-
 		<ImportWizard
 			accounts={data.accounts}
 			categories={data.categories}
@@ -114,22 +115,24 @@
 	</section>
 
 	<section id="data-export" class="border-t border-black" style="scroll-margin-top: 2.5rem;">
-		<SectionHeader title="1 · CSV EXPORT — SELECT WHAT TO EXPORT" />
+		<!-- v3.2: numeric prefix dropped — the Import wizard's own "Step 1 of 4"
+		     collided with "1 · CSV EXPORT" in one scroll (vision-caught) -->
+		<SectionHeader title="CSV EXPORT — SELECT WHAT TO EXPORT" />
 		<ExportPanel accounts={data.accounts} />
 	</section>
 
 	<section id="data-history" class="border-t border-black" style="scroll-margin-top: 2.5rem;">
-		<SectionHeader title="2 · HISTORY CSV — EXPENSES / INCOME MONTHS" />
+		<SectionHeader title="HISTORY CSV — EXPENSES / INCOME MONTHS" />
 		<HistoryImportWizard {form} />
 	</section>
 
 	<section id="data-reimport" class="border-t border-black" style="scroll-margin-top: 2.5rem;">
-		<SectionHeader title="3 · CSV REIMPORT — EDIT / DELETE / RESTORE" />
+		<SectionHeader title="CSV REIMPORT — EDIT / DELETE / RESTORE" />
 		<ReimportWizard {form} />
 	</section>
 
 	<section id="data-bulk" class="border-t border-black" style="scroll-margin-top: 2.5rem;">
-		<SectionHeader title="4 · BULK BANK IMPORT — MONZO / MAPPED COLUMNS" />
+		<SectionHeader title="BULK BANK IMPORT — MONZO / MAPPED COLUMNS" />
 		<BulkImportWizard accounts={data.accounts} {form} />
 	</section>
 
