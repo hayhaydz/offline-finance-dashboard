@@ -111,7 +111,7 @@
 				title="{m.label} — {m.state}"
 			>
 				<span class="absolute top-0.5 left-1 text-[9px] font-bold {m.state === 'future'
-					? 'text-gray-400'
+					? 'text-gray-600'
 					: 'text-gray-700'}">{m.label}</span>
 				{#if m.fillPct > 0}
 					<div class="absolute bottom-0 left-0 h-3 bg-gray-500" style={`width: ${m.fillPct}%`}></div>
