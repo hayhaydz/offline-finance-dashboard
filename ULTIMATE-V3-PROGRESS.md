@@ -872,3 +872,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** flagship numbers verified self-consistent. Zero open defects. Nothing in flight.
 - **NEXT QUEUE:** 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point. Interim: light probes only.
 - **Budget:** ends 18:04:58 GMT.
+
+| 2026-11-01 16:09:12 GMT | 2026-11-01 16:10:34 GMT | 0h 01m | v3.2 sweep 36 - numeric identities round 2 all exact: liabilities row-sum = summary net; snapshot A+L=net and delta-row identity; V10 tabs live on snapshot; U+2212 parsing scar recorded; zero defects; |
+
+### CHECKPOINT - 2026-11-01 16:10:34 GMT (budget: ~1h54m left; turn ends)
+- **State:** all money surfaces numerically self-consistent. Zero open defects. Nothing in flight.
+- **NEXT QUEUE:** 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point. Interim: light probes only.
+- **Budget:** ends 18:04:58 GMT.
