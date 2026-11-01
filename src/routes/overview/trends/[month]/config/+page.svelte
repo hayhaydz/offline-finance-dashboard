@@ -449,7 +449,7 @@
 						<input type="hidden" name="included" value={excluded ? 'true' : 'false'} />
 						<input type="hidden" name="note" value={amendNote} />
 						<input type="hidden" name="applyForward" value={applyForward ? 'true' : 'false'} />
-						<button type="submit" class="flex items-center gap-1.5 py-1 cursor-pointer w-full text-left {excluded ? 'opacity-40' : 'hover:bg-gray-50'}">
+						<button type="submit" role="checkbox" aria-checked={!excluded} class="flex items-center gap-1.5 py-1 cursor-pointer w-full text-left {excluded ? 'opacity-40' : 'hover:bg-gray-50'}">
 							<span class="font-bold text-xs">{excluded ? '[ ]' : '[X]'}</span>
 							<span class="w-2 h-2 shrink-0" style="background: {cat.colour}"></span>
 							<span class="text-xs {excluded ? 'line-through' : ''}">{cat.name}</span>
@@ -465,7 +465,7 @@
 						<input type="hidden" name="included" value={excluded ? 'true' : 'false'} />
 						<input type="hidden" name="note" value={amendNote} />
 						<input type="hidden" name="applyForward" value={applyForward ? 'true' : 'false'} />
-						<button type="submit" class="flex items-center gap-1.5 py-1 cursor-pointer w-full text-left {excluded ? 'opacity-40' : 'hover:bg-gray-50'}">
+						<button type="submit" role="checkbox" aria-checked={!excluded} class="flex items-center gap-1.5 py-1 cursor-pointer w-full text-left {excluded ? 'opacity-40' : 'hover:bg-gray-50'}">
 							<span class="font-bold text-xs">{excluded ? '[ ]' : '[X]'}</span>
 							<span class="text-xs {excluded ? 'line-through' : ''}">{acc.name}</span>
 							<span class="text-xs text-gray-500">{acc.type}</span>
@@ -481,7 +481,7 @@
 						<input type="hidden" name="included" value={excluded ? 'true' : 'false'} />
 						<input type="hidden" name="note" value={amendNote} />
 						<input type="hidden" name="applyForward" value={applyForward ? 'true' : 'false'} />
-						<button type="submit" class="flex items-center gap-1.5 py-1 cursor-pointer w-full text-left {excluded ? 'opacity-40' : 'hover:bg-gray-50'}">
+						<button type="submit" role="checkbox" aria-checked={!excluded} class="flex items-center gap-1.5 py-1 cursor-pointer w-full text-left {excluded ? 'opacity-40' : 'hover:bg-gray-50'}">
 							<span class="font-bold text-xs">{excluded ? '[ ]' : '[X]'}</span>
 							<span class="text-xs {excluded ? 'line-through' : ''}">{TRANSACTION_TYPE_LABELS[t]}</span>
 							{#if t === 'refund'}
