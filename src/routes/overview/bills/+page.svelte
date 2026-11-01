@@ -78,7 +78,7 @@
 						<td class="px-1 py-0.5 text-right tabular-nums font-bold">{formatCurrency(bill.amountPence)}</td>
 						<td class="px-1 py-0.5 text-right tabular-nums text-gray-600 pr-2">{formatCurrency(bill.amountPence * 12)}</td>
 						<td class="px-1 py-0.5 tabular-nums text-gray-600 border-l border-gray-300">{bill.lastDate}</td>
-						<td class="px-1 py-0.5 tabular-nums {bill.nextDate ? 'font-bold' : 'text-gray-400'}">{bill.nextDate ?? '—'}</td>
+						<td class="px-1 py-0.5 tabular-nums {bill.nextDate ? 'font-bold' : 'text-gray-600'}">{bill.nextDate ?? '—'}</td>
 					</tr>
 				{/each}
 				<tr class="bg-gray-50 border-t border-black">

@@ -51,7 +51,7 @@
 		<div class="text-[10px] uppercase font-bold text-gray-600">
 			{streak.lastActiveMonth === thisMonth ? 'Current streak' : 'Last streak'}
 		</div>
-		<div class="text-sm font-bold {streak.currentStreak > 0 ? 'text-green-700' : 'text-gray-400'}">
+		<div class="text-sm font-bold {streak.currentStreak > 0 ? 'text-green-700' : 'text-gray-600'}">
 			{streak.currentStreak} month{streak.currentStreak === 1 ? '' : 's'}
 		</div>
 	</div>
@@ -76,7 +76,7 @@
 			{#if streak.lastActiveMonth}
 				<span title="A month counts as active when at least one item is ticked — partial months keep the streak alive">{formatYearMonth(streak.lastActiveMonth)}</span>
 			{:else}
-				<span class="text-gray-400">never</span>
+				<span class="text-gray-600">never</span>
 			{/if}
 		</div>
 	</div>
@@ -121,7 +121,7 @@
 				{#if entry.isGap}
 					<!-- v3.1: months with NO review render as honest gap rows — an
 					     index that jumps Mar→Oct silently contradicts the streak -->
-					<tr class="border-t border-gray-100 text-gray-400">
+					<tr class="border-t border-gray-100 text-gray-600">
 						<td class="pl-2 py-1">{entry.label}</td>
 						<td class="text-center tabular-nums py-1">0/{entry.totalItems}</td>
 						<td class="text-center py-1" title="No review was recorded for this month">NO REVIEW</td>

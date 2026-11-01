@@ -37,15 +37,15 @@
 		<div class="border border-black grid grid-cols-3 divide-x divide-gray-300">
 			<div class="px-2 py-1.5">
 				<div class="text-[10px] uppercase font-bold text-gray-600">Critical</div>
-				<div class="text-sm font-bold {data.redAlerts.length > 0 ? 'text-red-700' : 'text-gray-400'}">{data.redAlerts.length}</div>
+				<div class="text-sm font-bold {data.redAlerts.length > 0 ? 'text-red-700' : 'text-gray-600'}">{data.redAlerts.length}</div>
 			</div>
 			<div class="px-2 py-1.5">
 				<div class="text-[10px] uppercase font-bold text-gray-600">Warnings</div>
-				<div class="text-sm font-bold {data.amberAlerts.length > 0 ? 'text-amber-700' : 'text-gray-400'}">{data.amberAlerts.length}</div>
+				<div class="text-sm font-bold {data.amberAlerts.length > 0 ? 'text-amber-700' : 'text-gray-600'}">{data.amberAlerts.length}</div>
 			</div>
 			<div class="px-2 py-1.5">
 				<div class="text-[10px] uppercase font-bold text-gray-600">Info</div>
-				<div class="text-sm font-bold {data.infoAlerts.length > 0 ? '' : 'text-gray-400'}">{data.infoAlerts.length}</div>
+				<div class="text-sm font-bold {data.infoAlerts.length > 0 ? '' : 'text-gray-600'}">{data.infoAlerts.length}</div>
 			</div>
 		</div>
 	{/if}
@@ -67,7 +67,7 @@
 					<AlertGroup {group} ackAction="?/ack" />
 				{/each}
 				{#if data.redAlerts.length === 0}
-					<div class="p-2 text-xs text-gray-400">none</div>
+					<div class="p-2 text-xs text-gray-600">none</div>
 				{/if}
 			</div>
 
@@ -80,7 +80,7 @@
 					<AlertGroup {group} ackAction="?/ack" />
 				{/each}
 				{#if data.amberAlerts.length === 0}
-					<div class="p-2 text-xs text-gray-400">none</div>
+					<div class="p-2 text-xs text-gray-600">none</div>
 				{/if}
 			</div>
 
@@ -93,7 +93,7 @@
 					<AlertGroup {group} ackAction="?/ack" />
 				{/each}
 				{#if data.infoAlerts.length === 0}
-					<div class="p-2 text-xs text-gray-400">none</div>
+					<div class="p-2 text-xs text-gray-600">none</div>
 				{/if}
 			</div>
 		</div>

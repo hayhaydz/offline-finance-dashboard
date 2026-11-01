@@ -62,7 +62,7 @@
 		</div>
 		<div class="px-2 py-1.5">
 			<div class="text-[10px] uppercase font-bold text-gray-600">Freshness</div>
-			<div class="text-sm font-bold {data.staleness ? '' : 'text-gray-400'}">
+			<div class="text-sm font-bold {data.staleness ? '' : 'text-gray-600'}">
 				{#if data.staleness}
 					<span class={data.staleness.cssClass}>●</span> {data.staleness.label}
 				{:else}

@@ -152,7 +152,7 @@
 					     "/" separators align down the ledger -->
 					<span class="shrink-0 flex tabular-nums">
 						<span class="w-16 text-right">{#if goal.progressView}{formatCurrencyShorthand(goal.progressView.amountInCents)}{:else}{formatCurrencyShorthand(goal.currentAllocation)}{/if}</span>
-						<span class="px-1 text-gray-400">/</span>
+						<span class="px-1 text-gray-600">/</span>
 						<span class="w-16 text-right text-gray-600">{#if goal.progressView}{formatCurrencyShorthand(goal.progressView.targetInCents)}{:else}{formatCurrencyShorthand(goal.targetAmountInCents)}{/if}</span>
 					</span>
 				</div>

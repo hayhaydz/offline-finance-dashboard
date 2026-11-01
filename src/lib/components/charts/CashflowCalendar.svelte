@@ -108,7 +108,7 @@
 										{/if}
 										{#each cell.items as item (item.description)}
 											<div
-												class="px-1 text-[10px] leading-tight truncate {isPast ? 'text-gray-400' : ''}"
+												class="px-1 text-[10px] leading-tight truncate {isPast ? 'text-gray-600' : ''}"
 												title="{item.description} {formatCurrency(Math.abs(item.amountPence))}"
 											>
 												{formatCurrency(Math.abs(item.amountPence)).replace(".00", "")}
@@ -132,9 +132,9 @@
 		<div class="text-xs tabular-nums min-h-5 mt-1.5" aria-live="polite">
 			{#if hoveredCell && hoveredCell.items.length > 0}
 				<span class="font-bold">{monthName.slice(0, 3).toUpperCase()} {hoveredCell.day}</span>
-				<span class="mx-1 text-gray-400">·</span>
+				<span class="mx-1 text-gray-600">·</span>
 				{#each hoveredCell.items as item, i (item.description)}
-					{#if i > 0}<span class="mx-1 text-gray-400">·</span>{/if}
+					{#if i > 0}<span class="mx-1 text-gray-600">·</span>{/if}
 					<span>{item.description} <span class="font-bold">{formatCurrency(Math.abs(item.amountPence))}</span></span>
 				{/each}
 				{#if todayDay !== null && hoveredCell.day >= todayDay}
