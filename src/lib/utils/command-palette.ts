@@ -110,7 +110,7 @@ export function dynamicPaletteCommands(now = new Date()): PaletteCommand[] {
 	return [
 		{
 			id: "budget-current",
-			label: `Budget — ${month}`,
+			label: `Trends — ${month}`,
 			href: `/overview/trends/insights?month=${month}`,
 			keywords: "spend target pace current month",
 			section: "Jump",

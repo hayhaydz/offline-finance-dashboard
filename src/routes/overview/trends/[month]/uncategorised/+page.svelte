@@ -27,8 +27,10 @@
 <div class="p-2 font-mono">
 	<div class="border border-black">
 		<div class="border-b border-black bg-gray-100 p-2 font-bold flex justify-between items-center">
-			<span>UNCATEGORISED — {monthLabel.toUpperCase()}</span>
-			<a class="bracket-link text-xs" href="../">Back to budget</a>
+			<!-- D9: the title band carries the real h1 -->
+			<h1 class="text-sm font-bold">UNCATEGORISED — {monthLabel.toUpperCase()}</h1>
+			<!-- v3.2 merge: canonical insights URL (the old ../ hop only redirects) -->
+			<a class="bracket-link text-xs" href="/overview/trends/insights?month={data.month}">Back to insights</a>
 		</div>
 
 		<div class="p-2 text-xs border-b border-black bg-gray-50">
