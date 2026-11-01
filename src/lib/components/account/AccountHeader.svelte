@@ -70,14 +70,16 @@
 
 <div class="p-2">
 	<div class="flex justify-between items-center gap-2 mb-2">
-		<h2 class="text-base font-bold m-0 min-w-0 overflow-hidden">
+		<!-- R-H10: page title band is a real h1 (component used only on the
+		     account detail route, so this is the page's primary heading) -->
+		<h1 class="text-base font-bold m-0 min-w-0 overflow-hidden">
 			<span class="truncate block">
 				{name}
 				{#if closedAt}
 					<span class="text-xs font-normal text-gray-500 ml-1">[CLOSED]</span>
 				{/if}
 			</span>
-		</h2>
+		</h1>
 		{#if !closedAt}
 		<div class="flex gap-2 shrink-0 items-center">
 			<a href="/api/transactions/export?accounts={slug}" class="bracket-link text-xs">Export CSV</a>

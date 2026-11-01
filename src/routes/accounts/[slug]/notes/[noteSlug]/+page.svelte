@@ -8,9 +8,9 @@
 <div class="p-2">
 	<!-- Note header with account name and back link -->
 	<div class="flex justify-between items-center mb-2">
-		<h2 class="text-base font-bold m-0">
+		<h1 class="text-base font-bold m-0">
 			{data.account.name}
-		</h2>
+		</h1>
 		<a href="/accounts/{data.account.slug}/notes" class="bracket-link text-xs">
 			Notes
 		</a>

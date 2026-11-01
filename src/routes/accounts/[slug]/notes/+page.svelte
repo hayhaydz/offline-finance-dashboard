@@ -12,9 +12,9 @@
 <div class="p-2">
 	<div class="border border-black">
 		<div class="flex justify-between items-center bg-gray-100 border-b border-black p-2">
-			<h2 class="text-base font-bold m-0">
+			<h1 class="text-base font-bold m-0">
 				{data.account.name} — NOTES
-			</h2>
+			</h1>
 			<a href="/accounts/{data.account.slug}" class="bracket-link text-xs">
 				Account
 			</a>

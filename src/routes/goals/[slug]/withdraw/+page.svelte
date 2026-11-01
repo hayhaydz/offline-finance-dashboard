@@ -96,6 +96,12 @@
 	);
 </script>
 
+<!-- R-H10: page title band (was a bare form — no heading at all) -->
+<h1 class="text-base font-bold m-0 flex justify-between items-center bg-gray-100 border border-black p-2 mb-2">
+	<span>WITHDRAW — {data.goal.name}</span>
+	<a href="/goals/{data.goal.slug}" class="bracket-link text-xs font-normal">Back to goal</a>
+</h1>
+
 <form method="POST" use:enhance>
 	{#if form?.error}
 		<div class="bg-red-100 border border-black p-2 mb-2 text-sm text-red-900">
