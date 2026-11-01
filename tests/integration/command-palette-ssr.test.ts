@@ -27,7 +27,7 @@ describe("CommandPalette (#19)", () => {
 
 	it("lists navigate commands plus dynamic current-month jumps", () => {
 		const { body } = renderPalette();
-		expect(body).toContain("Budget —");
+		expect(body).toContain("Trends —");
 		expect(body).toContain("Uncategorised —");
 		expect(body).toContain("Accounts");
 		expect(body).toContain("Liabilities");
