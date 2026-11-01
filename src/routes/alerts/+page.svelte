@@ -56,8 +56,10 @@
 		<div class="p-4 text-sm text-zinc-500 font-mono">[i] No active alerts — {data.acknowledged.length} acknowledged</div>
 	{:else}
 
-		<!-- severity lanes (R29): red | amber | info side by side when wide -->
-		<div class="grid lg:grid-cols-3 gap-2">
+		<!-- severity lanes (R29): red | amber | info side by side when wide.
+		     v3.2 D2: items-start — each lane box hugs its content; the old
+		     stretch left the short CRITICAL lane as a half-empty box. -->
+		<div class="grid lg:grid-cols-3 gap-2 items-start">
 			<!-- CRITICAL lane -->
 			<div class="border border-black {data.redAlerts.length === 0 ? 'hidden lg:block' : ''}">
 				<div class="border-b border-black px-2 py-1 bg-red-100 text-xs font-bold font-mono text-red-700">
