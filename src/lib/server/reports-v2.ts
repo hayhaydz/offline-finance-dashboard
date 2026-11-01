@@ -1655,12 +1655,19 @@ async function buildBillChronology(userId: number): Promise<ReportDoc> {
 	const creeping = [...bills].sort((a, b) => b.driftPct - a.driftPct)[0];
 	const metronomic = [...bills].sort((a, b) => a.stats.jitterDays - b.stats.jitterDays)[0];
 	const lifetimeTotal = bills.reduce((s, b) => s + b.lifetimePence, 0);
+	// D0 honesty in the kicker: 0% drift is NOT creep — when nothing has
+	// moved, say so instead of naming a "steepest" climber at zero
+	// (vision-caught contradiction 2026-11-01)
+	const creepKicker =
+		creeping.driftPct > 0.005
+			? `Steepest price creep: ${creeping.name} at ${(creeping.driftPct * 100).toFixed(0)}% drift.`
+			: "No bill has changed price across its whole recorded history.";
 
 	return {
 		slug: "bill-chronology",
 		title: "Bill Chronology",
 		date,
-		abstract: `${bills.length} recurring outgoing${bills.length !== 1 ? "s" : ""} on record, lifetime ${formatCurrency(lifetimeTotal)} — ${formatCurrency(monthlyEq)}/month equivalent across monthly, quarterly, and annual cadences. ${nonMonthly.length} bill${nonMonthly.length !== 1 ? "s" : ""} sit outside the monthly detector's window and are invisible on /overview/bills. Steepest price creep: ${creeping.name} at ${(creeping.driftPct * 100).toFixed(0)}% drift.`,
+		abstract: `${bills.length} recurring outgoing${bills.length !== 1 ? "s" : ""} on record, lifetime ${formatCurrency(lifetimeTotal)} — ${formatCurrency(monthlyEq)}/month equivalent across monthly, quarterly, and annual cadences. ${nonMonthly.length} bill${nonMonthly.length !== 1 ? "s" : ""} sit outside the monthly detector's window and are invisible on /overview/bills. ${creepKicker}`,
 		method: [
 			`Data: declared withdrawals grouped by description, ${bills.length} group${bills.length !== 1 ? "s" : ""} passing a cadence window (D0: undeclared statement months are absent, not skipped)`,
 			"cadence windows: monthly 21–42d · quarterly 72–115d · annual 330–400d — every gap inside the window, else irregular (excluded)",
@@ -1717,7 +1724,7 @@ async function buildBillChronology(userId: number): Promise<ReportDoc> {
 						return `${strip}  ${b.name} (${b.spanKey})`;
 					}),
 					"strip = months of the bill's own span · █ paid · − no matching payment (may be an undeclared statement — D0)",
-					`most metronomic: ${metronomic.name} (±${metronomic.stats.jitterDays}d) · steepest creep: ${creeping.name} (${(creeping.driftPct * 100).toFixed(0)}%)`,
+					`most metronomic: ${metronomic.name} (±${metronomic.stats.jitterDays}d) · ${creeping.driftPct > 0.005 ? `steepest creep: ${creeping.name} (${(creeping.driftPct * 100).toFixed(0)}%)` : "no price movement on record"}`,
 				],
 			},
 		],
@@ -1897,6 +1904,7 @@ async function buildGoalVelocity(userId: number): Promise<ReportDoc> {
 			"Data: goals + the signed allocation ledger (adds and withdrawals, user-entered records — D0: declared history, not realtime)",
 			"rate = trailing-6-month allocations ÷ 6 · required = remaining ÷ months-to-deadline · ETA = remaining ÷ rate",
 			"verdicts: on-track (rate ≥ required) · short-pace (60–99% of required — a push catches it) · wont-finish (<60%) · stalled (rate 0) · no-deadline (pace-only) · funded",
+			"label % = funded share (current balance ÷ target)",
 			"flags: green on-track/funded · amber short-pace/stalled/no-deadline · red wont-finish",
 		],
 		findings: [
