@@ -164,7 +164,9 @@
 					? formatCurrency(Math.abs(data.budgetStatus.budget.totalTargetInCents - data.trends.current.totalPence))
 					: '—'}
 				color={data.budgetStatus.budget && data.trends.current.totalPence <= data.budgetStatus.budget.totalTargetInCents ? 'text-green-700' : 'text-red-700'}
-				detail={data.budgetStatus.budget ? '' : 'set one in trends → target'}
+				detail={data.budgetStatus.budget
+					? `${data.trends.currentMonthKey} declared vs target`
+					: 'set one in trends → target'}
 				href="/overview/trends/insights"
 			/>
 			<KpiCard
