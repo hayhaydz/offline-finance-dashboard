@@ -886,3 +886,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** yearly balance identity fixed + verified. Zero open defects. Nothing in flight.
 - **NEXT QUEUE:** 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point. Interim: light probes only.
 - **Budget:** ends 18:04:58 GMT.
+
+| 2026-11-01 16:13:23 GMT | 2026-11-01 16:13:54 GMT | 0h 01m | v3.2 sweep 38 - spending tab verified: month delta identity exact, yearly total 22,905.17 cross-matches balance tab money-out exactly, declared-months honesty copy + heaviest/quietest extras live; zero defects; |
+
+### CHECKPOINT - 2026-11-01 16:13:54 GMT (budget: ~1h50m left; turn ends)
+- **State:** yearly-balance defect class fully swept (balance fixed, spending clean). Zero open defects. Nothing in flight.
+- **NEXT QUEUE:** 17:30 LAST full suite + build gate; 18:04:58+ stop-file + final ledger row + VERSION_HISTORY save point. Interim: light probes only.
+- **Budget:** ends 18:04:58 GMT.
