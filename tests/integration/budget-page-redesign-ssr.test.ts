@@ -56,22 +56,23 @@ describe("Budget page redesign (R9 + R29)", () => {
 		const { body } = renderPage();
 		// v3.1 design-quality: the old grid-cols-3 (19%-filled 2/3 column)
 		// was replaced by a single flow: progress → [pace | burn] pair →
-		// history → config accordions
+		// history. v3.2 V4: config moved to /overview/trends/[month]/config
 		expect(body).not.toContain('class="grid lg:grid-cols-3"');
 		expect(body).toContain('class="grid lg:grid-cols-2 border-b border-black"');
 		expect(body).toContain("SPENDING PACE");
 		expect(body).toContain("Spend vs pace");
 		expect(body).toContain("HISTORY");
-		expect(body).toContain("CATEGORY TARGETS");
-		expect(body).toContain("TARGET / MO");
-		expect(body).toContain("AMENDMENTS");
 	});
 
-	it("categories collapse by default with over-budget chips visible (row 38)", () => {
+	it("v3.2 V4: config + amendments live behind a single header link, not on the month page", () => {
 		const { body } = renderPage();
-		expect(body).toContain("CATEGORY TARGETS");
-		expect(body).toContain('aria-expanded="false"');
-		// the collapsed header surfaces the over-budget categories as chips
-		expect(body).toContain("Eating out +£1,300.00");
+		expect(body).toContain("Config &amp; amendments");
+		expect(body).toContain('href="/overview/trends/2026-10/config"');
+		// the config surfaces themselves are gone from the analysis page
+		expect(body).not.toContain("CATEGORY TARGETS");
+		expect(body).not.toContain("TARGET / MO");
+		expect(body).not.toContain("AMENDMENT OPTIONS");
+		expect(body).not.toContain("FILTERS");
+		expect(body).not.toContain("aria-expanded"); // no config accordions left
 	});
 });
