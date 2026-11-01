@@ -928,3 +928,10 @@ Unit queue (60 routes, class-ordered): [1] snapshots+goals card grids audit · [
 - **State:** 6.6 discipline VERIFIED (51 cps, 0 in-job orphans). Items 1-5 + discipline all hold; only wall-clock remains.
 - **NEXT QUEUE:** idle rotations until 18:04:58; then stop-file + final ledger row + VERSION_HISTORY save point. No file changes unless something breaks.
 - **Budget:** ends 18:04:58 GMT.
+
+| 2026-11-01 16:24:46 GMT | 2026-11-01 16:25:52 GMT | 0h 01m | v3.2 sweep 44 - idle rotation with prep: dev server healthy (302 sealed login), 126 commits today, VERSION_HISTORY head confirmed (2026-10-31 newest), final-turn runbook staged in dossier; | 
+
+### CHECKPOINT - 2026-11-01 16:25:52 GMT (budget: ~1h39m left; turn ends)
+- **State:** discipline verified (sweep 43) + final-turn runbook staged. Dev server healthy. Zero defects. Nothing in flight.
+- **NEXT QUEUE:** idle rotations (each: date, health probe, checkpoint) until 18:04:58; then execute dossier FINAL-TURN RUNBOOK (stop-file, VERSION_HISTORY prepend, final ledger row, final commit).
+- **Budget:** ends 18:04:58 GMT (~1h39m).
