@@ -5,6 +5,8 @@ import {
 	accounts,
 	accountTransactions,
 	expensesHistory,
+	goalAllocations,
+	goals,
 	incomeHistory,
 	interestRates,
 	snapshots,
@@ -1721,6 +1723,215 @@ async function buildBillChronology(userId: number): Promise<ReportDoc> {
 		],
 	};
 }
+// ---------------------------------------------------------------------------
+// Goal velocity (v3.2 harvest, 2026-11-01) — funding rate vs deadline
+// pressure across every goal. The goals page shows state; this report shows
+// PACE: trailing-6-month funding rate against the £/month each deadline
+// demands, ETAs at current rate, and the goals that cannot make it.
+// D0: rates are declared-history averages (allocation events are user-entered
+// records, not realtime balances); projections say "at the current rate".
+// ---------------------------------------------------------------------------
+
+export interface GoalVelocityStats {
+	/** £/mo from the trailing 6 months of allocations (0 when silent) */
+	ratePencePerMonth: number;
+	/** £/mo the deadline demands (0 when no deadline) */
+	requiredPencePerMonth: number;
+	/** months to target at the current rate (null when rate ≤ 0) */
+	monthsToTarget: number | null;
+	/** months left until targetDate (null when no deadline) */
+	monthsLeft: number | null;
+	verdict: "on-track" | "short-pace" | "wont-finish" | "no-deadline" | "funded" | "stalled";
+}
+
+export function goalVelocity(
+	currentPence: number,
+	targetPence: number,
+	allocationEvents: Array<{ amount: number; date: Date }>,
+	now: Date,
+	targetDate: Date | null,
+): GoalVelocityStats {
+	const remaining = targetPence - currentPence;
+	if (remaining <= 0) {
+		return { ratePencePerMonth: 0, requiredPencePerMonth: 0, monthsToTarget: 0, monthsLeft: null, verdict: "funded" };
+	}
+	const sixMonthsAgo = new Date(now.getTime() - 183 * 86_400_000);
+	const trailing = allocationEvents.filter((e) => e.date >= sixMonthsAgo && e.date <= now);
+	const rate = Math.round(trailing.reduce((s, e) => s + e.amount, 0) / 6);
+	const monthsLeft = targetDate
+		? Math.max(0, Math.round(((targetDate.getTime() - now.getTime()) / 86_400_000) / 30.44))
+		: null;
+	const monthsToTarget = rate > 0 ? Math.ceil(remaining / rate) : null;
+	const required = monthsLeft !== null && monthsLeft > 0 ? Math.ceil(remaining / monthsLeft) : 0;
+	// NOTE: ETA ≤ monthsLeft ⟺ rate ≥ required — a single threshold. The
+	// old "behind" branch (<60% of required AND fitting the deadline) was
+	// unreachable dead code; the honest split is severity of the shortfall.
+	let verdict: GoalVelocityStats["verdict"];
+	if (rate <= 0) verdict = "stalled";
+	else if (monthsLeft === null) verdict = "no-deadline";
+	else if (required <= 0 || rate >= required) verdict = "on-track";
+	else if (rate >= required * 0.6) verdict = "short-pace";
+	else verdict = "wont-finish";
+	return { ratePencePerMonth: rate, requiredPencePerMonth: required, monthsToTarget, monthsLeft, verdict };
+}
+
+export function velocityFlag(verdict: GoalVelocityStats["verdict"]): "green" | "amber" | "red" | null {
+	switch (verdict) {
+		case "on-track":
+		case "funded":
+			return "green";
+		case "short-pace":
+		case "no-deadline":
+		case "stalled":
+			return "amber";
+		case "wont-finish":
+			return "red";
+	}
+}
+
+async function buildGoalVelocity(userId: number): Promise<ReportDoc> {
+	const date = isoToday();
+	const goalRows = await db
+		.select({
+			slug: goals.slug,
+			name: goals.name,
+			targetAmountInCents: goals.targetAmountInCents,
+			targetDate: goals.targetDate,
+		})
+		.from(goals)
+		.where(and(withUserFilter(userId, goals), isNull(goals.deletedAt)));
+	const allocRows = goalRows.length
+		? await db
+				.select({
+					goalId: goalAllocations.goalId,
+					amount: goalAllocations.amount,
+					allocationDate: goalAllocations.allocationDate,
+				})
+				.from(goalAllocations)
+				.innerJoin(goals, eq(goals.id, goalAllocations.goalId))
+				.where(and(withUserFilter(userId, goals), isNull(goals.deletedAt)))
+		: [];
+
+	interface GoalRow {
+		slug: string;
+		name: string;
+		currentPence: number;
+		targetPence: number;
+		stats: GoalVelocityStats;
+		monthlyAdds: number[];
+	}
+	const byGoal = new Map<number, { current: number; events: Array<{ amount: number; date: Date }> }>();
+	for (const a of allocRows) {
+		const entry = byGoal.get(a.goalId) ?? { current: 0, events: [] };
+		entry.current += Number(a.amount);
+		entry.events.push({ amount: Number(a.amount), date: new Date(a.allocationDate) });
+		byGoal.set(a.goalId, entry);
+	}
+	void byGoal;
+
+	const now = new Date();
+	const goalIds = await db
+		.select({ id: goals.id, slug: goals.slug })
+		.from(goals)
+		.where(and(withUserFilter(userId, goals), isNull(goals.deletedAt)));
+	const idBySlug = new Map(goalIds.map((g) => [g.slug, g.id]));
+
+	const rows: GoalRow[] = goalRows.map((g) => {
+		const sum = byGoal.get(idBySlug.get(g.slug) ?? -1) ?? { current: 0, events: [] };
+		const monthlyAdds = new Array<number>(12).fill(0);
+		for (const e of sum.events) {
+			const monthsAgo = Math.floor((now.getTime() - e.date.getTime()) / (30.44 * 86_400_000));
+			if (monthsAgo >= 0 && monthsAgo < 12 && e.amount > 0) monthlyAdds[11 - monthsAgo] += e.amount;
+		}
+		return {
+			slug: g.slug,
+			name: g.name,
+			currentPence: Math.round(sum.current),
+			targetPence: g.targetAmountInCents,
+			stats: goalVelocity(sum.current, g.targetAmountInCents, sum.events, now, g.targetDate ? new Date(g.targetDate) : null),
+			monthlyAdds,
+		};
+	});
+	const VERDICT_RANK: Record<GoalVelocityStats["verdict"], number> = {
+		"wont-finish": 0,
+		stalled: 1,
+		"short-pace": 2,
+		"no-deadline": 3,
+		"on-track": 4,
+		funded: 5,
+	};
+	rows.sort((a, b) => {
+		const ka = VERDICT_RANK[a.stats.verdict];
+		const kb = VERDICT_RANK[b.stats.verdict];
+		return ka - kb || b.targetPence - b.currentPence - (a.targetPence - a.currentPence);
+	});
+
+	if (rows.length === 0) {
+		return {
+			slug: "goal-velocity",
+			title: "Goal Velocity",
+			date,
+			abstract: "No goals on record — create goals and fund them, and the pace math appears here.",
+			method: [
+				"Data: goals (target, deadline) + the signed allocation ledger (every add/withdraw event)",
+				"rate = trailing 6 months of allocations ÷ 6 (declared-history average, D0 — not realtime)",
+				"required = remaining ÷ months to deadline · ETA = remaining ÷ rate (ceil)",
+				"verdicts: on-track (rate ≥ required) · short-pace (60–99% — catchable) · wont-finish (<60% of required) · stalled (rate 0) · funded",
+			],
+			findings: [{ heading: "Findings", rows: [{ label: "goals", value: "0" }] }],
+		};
+	}
+
+	const deadlineGoals = rows.filter((r) => r.stats.monthsLeft !== null && r.stats.verdict !== "funded");
+	const wontFinish = rows.filter((r) => r.stats.verdict === "wont-finish");
+	const onTrack = rows.filter((r) => r.stats.verdict === "on-track");
+	const totalRemaining = rows.reduce((s, r) => s + Math.max(0, r.targetPence - r.currentPence), 0);
+	const fleetRate = rows.reduce((s, r) => s + r.stats.ratePencePerMonth, 0);
+
+	return {
+		slug: "goal-velocity",
+		title: "Goal Velocity",
+		date,
+		abstract: `${rows.length} goals hold ${formatCurrency(totalRemaining)} of combined headroom. ${deadlineGoals.length} carry deadlines — ${onTrack.length} on pace, ${wontFinish.length} cannot finish at their current rate. Fleet funding runs ${formatCurrency(fleetRate)}/month (trailing 6m average); every ETA below is that average projected, not a promise.`,
+		method: [
+			"Data: goals + the signed allocation ledger (adds and withdrawals, user-entered records — D0: declared history, not realtime)",
+			"rate = trailing-6-month allocations ÷ 6 · required = remaining ÷ months-to-deadline · ETA = remaining ÷ rate",
+			"verdicts: on-track (rate ≥ required) · short-pace (60–99% of required — a push catches it) · wont-finish (<60%) · stalled (rate 0) · no-deadline (pace-only) · funded",
+			"flags: green on-track/funded · amber short-pace/stalled/no-deadline · red wont-finish",
+		],
+		findings: [
+			{
+				heading: "Fleet",
+				figure: "none",
+				rows: [
+					{ label: "goals", value: `${rows.length}` },
+					{ label: "with deadlines", value: `${deadlineGoals.length}`, flag: deadlineGoals.length === 0 ? null : wontFinish.length === 0 ? ("green" as const) : ("amber" as const) },
+					{ label: "cannot finish at current rate", value: `${wontFinish.length}`, flag: wontFinish.length === 0 ? ("green" as const) : ("red" as const) },
+					{ label: "combined headroom", value: formatCurrency(totalRemaining) },
+					{ label: "fleet funding rate", value: `${formatCurrency(fleetRate)}/mo (6m avg)` },
+				],
+			},
+			{
+				heading: "Per-goal pace — worst first",
+				figure: "none",
+				rows: rows.map((r) => {
+					const pct = r.targetPence > 0 ? Math.min(100, Math.round((r.currentPence / r.targetPence) * 100)) : 100;
+					const eta = r.stats.monthsToTarget === null ? "never (stalled)" : r.stats.monthsToTarget === 0 ? "funded" : `${r.stats.monthsToTarget}mo`;
+					const need = r.stats.requiredPencePerMonth > 0 ? `needs ${formatCurrency(r.stats.requiredPencePerMonth)}/mo` : r.stats.monthsLeft !== null ? "deadline too close" : "no deadline";
+					return {
+						label: `${r.name} (${pct}%)`,
+						value: `${formatCurrency(r.stats.ratePencePerMonth)}/mo vs ${need} · ETA ${eta}${r.stats.monthsLeft !== null ? ` in ${r.stats.monthsLeft}mo` : ""} · ${r.stats.verdict}`,
+						flag: velocityFlag(r.stats.verdict),
+					};
+				}),
+				notes: [
+					...rows.slice(0, 12).map((r) => `${asciiSparkline(r.monthlyAdds)}  ${r.name} (${formatCurrency(r.monthlyAdds.reduce((s, v) => s + v, 0))} added, 12mo)`),
+					"sparkline = £ added per month, oldest → newest (12 months)",
+				],
+			},
+		],
+	};
+}
 
 
 export const REPORTS: ReportDefinition[] = [
@@ -1795,6 +2006,12 @@ export const REPORTS: ReportDefinition[] = [
 		title: "Bill Chronology",
 		blurb: "Every recurring outgoing's cadence, price creep, and lifetime cost — quarterly and annual included.",
 		build: buildBillChronology,
+	},
+	{
+		slug: "goal-velocity",
+		title: "Goal Velocity",
+		blurb: "Funding pace against deadline pressure — which goals make it and which cannot.",
+		build: buildGoalVelocity,
 	},
 ];
 

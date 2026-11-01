@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { REPORTS, findReport, giniCoefficient, concentrationFlag, statementCadence, cadenceFlag, cadenceLagMonths, cadenceRowFlag, classifyBillCadence, amountDriftPct, driftFlag } from "$lib/server/reports-v2";
+import { REPORTS, findReport, giniCoefficient, concentrationFlag, statementCadence, cadenceFlag, cadenceLagMonths, cadenceRowFlag, classifyBillCadence, amountDriftPct, driftFlag, goalVelocity, velocityFlag } from "$lib/server/reports-v2";
 
 // v3 B07 (R10): the report registry is well-formed — unique slugs, real
 // blurbs and builders — and every report builds against a throwaway user
@@ -241,5 +241,76 @@ describe("bill chronology math (v3.2)", () => {
 		const doc = await report!.build(999_999);
 		expect(doc.slug).toBe("bill-chronology");
 		expect(doc.abstract).toContain("No recurring withdrawals");
+	});
+});
+
+describe("goal velocity math (v3.2)", () => {
+	const now = new Date("2026-11-01T12:00:00Z");
+	const d = (daysAgo: number) => new Date(now.getTime() - daysAgo * 86_400_000);
+
+	it("short-pace vs wont-finish: severity splits at 60% of required", () => {
+		// remaining 50k, 6 months left → required 8,334/mo
+		const mk = (eventSum: number) =>
+			goalVelocity(50_000, 100_000, [{ amount: eventSum, date: d(30) }], now, new Date("2027-05-01T00:00:00Z"));
+		// rate 5,167/mo (31k event) ≥ 60% of required 8,334 → short-pace (amber)
+		expect(mk(31_000).ratePencePerMonth).toBe(5167);
+		expect(mk(31_000).verdict).toBe("short-pace");
+		// rate 3,334/mo = 40% of required → wont-finish (red)
+		expect(mk(20_000).verdict).toBe("wont-finish");
+		// rate 10,000/mo ≥ required → on-track
+		expect(mk(60_000).verdict).toBe("on-track");
+	});
+
+	it("wont-finish: ETA beyond the deadline", () => {
+		const s = goalVelocity(0, 100_000, [{ amount: 1_000, date: d(30) }], now, new Date("2026-12-01T00:00:00Z"));
+		// rate = round(1000/6) = 167/mo → ETA = ceil(100000/167) = 599 months
+		expect(s.verdict).toBe("wont-finish");
+		expect(s.monthsToTarget).toBe(599);
+		expect(s.requiredPencePerMonth).toBe(100_000);
+	});
+
+	it("stalled: no trailing allocations", () => {
+		const s = goalVelocity(10_000, 50_000, [], now, new Date("2027-05-01T00:00:00Z"));
+		expect(s.verdict).toBe("stalled");
+		expect(s.monthsToTarget).toBeNull();
+	});
+
+	it("funded: at or past target", () => {
+		const s = goalVelocity(120_000, 100_000, [], now, null);
+		expect(s.verdict).toBe("funded");
+		expect(s.monthsToTarget).toBe(0);
+	});
+
+	it("no-deadline: pace only, never red", () => {
+		const s = goalVelocity(20_000, 100_000, [{ amount: 10_000, date: d(15) }], now, null);
+		expect(s.verdict).toBe("no-deadline");
+		expect(s.monthsLeft).toBeNull();
+		// rate = 10,000/6 = 1,667 → ETA = ceil(80,000/1,667) = 48 months
+		expect(s.monthsToTarget).toBe(48);
+	});
+
+	it("old allocations outside the 6m window do not inflate the rate", () => {
+		const fresh = goalVelocity(0, 100_000, [{ amount: 10_000, date: d(100) }], now, null);
+		const stale = goalVelocity(0, 100_000, [{ amount: 10_000, date: d(200) }], now, null);
+		expect(fresh.ratePencePerMonth).toBe(1667);
+		expect(stale.ratePencePerMonth).toBe(0);
+		expect(stale.verdict).toBe("stalled");
+	});
+
+	it("velocity flags map verdicts to semantic colours", () => {
+		expect(velocityFlag("on-track")).toBe("green");
+		expect(velocityFlag("funded")).toBe("green");
+		expect(velocityFlag("short-pace")).toBe("amber");
+		expect(velocityFlag("stalled")).toBe("amber");
+		expect(velocityFlag("no-deadline")).toBe("amber");
+		expect(velocityFlag("wont-finish")).toBe("red");
+	});
+
+	it("registered with the paper structure and degrades for unknown users", async () => {
+		const report = findReport("goal-velocity");
+		expect(report).toBeDefined();
+		const doc = await report!.build(999_999);
+		expect(doc.slug).toBe("goal-velocity");
+		expect(doc.abstract).toContain("No goals on record");
 	});
 });
