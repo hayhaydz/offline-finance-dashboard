@@ -61,6 +61,15 @@
 
 	const saved = $derived(savedOrLostPence(data.targetPence, data.spentPence));
 
+	// spending tab year view (V6 spec: "radio option for year here as well")
+	const yearOutTotal = $derived(yearFlows.reduce((s2, f) => s2 + f.moneyOutPence, 0));
+	const busiest = $derived(
+		yearFlows.reduce<null | (typeof yearFlows)[number]>((b, f) => (!b || f.moneyOutPence > b.moneyOutPence ? f : b), null),
+	);
+	const quietest = $derived(
+		yearFlows.reduce<null | (typeof yearFlows)[number]>((q, f) => (!q || f.moneyOutPence < q.moneyOutPence ? f : q), null),
+	);
+
 	function switchTab(id: TabId) {
 		tab = id;
 		outOpen = false;
@@ -103,6 +112,7 @@
 				</button>
 			{/each}
 		</div>
+		{#if tab !== 'target'}
 		<div class="flex gap-2">
 			<button
 				type="button"
@@ -123,6 +133,7 @@
 				year
 			</button>
 		</div>
+		{/if}
 	</div>
 
 	<!-- ═══ BALANCE ═══ -->
@@ -207,6 +218,27 @@
 
 	<!-- ═══ SPENDING ═══ -->
 	{#if tab === 'spending'}
+		{#if isYear}
+		<div class="border border-black grid grid-cols-4 [&>*:last-child]:border-r-0">
+			<KpiCard label="Spent · year" value={formatCurrency(yearOutTotal)} detail={`${data.monthKey.slice(0, 4)} · declared months only`} />
+			<KpiCard label="Months declared" value={String(yearFlows.length)} detail="statements entered so far" />
+			<KpiCard label="Heaviest month" value={busiest ? formatCurrency(busiest.moneyOutPence) : '—'} detail={busiest ? monthLabel(busiest.monthKey) : 'no data'} color="text-red-700" />
+			<KpiCard label="Quietest month" value={quietest ? formatCurrency(quietest.moneyOutPence) : '—'} detail={quietest ? monthLabel(quietest.monthKey) : 'no data'} color="text-green-700" />
+		</div>
+
+		{#if yearFlows.length > 1}
+			<HistoryTrendChart
+				points={yearFlows.map((f) => ({ month: f.monthKey, amountInCents: f.moneyOutPence }))}
+				formatAmount={formatCurrencyShorthand}
+				yearStartMonth={1}
+				height={200}
+			/>
+		{:else}
+			<div class="border border-black p-2 text-xs text-gray-600">
+				Not enough declared history for the year graph yet — months appear as statements are entered.
+			</div>
+		{/if}
+		{:else}
 		<div class="border border-black grid grid-cols-4 [&>*:last-child]:border-r-0">
 			<KpiCard label="Spent · chosen month" value={formatCurrency(data.chosenMonthTotalPence)} detail={data.monthKey} />
 			<KpiCard label="Same span · previous" value={formatCurrency(lastMonthTotal)} detail={data.previousKey} />
@@ -226,10 +258,11 @@
 			previousDaily={data.previousMonthDailies}
 			title="Month vs previous month"
 		/>
+		{/if}
 
 		<div class="grid grid-cols-5 gap-2">
 			<div class="col-span-3 border border-black [&>*:last-child]:border-b-0">
-				<div class="bg-gray-100 border-b border-black px-2 py-1 text-sm font-bold">SPENDING BY CATEGORY</div>
+				<div class="bg-gray-100 border-b border-black px-2 py-1 text-sm font-bold">SPENDING BY CATEGORY{#if isYear} <span class="text-[10px] font-normal text-gray-600">· {data.monthKey} (monthly detail — enter each month to build the year)</span>{/if}</div>
 				<table class="w-full">
 					<tbody>
 						{#each data.categories.included as cat (cat.name)}
